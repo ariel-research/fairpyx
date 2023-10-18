@@ -53,12 +53,22 @@ Then, use the function `fairpyx.divide` to run an algorithm on the instance. For
 
 ## Contributing new algorithms
 
-To install the project for development, do:
+1. Fork `fairpyx` and install your fork locally as follows:
 
-    clone https://github.com/ariel-research/fairpyx.git
+    ```
+    clone https://github.com/<your-username>/fairpyx.git
     cd fairpyx
-    pip install -r requirements.txt
     pip install -e .
+    ```
 
-To add a new algorithm, write a function that accepts a parameter of type `AllocationBuilder`, as well as any custom parameters your algorithm needs. The `AllocationBuilder` argument sent to your function is already initialized with an empty allocation. Your function has to modify this argument using the method `give`, which gives an item to an agent and updates the capacities. Your function need not return anything; the `fairpyx.divide` function constructs the return value. See [allocations.py](fairpyx/allocations.py) for more details on the `AllocationBuilder` object.
+2. Write a function that accepts a parameter of type `AllocationBuilder`, as well as any custom parameters your algorithm needs. The `AllocationBuilder` argument sent to your function is already initialized with an empty allocation. Your function has to modify this argument using the method `give`, which gives an item to an agent and updates the capacities. Your function need not return any value; the allocation is read from the modified parameter. See:
+
+* [picking_sequence.py](fairpyx/algorithms/picking_sequence.py) and [iterated_maximum_matching.py](fairpyx/algorithms/iterated_maximum_matching.py) for examples of algorithms;
+* [allocations.py](fairpyx/allocations.py) for more details on the `AllocationBuilder` object.
+
+## See also
+
+* [fairpy](https://github.com/erelsgl/fairpy) is an older library with the same goals. It contains more algorithms for fair item allocation, as well as algorithms for fair cake-cutting. `fairpyx` was created in order to provide a simpler interface, that also allows capacities and conflicts, which are important for fair course allocation.
+* [Other open-source projects related to fairness](related.md).
+
 
