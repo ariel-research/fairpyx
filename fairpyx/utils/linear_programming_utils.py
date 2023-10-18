@@ -5,7 +5,7 @@ Programmer: Erel Segal-Halevi.
 Since: 2023-07
 """
 
-from fairpyx.instance import Instance
+from fairpyx import Instance
 import cvxpy
 
 def allocation_variables(instance: Instance)->tuple:

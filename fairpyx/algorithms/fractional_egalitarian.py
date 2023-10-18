@@ -8,7 +8,7 @@ Since: 2023-07
 
 import cvxpy
 
-from fairpyx.instance import Instance
+from fairpyx import Instance
 from fairpyx.utils.linear_programming_utils import allocation_variables, allocation_constraints
 from fairpyx.utils.solve import solve
 

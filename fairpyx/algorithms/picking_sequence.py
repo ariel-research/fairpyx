@@ -44,10 +44,6 @@ def picking_sequence(alloc: AllocationBuilder, agent_order:list) -> list[list[an
         best_item_for_agent = max(potential_items_for_agent, key=lambda item: alloc.remaining_agent_item_value[agent][item])
         alloc.give(agent, best_item_for_agent, logger)
 
-    # alloc = AllocationBuilder(instance)
-    # complete_allocation_using_picking_sequence(alloc, agent_order)
-    # return alloc.sorted()
-
 
 def serial_dictatorship(alloc: AllocationBuilder, agent_order:list=None) -> list[list[any]]:
     """

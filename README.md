@@ -21,8 +21,9 @@ For the latest version:
 
 To verify that everything was installed correctly, run one of the example programs, e.g.
 
-    python examples/items.py
-    python examples/cake.py
+    cd fairpyx
+    python examples/courses.py
+    python examples/input_formats.py
 
 or run the tests:
 
@@ -30,58 +31,34 @@ or run the tests:
 
 ## Usage
 
-The function `fairpyx.divide` can be used to activate all fair division algorithms. For example:
+To activate a fair division algorithm, first construct a `fairpyx.instance`:
 
     import fairpyx
-
     valuations = {"Alice": {"w":11,"x":22,"y":44,"z":0}, "George": {"w":22,"x":11,"y":66,"z":33}}
+    instance = fairpyx.Instance(valuations=valuations)
 
-    ### Allocating indivisible items using the Iterated Maximum Matching algorithm:
-    fairpy.divide(algorithm=fairpy.items.iterated_maximum_matching, input=valuations)
+An instance can have other fields, such as: agent capacities, item capacities, agent conflicts and item conflicts. These fields are used by some of the algorithms. See [instance.py](fairpyx/instance.py) for details.
 
-    ### Allocating divisible goods using the leximin algorithm:
-    fairpy.divide(fairpy.items.leximin, valuations)
+Then, use the function `fairpyx.divide` to run an algorithm on the instance. For example:
 
-    ### Dividing a cake using cut-and-choose:
-    from fairpy import PiecewiseConstantAgent
-    Alice = PiecewiseConstantAgent([33,33], "Alice")
-    George = PiecewiseConstantAgent([11,55], "George")
-    fairpy.divide(algorithm=fairpy.cake.cut_and_choose.asymmetric_protocol, input=[George, Alice])
-
+    allocation = fairpyx.divide(algorithm=fairpyx.algorithms.iterated_maximum_matching, instance=instance)
+    print(allocation)
 
 ## Features and Examples
 
-1. [Item allocation algorithms](examples/items.md), for both divisible and indivisible items;
-
-1. [Cake-cutting algorithms](examples/cake.md);
+1. [Course allocation algorithms](examples/courses.md);
 
 1. [Various input formats](examples/input_formats.md), to easily use by both researchers and end-users;
 
-1. [Various output formats](examples/output_formats.md);
 
-1. [Optional logging](examples/loggers.md), to learn and understand how the algorithms work.
+## Contributing new algorithms
 
-
-## Adding new algorithms
-
-To add a new algorithm for item allocation, write a function that accepts one of the following parameters:
-
-* [AgentList](fairpy/agentlist.py) - a list of [Agent](fairpy/agents.py) objects. See e.g. [the implementation of Round Robin](fairpy/items/round_robin.py) for usage example.
-* [ValuationMatrix](fairpy/valuations.py) - a matrix v where v[i,j] is the value of agent i to item j. See e.g. [the implementation of Leximin](fairpy/items/leximin.py) for usage example.
-
-Your function may accept any other custom parameters.
-
-
-## See also
-
-* [other open-source projects related to fairness](related.md).
-
-
-## Installation for development
+To install the project for development, do:
 
     clone https://github.com/ariel-research/fairpyx.git
     cd fairpyx
     pip install -r requirements.txt
     pip install -e .
 
+To add a new algorithm, write a function that accepts a parameter of type `AllocationBuilder`, as well as any custom parameters your algorithm needs. The `AllocationBuilder` argument sent to your function is already initialized with an empty allocation. Your function has to modify this argument using the method `give`, which gives an item to an agent and updates the capacities. Your function need not return anything; the `fairpyx.divide` function constructs the return value. See [allocations.py](fairpyx/allocations.py) for more details on the `AllocationBuilder` object.
 
