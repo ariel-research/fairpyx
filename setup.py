@@ -12,6 +12,8 @@ print(f'\nVERSION = {(HERE / NAME / "VERSION").absolute()}\n')
 VERSION = (HERE / NAME / "VERSION").read_text().strip()
 # See https://packaging.python.org/en/latest/guides/single-sourcing-package-version/
 
+packages = setuptools.find_packages()
+print ("packages: ", packages)
 
 setuptools.setup(
     name=NAME,
