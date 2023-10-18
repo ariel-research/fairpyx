@@ -15,7 +15,7 @@ def many_to_many_matching(item_capacities: dict[any,int], agent_capacities:dict[
     """
     Computes a many-to-many matching of items to agents.
 
-    >>> from dicttools import stringify
+    >>> from fairpyx.utils.test_utils import stringify
 
     >>> valuations = {"a":{"x":11, "y":22}, "b":{"x":33,"y":55}}
     >>> stringify(many_to_many_matching(item_capacities={"x":2, "y":2}, agent_capacities={"a":1, "b":1}, valuations=valuations))

@@ -21,7 +21,7 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
     :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents. of the fair course allocation problem. 
     :param adjust_utilities: if True, the utilities of agents, who did not get their max-value item in the current iteration, will be adjusted to give them a higher chance in the next iteration.
 
-    >>> from dicttools import stringify
+    >>> from fairpyx.utils.test_utils import stringify
     >>> from fairpyx.adaptors import divide
 
     >>> instance = Instance(valuations={"avi": {"x":5, "y":4, "z":3, "w":2}, "beni": {"x":2, "y":3, "z":4, "w":5}}, agent_capacities=1, item_capacities=1)

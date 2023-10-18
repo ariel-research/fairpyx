@@ -10,5 +10,3 @@ cvxpy_base>=1.1.17
 # prtpy>=0.7.0
 # more_itertools
 # scs
-dicttools @ git+https://github.com/trzemecki/dicttools.git
-

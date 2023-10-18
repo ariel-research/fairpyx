@@ -24,7 +24,7 @@ def yekta_day(alloc: AllocationBuilder):
     """
     :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents. of the fair course allocation problem. 
 
-    >>> from dicttools import stringify
+    >>> from fairpyx.utils.test_utils import stringify
     >>> from fairpy.courses.adaptors import divide
 
     >>> instance = Instance(valuations={"avi": {"x":5, "y":4, "z":3, "w":2}, "beni": {"x":2, "y":3, "z":4, "w":5}}, agent_capacities=1, item_capacities=1)

@@ -27,7 +27,7 @@ def almost_egalitarian_allocation(alloc: AllocationBuilder, surplus_donation:boo
 
     >>> from fairpyx.adaptors import divide
 
-    >>> from dicttools import stringify
+    >>> from fairpyx.utils.test_utils import stringify
 
     >>> instance = Instance(valuations={"avi": {"x":5, "y":4, "z":3, "w":2}, "beni": {"x":2, "y":3, "z":4, "w":5}}, agent_capacities=1, item_capacities=1)
     >>> stringify(divide(almost_egalitarian_allocation, instance=instance))
