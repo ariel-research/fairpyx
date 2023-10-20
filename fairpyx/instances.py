@@ -171,16 +171,37 @@ class Instance:
         """
         return {agent: self.agent_ranking(agent, map_agent_to_prioritized_items[agent]) for agent in self.agents}
 
+    def __str__(self):
+        return f"""
+ * {self.num_of_agents} agents: {list(self.agents)}
+ * {self.num_of_items} items: {list(self.items)}
+ * agent capacities: { {agent: self.agent_capacity(agent) for agent in self.agents} }
+ * agent conflicts:  { {agent: self.agent_conflicts(agent) for agent in self.agents} }
+ * item capacities:  { {item: self.item_capacity(item) for item in self.items} }
+ * item conflicts:  { {item: self.item_conflicts(item) for item in self.items} }
+ """
     
     @cache
     def agent_maximum_value(self, agent:any):
         """
         Return the maximum possible value of an agent: the sum of the top x items, where x is the agent's capacity.
         """
-        return sum(sorted([self.agent_item_value(agent,item) for item in self.items],reverse=True)[0:self.agent_capacity(agent)])
+        maxvalue = sum(sorted([self.agent_item_value(agent,item) for item in self.items],reverse=True)[0:self.agent_capacity(agent)])
+        return maxvalue
+
 
     def agent_normalized_item_value(self, agent:any, item:any):
-        return self.agent_item_value(agent,item) / self.agent_maximum_value(agent) * 100
+        value = self.agent_item_value(agent,item)
+        maxvalue = self.agent_maximum_value(agent)
+        if maxvalue==0 and value>0:
+            raise ValueError(f"agent {agent} for item {item} has value {value}, but max value is {maxvalue}")
+        elif maxvalue==0:
+            return 0
+        else:
+            normalized_value = value / maxvalue * 100
+            if np.isnan(normalized_value):
+                raise ValueError(f"Normalized value of {agent} to {item} is nan! value={value}, maxvalue={maxvalue}")
+            return normalized_value
 
     @staticmethod
     def random_uniform(num_of_agents:int, num_of_items:int, 

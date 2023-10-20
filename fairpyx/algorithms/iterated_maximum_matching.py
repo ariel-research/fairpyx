@@ -13,6 +13,7 @@ Since : 2021-05
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 from fairpyx.utils.graph_utils import many_to_many_matching_using_network_flow
+from collections import defaultdict
 
 
 def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=False, explanation_logger:ExplanationLogger=ExplanationLogger()):
@@ -85,6 +86,10 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
 
     iteration = 1
     explanation_logger.info("\n"+_("algorithm_starts")+"\n")
+
+    agent_item_value_bonus = defaultdict(lambda: defaultdict(lambda: 0))
+    agent_item_value_with_bonus = lambda agent,item: alloc.effective_value(agent,item) + agent_item_value_bonus[agent][item]
+
     while len(alloc.remaining_item_capacities)>0 and len(alloc.remaining_agent_capacities)>0:
         explanation_logger.info("\n== "+_("iteration_number")+" ==", iteration, agents=alloc.remaining_agents())
         explanation_logger.info(_("remaining_seats")+"\n", alloc.remaining_item_capacities, agents=alloc.remaining_agents())
@@ -93,7 +98,7 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
             item_capacity=alloc.remaining_item_capacities.__getitem__, 
             agents=alloc.remaining_agents(),
             agent_capacity=lambda _:1,
-            agent_item_value=lambda agent,item: alloc.remaining_agent_item_value[agent][item])
+            agent_item_value=agent_item_value_with_bonus)
 
         agents_with_empty_bundles = [agent for agent,bundle in map_agent_to_bundle.items() if len(bundle)==0]
         for agent in agents_with_empty_bundles:
@@ -105,11 +110,11 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
 
         if adjust_utilities:
             map_agent_to_value = {
-                agent: alloc.remaining_agent_item_value[agent][map_agent_to_item[agent]]
+                agent: agent_item_value_with_bonus(agent, map_agent_to_item[agent])
                 for agent in map_agent_to_item.keys()
             }
             map_agent_to_max_possible_value = {
-                agent: max([alloc.remaining_agent_item_value[agent][item] for item in alloc.remaining_items()])
+                agent: max([agent_item_value_with_bonus(agent,item) for item in alloc.remaining_items()])
                 for agent in map_agent_to_item.keys()
             }
             for agent,item in map_agent_to_item.items():
@@ -120,12 +125,12 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
                     if len(alloc.bundles[agent])==alloc.instance.agent_capacity(agent):
                         explanation_logger.info("\n"+_("you_have_your_capacity"), alloc.instance.agent_capacity(agent), agents=agent)
                     else:
-                        next_best_item = max(alloc.remaining_items(), key=lambda item:alloc.remaining_agent_item_value[agent][item])
-                        current_value_of_next_best_item = alloc.remaining_agent_item_value[agent][next_best_item]
+                        next_best_item = max(alloc.remaining_items(), key=lambda item:agent_item_value_with_bonus(agent,item))
+                        current_value_of_next_best_item = agent_item_value_with_bonus(agent,next_best_item)
                         if current_value_of_next_best_item>=0:
                             utility_difference = map_agent_to_max_possible_value[agent] - map_agent_to_value[agent]
                             if utility_difference>0:
-                                alloc.remaining_agent_item_value[agent][next_best_item] += utility_difference
+                                agent_item_value_bonus[agent][item] += utility_difference
                                 explanation_logger.info("    "+_("as_compensation"),  utility_difference, next_best_item, agents=agent)
                             else:
                                 pass
@@ -151,7 +156,7 @@ def iterated_maximum_matching_unadjusted(alloc:AllocationBuilder, **kwargs):
 
 if __name__ == "__main__":
     import doctest
-    # print("\n",doctest.testmod(), "\n")
+    print("\n",doctest.testmod(), "\n")
 
     from fairpyx.adaptors import divide_random_instance
     from fairpyx.explanations import ConsoleExplanationLogger, FilesExplanationLogger, StringsExplanationLogger

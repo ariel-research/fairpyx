@@ -52,7 +52,11 @@ def almost_egalitarian_allocation(alloc: AllocationBuilder, surplus_donation:boo
     fractional_allocation = fractional_egalitarian_utilitarian_allocation(alloc.remaining_instance(), **solver_options)
     explanation_logger.explain_fractional_allocation(fractional_allocation, alloc.instance)
 
-    fractional_allocation_graph = consumption_graph(fractional_allocation, min_fraction=MIN_EDGE_FRACTION, agent_item_value=lambda agent,item:alloc.remaining_agent_item_value[agent][item])
+    fractional_allocation_graph = consumption_graph(
+        fractional_allocation, 
+        min_fraction=MIN_EDGE_FRACTION, 
+        agent_item_value=alloc.effective_value
+        )
     explanation_logger.debug("\nfractional_allocation_graph:\n%s", fractional_allocation_graph.edges.data())
 
     explanation_logger.info("\nStarting to round the fractional allocation.\n")
@@ -71,7 +75,7 @@ def almost_egalitarian_allocation(alloc: AllocationBuilder, surplus_donation:boo
         items_to_remove = []
         for neighbor_item in fractional_allocation_graph.neighbors(agent):
             current_neighbor_weight = fractional_allocation_graph[agent][neighbor_item]['weight']
-            current_neighbor_value  = current_neighbor_weight * alloc.remaining_agent_item_value[agent][neighbor_item]
+            current_neighbor_value  = current_neighbor_weight * alloc.effective_value(agent,neighbor_item)
             if current_neighbor_value <= agent_surplus[agent]:
                 explanation_logger.info("  You have a surplus of %g, so you donate your share of %g%% in course %s (value %g)", agent_surplus[agent], np.round(100*current_neighbor_weight), neighbor_item, current_neighbor_value, agents=agent)
                 items_to_remove.append(neighbor_item)
@@ -96,7 +100,7 @@ def almost_egalitarian_allocation(alloc: AllocationBuilder, surplus_donation:boo
             fractional_allocation[neighbor_agent][item] = fractional_allocation_graph[neighbor_agent][item]['weight'] = current_neighbor_weight + weight_to_add
             weight_for_redistribution -= weight_to_add
 
-            value_to_add = weight_to_add*alloc.remaining_agent_item_value[agent][item]
+            value_to_add = weight_to_add*alloc.effective_value(agent,item)
             explanation_logger.info("  Edge (%s,%s) is removed, so you receive additional %g%% of course %s (value %g).", agent,item,np.round(100*weight_to_add),item, value_to_add, agents=neighbor_agent)
             surplus_to_add[neighbor_agent] = value_to_add
             if weight_for_redistribution<=0:
@@ -223,11 +227,11 @@ def draw_bipartite_weighted_graph(G: nx.Graph, top_nodes:list):
 
 
 if __name__ == "__main__":
-    # import doctest, sys
-    # print("\n",doctest.testmod(), "\n")
+    import doctest, sys
+    print("\n",doctest.testmod(), "\n")
 
-    # logger.addHandler(logging.StreamHandler(sys.stdout))
-    # logger.setLevel(logging.WARNING)
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.setLevel(logging.WARNING)
 
     from fairpyx.adaptors import divide_random_instance
     from fairpyx.explanations import ConsoleExplanationLogger, FilesExplanationLogger, StringsExplanationLogger

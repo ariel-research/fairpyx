@@ -105,7 +105,7 @@ class AllocationBuilder:
 
     Whenever an item is given to an agent (via the 'give' method),
     the class automatically updates the 'remaining_item_capacities' and the 'remaining_agent_capacities'.
-    It also updates the 'remaining_agent_item_value' by setting the agent's value to this item to a negative number, so that it is not assigned to it anymore.
+    It also updates the 'remaining_conflicts' by adding a conflict between the agent and the item, so that it is not assigned to it anymore.
 
     Once you finish adding items, use "sorted" to get the final allocation (where each bundle is sorted alphabetically).
 
@@ -119,8 +119,8 @@ class AllocationBuilder:
     {'Alice': 1, 'Bob': 3}
     >>> alloc.remaining_item_capacities
     {'c1': 3, 'c2': 5}
-    >>> alloc.remaining_agent_item_value
-    {'Alice': {'c1': -inf, 'c2': 22}, 'Bob': {'c1': 33, 'c2': 44}}
+    >>> alloc.remaining_conflicts
+    {('Alice', 'c1')}
 
     >>> instance = Instance(
     ...   agent_capacities = {"Alice": 2, "Bob": 3}, 
@@ -129,39 +129,57 @@ class AllocationBuilder:
     ...   agent_conflicts  = {"Bob": ["c2"]},
     ...   item_conflicts  = {"c1": ["c2"]})
     >>> alloc = AllocationBuilder(instance)
-    >>> alloc.remaining_agent_item_value
-    {'Alice': {'c1': 11, 'c2': 22}, 'Bob': {'c1': 33, 'c2': -inf}}
+    >>> alloc.remaining_conflicts
+    {('Bob', 'c2')}
     >>> alloc.give('Alice', 'c1')    
-    >>> alloc.remaining_agent_item_value
-    {'Alice': {'c1': -inf, 'c2': -inf}, 'Bob': {'c1': 33, 'c2': -inf}}
+    >>> sorted(alloc.remaining_conflicts)
+    [('Alice', 'c1'), ('Alice', 'c2'), ('Bob', 'c2')]
     """
     def __init__(self, instance:Instance):
         self.instance = instance
         self.remaining_agent_capacities = {agent: instance.agent_capacity(agent) for agent in instance.agents if instance.agent_capacity(agent) > 0}
         self.remaining_item_capacities = {item: instance.item_capacity(item) for item in instance.items if instance.item_capacity(item) > 0}
-        self.remaining_agent_item_value = {agent: {item:instance.agent_item_value(agent,item) for item in instance.items} for agent in instance.agents}
-        for agent in self.remaining_agents():
-            for conflicting_item in self.instance.agent_conflicts(agent):
-                self.remaining_agent_item_value[agent][conflicting_item] = FORBIDDEN_ALLOCATION
+        self.remaining_conflicts = {(agent,item) for agent in self.remaining_agents() for item in self.instance.agent_conflicts(agent)}
         self.bundles = {agent: set() for agent in instance.agents}    # Each bundle is a set, since each agent can get at most one seat in each course
+
+    def effective_value(self, agent:any, item:any)->float:
+        """
+        Returns the agent's value for the item, if there is no conflict;
+        otherwise, returns -infinity.
+        """
+        if (agent,item) in self.remaining_conflicts:
+            return FORBIDDEN_ALLOCATION
+        else:
+            return self.instance.agent_item_value(agent,item)
 
     def remaining_items(self)->list: 
         return self.remaining_item_capacities.keys()
 
     def remaining_agents(self)->list: 
         return self.remaining_agent_capacities.keys()
-    
+
     def remaining_instance(self)->Instance:
         return Instance(
-            valuations=self.remaining_agent_item_value, 
-            agent_capacities=self.remaining_agent_capacities, agent_entitlements=self.instance.agent_entitlement, agents=self.remaining_agents(), 
-            item_capacities=self.remaining_item_capacities, items=self.remaining_items())
+            valuations=self.instance.agent_item_value,                 # base valuations are the same as in the original instance
+            agent_capacities=self.remaining_agent_capacities,          # agent capacities may be smaller than in the original instance 
+            agent_entitlements=self.instance.agent_entitlement,        # agent entitlement is the same as in the original instance  
+            agent_conflicts=self.instance.agent_conflicts,             # agent conflicts are the same as in the original instance   
+            agents=self.remaining_agents(),                            # agent list may be smaller than in the original instance
+            item_capacities=self.remaining_item_capacities,            # item capacities may be smaller than in the original instance 
+            item_conflicts=self.instance.item_conflicts,               # item conflicts are the same as in the original instance   
+            items=self.remaining_items())                              # item list may be smaller than in the original instance 
 
     def remove_item(self, item:any):
         del self.remaining_item_capacities[item]
 
     def remove_agent(self, agent:any):
         del self.remaining_agent_capacities[agent]
+
+    def update_conflicts(self, agent:any, item:any):
+        self.remaining_conflicts.add( (agent,item) )
+        for conflicting_item in self.instance.item_conflicts(item):
+            self.remaining_conflicts.add( (agent,conflicting_item) )
+
 
     def give(self, agent:any, item:any, logger=None):
         if agent not in self.remaining_agent_capacities:
@@ -171,15 +189,15 @@ class AllocationBuilder:
         self.bundles[agent].add(item)
         if logger is not None:
             logger.info("Agent %s takes item %s with value %s", agent, item, self.instance.agent_item_value(agent, item))
+
+        # Update capacities:
         self.remaining_agent_capacities[agent] -= 1
         if self.remaining_agent_capacities[agent] <= 0:
             self.remove_agent(agent)
         self.remaining_item_capacities[item] -= 1
         if self.remaining_item_capacities[item] <= 0:
             self.remove_item(item)
-        self.remaining_agent_item_value[agent][item] = FORBIDDEN_ALLOCATION
-        for conflicting_item in self.instance.item_conflicts(item):
-            self.remaining_agent_item_value[agent][conflicting_item] = FORBIDDEN_ALLOCATION
+        self.update_conflicts(agent,item)
 
 
     def give_bundle(self, agent:any, new_bundle:list, logger=None):
@@ -215,8 +233,7 @@ class AllocationBuilder:
 
         for agent,bundle in new_bundles.items():
             self.bundles[agent].update(bundle)
-            for item in bundle:
-                self.remaining_agent_item_value[agent][item] = -1  # prevent the agent from getting the same item again.
+            self.update_conflicts(agent,item)
 
     def sorted(self):
         # Each bundle is a set:

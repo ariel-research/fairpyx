@@ -50,7 +50,7 @@ def yekta_day(alloc: AllocationBuilder):
     student_list = [
         OOPStudent(id=agent, capacity=alloc.remaining_agent_capacities[agent], student_office=0, 
                    enrolled_or_not_enrolled={item:0 for item in alloc.remaining_items()}, 
-                   cardinal={item:alloc.remaining_agent_item_value[agent][item] for item in alloc.remaining_items()},
+                   cardinal={item:alloc.effective_value(agent,item) for item in alloc.remaining_items()},
                    forbid_enrollment_in_same_course_group=False)
         for agent in alloc.remaining_agents()
     ]

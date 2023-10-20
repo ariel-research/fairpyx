@@ -62,7 +62,7 @@ def general_course_allocation(
     budgets = [1 + np.random.randint(1, 100)/100 for agent in alloc.remaining_agents()]
     prices  = [np.random.randint(1, 100)/100 for item in alloc.remaining_items()]
     utilities = ValuationMatrix([
-        [alloc.remaining_agent_item_value[agent][item] for item in alloc.remaining_items()]
+        [alloc.effective_value(agent,item) for item in alloc.remaining_items()]
         for agent in alloc.remaining_agents()
     ])
     remaining_items =  list(alloc.remaining_items())

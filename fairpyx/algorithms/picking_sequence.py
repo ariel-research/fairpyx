@@ -41,7 +41,7 @@ def picking_sequence(alloc: AllocationBuilder, agent_order:list) -> list[list[an
             logger.info("Agent %s cannot pick any more items: remaining=%s, bundle=%s", agent, alloc.remaining_item_capacities, alloc.bundles[agent])
             alloc.remove_agent(agent)
             continue
-        best_item_for_agent = max(potential_items_for_agent, key=lambda item: alloc.remaining_agent_item_value[agent][item])
+        best_item_for_agent = max(potential_items_for_agent, key=lambda item: alloc.effective_value(agent,item))
         alloc.give(agent, best_item_for_agent, logger)
 
 
