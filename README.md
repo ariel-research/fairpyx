@@ -37,7 +37,7 @@ To activate a fair division algorithm, first construct a `fairpyx.instance`:
     valuations = {"Alice": {"w":11,"x":22,"y":44,"z":0}, "George": {"w":22,"x":11,"y":66,"z":33}}
     instance = fairpyx.Instance(valuations=valuations)
 
-An instance can have other fields, such as: agent capacities, item capacities, agent conflicts and item conflicts. These fields are used by some of the algorithms. See [instances.py](fairpyx/instance.py) for details.
+An instance can have other fields, such as: agent capacities, item capacities, agent conflicts and item conflicts. These fields are used by some of the algorithms. See [instances.py](fairpyx/instances.py) for details.
 
 Then, use the function `fairpyx.divide` to run an algorithm on the instance. For example:
 
