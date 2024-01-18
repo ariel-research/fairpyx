@@ -20,6 +20,8 @@
 
 **[Fair family allocation](https://github.com/erelsgl/fair-family-allocation)** - algorithms for democratic-fair allocation of indivisible goods. Based on a paper by Warut Suksompong and Erel Segal-Halevi.
 
+**[Allocations.jl](https://github.com/mlhetland/Allocations.jl)** - fair division algorithms in Julia.
+
 ## Projects in other languages
 
 **[Spliddit](https://github.com/jogo279/spliddit)** - Ruby code for the website [spliddit.org](http://spliddit.org). By Jonathan Goldman, Nisarg Shah, David Kurokawa and Ariel Procaccia.
