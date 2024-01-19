@@ -1,12 +1,22 @@
+"""
+Implement an " A-CEEI with (contested) EF-TB property" course allocation,
+
+Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
+Since: 2024-01
+"""
+
 import logging
 from fairpyx import Instance
 
 logger = logging.getLogger(__name__)
 
 
-def find_ACEEI_with_EFTB(instance: Instance, initial_budgets, delta, epsilon, t):
+def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: any, delta: float, epsilon: float, t: int):
     """
-    find an ACEEI with (contested) EF-TB
+    "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
+     by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
+     ALGORITHM 1: find an A-CEEI with (contested) EF-TB property
+
     :param instance: a fair-course-allocation instance
     :param initial_budgets: Students' initial budgets
     :param delta: The step size
@@ -15,6 +25,7 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets, delta, epsilon, t)
               0 for no EF-TB constraint,
               1 for EF-TB constraint,
               2 for contested EF-TB
+
     :return finial courses prices, finial budgets, finial distribution
 
      >>> from fairpyx.adaptors import divide
