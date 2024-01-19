@@ -21,7 +21,10 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets, delta, epsilon, t)
 
     >>> from fairpyx.utils.test_utils import stringify
 
-    >>> instance = Instance(valuations={"avi":{"x":1, "y":2, "z":4}, "beni":{"x":2, "y":3, "z":1}},agent_capacities=2,item_capacities={1, 1, 2})
+    >>> instance = Instance(
+    ... valuations={"avi":{"x":1, "y":2, "z":4}, "beni":{"x":2, "y":3, "z":1}},
+    ... agent_capacities=2,
+    ... item_capacities={1, 1, 2})
     >>> initial_budgets = {2, 3}
     >>> delta = 0.5
     >>> epsilon = 0.5
@@ -29,7 +32,10 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets, delta, epsilon, t)
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance,*initial_budgets, *delta, *epsilon, *t))
     "{p:{1, 2, 0}, b:{1.5, 2.5}, allocation:{avi:['x','z'], beni:['y', 'z']}}"
 
-    >>> instance = Instance(valuations={"avi":{"x":5, "y":2, "z":1}, "beni":{"x":4, "y":1, "z":3}},agent_capacities=2,item_capacities={1, 1, 2})
+    >>> instance = Instance(
+    ... valuations={"avi":{"x":5, "y":2, "z":1}, "beni":{"x":4, "y":1, "z":3}},
+    ... agent_capacities=2,
+    ... item_capacities={1, 1, 2})
     >>> initial_budgets = {3, 4}
     >>> delta = 0.5
     >>> epsilon = 1
@@ -37,7 +43,10 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets, delta, epsilon, t)
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance,*initial_budgets, *delta, *epsilon, *t))
     "{p:{2.5, 0, 0}, b:{2, 4}, allocation:{avi:['y','z'], beni:['x', 'z']}}"
 
-    >>> instance = Instance(valuations={"avi":{"x":5, "y":5, "z":1}, "beni":{"x":4, "y":6, "z":4}},agent_capacities=2,item_capacities={1, 2, 2})
+    >>> instance = Instance(
+    ... valuations={"avi":{"x":5, "y":5, "z":1}, "beni":{"x":4, "y":6, "z":4}},
+    ... agent_capacities=2,
+    ... item_capacities={1, 2, 2})
     >>> initial_budgets = {5, 4}
     >>> delta = 0.5
     >>> epsilon = 2
@@ -45,7 +54,10 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets, delta, epsilon, t)
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance,*initial_budgets, *delta, *epsilon, *t))
     "{p:{2.5, 0, 0}, b:{5, 2}, allocation:{avi:['x','y'], beni:['y', 'z']}}"
 
-    >>> instance = Instance(valuations={"avi":{"x":10, "y":20}, "beni":{"x":10, "y":20}},agent_capacities=1,item_capacities = {1, 1})
+    >>> instance = Instance(
+    ... valuations={"avi":{"x":10, "y":20}, "beni":{"x":10, "y":20}},
+    ... agent_capacities=1,
+    ... item_capacities = {1, 1})
     >>> initial_budgets = {1.1, 1}
     >>> delta = 0.1
     >>> epsilon = 0.2
@@ -53,7 +65,10 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets, delta, epsilon, t)
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance,*initial_budgets, *delta, *epsilon, *t))
     "{p:{0, 0.9}, b:{1.1, 0.8}, allocation:{avi:['y'], beni:['x']}}"
 
-    >>> instance = Instance(valuations={"avi":{"x":2}, "beni":{"x":3}},agent_capacities=1,item_capacities = {1})
+    >>> instance = Instance(
+    ... valuations={"avi":{"x":2}, "beni":{"x":3}},
+    ... agent_capacities=1,
+    ... item_capacities = {1})
     >>> initial_budgets = {1.1, 1}
     >>> delta = 0.1
     >>> epsilon = 0.2
@@ -61,7 +76,10 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets, delta, epsilon, t)
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance,*initial_budgets, *delta, *epsilon, *t))
     "{p:{0.9}, b:{1.1, 0.8}, allocation:{avi:['x'], beni:[]}}"
 
-    >>> instance = Instance(valuations={"avi":{"x":5, "y":4, "z":1}, "beni":{"x":4, "y":6, "z":3}},agent_capacities=2,item_capacities={1, 1, 2})
+    >>> instance = Instance(valuations={"avi":{"x":5, "y":4, "z":1},
+     ... "beni":{"x":4, "y":6, "z":3}},
+     ... agent_capacities=2,
+     ... item_capacities={1, 1, 2})
     >>> initial_budgets = {5, 4}
     >>> delta = 0.5
     >>> epsilon = 2
