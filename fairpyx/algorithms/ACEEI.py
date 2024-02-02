@@ -4,12 +4,12 @@ Implement an " A-CEEI with (contested) EF-TB property" course allocation,
 Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
 Since: 2024-01
 """
-import enum
+from enum import Enum
 import logging
 from fairpyx import Instance
 
 
-class EFTBStatus(enum):
+class EFTBStatus(Enum):
     NO_EF_TB = 0
     EF_TB = 1
     CONTESTED_EF_TB = 2
@@ -18,7 +18,7 @@ class EFTBStatus(enum):
 logger = logging.getLogger(__name__)
 
 
-def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: any, delta: float, epsilon: float, t: enum):
+def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: any, delta: float, epsilon: float, t: Enum):
     """
     "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
      by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
@@ -40,73 +40,79 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: any, delta: float,
     >>> from fairpyx.utils.test_utils import stringify
 
     >>> instance = Instance(
-    ... valuations={"avi":{"x":1, "y":2, "z":4}, "beni":{"x":2, "y":3, "z":1}},
-    ... agent_capacities=2,
-    ... item_capacities={1, 1, 2})
+    ...     valuations={"avi":{"x":1, "y":2, "z":4}, "beni":{"x":2, "y":3, "z":1}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":1, "z":2})
     >>> initial_budgets = {2, 3}
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = EFTBStatus.NO_EF_TB
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
-    ... delta=delta, epsilon=epsilon, t=t))
-    "{p:{1, 2, 0}, b:{1.5, 2.5}, allocation:{avi:['x','z'], beni:['y', 'z']}}"
+    ...     delta=delta, epsilon=epsilon, t=t))
+    "{avi:['x','z'], beni:['y', 'z']}"
 
     >>> instance = Instance(
     ... valuations={"avi":{"x":5, "y":2, "z":1}, "beni":{"x":4, "y":1, "z":3}},
     ... agent_capacities=2,
-    ... item_capacities={1, 1, 2})
+    ... item_capacities={"x":1, "y":1, "z":2})
     >>> initial_budgets = {3, 4}
     >>> delta = 0.5
     >>> epsilon = 1
     >>> t = EFTBStatus.EF_TB
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
     ... delta=delta, epsilon=epsilon, t=t))
-    "{p:{2.5, 0, 0}, b:{2, 4}, allocation:{avi:['y','z'], beni:['x', 'z']}}"
+    "{avi:['y','z'], beni:['x', 'z']}"
 
     >>> instance = Instance(
-    ... valuations={"avi":{"x":5, "y":5, "z":1}, "beni":{"x":4, "y":6, "z":4}},
-    ... agent_capacities=2,
-    ... item_capacities={1, 2, 2})
+    ...     valuations={"avi":{"x":5, "y":5, "z":1}, "beni":{"x":4, "y":6, "z":4}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":2, "z":2})
     >>> initial_budgets = {5, 4}
     >>> delta = 0.5
     >>> epsilon = 2
     >>> t = EFTBStatus.EF_TB
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
     ... delta=delta, epsilon=epsilon, t=t))
-        "{p:{2.5, 0, 0}, b:{5, 2}, allocation:{avi:['x','y'], beni:['y', 'z']}}"
+        "{avi:['x','y'], beni:['y', 'z']}"
 
     >>> instance = Instance(
-    ... valuations={"avi":{"x":10, "y":20}, "beni":{"x":10, "y":20}},
-    ... agent_capacities=1,
-    ... item_capacities = {1, 1})
+    ...     valuations={"avi":{"x":10, "y":20}, "beni":{"x":10, "y":20}},
+    ...     agent_capacities=1,
+    ...     item_capacities = {"x":1, "y":1})
     >>> initial_budgets = {1.1, 1}
     >>> delta = 0.1
     >>> epsilon = 0.2
     >>> t = EFTBStatus.EF_TB
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
-    ... delta=delta, epsilon=epsilon, t=t))
-        "{p:{0, 0.9}, b:{1.1, 0.8}, allocation:{avi:['y'], beni:['x']}}"
+    ...     delta=delta, epsilon=epsilon, t=t))
+        "{avi:['y'], beni:['x']}"
 
     >>> instance = Instance(
     ... valuations={"avi":{"x":2}, "beni":{"x":3}},
     ... agent_capacities=1,
-    ... item_capacities = {1})
+    ... item_capacities = {"x":1})
     >>> initial_budgets = {1.1, 1}
     >>> delta = 0.1
     >>> epsilon = 0.2
     >>> t = EFTBStatus.EF_TB
-    >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance,*initial_budgets, *delta, *epsilon, *t))
-    "{p:{0.9}, b:{1.1, 0.8}, allocation:{avi:['x'], beni:[]}}"
+    >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance,
+    ... initial_budgets=initial_budgets,delta=delta, epsilon=epsilon, t=t))
+    "{avi:['x'], beni:[]}"
 
     >>> instance = Instance(valuations={"avi":{"x":5, "y":4, "z":1},
-     ... "beni":{"x":4, "y":6, "z":3}},
-     ... agent_capacities=2,
-     ... item_capacities={1, 1, 2})
+    ...    "beni":{"x":4, "y":6, "z":3}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":1, "z":2})
     >>> initial_budgets = {5, 4}
     >>> delta = 0.5
     >>> epsilon = 2
     >>> t = EFTBStatus.CONTESTED_EF_TB
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
     ... delta=delta, epsilon=epsilon, t=t))
-        "{p:{1.5, 2, 0}, b:{3, 2}, allocation:{avi:['x', 'z'], beni:['y', 'z']}}"
+        "{avi:['x', 'z'], beni:['y', 'z']}"
     """
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()

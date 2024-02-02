@@ -9,12 +9,10 @@ from fairpyx.algorithms import ACEEI
 
 # Each student will get all the courses
 def test_case1():
-    random_value = (random.randint(1, 20), random.randint(21, 200))
-    random_float = (random.uniform(1, 20), random.uniform(21, 200))
     instance = Instance.random_uniform(num_of_agents=100, num_of_items=500, agent_capacity_bounds=(500, 500),
-                                       item_capacity_bounds=(200, 200), item_base_value_bounds=random_value,
-                                       item_subjective_ratio_bounds=random_float,
-                                       normalized_sum_of_values=random.randint(1, 20))
+                                       item_capacity_bounds=(200, 200), item_base_value_bounds=(1, 5),
+                                       item_subjective_ratio_bounds=(1, 1.5),
+                                       normalized_sum_of_values=1000)
     allocation = divide(ACEEI, instance=instance)
     for agent in range(instance.num_of_agents):
         for item in range(instance.num_of_items):
@@ -44,12 +42,10 @@ def test_case3():
 
 # Each student will get his 3 favorite courses
 def test_case4():
-    random_value = (random.randint(1, 20), random.randint(21, 200))
-    random_float = (random.uniform(1, 20), random.uniform(21, 200))
     instance = Instance.random_uniform(num_of_agents=100, num_of_items=300, agent_capacity_bounds=(3, 3),
-                                       item_capacity_bounds=(200, 200), item_base_value_bounds=random_value,
-                                       item_subjective_ratio_bounds=random_float,
-                                       normalized_sum_of_values=random.randint(1, 20))
+                                       item_capacity_bounds=(200, 200), item_base_value_bounds=(1, 5),
+                                       item_subjective_ratio_bounds=(0.5, 1.5),
+                                       normalized_sum_of_values=1000)
     allocation = divide(ACEEI, instance=instance)
     for agent in range(instance.num_of_agents):
         agent_valuations = instance.valuations[agent]  # Get valuations for the agent
@@ -66,12 +62,10 @@ def test_case4():
 
 # Checking if the values that the function returns are correct
 def test_case5():
-    random_value = (random.randint(1, 20), random.randint(21, 200))
-    random_float = (random.uniform(1, 20), random.uniform(21, 200))
     instance = Instance.random_uniform(num_of_agents=100, num_of_items=300, agent_capacity_bounds=(3, 3),
-                                       item_capacity_bounds=(200, 200), item_base_value_bounds=random_value,
-                                       item_subjective_ratio_bounds=random_float,
-                                       normalized_sum_of_values=random.randint(1, 20))
+                                       item_capacity_bounds=(200, 200), item_base_value_bounds=(1, 5),
+                                       item_subjective_ratio_bounds=(0.5, 1.5),
+                                       normalized_sum_of_values=1000)
     allocation = divide(ACEEI, instance=instance)
     fairpyx.validate_allocation(instance, allocation, title="validate Algorithm 1")
 
