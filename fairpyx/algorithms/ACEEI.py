@@ -70,15 +70,36 @@ def find_different_budgets(instance, initial_budgets, epsilon, delta, prices):
         matrix_k.append(row_student)
     return matrix_k
 
+
 # TODO: change the name?
 def student_budget_per_bundle(different_budgets, prices, instance):
+    # A matrix that says for each budget what is the bundle with the maximum utility that a student can take
     matrix_a = []
+
+    # TODO: add this value when it stand in the requirements
+    large_num = sum(prices[i] for i in range(len(prices)))
+
+    students_names = list(instance._agent_capacities.keys())
+    number_course = (i for i in range(len(prices)))
+
     for student in range(len(different_budgets)):
+        # The combinations of the courses according to the student's capacity
+        combination_list = []
+        max_combination = None
+        utility_max_combination = float('-inf')
+
         for budget in range(len(different_budgets[student])):
+            capacity = instance._agent_capacities[students_names[student]]
+            for r in range(1, capacity + 1):
+                combination_list.extend(combinations(number_course, r))
 
-
-
-
+            for combination in combination_list:
+                sum_of_prices = sum(prices[i] for i in combination)
+                if sum_of_prices <= budget:
+                    utility_combination = sum(instance.valuations[students_names[student]][i] for i in combination)
+                    if utility_combination > utility_max_combination:
+                        max_combination = combination
+                        utility_max_combination = utility_combination
 
 
 def find_budget_perturbation(initial_budgets, epsilon, delta, prices, instance, t):
