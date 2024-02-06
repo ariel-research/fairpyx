@@ -7,6 +7,7 @@ Since: 2024-01
 from enum import Enum
 import logging
 from fairpyx import Instance
+from itertools import combinations
 
 
 class EFTBStatus(Enum):
@@ -16,6 +17,73 @@ class EFTBStatus(Enum):
 
 
 logger = logging.getLogger(__name__)
+
+
+def excess_demand(instance, initial_budgets, prices, allocation):
+    z = [0] * instance.num_of_items  # in size of the number of courses
+    for course in range(instance.num_of_items):
+        sum = 0
+        for student in range(instance.num_of_agents):
+            sum += allocation[student][course]
+        z[course] = sum - instance.item_capacity[course]
+    return z
+
+
+def clipped_excess_demand(instance, initial_budgets, prices, allocation):
+    z = excess_demand(instance, initial_budgets, prices, allocation)
+    clipped_z = [max(0, z[i]) if prices[i] == 0 else z[i] for i in range(len(z))]
+    return clipped_z
+
+
+def find_different_budgets(instance, initial_budgets, epsilon, delta, prices):
+    max_k = (2 * epsilon / delta) + 1
+
+    # Creating all possible combinations of prices
+    combinations_set = set()
+    # A matrix for keeping the budgets that give different bundles
+    matrix_k = []
+
+    students_names = list(instance._agent_capacities.keys())
+    for student in range(instance.num_of_agents):
+        # For each student, the course price combinations (in combinations_list)
+        # are calculated according to the number of courses he needs to take
+        capacity = instance._agent_capacities[students_names[student]]
+        for r in range(1, capacity + 1):
+            for combo in combinations(prices, r):
+                combinations_set.add(sum(combo))
+        combinations_list = list(combinations_set)
+
+        # Setting the start and end index according to the definition
+        index_start = initial_budgets[student] - epsilon
+        index_end = initial_budgets[student] + epsilon
+        # range_budget = (index_start, index_end + 1)
+
+        # Keeping the various budgets for the current student
+        row_student = [index_start]
+        for combination in combinations_list:
+            if len(row_student) + 1 > max_k:
+                break
+            if index_start < combination < index_end:
+                row_student.append(combination)
+                index_start = combination
+
+        matrix_k.append(row_student)
+    return matrix_k
+
+# TODO: change the name?
+def student_budget_per_bundle(different_budgets, prices, instance):
+    matrix_a = []
+    for student in range(len(different_budgets)):
+        for budget in range(len(different_budgets[student])):
+
+
+
+
+
+
+def find_budget_perturbation(initial_budgets, epsilon, delta, prices, instance, t):
+    different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
+    a = student_budget_per_bundle(different_budgets, prices, instance)
 
 
 def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: any, delta: float, epsilon: float, t: Enum):
@@ -111,8 +179,29 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: any, delta: float,
     ... delta=delta, epsilon=epsilon, t=t))
         "{avi:['x', 'z'], beni:['y', 'z']}"
     """
+    allocation = [[0 for _ in range(instance.num_of_agents)] for _ in range(instance.num_of_items)]
+    # 1) init prices vector to be 0
+    prices = [0] * instance.num_of_items
+    norma = 1
+    while norma:
+        # 2) 𝜖-budget perturbation
+        new_budgets, norma, allocation, excess_demand = find_budget_perturbation(initial_budgets, epsilon, delta,
+                                                                                 prices, instance, t)
+        # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
+        if norma == 0:
+            return allocation  # TODO: we need to return p*, b*
+        # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
+        prices = prices + delta * excess_demand
 
 
 if __name__ == "__main__":
     import doctest
-    doctest.testmod()
+
+    instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 1, "c3": 2},
+                        valuations={"Alice": {"c1": 1, "c2": 2, "c3": 4}, "Bob": {"c1": 2, "c2": 3, "c3": 1}})
+
+    p = [0, 2, 0]
+    b_0 = [2, 3]
+    # print(find_different_budgets(instance, initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p ))
+    # print()
+    # doctest.testmod()
