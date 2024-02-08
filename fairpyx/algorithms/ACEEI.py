@@ -8,6 +8,7 @@ from enum import Enum
 import logging
 from fairpyx import Instance
 from itertools import combinations
+import linear_program as lp
 
 
 class EFTBStatus(Enum):
@@ -99,7 +100,8 @@ def student_budget_per_bundle(different_budgets, prices, instance):
             for combination in combination_list:
                 sum_of_prices = sum(prices[i] for i in combination)
                 if sum_of_prices <= budget:
-                    utility_combination = sum(instance._valuations[student_name][course] for i in combination for course in courses_names)
+                    utility_combination = sum(
+                        instance._valuations[student_name][course] for i in combination for course in courses_names)
                     # When the student meets the requirements, we will add more weight to the priority
                     if len(combination) == instance.agent_capacity(student_name):
                         utility_combination += large_num
@@ -119,6 +121,7 @@ def student_budget_per_bundle(different_budgets, prices, instance):
 def find_budget_perturbation(initial_budgets, epsilon, delta, prices, instance, t):
     different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
     a = student_budget_per_bundle(different_budgets, prices, instance)
+    lp.optimize_model(a, instance._item_capacities, prices, t)
 
 
 def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: any, delta: float, epsilon: float, t: Enum):
@@ -239,7 +242,8 @@ if __name__ == "__main__":
     b_0 = [2, 3]
 
     diff_budget = find_different_budgets(instance, initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p)
-    print("Different budget:" ,find_different_budgets(instance, initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p ))
-    print(student_budget_per_bundle(diff_budget, p, instance))
+    # print("Different budget:", find_different_budgets(instance, initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p))
+    # print(student_budget_per_bundle(diff_budget, p, instance))
+    find_budget_perturbation(initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p, instance=instance, t=EFTBStatus.NO_EF_TB)
     # print()
     # doctest.testmod()
