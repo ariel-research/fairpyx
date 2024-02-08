@@ -83,9 +83,8 @@ def student_budget_per_bundle(different_budgets, prices, instance):
 
     for student_idx, student_name in enumerate(students_names):
 
-        for course in courses_names:
-            large_num = sum(
-                instance._valuations[student_name][course] for i in range(len(instance._valuations[student_name])))
+        large_num = 0
+        large_num = sum(instance._valuations[student_name].values())
 
         # The combinations of the courses according to the student's capacity
         combination_list = []
@@ -100,8 +99,14 @@ def student_budget_per_bundle(different_budgets, prices, instance):
             for combination in combination_list:
                 sum_of_prices = sum(prices[i] for i in combination)
                 if sum_of_prices <= budget:
-                    utility_combination = sum(
-                        instance._valuations[student_name][course] for i in combination for course in courses_names)
+                    # utility_combination = sum(
+                    #     # instance._valuations[student_name][course] for i in combination for course in courses_names)
+                    #     instance._valuations[student_name].values()[combination])
+                    # values_list = list(instance._valuations[student_name].values())
+                    # utility_combination = values_list[combination]
+                    # utility_combination = sum(instance._valuations[student_name].values()[index] for index in combination)
+                    # TODO: we stop here -- need to write utility_combination in good way
+
                     # When the student meets the requirements, we will add more weight to the priority
                     if len(combination) == instance.agent_capacity(student_name):
                         utility_combination += large_num
@@ -121,7 +126,7 @@ def student_budget_per_bundle(different_budgets, prices, instance):
 def find_budget_perturbation(initial_budgets, epsilon, delta, prices, instance, t):
     different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
     a = student_budget_per_bundle(different_budgets, prices, instance)
-    lp.optimize_model(a, instance._item_capacities, prices, t)
+    lp.optimize_model(a, instance, prices, t, initial_budgets)
 
 
 def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: any, delta: float, epsilon: float, t: Enum):
@@ -235,15 +240,24 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: any, delta: float,
 if __name__ == "__main__":
     import doctest
 
-    instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 1, "c3": 2},
-                        valuations={"Alice": {"c1": 1, "c2": 2, "c3": 4}, "Bob": {"c1": 2, "c2": 3, "c3": 1}})
+    # instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 1, "c3": 2},
+    #                     valuations={"Alice": {"c1": 1, "c2": 2, "c3": 4}, "Bob": {"c1": 2, "c2": 3, "c3": 1}})
+    #
+    # p = [0, 2, 0]
+    # b_0 = [2, 3]
 
-    p = [0, 2, 0]
-    b_0 = [2, 3]
-
-    diff_budget = find_different_budgets(instance, initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p)
+    # diff_budget = find_different_budgets(instance, initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p)
     # print("Different budget:", find_different_budgets(instance, initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p))
     # print(student_budget_per_bundle(diff_budget, p, instance))
-    find_budget_perturbation(initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p, instance=instance, t=EFTBStatus.NO_EF_TB)
+    # find_budget_perturbation(initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p, instance=instance, t=EFTBStatus.NO_EF_TB)
+
+    instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 1, "c3": 2},
+                        valuations={"Alice": {"c1": 5, "c2": 4, "c3": 1}, "Bob": {"c1": 4, "c2": 6, "c3": 3}})
+
+    p = [1.5, 2, 0]
+    b_0 = [5, 4]
+    find_budget_perturbation(initial_budgets=b_0, epsilon=2, delta=0.5, prices=p, instance=instance, t=EFTBStatus.EF_TB)
+
+
     # print()
     # doctest.testmod()
