@@ -8,7 +8,8 @@ from enum import Enum
 import logging
 from fairpyx import Instance
 from itertools import combinations
-import linear_program as lp
+from linear_program import optimize_model
+# import linear_program as lp
 
 
 class EFTBStatus(Enum):
@@ -40,33 +41,34 @@ def find_different_budgets(instance, initial_budgets, epsilon, delta, prices):
     max_k = (2 * epsilon / delta) + 1
 
     # Creating all possible combinations of prices
-    combinations_set = set()
+    combinations_sum_set = set()
     # A matrix for keeping the budgets that give different bundles
     matrix_k = []
 
-    students_names = list(instance._agent_capacities.keys())
-    for student in range(instance.num_of_agents):
-        # For each student, the course price combinations (in combinations_list)
+    # students_names = list(instance._agent_capacities.keys())
+    students_names = instance.agents
+
+    for student in instance.agents:
+        # For each student, the course price combinations (in combinations_sum_list)
         # are calculated according to the number of courses he needs to take
-        capacity = instance._agent_capacities[students_names[student]]
+        capacity = instance.agent_capacity(student)
         for r in range(1, capacity + 1):
             for combo in combinations(prices, r):
-                combinations_set.add(sum(combo))
-        combinations_list = list(combinations_set)
-
+                combinations_sum_set.add(sum(combo))
+        # todo continue
         # Setting the start and end index according to the definition
-        index_start = initial_budgets[student] - epsilon
-        index_end = initial_budgets[student] + epsilon
-        # range_budget = (index_start, index_end + 1)
+        min_budget = initial_budgets[student] - epsilon
+        max_budget = initial_budgets[student] + epsilon
+        # range_budget = (min_budget, max_budget + 1)
 
         # Keeping the various budgets for the current student
-        row_student = [index_start]
-        for combination in combinations_list:
+        row_student = [min_budget]
+        for combination_sum in sorted(combinations_sum_set):
             if len(row_student) + 1 > max_k:
                 break
-            if index_start < combination < index_end:
-                row_student.append(combination)
-                index_start = combination
+            if min_budget < combination_sum <= max_budget:
+                row_student.append(combination_sum)
+                min_budget = combination_sum
 
         matrix_k.append(row_student)
     return matrix_k
@@ -236,15 +238,20 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: any, delta: float,
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
         prices = prices + delta * excess_demand
 
+# def optimize_model( t):
+#     if t == EFTBStatus.NO_EF_TB:
+#         print(12)
+#     else:
+#         print("no")
 
 if __name__ == "__main__":
     import doctest
 
-    # instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 1, "c3": 2},
-    #                     valuations={"Alice": {"c1": 1, "c2": 2, "c3": 4}, "Bob": {"c1": 2, "c2": 3, "c3": 1}})
-    #
-    # p = [0, 2, 0]
-    # b_0 = [2, 3]
+    instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 1, "c3": 2},
+                        valuations={"Alice": {"c1": 1, "c2": 2, "c3": 4}, "Bob": {"c1": 2, "c2": 3, "c3": 1}})
+
+    p = [0, 2, 0]
+    b_0 = [2, 3]
 
     # diff_budget = find_different_budgets(instance, initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p)
     # print("Different budget:", find_different_budgets(instance, initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p))
@@ -256,7 +263,8 @@ if __name__ == "__main__":
 
     p = [1.5, 2, 0]
     b_0 = [5, 4]
-    find_budget_perturbation(initial_budgets=b_0, epsilon=2, delta=0.5, prices=p, instance=instance, t=EFTBStatus.EF_TB)
+    # find_budget_perturbation(initial_budgets=b_0, epsilon=2, delta=0.5, prices=p, instance=instance, t=EFTBStatus.EF_TB)
+    optimize_model(EFTBStatus.NO_EF_TB)
 
 
     # print()
