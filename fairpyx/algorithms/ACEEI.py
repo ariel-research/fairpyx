@@ -8,8 +8,7 @@ from enum import Enum
 import logging
 from fairpyx import Instance
 from itertools import combinations
-from linear_program import optimize_model
-# import linear_program as lp
+import linear_program as lp
 
 
 class EFTBStatus(Enum):
@@ -38,28 +37,50 @@ def clipped_excess_demand(instance, initial_budgets, prices, allocation):
 
 
 def find_different_budgets(instance, initial_budgets, epsilon, delta, prices):
+    """
+     The function return dictionary that contains for every student the different budjet in range b0 +- epsilon
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":5, "y":5, "z":1}, "Bob":{"x":4, "y":6, "z":4}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":2, "z":2})
+    >>> initial_budgets = {"Alice": 5, "Bob": 4}
+    >>> epsilon = 2
+    >>> delta = 0.5
+    >>> prices = {"c1": 1, "c2": 2, "c3": 3}
+    >>> find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
+    {'Alice': [3, 4, 5], 'Bob': [2, 3, 4, 5]}
+
+
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":5, "y":5, "z":1}, "Bob":{"x":4, "y":6, "z":4}, "Eve": {"x":4, "y":6, "z":4}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":2, "z":3})
+    >>> initial_budgets = {"Alice": 5, "Bob": 4, "Eve": 8}
+    >>> epsilon = 2
+    >>> delta = 0.5
+    >>> prices = {"c1": 1, "c2": 3, "c3": 5}
+    >>> find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
+    {'Alice': [3, 4, 5, 6], 'Bob': [2, 3, 4, 5, 6], 'Eve': [6, 8]}
+    """
+
     max_k = (2 * epsilon / delta) + 1
 
     # Creating all possible combinations of prices
     combinations_sum_set = set()
-    # A matrix for keeping the budgets that give different bundles
-    matrix_k = []
-
-    # students_names = list(instance._agent_capacities.keys())
-    students_names = instance.agents
+    # A dictionary for keeping the budgets for every bundle (k matrix from the article)
+    different_budgets = {}
 
     for student in instance.agents:
         # For each student, the course price combinations (in combinations_sum_list)
         # are calculated according to the number of courses he needs to take
         capacity = instance.agent_capacity(student)
         for r in range(1, capacity + 1):
-            for combo in combinations(prices, r):
+            for combo in combinations(prices.values(), r):
                 combinations_sum_set.add(sum(combo))
-        # todo continue
-        # Setting the start and end index according to the definition
+
+        # Setting the min and max budget according to the definition
         min_budget = initial_budgets[student] - epsilon
         max_budget = initial_budgets[student] + epsilon
-        # range_budget = (min_budget, max_budget + 1)
 
         # Keeping the various budgets for the current student
         row_student = [min_budget]
@@ -70,8 +91,8 @@ def find_different_budgets(instance, initial_budgets, epsilon, delta, prices):
                 row_student.append(combination_sum)
                 min_budget = combination_sum
 
-        matrix_k.append(row_student)
-    return matrix_k
+        different_budgets[student] = row_student
+    return different_budgets
 
 
 # TODO: change the name?
@@ -127,11 +148,12 @@ def student_budget_per_bundle(different_budgets, prices, instance):
 
 def find_budget_perturbation(initial_budgets, epsilon, delta, prices, instance, t):
     different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
+    #
     a = student_budget_per_bundle(different_budgets, prices, instance)
     lp.optimize_model(a, instance, prices, t, initial_budgets)
 
 
-def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: any, delta: float, epsilon: float, t: Enum):
+def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: dict, delta: float, epsilon: float, t: Enum):
     """
     "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
      by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
@@ -247,24 +269,27 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: any, delta: float,
 if __name__ == "__main__":
     import doctest
 
-    instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 1, "c3": 2},
-                        valuations={"Alice": {"c1": 1, "c2": 2, "c3": 4}, "Bob": {"c1": 2, "c2": 3, "c3": 1}})
-
-    p = [0, 2, 0]
-    b_0 = [2, 3]
-
-    # diff_budget = find_different_budgets(instance, initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p)
+    # instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 2, "c3": 2},
+    #                     valuations={"Alice": {"c1": 5, "c2": 5, "c3": 1}, "Bob": {"c1": 4, "c2": 6, "c3": 4}})
+    #
+    # p = {"c1": 1, "c2": 2, "c3": 3}
+    # b_0 = {"Alice": 5, "Bob": 4}
+    #
+    # diff_budget = find_different_budgets(instance, initial_budgets=b_0, epsilon=2, delta=0.5, prices=p)
+    # print(diff_budget)
     # print("Different budget:", find_different_budgets(instance, initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p))
     # print(student_budget_per_bundle(diff_budget, p, instance))
     # find_budget_perturbation(initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p, instance=instance, t=EFTBStatus.NO_EF_TB)
 
-    instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 1, "c3": 2},
-                        valuations={"Alice": {"c1": 5, "c2": 4, "c3": 1}, "Bob": {"c1": 4, "c2": 6, "c3": 3}})
+    # instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 1, "c3": 2},
+    #                     valuations={"Alice": {"c1": 5, "c2": 4, "c3": 1}, "Bob": {"c1": 4, "c2": 6, "c3": 3}})
+    #
+    # p = [1.5, 2, 0]
+    # b_0 = [5, 4]
+    #
 
-    p = [1.5, 2, 0]
-    b_0 = [5, 4]
     # find_budget_perturbation(initial_budgets=b_0, epsilon=2, delta=0.5, prices=p, instance=instance, t=EFTBStatus.EF_TB)
-    optimize_model(EFTBStatus.NO_EF_TB)
+    # lp.optimize_model(EFTBStatus.NO_EF_TB)
 
 
     # print()
