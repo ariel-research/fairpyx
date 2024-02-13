@@ -39,6 +39,15 @@ def clipped_excess_demand(instance, initial_budgets, prices, allocation):
 def find_different_budgets(instance, initial_budgets, epsilon, delta, prices):
     """
      The function return dictionary that contains for every student the different budjet in range b0 +- epsilon
+
+    :param instance: a fair-course-allocation instance
+    :param initial_budgets: the initial budgets of the students
+    :param delta: The step size
+    :param epsilon: maximum budget perturbation
+    :param prices: courses prices
+
+    :return different_budgets: dictionary that contains for every student the different budjet in range b0 +- epsilon
+
     >>> instance = Instance(
     ...     valuations={"Alice":{"x":5, "y":5, "z":1}, "Bob":{"x":4, "y":6, "z":4}},
     ...     agent_capacities=2,
@@ -61,6 +70,17 @@ def find_different_budgets(instance, initial_budgets, epsilon, delta, prices):
     >>> prices = {"c1": 1, "c2": 3, "c3": 5}
     >>> find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
     {'Alice': [3, 4, 5, 6], 'Bob': [2, 3, 4, 5, 6], 'Eve': [6, 8]}
+
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":5, "y":5, "z":1}, "Bob":{"x":4, "y":6, "z":4}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":2, "z":2})
+    >>> initial_budgets = {"Alice": 5, "Bob": 4}
+    >>> epsilon = 2
+    >>> delta = 0.5
+    >>> prices = {"c1": 2.5, "c2": 0, "c3": 0}
+    >>> find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
+    {'Alice': [3], 'Bob': [2, 2.5]}
     """
 
     max_k = (2 * epsilon / delta) + 1
@@ -96,53 +116,95 @@ def find_different_budgets(instance, initial_budgets, epsilon, delta, prices):
 
 
 # TODO: change the name?
-def student_budget_per_bundle(different_budgets, prices, instance):
-    # A matrix that says for each budget what is the bundle with the maximum utility that a student can take
-    matrix_a = [[] for _ in range(instance.num_of_agents)]
+def student_budget_per_bundle(different_budgets: dict, prices: dict, instance: Instance):
+    """
+    Return a matrix that says for each budget what is the bundle with the maximum utility that a student can take
 
-    students_names = list(instance._agent_capacities.keys())  # keys of agents
-    courses_names = list(instance._item_capacities.keys())  # keys of courses
-    number_course = [i for i in range(len(courses_names))]
+    :param different_budgets: different budgets that will give to every student different bundles
+    :param prices: courses prices
+    :param instance: a fair-course-allocation instance
 
-    for student_idx, student_name in enumerate(students_names):
+    :return matrix_a: that says for each budget what is the bundle with the maximum utility that a student can take
 
-        large_num = 0
-        large_num = sum(instance._valuations[student_name].values())
+    Example run 3 iteration 7
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":5, "y":5, "z":1}, "Bob":{"x":4, "y":6, "z":4}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":2, "z":2})
+    >>> initial_budgets = {"Alice": 5, "Bob": 4}
+    >>> epsilon = 2
+    >>> delta = 0.5
+    >>> prices = {"x": 2.5, "y": 0, "z": 0}
+    >>> different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
+    >>> student_budget_per_bundle(different_budgets, prices, instance)
+    [[('x', 'y')], [('y', 'z'), ('x', 'y')]]
 
-        # The combinations of the courses according to the student's capacity
-        combination_list = []
-        max_combination = None
-        utility_max_combination = float('-inf')
+    Example run 6 iteration 5
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":1, "z":2})
+    >>> initial_budgets = {"Alice": 5, "Bob": 4}
+    >>> epsilon = 2
+    >>> delta = 0.5
+    >>> prices = {"x": 1.5, "y": 2, "z": 0}
+    >>> different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
+    >>> student_budget_per_bundle(different_budgets, prices, instance)
+    [[('x', 'z'), ('x', 'y')], [('y', 'z'), ('x', 'y')]]
 
-        for budget in different_budgets[student_idx]:
-            capacity = instance._agent_capacities[student_name]
-            for r in range(1, capacity + 1):
-                combination_list.extend(combinations(number_course, r))
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":1, "y":1, "z":3}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":1, "z":2})
+    >>> initial_budgets = {"Alice": 5}
+    >>> epsilon = 0.1
+    >>> delta = 0.5
+    >>> prices = {"x": 2, "y": 2, "z": 5}
+    >>> different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
+    >>> student_budget_per_bundle(different_budgets, prices, instance)
+    [[('x', 'y')]]
+    """
+    matrix_a = [[None] * len(row) for row in different_budgets.values()]
 
-            for combination in combination_list:
-                sum_of_prices = sum(prices[i] for i in combination)
-                if sum_of_prices <= budget:
-                    # utility_combination = sum(
-                    #     # instance._valuations[student_name][course] for i in combination for course in courses_names)
-                    #     instance._valuations[student_name].values()[combination])
-                    # values_list = list(instance._valuations[student_name].values())
-                    # utility_combination = values_list[combination]
-                    # utility_combination = sum(instance._valuations[student_name].values()[index] for index in combination)
-                    # TODO: we stop here -- need to write utility_combination in good way
+    for student_idx, student in enumerate(instance.agents):
 
-                    # When the student meets the requirements, we will add more weight to the priority
-                    if len(combination) == instance.agent_capacity(student_name):
-                        utility_combination += large_num
-                    if utility_combination > utility_max_combination:
-                        max_combination = combination
-                        utility_max_combination = utility_combination
+        # Creating a list of combinations of courses up to the size of the student's capacity
+        combinations_courses_list = []
+        capacity = instance.agent_capacity(student)
+        for r in range(1, capacity + 1):
+            combinations_courses_list.extend(combinations(instance.items, r))
 
-            # Creating a binary vector to represent courses in the combination
-            # binary_vector = [1 if i in enumerate(max_combination) else 0 for i in range(len(prices))]
-            binary_vector = [1 if max_combination is not None and i in max_combination else 0 for i in
-                             range(len(prices))]
+        #  We would like to meet the requirement of the number of courses a student needs, therefore if
+        #  the current combination meets the requirement we will give it more weight
+        large_num = sum(instance._valuations[student].values())
+        # Define a lambda function that calculates the valuation of a combination
+        # TODO: change the private _valuations
+        valuation_function = lambda combination: sum(instance._valuations[student][course]
+                                                     for course in combination) + (
+                                                     large_num if len(combination) == instance.agent_capacity(
+                                                         student) else 0)
 
-            matrix_a[student_idx].append(binary_vector)
+        # Sort the combinations_set based on their valuations in descending order
+        combinations_courses_sorted = sorted(combinations_courses_list, key=valuation_function, reverse=True)
+
+        # Sort the combinations of the courses in descending order according to utility. We went through the
+        # budgets in descending order, for each budget we looked for the combination with the maximum value that
+        # could be taken in that budget.
+        curr_element = 0
+        # A flag that indicates whether we have found a combination for the current budget
+        added_budget = False
+        for budget_idx, budget in enumerate(reversed(different_budgets[student])):
+            for combination_course_index in range(curr_element, len(combinations_courses_sorted)):
+                combination_course = combinations_courses_sorted[combination_course_index]
+                price_combination = sum(prices[course] for course in combination_course)
+                if budget >= price_combination:
+                    correct_index_budget = len(different_budgets[student]) - budget_idx - 1
+                    matrix_a[student_idx][correct_index_budget] = combination_course
+                    curr_element = combination_course_index
+                    added_budget = True
+                    break
+            if added_budget:
+                continue
     return matrix_a
 
 
@@ -260,6 +322,7 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: dict, delta: float
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
         prices = prices + delta * excess_demand
 
+
 # def optimize_model( t):
 #     if t == EFTBStatus.NO_EF_TB:
 #         print(12)
@@ -291,6 +354,16 @@ if __name__ == "__main__":
     # find_budget_perturbation(initial_budgets=b_0, epsilon=2, delta=0.5, prices=p, instance=instance, t=EFTBStatus.EF_TB)
     # lp.optimize_model(EFTBStatus.NO_EF_TB)
 
-
     # print()
     # doctest.testmod()
+    instance = Instance(
+        valuations={"Alice": {"x": 5, "y": 5, "z": 1}, "Bob": {"x": 4, "y": 6, "z": 4}},
+        agent_capacities=2,
+        item_capacities={"x": 1, "y": 2, "z": 2})
+    initial_budgets = {"Alice": 5, "Bob": 4}
+    epsilon = 2
+    delta = 0.5
+    prices = {"x": 2.5, "y": 0, "z": 0}
+    different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
+    a = student_budget_per_bundle(different_budgets, prices, instance)
+    print(a)
