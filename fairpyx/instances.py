@@ -30,6 +30,10 @@ class Instance:
     ...   agent_capacities = {"Alice": 2, "Bob": 3}, 
     ...   item_capacities  = {"c1": 4, "c2": 5}, 
     ...   valuations       = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}})
+    >>> list(instance.agents)
+    ['Alice', 'Bob']
+    >>> list(instance.items)
+    ['c1', 'c2']
     >>> instance.agent_capacity("Alice")
     2
     >>> instance.item_capacity("c2")
