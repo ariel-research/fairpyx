@@ -6,6 +6,7 @@ Since: 2024-01
 """
 from enum import Enum
 import logging
+
 from fairpyx import Instance
 from itertools import combinations
 import linear_program as lp
@@ -55,9 +56,9 @@ def find_different_budgets(instance, initial_budgets, epsilon, delta, prices):
     >>> initial_budgets = {"Alice": 5, "Bob": 4}
     >>> epsilon = 2
     >>> delta = 0.5
-    >>> prices = {"c1": 1, "c2": 2, "c3": 3}
+    >>> prices = {"x": 1, "y": 2, "z": 3}
     >>> find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
-    {'Alice': [3, 4, 5], 'Bob': [2, 3, 4, 5]}
+    {'Alice': [3, 4, 5], 'Bob': [2, 3, 4, 5]} # TODO: change the bundle
 
 
     >>> instance = Instance(
@@ -67,7 +68,7 @@ def find_different_budgets(instance, initial_budgets, epsilon, delta, prices):
     >>> initial_budgets = {"Alice": 5, "Bob": 4, "Eve": 8}
     >>> epsilon = 2
     >>> delta = 0.5
-    >>> prices = {"c1": 1, "c2": 3, "c3": 5}
+    >>> prices = {"x": 1, "y": 3, "z": 5}
     >>> find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
     {'Alice': [3, 4, 5, 6], 'Bob': [2, 3, 4, 5, 6], 'Eve': [6, 8]}
 
@@ -115,10 +116,9 @@ def find_different_budgets(instance, initial_budgets, epsilon, delta, prices):
     return different_budgets
 
 
-# TODO: change the name?
-def student_budget_per_bundle(different_budgets: dict, prices: dict, instance: Instance):
+def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: any, initial_budgets: dict):
     """
-    Return a matrix that says for each budget what is the bundle with the maximum utility that a student can take
+    Return a dict that says for each budget what is the bundle with the maximum utility that a student can take
 
     :param different_budgets: different budgets that will give to every student different bundles
     :param prices: courses prices
@@ -133,11 +133,9 @@ def student_budget_per_bundle(different_budgets: dict, prices: dict, instance: I
     ...     item_capacities={"x":1, "y":2, "z":2})
     >>> initial_budgets = {"Alice": 5, "Bob": 4}
     >>> epsilon = 2
-    >>> delta = 0.5
     >>> prices = {"x": 2.5, "y": 0, "z": 0}
-    >>> different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
-    >>> student_budget_per_bundle(different_budgets, prices, instance)
-    [[('x', 'y')], [('y', 'z'), ('x', 'y')]]
+    >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets)
+    {'Bob': {2.5: ('x', 'y')}}
 
     Example run 6 iteration 5
     >>> instance = Instance(
@@ -146,11 +144,14 @@ def student_budget_per_bundle(different_budgets: dict, prices: dict, instance: I
     ...     item_capacities={"x":1, "y":1, "z":2})
     >>> initial_budgets = {"Alice": 5, "Bob": 4}
     >>> epsilon = 2
-    >>> delta = 0.5
     >>> prices = {"x": 1.5, "y": 2, "z": 0}
-    >>> different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
-    >>> student_budget_per_bundle(different_budgets, prices, instance)
-    [[('x', 'z'), ('x', 'y')], [('y', 'z'), ('x', 'y')]]
+    >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets)
+    {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
+
+    # todo: fix bob alocatuon bundle - we dont get what we get in the running examples
+
+    # Alice: 3-7 -> (9, [x,y], p=3.5) (6, [x,z], p=1.5) (5, [y,z], p=2) (5 , x , p=1.5) (4, y, p=2) (1, z, p=0)
+
 
     >>> instance = Instance(
     ...     valuations={"Alice":{"x":1, "y":1, "z":3}},
@@ -158,13 +159,13 @@ def student_budget_per_bundle(different_budgets: dict, prices: dict, instance: I
     ...     item_capacities={"x":1, "y":1, "z":2})
     >>> initial_budgets = {"Alice": 5}
     >>> epsilon = 0.1
-    >>> delta = 0.5
     >>> prices = {"x": 2, "y": 2, "z": 5}
-    >>> different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
-    >>> student_budget_per_bundle(different_budgets, prices, instance)
-    [[('x', 'y')]]
+    >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets)
+    {'Alice': {5: ('z',)}}
     """
-    matrix_a = [[None] * len(row) for row in different_budgets.values()]
+
+    # matrix_a = [[None] * len(student) for student in different_budgets.values()]
+    best_bundle_per_budget = {}
 
     for student_idx, student in enumerate(instance.agents):
 
@@ -176,42 +177,64 @@ def student_budget_per_bundle(different_budgets: dict, prices: dict, instance: I
 
         #  We would like to meet the requirement of the number of courses a student needs, therefore if
         #  the current combination meets the requirement we will give it more weight
-        large_num = sum(instance._valuations[student].values())
+        large_num = instance.agent_maximum_value(student)
+
         # Define a lambda function that calculates the valuation of a combination
-        # TODO: change the private _valuations
-        valuation_function = lambda combination: sum(instance._valuations[student][course]
-                                                     for course in combination) + (
-                                                     large_num if len(combination) == instance.agent_capacity(
-                                                         student) else 0)
+        valuation_function = lambda combination: instance.agent_bundle_value(student, combination) + (
+            large_num if len(combination) == instance.agent_capacity(student) else 0)
 
         # Sort the combinations_set based on their valuations in descending order
         combinations_courses_sorted = sorted(combinations_courses_list, key=valuation_function, reverse=True)
 
+        # Setting the min and max budget according to the definition
+        min_budget = initial_budgets[student] - epsilon
+        max_budget = initial_budgets[student] + epsilon
+
         # Sort the combinations of the courses in descending order according to utility. We went through the
         # budgets in descending order, for each budget we looked for the combination with the maximum value that
         # could be taken in that budget.
-        curr_element = 0
-        # A flag that indicates whether we have found a combination for the current budget
-        added_budget = False
-        for budget_idx, budget in enumerate(reversed(different_budgets[student])):
-            for combination_course_index in range(curr_element, len(combinations_courses_sorted)):
-                combination_course = combinations_courses_sorted[combination_course_index]
-                price_combination = sum(prices[course] for course in combination_course)
-                if budget >= price_combination:
-                    correct_index_budget = len(different_budgets[student]) - budget_idx - 1
-                    matrix_a[student_idx][correct_index_budget] = combination_course
-                    curr_element = combination_course_index
-                    added_budget = True
-                    break
-            if added_budget:
-                continue
-    return matrix_a
+        min_price = float('inf')
+        # Alice: 3-7 -> (9, [x,y], p=3.5) (6, [x,z], p=1.5) (5, [y,z], p=2) (5 , x , p=1.5) (4, y, p=2) (1, z, p=0)
+
+        # when the min budget added, continue to the next student
+        flag_min_budget = False
+        for combination in combinations_courses_sorted:
+            if flag_min_budget:
+                break
+            price_combination = sum(prices[course] for course in combination)
+            if price_combination <= max_budget and price_combination < min_price:
+                min_price = price_combination
+                if price_combination < min_budget:
+                    price_combination = min_budget
+                    flag_min_budget = True
+
+                if student not in best_bundle_per_budget:
+                    best_bundle_per_budget[student] = {}
+                best_bundle_per_budget[student][price_combination] = combination
+
+
+    # A flag that indicates whether we have found a combination for the current budget
+    # added_budget = False
+    # for budget_idx, budget in enumerate(reversed(different_budgets[student])):
+    #     for combination_course_index in range(curr_element, len(combinations_courses_sorted)):
+    #         combination_course = combinations_courses_sorted[combination_course_index]
+    #         price_combination = sum(prices[course] for course in combination_course)
+    #         if budget >= price_combination:
+    #             # todo: change to dict by student & by budget
+    #             correct_index_budget = len(different_budgets[student]) - budget_idx - 1
+    #             best_bundle_per_budget[student_idx][correct_index_budget] = combination_course
+    #             curr_element = combination_course_index
+    #             added_budget = True
+    #             break
+    #     if added_budget:
+    #         continue
+    return best_bundle_per_budget
 
 
 def find_budget_perturbation(initial_budgets, epsilon, delta, prices, instance, t):
     different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
     #
-    a = student_budget_per_bundle(different_budgets, prices, instance)
+    a = student_best_bundle_per_budget(different_budgets, prices, instance)
     lp.optimize_model(a, instance, prices, t, initial_budgets)
 
 
@@ -356,14 +379,22 @@ if __name__ == "__main__":
 
     # print()
     # doctest.testmod()
+    # instance = Instance(
+    #     valuations={"Alice": {"x": 5, "y": 5, "z": 1}, "Bob": {"x": 4, "y": 6, "z": 4}},
+    #     agent_capacities=2,
+    #     item_capacities={"x": 1, "y": 2, "z": 2})
+    # initial_budgets = {"Alice": 5, "Bob": 4}
+    # epsilon = 2
+    # delta = 0.5
+    # prices = {"x": 2.5, "y": 0, "z": 0}
+    # different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
+    # a = student_best_bundle_per_budget(different_budgets, prices, instance)
+    # print(a)
     instance = Instance(
-        valuations={"Alice": {"x": 5, "y": 5, "z": 1}, "Bob": {"x": 4, "y": 6, "z": 4}},
+        valuations={"Alice": {"x": 5, "y": 4, "z": 1}, "Bob": {"x": 4, "y": 6, "z": 3}},
         agent_capacities=2,
-        item_capacities={"x": 1, "y": 2, "z": 2})
+        item_capacities={"x": 1, "y": 1, "z": 2})
     initial_budgets = {"Alice": 5, "Bob": 4}
     epsilon = 2
-    delta = 0.5
-    prices = {"x": 2.5, "y": 0, "z": 0}
-    different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
-    a = student_budget_per_bundle(different_budgets, prices, instance)
-    print(a)
+    prices = {"x": 1.5, "y": 2, "z": 0}
+    student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
