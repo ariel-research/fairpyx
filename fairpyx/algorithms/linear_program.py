@@ -2,6 +2,8 @@ from mip import *
 import sys
 import logging
 
+from fairpyx import Instance
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, stream=sys.stdout, format='%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger()
@@ -56,7 +58,7 @@ def get_envy_constraints(instance, initial_budgets, a, model, x):
                             logger.info(f"student {student} bundle {i} envy student {other_student} bundle {j}")
 
 
-def optimize_model(a, instance, prices, t, initial_budgets):
+def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_budgets: dict):
     """
         Example run 6 iteration 5
         # TODO - it is not like fairpyx.algorithms.ACEEI
@@ -75,14 +77,14 @@ def optimize_model(a, instance, prices, t, initial_budgets):
     """
     model = Model("allocations")
     n = len(a)  # Number of students
-    courses_names = list(instance._item_capacities.keys())  # keys of courses
+    courses_names = list(instance.items)  # keys of courses
     m = len(courses_names)  # Number of courses
-    k = [len(budgets) for budgets in a]  # Number of bundles for each student
+    k = [len(a[student].keys()) for student in a.keys()]  # Number of bundles for each student
 
     # Decision variables
     x = [[model.add_var(var_type=BINARY) for _ in range(k[i])] for i in range(n)]
-    z = [model.add_var(var_type=CONTINUOUS, lb=-instance._item_capacities[course]) for course in courses_names]
-    y = [model.add_var(var_type=CONTINUOUS) for course in range(m)]
+    z = [model.add_var(var_type=CONTINUOUS, lb=-instance.item_capacity[course]) for course in courses_names]
+    y = [model.add_var(var_type=CONTINUOUS) for _ in range(m)]
 
     # Objective function
     objective_expr = xsum(y[j] for j in range(m))
@@ -94,17 +96,17 @@ def optimize_model(a, instance, prices, t, initial_budgets):
         model += y[j] >= -z[j]
 
     # Course allocation constraints
-    for j, course in enumerate(courses_names):
+    for course in courses_names:
         # constraint 1: ∑︁  ∑︁(𝑥_𝑖ℓ · 𝑎_𝑖ℓ𝑗) = 𝑐_𝑗 + 𝑧_𝑗  ∀𝑗 ∈ [𝑚], 𝑝_𝑗 > 0
         #            𝑖∈[𝑛] ℓ ∈ [𝑘_𝑖]
-        if prices[j] > 0:
-            model += xsum(x[i][l] * a[i][l][j] for i in range(n) for l in range(k[i])) == instance._item_capacities[
-                course] + z[j]
+        if prices[course] > 0:
+            model += xsum(x[i][l] * a[i][l][course] for i in range(n) for l in range(k[i])) == instance.item_capacity[
+                course] + z[course]
         # constraint 2: ∑     ∑︁(𝑥_𝑖ℓ · 𝑎_𝑖ℓ𝑗) ≤ 𝑐𝑗 + 𝑧𝑗 ∀𝑗 ∈ [𝑚], 𝑝𝑗 = 0
         #  𝑖∈[𝑛] ℓ∈[𝑘_𝑖]
         else:
-            model += xsum(x[i][l] * a[i][l][j] for i in range(n) for l in range(k[i])) <= instance._item_capacities[
-                course] + z[j]
+            model += xsum(x[i][l] * a[i][l][course] for i in range(n) for l in range(k[i])) <= instance.item_capacity[
+                course] + z[course]
 
     # constraint 3: ∑︁𝑥_𝑖ℓ = 1  ∀𝑖 ∈ [𝑛]
     #               ℓ∈[𝑘_𝑖]
