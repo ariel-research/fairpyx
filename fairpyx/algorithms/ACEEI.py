@@ -135,7 +135,10 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     >>> epsilon = 2
     >>> prices = {"x": 2.5, "y": 0, "z": 0}
     >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets)
-    {'Bob': {2.5: ('x', 'y')}}
+    {'Alice': {3: ('x', 'y')}, 'Bob': {2.5: ('x', 'y'), 2: ('y', 'z')}}
+
+    # Alice: 3-7: (10, [x,y] , p=2.5) (6, [x,z] p=2.5) (6, [y,z] p=0)
+    # BOB: 2-6: (10, [x,y] p=2,5), (10, [y,z] p=0) (8, [x,z] p=2.5)
 
     Example run 6 iteration 5
     >>> instance = Instance(
@@ -148,9 +151,8 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets)
     {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
 
-    # todo: fix bob alocatuon bundle - we dont get what we get in the running examples
-
     # Alice: 3-7 -> (9, [x,y], p=3.5) (6, [x,z], p=1.5) (5, [y,z], p=2) (5 , x , p=1.5) (4, y, p=2) (1, z, p=0)
+    # Bob: 2-6 -> (10, [x,y]. p=3.5) , (9, [y,z], p=2) , (7, [x.z] , p=1.5) , (6, [y] p=1.5) , (4, [x]. p= 1.5), (3, [z]], p=0)
 
 
     >>> instance = Instance(
@@ -161,10 +163,10 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     >>> epsilon = 0.1
     >>> prices = {"x": 2, "y": 2, "z": 5}
     >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets)
-    {'Alice': {5: ('z',)}}
+    {'Alice': {4.9: ('x', 'y')}}
+
     """
 
-    # matrix_a = [[None] * len(student) for student in different_budgets.values()]
     best_bundle_per_budget = {}
 
     for student_idx, student in enumerate(instance.agents):
@@ -194,42 +196,30 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
         # budgets in descending order, for each budget we looked for the combination with the maximum value that
         # could be taken in that budget.
         min_price = float('inf')
-        # Alice: 3-7 -> (9, [x,y], p=3.5) (6, [x,z], p=1.5) (5, [y,z], p=2) (5 , x , p=1.5) (4, y, p=2) (1, z, p=0)
 
         # when the min budget added, continue to the next student
         flag_min_budget = False
+        flag_price_min_budget = False
         for combination in combinations_courses_sorted:
             if flag_min_budget:
                 break
             price_combination = sum(prices[course] for course in combination)
+            if price_combination == min_budget:
+                flag_price_min_budget = True
             if price_combination <= max_budget and price_combination < min_price:
                 min_price = price_combination
                 if price_combination < min_budget:
-                    price_combination = min_budget
                     flag_min_budget = True
+                    if min_budget not in best_bundle_per_budget:
+                        # keep the min budget in the dict with the bundle
+                        price_combination = min_budget
 
                 if student not in best_bundle_per_budget:
                     best_bundle_per_budget[student] = {}
                 best_bundle_per_budget[student][price_combination] = combination
-
-
-    # A flag that indicates whether we have found a combination for the current budget
-    # added_budget = False
-    # for budget_idx, budget in enumerate(reversed(different_budgets[student])):
-    #     for combination_course_index in range(curr_element, len(combinations_courses_sorted)):
-    #         combination_course = combinations_courses_sorted[combination_course_index]
-    #         price_combination = sum(prices[course] for course in combination_course)
-    #         if budget >= price_combination:
-    #             # todo: change to dict by student & by budget
-    #             correct_index_budget = len(different_budgets[student]) - budget_idx - 1
-    #             best_bundle_per_budget[student_idx][correct_index_budget] = combination_course
-    #             curr_element = combination_course_index
-    #             added_budget = True
-    #             break
-    #     if added_budget:
-    #         continue
+            if flag_price_min_budget:
+                break
     return best_bundle_per_budget
-
 
 def find_budget_perturbation(initial_budgets, epsilon, delta, prices, instance, t):
     different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
@@ -397,4 +387,11 @@ if __name__ == "__main__":
     initial_budgets = {"Alice": 5, "Bob": 4}
     epsilon = 2
     prices = {"x": 1.5, "y": 2, "z": 0}
+    # instance = Instance(
+    # valuations = {"Alice": {"x": 1, "y": 1, "z": 3}}, agent_capacities = 2, item_capacities = {"x": 1, "y": 1, "z": 2})
+    # initial_budgets = {"Alice": 5}
+    # epsilon = 0.1
+    # prices = {"x": 2, "y": 2, "z": 5}
+    # student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
+    # {'Alice': {5: ('z',)}}
     student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
