@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 
-def picking_sequence(alloc: AllocationBuilder, agent_order:list) -> list[list[any]]:
+def picking_sequence(alloc: AllocationBuilder, agent_order:list):
     """
     Allocate the given items to the given agents using the given picking sequence.
     :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents. of the fair course allocation problem. 
@@ -45,7 +45,7 @@ def picking_sequence(alloc: AllocationBuilder, agent_order:list) -> list[list[an
         alloc.give(agent, best_item_for_agent, logger)
 
 
-def serial_dictatorship(alloc: AllocationBuilder, agent_order:list=None) -> list[list[any]]:
+def serial_dictatorship(alloc: AllocationBuilder, agent_order:list=None):
     """
     Allocate the given items to the given agents using the serial_dictatorship protocol, in the given agent-order.
     :param agents a list of Agent objects.
@@ -64,16 +64,15 @@ def serial_dictatorship(alloc: AllocationBuilder, agent_order:list=None) -> list
     """
     if agent_order is None: agent_order = alloc.remaining_agents()
     agent_order = sum([alloc.remaining_agent_capacities[agent] * [agent] for agent in agent_order], [])
-    return picking_sequence(alloc, agent_order)
+    picking_sequence(alloc, agent_order)
 
 
-def round_robin(alloc: AllocationBuilder, agent_order:list=None) -> list[list[any]]:
+def round_robin(alloc: AllocationBuilder, agent_order:list=None):
     """
     Allocate the given items to the given agents using the round-robin protocol, in the given agent-order.
     :param agents a list of Agent objects.
     :param agent_order (optional): a list of indices of agents. The agents will pick items in this order.
     :param items (optional): a list of items to allocate. Default is allocate all items.
-    :return a list of bundles; each bundle is a list of items.
 
     >>> from fairpyx.adaptors import divide
     >>> s1 = {"c1": 10, "c2": 8, "c3": 6}
@@ -86,9 +85,9 @@ def round_robin(alloc: AllocationBuilder, agent_order:list=None) -> list[list[an
     {'Alice': ['c1', 'c2'], 'Bob': ['c1', 'c2', 'c3'], 'Chana': ['c2', 'c3'], 'Dana': ['c3']}
     """
     if agent_order is None: agent_order = list(alloc.remaining_agents())
-    return picking_sequence(alloc, agent_order)
+    picking_sequence(alloc, agent_order)
 
-def bidirectional_round_robin(alloc: AllocationBuilder, agent_order:list=None) -> list[list[any]]:
+def bidirectional_round_robin(alloc: AllocationBuilder, agent_order:list=None):
     """
     Allocate the given items to the given agents using the bidirectional-round-robin protocol (ABCCBA), in the given agent-order.
     :param agents a list of Agent objects.
@@ -107,7 +106,7 @@ def bidirectional_round_robin(alloc: AllocationBuilder, agent_order:list=None) -
     {'Alice': ['c1', 'c3'], 'Bob': ['c1', 'c2', 'c3'], 'Chana': ['c2', 'c3'], 'Dana': ['c2', 'c3']}
     """
     if agent_order is None: agent_order = alloc.remaining_agents()
-    return picking_sequence(alloc, list(agent_order) + list(reversed(agent_order)))
+    picking_sequence(alloc, list(agent_order) + list(reversed(agent_order)))
 
 
 
