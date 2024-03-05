@@ -3,13 +3,10 @@ import sys
 import logging
 
 from fairpyx import Instance
-from fairpyx.algorithms.ACEEI import EFTBStatus
+
+# from fairpyx.algorithms.ACEEI import EFTBStatus
 
 # TODO - delete this enum from here
-# class EFTBStatus(Enum):
-#     NO_EF_TB = 0
-#     EF_TB = 1
-#     CONTESTED_EF_TB = 2
 
 
 # Configure logging
@@ -160,7 +157,8 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
     students_names = list(instance.agents)
 
     # Decision variables
-    x = {(student, bundle): model.add_var(var_type=BINARY) for student in students_names for bundle in a[student].values()}
+    x = {(student, bundle): model.add_var(var_type=BINARY) for student in students_names for bundle in
+         a[student].values()}
 
     z = {course: model.add_var(var_type=CONTINUOUS, lb=-instance.item_capacity(course)) for course in courses_names}
     y = {course: model.add_var(var_type=CONTINUOUS) for course in courses_names}
@@ -208,16 +206,42 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
     # Optimize the model
     model.optimize()
 
-    # Process and print results
     if model.num_solutions:
-        print("Objective Value:", model.objective_value)
-        for student in students_names:
-            for l in a[student].values():
-                print(f"x_{student}{l} =", x[student, l].x)
-        for course in courses_names:
-            print(f"|z_{course}|=y_{course} =", y[course].x)
+        excess_demand = {course: y[course].x for course in courses_names}
     else:
-        print("Optimization was not successful. Status:", model.status)
+        excess_demand = model.status
+
+    new_budgets = {}
+    for (student, bundle), var in x.items():
+        if var.x == 1:  # Check if the decision variable is set to 1
+            price = list(a[student].keys())[
+                list(a[student].values()).index(bundle)]  # Extract the price from dictionary a
+            new_budgets[student] = price
+
+    # print("New budgets:", new_budgets)
+    # print("Objective Value:", model.objective_value)
+    # print("Excess Demand:", excess_demand)
+    logging.info("New budgets: %s\nObjective Value: %s\nExcess Demand: %s", new_budgets, model.objective_value,
+                 excess_demand)
+
+    return new_budgets, model.objective_value, excess_demand
+
+    # Process and print results
+    # if model.num_solutions:
+    #     print("Objective Value:", model.objective_value)
+    #     for student in students_names:
+    #         for l in a[student].values():
+    #             print(f"x_{student}{l} =", x[student, l].x)
+    #     for course in courses_names:
+    #         print(f"|z_{course}|=y_{course} =", y[course].x)
+    # else:
+    #     print("Optimization was not successful. Status:", model.status)
+
+
+class EFTBStatus(Enum):
+    NO_EF_TB = 0
+    EF_TB = 1
+    CONTESTED_EF_TB = 2
 
 
 if __name__ == "__main__":
@@ -232,6 +256,6 @@ if __name__ == "__main__":
     a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
     initial_budgets = {"Alice": 1.1, "Bob": 1}
     prices = {"x": 1, "y": 0.1, "z": 0}
-    t = EFTBStatus.CONTESTED_EF_TB
+    t = EFTBStatus.EF_TB
 
     optimize_model(a, instance, prices, t, initial_budgets)
