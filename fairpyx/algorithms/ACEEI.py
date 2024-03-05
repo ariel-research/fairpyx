@@ -213,8 +213,10 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
 
 
 def find_budget_perturbation(initial_budgets, epsilon, delta, prices, instance, t):
+    # return: new_budgets, norma, allocation, excess_demand
     a = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
     lp.optimize_model(a, instance, prices, t, initial_budgets)
+    return a
 
 
 def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: dict, delta: float, epsilon: float, t: Enum):
@@ -316,8 +318,7 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: dict, delta: float
     norma = 1
     while norma:
         # 2) 𝜖-budget perturbation
-        new_budgets, norma, allocation, excess_demand = find_budget_perturbation(initial_budgets, epsilon, delta,
-                                                                                 prices, instance, t)
+        new_budgets, norma, allocation, excess_demand = find_budget_perturbation(initial_budgets, epsilon, delta, prices, instance, t)
         # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
         if norma == 0:
             return allocation  # TODO: we need to return p*, b*

@@ -3,13 +3,13 @@ import sys
 import logging
 
 from fairpyx import Instance
-
+from fairpyx.algorithms.ACEEI import EFTBStatus
 
 # TODO - delete this enum from here
-class EFTBStatus(Enum):
-    NO_EF_TB = 0
-    EF_TB = 1
-    CONTESTED_EF_TB = 2
+# class EFTBStatus(Enum):
+#     NO_EF_TB = 0
+#     EF_TB = 1
+#     CONTESTED_EF_TB = 2
 
 
 # Configure logging
@@ -20,35 +20,103 @@ logger = logging.getLogger()
 # a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
 # a = {'Alice': {3.5: (1, 1, 0), 3: (1, 0, 1)}
 # initial_budgets = {"Alice": 5, "Bob": 4}
-def check_envy(instance, student, other_student, a):
+def check_envy(instance, student, other_student, a, t, prices):
+    """
+        The function accepts a pair of students, and returns pairs of courses for which envy exists.
+
+        :param instance: a fair-course-allocation instance
+        :param student: The student with the highest initial budget
+        :param other_student: The student with the lowest initial budget
+        :param a: dict that says for each budget what is the bundle with the maximum utility that a student can take
+        :param t: type 𝑡 of the EF-TB constraint,
+              0 for no EF-TB constraint,
+              1 for EF-TB constraint,
+              2 for contested EF-TB
+        :param prices: courses prices
+
+        Example run 6 iteration 5
+        >>> from fairpyx import Instance
+        >>> from fairpyx.algorithms import ACEEI
+        >>> instance = Instance(
+        ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
+        ...     agent_capacities=2,
+        ...     item_capacities={"x":1, "y":1, "z":2})
+        >>> student = "Alice"
+        >>> other_student = "Bob"
+        >>> a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
+        >>> t = ACEEI.EFTBStatus.EF_TB
+        >>> prices = {"x": 1.5, "y": 2, "z": 0}
+        >>> check_envy(instance, student, other_student, a, t, prices)
+        [(('x', 'z'), ('x', 'y'))]
+
+        >>> instance = Instance(
+        ...     valuations={"Alice":{"x":10, "y":20}, "Bob":{"x":10, "y":20}},
+        ...     agent_capacities=1,
+        ...     item_capacities={"x":1, "y":1})
+        >>> student = "Alice"
+        >>> other_student = "Bob"
+        >>> a = {'Alice': {0: (), 1.1: ('y')}, 'Bob': {1.1: ('y'), 1: ('x')}}
+        >>> t = ACEEI.EFTBStatus.EF_TB
+        >>> prices = {"x": 1, "y": 1.1}
+        >>> check_envy(instance, student, other_student, a, t, prices)
+        [((), 'y'), ((), 'x')]
+    """
     result = []
     # check if student envies in other_student
     for bundle_i in a[student].values():
         for bundle_j in a[other_student].values():
+            if t == EFTBStatus.CONTESTED_EF_TB:
+                # Iterate through keys in prices
+                for key, value in prices.items():
+                    # Check if value is 0 and key is not already in bundle_j
+                    if value == 0 and key not in bundle_j:
+                        # Add key to bundle_j
+                        bundle_j += (key,)
+
             if instance.agent_bundle_value(student, bundle_j) > instance.agent_bundle_value(student, bundle_i):
                 result.append((bundle_i, bundle_j))
     return result
 
 
-def get_envy_constraints(instance, initial_budgets, a):
+def get_envy_constraints(instance, initial_budgets, a, t, prices):
     """
         This function checks for every two students if there is envy between them,
         in case there is a constraint required for the model.
 
         :param instance: a fair-course-allocation instance
         :param initial_budgets:  the initial budgets of the students
-        :param a: matrix that says for each budget what is the bundle with the maximum utility that a student can take
-        :param x: variables decision of the model
+        :param a: dict that says for each budget what is the bundle with the maximum utility that a student can take
+        :param t: type 𝑡 of the EF-TB constraint,
+              0 for no EF-TB constraint,
+              1 for EF-TB constraint,
+              2 for contested EF-TB
+        :param prices: courses prices
+
 
         Example run 6 iteration 5
+        >>> from fairpyx import Instance
+        >>> from fairpyx.algorithms import ACEEI
         >>> instance = Instance(
         ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
         ...     agent_capacities=2,
         ...     item_capacities={"x":1, "y":1, "z":2})
         >>> initial_budgets = {"Alice": 5, "Bob": 4}
         >>> a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
-        >>> get_envy_constraints(instance, initial_budgets, a)
+        >>> t = ACEEI.EFTBStatus.EF_TB
+        >>> prices = {"x": 1, "y": 1.1}
+        >>> get_envy_constraints(instance, initial_budgets, a, t, prices)
         [(('Alice', ('x', 'z')), ('Bob', ('x', 'y')))]
+
+        >>> instance = Instance(
+        ...     valuations={"Alice":{"x":10, "y":20}, "Bob":{"x":10, "y":20}},
+        ...     agent_capacities=1,
+        ...     item_capacities={"x":1, "y":1})
+        >>> initial_budgets = {"Alice": 1.1, "Bob": 1}
+        >>> a = {'Alice': {0: (), 1.1: ('y')}, 'Bob': {1.1: ('y'), 1: ('x')}}
+        >>> t = ACEEI.EFTBStatus.EF_TB
+        >>> prices = {"x": 1, "y": 1.1}
+        >>> get_envy_constraints(instance, initial_budgets, a, t, prices)
+        [(('Alice', ()), ('Bob', 'y')), (('Alice', ()), ('Bob', 'x'))]
     """
 
     students_names = instance.agents
@@ -59,7 +127,7 @@ def get_envy_constraints(instance, initial_budgets, a):
             if student is not other_student:
                 if initial_budgets[student] > initial_budgets[other_student]:  # check envy
                     # result contain the index of the bundles that student envious other_student
-                    result = check_envy(instance, student, other_student, a)
+                    result = check_envy(instance, student, other_student, a, t, prices)
 
                     if result:
                         for pair in result:
@@ -130,15 +198,12 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
     # Add EF-TB constraints based on parameter t
     if t == EFTBStatus.NO_EF_TB:
         pass  # No EF-TB constraints, no need to anything
-    elif t == EFTBStatus.EF_TB:
+
+    elif t == EFTBStatus.EF_TB or t == EFTBStatus.CONTESTED_EF_TB:
         # Add EF-TB constraints here
-        envy_constraints = get_envy_constraints(instance, initial_budgets, a)
+        envy_constraints = get_envy_constraints(instance, initial_budgets, a, t, prices)
         for constraint in envy_constraints:
             model += x[constraint[0]] + x[constraint[1]] <= 1
-
-    elif t == EFTBStatus.CONTESTED_EF_TB:
-        # Add contested EF-TB constraints here
-        pass
 
     # Optimize the model
     model.optimize()
@@ -161,9 +226,12 @@ if __name__ == "__main__":
         agent_capacities=2,
         item_capacities={"x": 1, "y": 1, "z": 2}
     )
+    # alice: (9, (x,y), p=1.1), (6, (x,z), p=1), (5, (y,z), p=0.1)
+    # bob: (10, (x,y), p=1.1), (9, (y,z), p=0.1), (7, (x,y), p=1)
+    # epsilon =
     a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
-    initial_budgets = {"Alice": 5, "Bob": 4}
-    prices = {"x": 1.5, "y": 2, "z": 0}
-    t = EFTBStatus.EF_TB
+    initial_budgets = {"Alice": 1.1, "Bob": 1}
+    prices = {"x": 1, "y": 0.1, "z": 0}
+    t = EFTBStatus.CONTESTED_EF_TB
 
     optimize_model(a, instance, prices, t, initial_budgets)
