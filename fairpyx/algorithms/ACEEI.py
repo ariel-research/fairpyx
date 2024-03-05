@@ -236,7 +236,7 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: dict, delta: float
 
     :return final courses prices, final budgets, final distribution
 
-     >>> from fairpyx.adaptors import divide
+    >>> from fairpyx.adaptors import divide
 
     >>> from fairpyx.utils.test_utils import stringify
 
@@ -249,7 +249,7 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: dict, delta: float
     >>> epsilon = 0.5
     >>> t = EFTBStatus.NO_EF_TB
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
-    ...     delta=delta, epsilon=epsilon, t=t))
+    ... delta=delta, epsilon=epsilon, t=t))
     "{avi:['x','z'], beni:['y', 'z']}"
 
     >>> instance = Instance(
@@ -312,18 +312,21 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: dict, delta: float
     ... delta=delta, epsilon=epsilon, t=t))
         "{avi:['x', 'z'], beni:['y', 'z']}"
     """
-    allocation = [[0 for _ in range(instance.num_of_agents)] for _ in range(instance.num_of_items)]
+    # allocation = [[0 for _ in range(instance.num_of_agents)] for _ in range(instance.num_of_items)]
     # 1) init prices vector to be 0
-    prices = [0] * instance.num_of_items
+    # print(instance.items)
+    prices = {key: 0 for key in instance.items}
     norma = 1
     while norma:
         # 2) 𝜖-budget perturbation
-        new_budgets, norma, allocation, excess_demand = find_budget_perturbation(initial_budgets, epsilon, prices, instance, t)
+        new_budgets, norma, allocation, excess_demand = find_budget_perturbation(initial_budgets, epsilon, prices,
+                                                                                 instance, t)
         # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
         if norma == 0:
-            return allocation  # TODO: we need to return p*, b*
+            return allocation  # TODO: we need to return p* = prices, b* = new_budgets
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
-        prices = prices + delta * excess_demand
+        for key in prices:
+            prices[key] += delta * excess_demand[key]
 
 
 # def optimize_model( t):
@@ -370,6 +373,8 @@ if __name__ == "__main__":
     # different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
     # a = student_best_bundle_per_budget(different_budgets, prices, instance)
     # print(a)
+
+
     instance = Instance(
         valuations={"Alice": {"x": 5, "y": 4, "z": 1}, "Bob": {"x": 4, "y": 6, "z": 3}},
         agent_capacities=2,
@@ -377,6 +382,9 @@ if __name__ == "__main__":
     initial_budgets = {"Alice": 5, "Bob": 4}
     epsilon = 2
     prices = {"x": 1.5, "y": 2, "z": 0}
+    find_ACEEI_with_EFTB(instance, initial_budgets, 2, epsilon, EFTBStatus.NO_EF_TB)
+
+
     # instance = Instance(
     # valuations = {"Alice": {"x": 1, "y": 1, "z": 3}}, agent_capacities = 2, item_capacities = {"x": 1, "y": 1, "z": 2})
     # initial_budgets = {"Alice": 5}
@@ -384,4 +392,7 @@ if __name__ == "__main__":
     # prices = {"x": 2, "y": 2, "z": 5}
     # student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
     # {'Alice': {5: ('z',)}}
-    student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
+    # student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
+    # print(instance.items)
+    # prices = {key: 0 for key in instance.items}
+    # print(prices)
