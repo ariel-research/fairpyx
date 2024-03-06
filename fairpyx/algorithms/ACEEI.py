@@ -259,7 +259,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     ... valuations={"avi":{"x":5, "y":2, "z":1}, "beni":{"x":4, "y":1, "z":3}},
     ... agent_capacities=2,
     ... item_capacities={"x":1, "y":1, "z":2})
-    >>> initial_budgets = {3, 4}
+    >>> initial_budgets = {"avi":3, "beni":4}
     >>> delta = 0.5
     >>> epsilon = 1
     >>> t = EFTBStatus.EF_TB
@@ -271,7 +271,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     ...     valuations={"avi":{"x":5, "y":5, "z":1}, "beni":{"x":4, "y":6, "z":4}},
     ...     agent_capacities=2,
     ...     item_capacities={"x":1, "y":2, "z":2})
-    >>> initial_budgets = {5, 4}
+    >>> initial_budgets = {"avi":5, "beni":4}
     >>> delta = 0.5
     >>> epsilon = 2
     >>> t = EFTBStatus.EF_TB
@@ -283,7 +283,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     ...     valuations={"avi":{"x":10, "y":20}, "beni":{"x":10, "y":20}},
     ...     agent_capacities=1,
     ...     item_capacities = {"x":1, "y":1})
-    >>> initial_budgets = {1.1, 1}
+    >>> initial_budgets = {"avi":1.1, "beni":1}
     >>> delta = 0.1
     >>> epsilon = 0.2
     >>> t = EFTBStatus.EF_TB
@@ -295,7 +295,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     ... valuations={"avi":{"x":2}, "beni":{"x":3}},
     ... agent_capacities=1,
     ... item_capacities = {"x":1})
-    >>> initial_budgets = {1.1, 1}
+    >>> initial_budgets = {"avi":1.1, "beni":1}
     >>> delta = 0.1
     >>> epsilon = 0.2
     >>> t = EFTBStatus.EF_TB
@@ -307,7 +307,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     ...    "beni":{"x":4, "y":6, "z":3}},
     ...     agent_capacities=2,
     ...     item_capacities={"x":1, "y":1, "z":2})
-    >>> initial_budgets = {5, 4}
+    >>> initial_budgets = {"avi":5, "beni":4}
     >>> delta = 0.5
     >>> epsilon = 2
     >>> t = EFTBStatus.CONTESTED_EF_TB
