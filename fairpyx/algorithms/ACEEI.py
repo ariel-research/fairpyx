@@ -7,7 +7,7 @@ Since: 2024-01
 from enum import Enum
 import logging
 
-from fairpyx import Instance
+from fairpyx import Instance, AllocationBuilder
 from itertools import combinations
 import linear_program as lp
 
@@ -214,12 +214,12 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
 
 def find_budget_perturbation(initial_budgets, epsilon, prices, instance, t):
     # return: new_budgets, norma, allocation, excess_demand
-    allocation = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
-    new_budgets, norma, excess_demand = lp.optimize_model(allocation, instance, prices, t, initial_budgets)
-    return new_budgets, norma, allocation, excess_demand
+    map_student_to_best_bundle_per_budget = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
+    new_budgets, clearing_error, excess_demand_per_course = lp.optimize_model(map_student_to_best_bundle_per_budget, instance, prices, t, initial_budgets)
+    return new_budgets, clearing_error, map_student_to_best_bundle_per_budget, excess_demand_per_course
 
 
-def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: dict, delta: float, epsilon: float, t: Enum):
+def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta: float, epsilon: float, t: Enum):
     """
     "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
      by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
@@ -240,11 +240,14 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: dict, delta: float
 
     >>> from fairpyx.utils.test_utils import stringify
 
+    >>> logger.addHandler(logging.StreamHandler())
+    >>> logger.setLevel(logging.INFO)
+
     >>> instance = Instance(
     ...     valuations={"avi":{"x":1, "y":2, "z":4}, "beni":{"x":2, "y":3, "z":1}},
     ...     agent_capacities=2,
     ...     item_capacities={"x":1, "y":1, "z":2})
-    >>> initial_budgets = {2, 3}
+    >>> initial_budgets = {"avi":2, "beni":3}
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = EFTBStatus.NO_EF_TB
@@ -315,19 +318,28 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: dict, delta: float
     # allocation = [[0 for _ in range(instance.num_of_agents)] for _ in range(instance.num_of_items)]
     # 1) init prices vector to be 0
     # print(instance.items)
-    prices = {key: 0 for key in instance.items}
-    norma = 1
-    while norma:
+    logger.info("Starting ACEEI")
+    prices = {key: 0 for key in alloc.remaining_items()}
+    clearing_error = 1
+    new_budgets = {}
+    while clearing_error:
         # 2) 𝜖-budget perturbation
-        new_budgets, norma, allocation, excess_demand = find_budget_perturbation(initial_budgets, epsilon, prices,
-                                                                                 instance, t)
+        new_budgets, clearing_error, allocation, excess_demand_per_course = find_budget_perturbation(initial_budgets, epsilon, prices,
+                                                                                 alloc.instance, t)
         # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
-        if norma == 0:
-            return allocation  # TODO: we need to return p* = prices, b* = new_budgets
+        if clearing_error == 0:
+            return allocation  # TODO: we need to return p* = prices, b* = new_budgets -  in the logger
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
         for key in prices:
-            prices[key] += delta * excess_demand[key]
+            prices[key] += delta * excess_demand_per_course[key]
 
+    logger.info("Clearing error 0!")
+    for student, (price, bundle) in new_budgets.items():
+        logger.info("Giving %s to %s in price %s", bundle, student, price)
+        alloc.give_bundle(student, bundle)
+
+
+#   TODO: enter the bundle
 
 # def optimize_model( t):
 #     if t == EFTBStatus.NO_EF_TB:
@@ -337,6 +349,12 @@ def find_ACEEI_with_EFTB(instance: Instance, initial_budgets: dict, delta: float
 
 if __name__ == "__main__":
     import doctest
+
+    from fairpyx.adaptors import divide
+
+    from fairpyx.utils.test_utils import stringify
+
+    # print(doctest.run_docstring_examples(find_ACEEI_with_EFTB,globals()))
 
     # instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 2, "c3": 2},
     #                     valuations={"Alice": {"c1": 5, "c2": 5, "c3": 1}, "Bob": {"c1": 4, "c2": 6, "c3": 4}})
@@ -375,14 +393,14 @@ if __name__ == "__main__":
     # print(a)
 
 
-    instance = Instance(
-        valuations={"Alice": {"x": 5, "y": 4, "z": 1}, "Bob": {"x": 4, "y": 6, "z": 3}},
-        agent_capacities=2,
-        item_capacities={"x": 1, "y": 1, "z": 2})
-    initial_budgets = {"Alice": 5, "Bob": 4}
-    epsilon = 2
-    prices = {"x": 1.5, "y": 2, "z": 0}
-    find_ACEEI_with_EFTB(instance, initial_budgets, 2, epsilon, EFTBStatus.NO_EF_TB)
+    # instance = Instance(
+    #     valuations={"Alice": {"x": 5, "y": 4, "z": 1}, "Bob": {"x": 4, "y": 6, "z": 3}},
+    #     agent_capacities=2,
+    #     item_capacities={"x": 1, "y": 1, "z": 2})
+    # initial_budgets = {"Alice": 5, "Bob": 4}
+    # epsilon = 2
+    # prices = {"x": 1.5, "y": 2, "z": 0}
+    # find_ACEEI_with_EFTB(instance, initial_budgets, 2, epsilon, EFTBStatus.NO_EF_TB)
 
 
     # instance = Instance(
@@ -396,3 +414,16 @@ if __name__ == "__main__":
     # print(instance.items)
     # prices = {key: 0 for key in instance.items}
     # print(prices)
+
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+
+    instance = Instance(
+       valuations={"avi":{"x":1, "y":2, "z":4}, "beni":{"x":2, "y":3, "z":1}},
+       agent_capacities=2,
+       item_capacities={"x":1, "y":1, "z":2})
+    initial_budgets = {"avi":2, "beni":3}
+    delta = 0.5
+    epsilon = 0.5
+    t = EFTBStatus.NO_EF_TB
+    print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon, t=t))

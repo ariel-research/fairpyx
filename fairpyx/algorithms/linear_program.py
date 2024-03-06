@@ -207,26 +207,25 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
     model.optimize()
 
     if model.num_solutions:
-        excess_demand = {course: y[course].x for course in courses_names}
+        excess_demand_per_course = {course: y[course].x for course in courses_names}
     else:
-        excess_demand = model.status
+        excess_demand_per_course = model.status
 
     new_budgets = {}
     for (student, bundle), var in x.items():
         if var.x == 1:  # Check if the decision variable is set to 1
             price = list(a[student].keys())[
                 list(a[student].values()).index(bundle)]  # Extract the price from dictionary a
-            new_budgets[student] = price
+            new_budgets[student] = (price, bundle)
 
     # print("New budgets:", new_budgets)
     # print("Objective Value:", model.objective_value)
     # print("Excess Demand:", excess_demand)
     logging.info("New budgets: %s\nObjective Value: %s\nExcess Demand: %s", new_budgets, model.objective_value,
-                 excess_demand)
+                 excess_demand_per_course)
 
-    return new_budgets, model.objective_value, excess_demand
 
-    # Process and print results
+    # Process and print results todo: loogger
     # if model.num_solutions:
     #     print("Objective Value:", model.objective_value)
     #     for student in students_names:
@@ -236,6 +235,8 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
     #         print(f"|z_{course}|=y_{course} =", y[course].x)
     # else:
     #     print("Optimization was not successful. Status:", model.status)
+
+    return new_budgets, model.objective_value, excess_demand_per_course
 
 
 class EFTBStatus(Enum):
