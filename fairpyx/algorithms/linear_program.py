@@ -43,7 +43,7 @@ def check_envy(instance, student, other_student, a, t, prices):
         >>> student = "Alice"
         >>> other_student = "Bob"
         >>> a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
-        >>> t = ACEEI.EFTBStatus.EF_TB
+        >>> t = EFTBStatus.EF_TB
         >>> prices = {"x": 1.5, "y": 2, "z": 0}
         >>> check_envy(instance, student, other_student, a, t, prices)
         [(('x', 'z'), ('x', 'y'))]
@@ -55,29 +55,46 @@ def check_envy(instance, student, other_student, a, t, prices):
         >>> student = "Alice"
         >>> other_student = "Bob"
         >>> a = {'Alice': {0: (), 1.1: ('y')}, 'Bob': {1.1: ('y'), 1: ('x')}}
-        >>> t = ACEEI.EFTBStatus.EF_TB
+        >>> t = EFTBStatus.EF_TB
         >>> prices = {"x": 1, "y": 1.1}
         >>> check_envy(instance, student, other_student, a, t, prices)
         [((), 'y'), ((), 'x')]
+
+        new example
+        >>> instance = Instance(
+        ...     valuations={"Alice": {"x": 5, "y": 4, "z": 1, "w": 6}, "Bob": {"x": 4, "y": 6, "z": 3, "w": 1}},
+        ...     agent_capacities=2,
+        ...     item_capacities={"x":1, "y":1, "z":2, "w":1})
+        >>> student = "Alice"
+        >>> other_student = "Bob"
+        >>> a = {'Alice': {3.5: ('x', 'y')}, 'Bob': {3.5: ('x'), 2: ('y', 'z')}}
+        >>> t = EFTBStatus.CONTESTED_EF_TB
+        >>> prices = {"x": 1, "y": 0.1, "z": 0, "w": 0}
+        >>> check_envy(instance, student, other_student, a, t, prices)
+        [(('x', 'y'), 'x'), (('x', 'y'), ('y', 'z'))]
+
     """
     result = []
     # check if student envies in other_student
     for bundle_i in a[student].values():
         for bundle_j in a[other_student].values():
+            original_bundle_j = bundle_j
             if t == EFTBStatus.CONTESTED_EF_TB:
+                bundle_j = list(bundle_j)  # Convert bundle_j to a list
+
                 # Iterate through keys in prices
                 for key, value in prices.items():
                     # Check if value is 0 and key is not already in bundle_j
                     if value == 0 and key not in bundle_j:
                         # Add key to bundle_j
-                        bundle_j += (key,)
+                        bundle_j.append(key)
 
-                logger.info("----------CONTESTED_EF_TB---------")
-                logger.info(f"bundle_j of {student} = {bundle_j}")
+                logger.info(f"----------{t}---------")
+                logger.info(f"bundle_j of {other_student} = {bundle_j}")
 
                 sorted_bundle_j = sorted(bundle_j, key=lambda course: instance._valuations[student][course],
                                          reverse=True)
-                logger.info(f"sorted_bundle_j of {student} = {sorted_bundle_j}")
+                logger.info(f"sorted_bundle_j by {student} valuation = {sorted_bundle_j}")
 
                 sorted_bundle_j = sorted_bundle_j[:instance.agent_capacity(student)]
                 logger.info(f"instance.agent_capacity = {instance.agent_capacity(student)}")
@@ -87,7 +104,8 @@ def check_envy(instance, student, other_student, a, t, prices):
                 logger.info(f"finish update bundle_j of {student} = {bundle_j}")
 
             if instance.agent_bundle_value(student, bundle_j) > instance.agent_bundle_value(student, bundle_i):
-                result.append((bundle_i, bundle_j))
+                result.append((bundle_i, original_bundle_j))
+
     return result
 
 
@@ -269,17 +287,26 @@ class EFTBStatus(Enum):
 
 
 if __name__ == "__main__":
-    instance = Instance(
-        valuations={"Alice": {"x": 5, "y": 4, "z": 1}, "Bob": {"x": 4, "y": 6, "z": 3}},
-        agent_capacities=2,
-        item_capacities={"x": 1, "y": 1, "z": 2}
-    )
-    # alice: (9, (x,y), p=1.1), (6, (x,z), p=1), (5, (y,z), p=0.1)
-    # bob: (10, (x,y), p=1.1), (9, (y,z), p=0.1), (7, (x,y), p=1)
-    # epsilon =
-    a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
-    initial_budgets = {"Alice": 1.1, "Bob": 1}
-    prices = {"x": 1, "y": 0.1, "z": 0}
-    t = EFTBStatus.CONTESTED_EF_TB
+    # instance = Instance(
+    #     valuations={"Alice": {"x": 5, "y": 4, "z": 1, "w": 6}, "Bob": {"x": 4, "y": 6, "z": 3, "w": 1}},
+    #     agent_capacities=2,
+    #     item_capacities={"x": 1, "y": 1, "z": 2}
+    # )
+    #
+    # a = {'Alice': {3.5: ('x', 'y')}, 'Bob': {3.5: ('x'), 2: ('y', 'z')}}
+    # initial_budgets = {"Alice": 1.1, "Bob": 1}
+    # prices = {"x": 1, "y": 0.1, "z": 0, "w": 0}
+    # t = EFTBStatus.CONTESTED_EF_TB
+    #
+    # print(check_envy(instance, "Alice", "Bob", a, t, prices))
 
-    optimize_model(a, instance, prices, t, initial_budgets)
+    # optimize_model(a, instance, prices, t, initial_budgets)
+    # result = [(('x', 'y'), ('x')), (('x', 'y'), ('y', 'z'))]
+
+    instance = Instance(valuations = {"Alice": {"x": 5, "y": 4, "z": 1, "w": 6}, "Bob": {"x": 4, "y": 6, "z": 3, "w": 1}}, agent_capacities = 2, item_capacities = {"x": 1, "y": 1, "z": 2, "w": 1})
+    student = "Alice"
+    other_student = "Bob"
+    a = {'Alice': {3.5: ('x', 'y')}, 'Bob': {3.5: ('x'), 2: ('y', 'z')}}
+    t = EFTBStatus.CONTESTED_EF_TB
+    prices = {"x": 1, "y": 0.1, "z": 0, "w": 0}
+    print(check_envy(instance, student, other_student, a, t, prices))
