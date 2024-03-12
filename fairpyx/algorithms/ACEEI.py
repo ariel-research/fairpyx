@@ -270,13 +270,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
         logger.info(f"allocation: {allocation}")
         # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
         if clearing_error == 0:
-            logger.info(f"---------allocation in the if: {allocation}")
-
-            # for student, (price, bundle) in new_budgets.items():
-            #     alloc.give(student, bundle)
-            # return alloc.sorted()
             break
-            # return allocation  # TODO: we need to return p* = prices, b* = new_budgets -  in the logger
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
         for key in prices:
             prices[key] += delta * excess_demand_per_course[key]
@@ -286,8 +280,17 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
         logger.info("Giving %s to %s in price %s", bundle, student, price)
         alloc.give_bundle(student, bundle)
 
+    # print the final budget (b* = new_budgets) for each student
+    final_budget = ""
+    for key, value in new_budgets.items():
+        final_budget += f"{key}: {value[0]}, "
 
-#   TODO: enter the bundle
+    # Remove the trailing comma and space
+    final_budget = final_budget.rstrip(", ")
+    logger.info(f"\nfinal budget b* = {final_budget}")
+    # print the final price (p* = prices) for each course
+    logger.info(f"\nfinal prices p* = {prices}")
+
 
 
 if __name__ == "__main__":
