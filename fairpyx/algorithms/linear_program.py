@@ -72,7 +72,19 @@ def check_envy(instance, student, other_student, a, t, prices):
                         # Add key to bundle_j
                         bundle_j += (key,)
 
-                        # ('y','x','z')
+                logger.info("----------CONTESTED_EF_TB---------")
+                logger.info(f"bundle_j of {student} = {bundle_j}")
+
+                sorted_bundle_j = sorted(bundle_j, key=lambda course: instance._valuations[student][course],
+                                         reverse=True)
+                logger.info(f"sorted_bundle_j of {student} = {sorted_bundle_j}")
+
+                sorted_bundle_j = sorted_bundle_j[:instance.agent_capacity(student)]
+                logger.info(f"instance.agent_capacity = {instance.agent_capacity(student)}")
+                logger.info(f"sorted_bundle_j of {student} = {sorted_bundle_j}")
+
+                bundle_j = tuple(sorted_bundle_j)
+                logger.info(f"finish update bundle_j of {student} = {bundle_j}")
 
             if instance.agent_bundle_value(student, bundle_j) > instance.agent_bundle_value(student, bundle_i):
                 result.append((bundle_i, bundle_j))
@@ -268,6 +280,6 @@ if __name__ == "__main__":
     a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
     initial_budgets = {"Alice": 1.1, "Bob": 1}
     prices = {"x": 1, "y": 0.1, "z": 0}
-    t = EFTBStatus.EF_TB
+    t = EFTBStatus.CONTESTED_EF_TB
 
     optimize_model(a, instance, prices, t, initial_budgets)
