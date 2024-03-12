@@ -37,85 +37,6 @@ def clipped_excess_demand(instance, initial_budgets, prices, allocation):
     return clipped_z
 
 
-# def find_different_budgets(instance, initial_budgets, epsilon, delta, prices):
-#     """
-#      The function return dictionary that contains for every student the different budjet in range b0 +- epsilon
-#
-#     :param instance: a fair-course-allocation instance
-#     :param initial_budgets: the initial budgets of the students
-#     :param delta: The step size
-#     :param epsilon: maximum budget perturbation
-#     :param prices: courses prices
-#
-#     :return different_budgets: dictionary that contains for every student the different budjet in range b0 +- epsilon
-#
-#     >>> instance = Instance(
-#     ...     valuations={"Alice":{"x":5, "y":5, "z":1}, "Bob":{"x":4, "y":6, "z":4}},
-#     ...     agent_capacities=2,
-#     ...     item_capacities={"x":1, "y":2, "z":2})
-#     >>> initial_budgets = {"Alice": 5, "Bob": 4}
-#     >>> epsilon = 2
-#     >>> delta = 0.5
-#     >>> prices = {"x": 1, "y": 2, "z": 3}
-#     >>> find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
-#     {'Alice': [3, 4, 5], 'Bob': [2, 3, 4, 5]} # TODO: change the bundle
-#
-#
-#     >>> instance = Instance(
-#     ...     valuations={"Alice":{"x":5, "y":5, "z":1}, "Bob":{"x":4, "y":6, "z":4}, "Eve": {"x":4, "y":6, "z":4}},
-#     ...     agent_capacities=2,
-#     ...     item_capacities={"x":1, "y":2, "z":3})
-#     >>> initial_budgets = {"Alice": 5, "Bob": 4, "Eve": 8}
-#     >>> epsilon = 2
-#     >>> delta = 0.5
-#     >>> prices = {"x": 1, "y": 3, "z": 5}
-#     >>> find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
-#     {'Alice': [3, 4, 5, 6], 'Bob': [2, 3, 4, 5, 6], 'Eve': [6, 8]}
-#
-#     >>> instance = Instance(
-#     ...     valuations={"Alice":{"x":5, "y":5, "z":1}, "Bob":{"x":4, "y":6, "z":4}},
-#     ...     agent_capacities=2,
-#     ...     item_capacities={"x":1, "y":2, "z":2})
-#     >>> initial_budgets = {"Alice": 5, "Bob": 4}
-#     >>> epsilon = 2
-#     >>> delta = 0.5
-#     >>> prices = {"c1": 2.5, "c2": 0, "c3": 0}
-#     >>> find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
-#     {'Alice': [3], 'Bob': [2, 2.5]}
-#     """
-#
-#     max_k = (2 * epsilon / delta) + 1
-#
-#     # Creating all possible combinations of prices
-#     combinations_sum_set = set()
-#     # A dictionary for keeping the budgets for every bundle (k matrix from the article)
-#     different_budgets = {}
-#
-#     for student in instance.agents:
-#         # For each student, the course price combinations (in combinations_sum_list)
-#         # are calculated according to the number of courses he needs to take
-#         capacity = instance.agent_capacity(student)
-#         for r in range(1, capacity + 1):
-#             for combo in combinations(prices.values(), r):
-#                 combinations_sum_set.add(sum(combo))
-#
-#         # Setting the min and max budget according to the definition
-#         min_budget = initial_budgets[student] - epsilon
-#         max_budget = initial_budgets[student] + epsilon
-#
-#         # Keeping the various budgets for the current student
-#         row_student = [min_budget]
-#         for combination_sum in sorted(combinations_sum_set):
-#             if len(row_student) + 1 > max_k:
-#                 break
-#             if min_budget < combination_sum <= max_budget:
-#                 row_student.append(combination_sum)
-#                 min_budget = combination_sum
-#
-#         different_budgets[student] = row_student
-#     return different_budgets
-
-
 def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: any, initial_budgets: dict):
     """
     Return a dict that says for each budget what is the bundle with the maximum utility that a student can take
@@ -326,8 +247,12 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
         # 2) 𝜖-budget perturbation
         new_budgets, clearing_error, allocation, excess_demand_per_course = find_budget_perturbation(initial_budgets, epsilon, prices,
                                                                                  alloc.instance, t)
+        logger.info(f"new budget: {new_budgets}")
+        logger.info(f"clearing_error: {clearing_error}")
+        logger.info(f"allocation: {allocation}")
         # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
         if clearing_error == 0:
+            logger.info(f"allocation in the if: {allocation}")
             return allocation  # TODO: we need to return p* = prices, b* = new_budgets -  in the logger
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
         for key in prices:
@@ -341,11 +266,6 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
 
 #   TODO: enter the bundle
 
-# def optimize_model( t):
-#     if t == EFTBStatus.NO_EF_TB:
-#         print(12)
-#     else:
-#         print("no")
 
 if __name__ == "__main__":
     import doctest
@@ -356,64 +276,6 @@ if __name__ == "__main__":
 
     # print(doctest.run_docstring_examples(find_ACEEI_with_EFTB,globals()))
 
-    # instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 2, "c3": 2},
-    #                     valuations={"Alice": {"c1": 5, "c2": 5, "c3": 1}, "Bob": {"c1": 4, "c2": 6, "c3": 4}})
-    #
-    # p = {"c1": 1, "c2": 2, "c3": 3}
-    # b_0 = {"Alice": 5, "Bob": 4}
-    #
-    # diff_budget = find_different_budgets(instance, initial_budgets=b_0, epsilon=2, delta=0.5, prices=p)
-    # print(diff_budget)
-    # print("Different budget:", find_different_budgets(instance, initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p))
-    # print(student_budget_per_bundle(diff_budget, p, instance))
-    # find_budget_perturbation(initial_budgets=b_0, epsilon=0.5, delta=0.5, prices=p, instance=instance, t=EFTBStatus.NO_EF_TB)
-
-    # instance = Instance(agent_capacities={"Alice": 2, "Bob": 2}, item_capacities={"c1": 1, "c2": 1, "c3": 2},
-    #                     valuations={"Alice": {"c1": 5, "c2": 4, "c3": 1}, "Bob": {"c1": 4, "c2": 6, "c3": 3}})
-    #
-    # p = [1.5, 2, 0]
-    # b_0 = [5, 4]
-    #
-
-    # find_budget_perturbation(initial_budgets=b_0, epsilon=2, delta=0.5, prices=p, instance=instance, t=EFTBStatus.EF_TB)
-    # lp.optimize_model(EFTBStatus.NO_EF_TB)
-
-    # print()
-    # doctest.testmod()
-    # instance = Instance(
-    #     valuations={"Alice": {"x": 5, "y": 5, "z": 1}, "Bob": {"x": 4, "y": 6, "z": 4}},
-    #     agent_capacities=2,
-    #     item_capacities={"x": 1, "y": 2, "z": 2})
-    # initial_budgets = {"Alice": 5, "Bob": 4}
-    # epsilon = 2
-    # delta = 0.5
-    # prices = {"x": 2.5, "y": 0, "z": 0}
-    # different_budgets = find_different_budgets(instance, initial_budgets, epsilon, delta, prices)
-    # a = student_best_bundle_per_budget(different_budgets, prices, instance)
-    # print(a)
-
-
-    # instance = Instance(
-    #     valuations={"Alice": {"x": 5, "y": 4, "z": 1}, "Bob": {"x": 4, "y": 6, "z": 3}},
-    #     agent_capacities=2,
-    #     item_capacities={"x": 1, "y": 1, "z": 2})
-    # initial_budgets = {"Alice": 5, "Bob": 4}
-    # epsilon = 2
-    # prices = {"x": 1.5, "y": 2, "z": 0}
-    # find_ACEEI_with_EFTB(instance, initial_budgets, 2, epsilon, EFTBStatus.NO_EF_TB)
-
-
-    # instance = Instance(
-    # valuations = {"Alice": {"x": 1, "y": 1, "z": 3}}, agent_capacities = 2, item_capacities = {"x": 1, "y": 1, "z": 2})
-    # initial_budgets = {"Alice": 5}
-    # epsilon = 0.1
-    # prices = {"x": 2, "y": 2, "z": 5}
-    # student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
-    # {'Alice': {5: ('z',)}}
-    # student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
-    # print(instance.items)
-    # prices = {key: 0 for key in instance.items}
-    # print(prices)
 
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
@@ -427,3 +289,14 @@ if __name__ == "__main__":
     epsilon = 0.5
     t = EFTBStatus.NO_EF_TB
     print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon, t=t))
+
+
+    # instance = Instance(
+    #     valuations={"avi":{"x":2}, "beni":{"x":3}},
+    #     agent_capacities=1,
+    #     item_capacities = {"x":1})
+    # initial_budgets = {"avi":1.1, "beni":1}
+    # delta = 0.1
+    # epsilon = 0.2
+    # t = EFTBStatus.EF_TB
+    # print(divide(find_ACEEI_with_EFTB, instance=instance,initial_budgets=initial_budgets,delta=delta, epsilon=epsilon, t=t))

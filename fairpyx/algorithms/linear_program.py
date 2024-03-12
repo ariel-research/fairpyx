@@ -1,6 +1,8 @@
 from mip import *
 import sys
 import logging
+from contextlib import redirect_stdout
+import os
 
 from fairpyx import Instance
 
@@ -152,6 +154,8 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
         >>> optimize_model(a,instance,prices,t,initial_budgets)
         [[('x', 'z'), ('x', 'y')], [('y', 'z'), ('x', 'y')]]
     """
+
+    logger.info(f"a {a}")
     model = Model("allocations")
     courses_names = list(instance.items)
     students_names = list(instance.agents)
@@ -203,8 +207,13 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
         for constraint in envy_constraints:
             model += x[constraint[0]] + x[constraint[1]] <= 1
 
+    # Redirect solver output to null device
+    model.verbose = 0
+
     # Optimize the model
-    model.optimize()
+    with open(os.devnull, 'w') as devnull:
+        with redirect_stdout(devnull):
+            model.optimize()
 
     if model.num_solutions:
         excess_demand_per_course = {course: y[course].x for course in courses_names}
