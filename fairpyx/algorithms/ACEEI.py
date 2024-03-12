@@ -88,9 +88,10 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
 
     """
 
-    best_bundle_per_budget = {}
+    best_bundle_per_budget = {student: {} for student in instance.agents}
 
-    for student_idx, student in enumerate(instance.agents):
+
+    for student in instance.agents:
 
         # Creating a list of combinations of courses up to the size of the student's capacity
         combinations_courses_list = []
@@ -129,6 +130,23 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
                 if price_combination < min_price:
                     min_price = price_combination
                     best_bundle_per_budget.setdefault(student, {})[price_combination] = combination
+
+            # flag_price_min_budget = False
+            # if price_combination == min_budget:
+            #     flag_price_min_budget = True
+            # if price_combination <= max_budget and price_combination < min_price:
+            #     min_price = price_combination
+            #     if price_combination < min_budget:
+            #         flag_min_budget = True
+            #         if min_budget not in best_bundle_per_budget:
+            #             # keep the min budget in the dict with the bundle
+            #             price_combination = min_budget
+            #
+            #     if student not in best_bundle_per_budget:
+            #         best_bundle_per_budget[student] = {}
+            #     best_bundle_per_budget[student][price_combination] = combination
+            # if flag_price_min_budget:
+            #     break
 
     return best_bundle_per_budget
 

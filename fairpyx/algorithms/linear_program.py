@@ -72,6 +72,8 @@ def check_envy(instance, student, other_student, a, t, prices):
                         # Add key to bundle_j
                         bundle_j += (key,)
 
+                        # ('y','x','z')
+
             if instance.agent_bundle_value(student, bundle_j) > instance.agent_bundle_value(student, bundle_i):
                 result.append((bundle_i, bundle_j))
     return result
