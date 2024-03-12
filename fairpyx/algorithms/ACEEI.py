@@ -21,22 +21,6 @@ class EFTBStatus(Enum):
 logger = logging.getLogger(__name__)
 
 
-def excess_demand(instance, initial_budgets, prices, allocation):
-    z = [0] * instance.num_of_items  # in size of the number of courses
-    for course in range(instance.num_of_items):
-        sum = 0
-        for student in range(instance.num_of_agents):
-            sum += allocation[student][course]
-        z[course] = sum - instance.item_capacity[course]
-    return z
-
-
-def clipped_excess_demand(instance, initial_budgets, prices, allocation):
-    z = excess_demand(instance, initial_budgets, prices, allocation)
-    clipped_z = [max(0, z[i]) if prices[i] == 0 else z[i] for i in range(len(z))]
-    return clipped_z
-
-
 def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: any, initial_budgets: dict):
     """
     Return a dict that says for each budget what is the bundle with the maximum utility that a student can take
@@ -90,7 +74,6 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
 
     best_bundle_per_budget = {student: {} for student in instance.agents}
 
-
     for student in instance.agents:
 
         # Creating a list of combinations of courses up to the size of the student's capacity
@@ -131,30 +114,14 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
                     min_price = price_combination
                     best_bundle_per_budget.setdefault(student, {})[price_combination] = combination
 
-            # flag_price_min_budget = False
-            # if price_combination == min_budget:
-            #     flag_price_min_budget = True
-            # if price_combination <= max_budget and price_combination < min_price:
-            #     min_price = price_combination
-            #     if price_combination < min_budget:
-            #         flag_min_budget = True
-            #         if min_budget not in best_bundle_per_budget:
-            #             # keep the min budget in the dict with the bundle
-            #             price_combination = min_budget
-            #
-            #     if student not in best_bundle_per_budget:
-            #         best_bundle_per_budget[student] = {}
-            #     best_bundle_per_budget[student][price_combination] = combination
-            # if flag_price_min_budget:
-            #     break
-
     return best_bundle_per_budget
 
 
 def find_budget_perturbation(initial_budgets, epsilon, prices, instance, t):
     # return: new_budgets, norma, allocation, excess_demand
     map_student_to_best_bundle_per_budget = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
-    new_budgets, clearing_error, excess_demand_per_course = lp.optimize_model(map_student_to_best_bundle_per_budget, instance, prices, t, initial_budgets)
+    new_budgets, clearing_error, excess_demand_per_course = lp.optimize_model(map_student_to_best_bundle_per_budget,
+                                                                              instance, prices, t, initial_budgets)
     logger.info(f"new_budgets in find_budget_perturbation: {new_budgets}")
     return new_budgets, clearing_error, map_student_to_best_bundle_per_budget, excess_demand_per_course
 
@@ -256,38 +223,36 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     """
     # allocation = [[0 for _ in range(instance.num_of_agents)] for _ in range(instance.num_of_items)]
     # 1) init prices vector to be 0
-    # print(instance.items)
-    logger.info("Starting ACEEI")
     prices = {key: 0 for key in alloc.remaining_items()}
     clearing_error = 1
     new_budgets = {}
     while clearing_error:
         # 2) 𝜖-budget perturbation
-        new_budgets, clearing_error, allocation, excess_demand_per_course = find_budget_perturbation(initial_budgets, epsilon, prices,
-                                                                                 alloc.instance, t)
-        logger.info(f"new budget: {new_budgets}")
-        logger.info(f"clearing_error: {clearing_error}")
-        logger.info(f"allocation: {allocation}")
+        new_budgets, clearing_error, allocation, excess_demand_per_course = find_budget_perturbation(initial_budgets,
+                                                                                                     epsilon, prices,
+                                                                                                     alloc.instance, t)
         # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
         if clearing_error == 0:
-            logger.info(f"---------allocation in the if: {allocation}")
-
-            # for student, (price, bundle) in new_budgets.items():
-            #     alloc.give(student, bundle)
-            # return alloc.sorted()
             break
-            # return allocation  # TODO: we need to return p* = prices, b* = new_budgets -  in the logger
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
         for key in prices:
             prices[key] += delta * excess_demand_per_course[key]
 
     logger.info("Clearing error 0!")
     for student, (price, bundle) in new_budgets.items():
-        logger.info("Giving %s to %s in price %s", bundle, student, price)
+        logger.info(f"Giving {bundle} to {student} in price {prices}")
         alloc.give_bundle(student, bundle)
 
+    # print the final budget (b* = new_budgets) for each student
+    final_budget = ""
+    for key, value in new_budgets.items():
+        final_budget += f"{key}: {value[0]}, "
 
-#   TODO: enter the bundle
+    # Remove the trailing comma and space
+    final_budget = final_budget.rstrip(", ")
+    logger.info(f"\nfinal budget b* = {final_budget}")
+    # print the final price (p* = prices) for each course
+    logger.info(f"\nfinal prices p* = {prices}")
 
 
 if __name__ == "__main__":
@@ -297,22 +262,20 @@ if __name__ == "__main__":
 
     from fairpyx.utils.test_utils import stringify
 
-    # print(doctest.run_docstring_examples(find_ACEEI_with_EFTB,globals()))
-
+    print(doctest.run_docstring_examples(find_ACEEI_with_EFTB, globals()))
 
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
 
-    instance = Instance(
-       valuations={"avi":{"x":1, "y":2, "z":4}, "beni":{"x":2, "y":3, "z":1}},
-       agent_capacities=2,
-       item_capacities={"x":1, "y":1, "z":2})
-    initial_budgets = {"avi":2, "beni":3}
-    delta = 0.5
-    epsilon = 0.5
-    t = EFTBStatus.NO_EF_TB
-    print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon, t=t))
-
+    # instance = Instance(
+    #    valuations={"avi":{"x":1, "y":2, "z":4}, "beni":{"x":2, "y":3, "z":1}},
+    #    agent_capacities=2,
+    #    item_capacities={"x":1, "y":1, "z":2})
+    # initial_budgets = {"avi":2, "beni":3}
+    # delta = 0.5
+    # epsilon = 0.5
+    # t = EFTBStatus.NO_EF_TB
+    # print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon, t=t))
 
     # instance = Instance(
     #     valuations={"avi":{"x":2}, "beni":{"x":3}},
