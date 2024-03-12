@@ -234,7 +234,7 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
                  excess_demand_per_course)
 
 
-    # Process and print results todo: loogger
+    # # Process and print results todo: loogger
     # if model.num_solutions:
     #     print("Objective Value:", model.objective_value)
     #     for student in students_names:

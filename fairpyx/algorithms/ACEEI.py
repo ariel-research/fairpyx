@@ -137,6 +137,7 @@ def find_budget_perturbation(initial_budgets, epsilon, prices, instance, t):
     # return: new_budgets, norma, allocation, excess_demand
     map_student_to_best_bundle_per_budget = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
     new_budgets, clearing_error, excess_demand_per_course = lp.optimize_model(map_student_to_best_bundle_per_budget, instance, prices, t, initial_budgets)
+    logger.info(f"new_budgets in find_budget_perturbation: {new_budgets}")
     return new_budgets, clearing_error, map_student_to_best_bundle_per_budget, excess_demand_per_course
 
 
@@ -154,7 +155,6 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
               0 for no EF-TB constraint,
               1 for EF-TB constraint,
               2 for contested EF-TB
-
     :return final courses prices, final budgets, final distribution
 
     >>> from fairpyx.adaptors import divide
@@ -174,7 +174,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     >>> t = EFTBStatus.NO_EF_TB
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
     ... delta=delta, epsilon=epsilon, t=t))
-    "{avi:['x','z'], beni:['y', 'z']}"
+    "{avi:['x', 'z'], beni:['y', 'z']}"
 
     >>> instance = Instance(
     ... valuations={"avi":{"x":5, "y":2, "z":1}, "beni":{"x":4, "y":1, "z":3}},
@@ -186,7 +186,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     >>> t = EFTBStatus.EF_TB
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
     ... delta=delta, epsilon=epsilon, t=t))
-    "{avi:['y','z'], beni:['x', 'z']}"
+    "{avi:['y', 'z'], beni:['x', 'z']}"
 
     >>> instance = Instance(
     ...     valuations={"avi":{"x":5, "y":5, "z":1}, "beni":{"x":4, "y":6, "z":4}},
@@ -198,7 +198,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     >>> t = EFTBStatus.EF_TB
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
     ... delta=delta, epsilon=epsilon, t=t))
-        "{avi:['x','y'], beni:['y', 'z']}"
+    "{avi:['x', 'y'], beni:['y', 'z']}"
 
     >>> instance = Instance(
     ...     valuations={"avi":{"x":10, "y":20}, "beni":{"x":10, "y":20}},
@@ -210,7 +210,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     >>> t = EFTBStatus.EF_TB
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
     ...     delta=delta, epsilon=epsilon, t=t))
-        "{avi:['y'], beni:['x']}"
+    "{avi:['y'], beni:['x']}"
 
     >>> instance = Instance(
     ... valuations={"avi":{"x":2}, "beni":{"x":3}},
@@ -234,7 +234,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     >>> t = EFTBStatus.CONTESTED_EF_TB
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
     ... delta=delta, epsilon=epsilon, t=t))
-        "{avi:['x', 'z'], beni:['y', 'z']}"
+    "{avi:['x', 'z'], beni:['y', 'z']}"
     """
     # allocation = [[0 for _ in range(instance.num_of_agents)] for _ in range(instance.num_of_items)]
     # 1) init prices vector to be 0
@@ -252,8 +252,13 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
         logger.info(f"allocation: {allocation}")
         # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
         if clearing_error == 0:
-            logger.info(f"allocation in the if: {allocation}")
-            return allocation  # TODO: we need to return p* = prices, b* = new_budgets -  in the logger
+            logger.info(f"---------allocation in the if: {allocation}")
+
+            # for student, (price, bundle) in new_budgets.items():
+            #     alloc.give(student, bundle)
+            # return alloc.sorted()
+            break
+            # return allocation  # TODO: we need to return p* = prices, b* = new_budgets -  in the logger
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
         for key in prices:
             prices[key] += delta * excess_demand_per_course[key]
