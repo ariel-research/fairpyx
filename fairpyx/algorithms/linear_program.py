@@ -19,7 +19,7 @@ logger = logging.getLogger()
 # a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
 # a = {'Alice': {3.5: (1, 1, 0), 3: (1, 0, 1)}
 # initial_budgets = {"Alice": 5, "Bob": 4}
-def check_envy(instance, student, other_student, a, t, prices):
+def check_envy(instance: Instance, student: str, other_student: str, a: dict, t: Enum, prices: dict):
     """
         The function accepts a pair of students, and returns pairs of courses for which envy exists.
 
@@ -109,7 +109,7 @@ def check_envy(instance, student, other_student, a, t, prices):
     return result
 
 
-def get_envy_constraints(instance, initial_budgets, a, t, prices):
+def get_envy_constraints(instance: Instance, initial_budgets: dict, a: dict, t: Enum, prices: dict):
     """
         This function checks for every two students if there is envy between them,
         in case there is a constraint required for the model.

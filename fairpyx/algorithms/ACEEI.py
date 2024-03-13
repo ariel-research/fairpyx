@@ -117,7 +117,7 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     return best_bundle_per_budget
 
 
-def find_budget_perturbation(initial_budgets, epsilon, prices, instance, t):
+def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict, instance: Instance, t:Enum):
     # return: new_budgets, norma, allocation, excess_demand
     map_student_to_best_bundle_per_budget = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
     new_budgets, clearing_error, excess_demand_per_course = lp.optimize_model(map_student_to_best_bundle_per_budget,
