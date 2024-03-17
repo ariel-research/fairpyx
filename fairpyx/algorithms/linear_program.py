@@ -287,6 +287,8 @@ class EFTBStatus(Enum):
 
 
 if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
     # instance = Instance(
     #     valuations={"Alice": {"x": 5, "y": 4, "z": 1, "w": 6}, "Bob": {"x": 4, "y": 6, "z": 3, "w": 1}},
     #     agent_capacities=2,
@@ -303,10 +305,10 @@ if __name__ == "__main__":
     # optimize_model(a, instance, prices, t, initial_budgets)
     # result = [(('x', 'y'), ('x')), (('x', 'y'), ('y', 'z'))]
 
-    instance = Instance(valuations = {"Alice": {"x": 5, "y": 4, "z": 1, "w": 6}, "Bob": {"x": 4, "y": 6, "z": 3, "w": 1}}, agent_capacities = 2, item_capacities = {"x": 1, "y": 1, "z": 2, "w": 1})
-    student = "Alice"
-    other_student = "Bob"
-    a = {'Alice': {3.5: ('x', 'y')}, 'Bob': {3.5: ('x'), 2: ('y', 'z')}}
-    t = EFTBStatus.CONTESTED_EF_TB
-    prices = {"x": 1, "y": 0.1, "z": 0, "w": 0}
-    print(check_envy(instance, student, other_student, a, t, prices))
+    # instance = Instance(valuations = {"Alice": {"x": 5, "y": 4, "z": 1, "w": 6}, "Bob": {"x": 4, "y": 6, "z": 3, "w": 1}}, agent_capacities = 2, item_capacities = {"x": 1, "y": 1, "z": 2, "w": 1})
+    # student = "Alice"
+    # other_student = "Bob"
+    # a = {'Alice': {3.5: ('x', 'y')}, 'Bob': {3.5: ('x'), 2: ('y', 'z')}}
+    # t = EFTBStatus.CONTESTED_EF_TB
+    # prices = {"x": 1, "y": 0.1, "z": 0, "w": 0}
+    # print(check_envy(instance, student, other_student, a, t, prices))

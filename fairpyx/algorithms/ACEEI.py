@@ -240,7 +240,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
 
     logger.info("Clearing error 0!")
     for student, (price, bundle) in new_budgets.items():
-        logger.info(f"Giving {bundle} to {student} in price {prices}")
+        logger.info(f"Giving {bundle} to {student}")
         alloc.give_bundle(student, bundle)
 
     # print the final budget (b* = new_budgets) for each student
@@ -258,14 +258,16 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
 if __name__ == "__main__":
     import doctest
 
-    from fairpyx.adaptors import divide
+    doctest.testmod()
 
-    from fairpyx.utils.test_utils import stringify
+    # from fairpyx.adaptors import divide
+    #
+    # from fairpyx.utils.test_utils import stringify
 
-    print(doctest.run_docstring_examples(find_ACEEI_with_EFTB, globals()))
-
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
+    # print(doctest.run_docstring_examples(find_ACEEI_with_EFTB, globals()))
+    #
+    # logger.addHandler(logging.StreamHandler())
+    # logger.setLevel(logging.INFO)
 
     # instance = Instance(
     #    valuations={"avi":{"x":1, "y":2, "z":4}, "beni":{"x":2, "y":3, "z":1}},
