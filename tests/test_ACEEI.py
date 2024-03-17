@@ -5,7 +5,12 @@ import pytest
 import fairpyx
 from fairpyx import Instance, divide
 from fairpyx.algorithms import ACEEI
+from fairpyx.algorithms import linear_program
+from fairpyx.algorithms.ACEEI import EFTBStatus
 
+random_initial_budgets = {key: random.randint(10, 20) for key in range(1, 101)}
+random_value = random.randint(0.1, 2)
+random_t = random.choice(list(EFTBStatus))
 
 # Each student will get all the courses
 def test_case1():
@@ -13,7 +18,7 @@ def test_case1():
                                        item_capacity_bounds=(200, 200), item_base_value_bounds=(1, 5),
                                        item_subjective_ratio_bounds=(1, 1.5),
                                        normalized_sum_of_values=1000)
-    allocation = divide(ACEEI, instance=instance)
+    allocation = divide(ACEEI.find_ACEEI_with_EFTB, instance=instance)
     for agent in range(instance.num_of_agents):
         for item in range(instance.num_of_items):
             assert (item in allocation["allocation"][f"s{agent}"])
@@ -22,9 +27,8 @@ def test_case1():
 # Each student i will get course i
 def test_case2():
     utilities = [{f"s{i}": [1 if j == i - 1 else 0 for j in range(100)]} for i in range(1, 101)]
-    instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1,
-                        agents=[range(1, 101)], items=[range(1, 101)])
-    allocation = divide(ACEEI, instance=instance)
+    instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
+    allocation = divide(ACEEI.find_ACEEI_with_EFTB, instance=instance)
     for i in range(instance.num_of_agents):
         assert (i in allocation["allocation"][f"s{i}"])
 
@@ -35,7 +39,7 @@ def test_case3():
     instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1,
                         agents=[range(1, 101)], items=[range(1, 101)])
     b0 = list(range(100, 0, -1))
-    allocation = divide(ACEEI, instance=instance, *b0)
+    allocation = divide(ACEEI.find_ACEEI_with_EFTB, instance=instance, *b0)
     for i in range(instance.num_of_agents):
         assert (i in allocation["allocation"][f"s{i}"])
 
@@ -46,7 +50,7 @@ def test_case4():
                                        item_capacity_bounds=(200, 200), item_base_value_bounds=(1, 5),
                                        item_subjective_ratio_bounds=(0.5, 1.5),
                                        normalized_sum_of_values=1000)
-    allocation = divide(ACEEI, instance=instance)
+    allocation = divide(ACEEI.find_ACEEI_with_EFTB, instance=instance)
     for agent in range(instance.num_of_agents):
         agent_valuations = instance.valuations[agent]  # Get valuations for the agent
         allocated_items = allocation["allocation"][f"s{agent}"]
@@ -66,7 +70,7 @@ def test_case5():
                                        item_capacity_bounds=(200, 200), item_base_value_bounds=(1, 5),
                                        item_subjective_ratio_bounds=(0.5, 1.5),
                                        normalized_sum_of_values=1000)
-    allocation = divide(ACEEI, instance=instance)
+    allocation = divide(ACEEI.find_ACEEI_with_EFTB, instance=instance)
     fairpyx.validate_allocation(instance, allocation, title="validate Algorithm 1")
 
 

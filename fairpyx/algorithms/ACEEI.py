@@ -9,7 +9,7 @@ import logging
 
 from fairpyx import Instance, AllocationBuilder
 from itertools import combinations
-import linear_program as lp
+from fairpyx.algorithms import linear_program as lp
 
 
 class EFTBStatus(Enum):

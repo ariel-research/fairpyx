@@ -184,7 +184,7 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
         >>> prices = {"x": 1.5, "y": 2, "z": 0}
         >>> t = ACEEI.EFTBStatus.EF_TB
         >>> optimize_model(a,instance,prices,t,initial_budgets)
-        [[('x', 'z'), ('x', 'y')], [('y', 'z'), ('x', 'y')]]
+        ({'Alice': (3, ('x', 'z')), 'Bob': (2, ('y', 'z'))}, 0.0, {'x': 0.0, 'y': 0.0, 'z': 0.0})
     """
 
     logger.info(f"a {a}")
