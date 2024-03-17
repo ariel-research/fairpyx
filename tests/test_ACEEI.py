@@ -1,5 +1,4 @@
 import random
-
 import pytest
 
 import fairpyx
@@ -12,16 +11,19 @@ random_initial_budgets = {f"s{key}": random.randint(10, 20) for key in range(1, 
 random_value = random.uniform(0.1, 2)
 random_t = random.choice(list(EFTBStatus))
 
+
 # Each student will get all the courses
 def test_case_1():
     instance = Instance.random_uniform(num_of_agents=100, num_of_items=500, agent_capacity_bounds=(500, 500),
                                        item_capacity_bounds=(200, 200), item_base_value_bounds=(1, 5),
                                        item_subjective_ratio_bounds=(1, 1.5),
                                        normalized_sum_of_values=1000)
-    allocation = divide(ACEEI.find_ACEEI_with_EFTB, instance=instance, initial_budgets=random_initial_budgets, delta=random_value, epsilon=random_value, t=random_t)
+    allocation = divide(ACEEI.find_ACEEI_with_EFTB, instance=instance, initial_budgets=random_initial_budgets,
+                        delta=random_value, epsilon=random_value, t=random_t)
     for agent in instance.agents:
         for item in instance.items:
             assert (item in allocation[agent])
+
 
 def test_case_1_mini():
     instance = Instance.random_uniform(num_of_agents=5, num_of_items=10, agent_capacity_bounds=(10, 10),
@@ -33,7 +35,6 @@ def test_case_1_mini():
     for agent in instance.agents:
         for item in instance.items:
             assert (item in allocation[agent])
-
 
 
 # Each student i will get course i
@@ -48,9 +49,9 @@ def test_case_2():
 
 # Each student i will get course i, because student i have the highest i budget.
 def test_case_3():
-    utilities = {f"s{i}": {f"c{101-j}": j for j in range(100, 0, -1)} for i in range(1, 101)}
+    utilities = {f"s{i}": {f"c{101 - j}": j for j in range(100, 0, -1)} for i in range(1, 101)}
     instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
-    initial_budgets = {f"s{key}": (101-key) for key in range(1, 101)}
+    initial_budgets = {f"s{key}": (101 - key) for key in range(1, 101)}
     allocation = divide(ACEEI.find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
                         delta=random_value, epsilon=random_value, t=random_t)
     for i in range(1, 101):
@@ -58,9 +59,9 @@ def test_case_3():
 
 
 def test_case_3_mini():
-    utilities = {f"s{i}": {f"c{11-j}": j for j in range(10, 0, -1)} for i in range(1, 11)}
+    utilities = {f"s{i}": {f"c{11 - j}": j for j in range(10, 0, -1)} for i in range(1, 11)}
     instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
-    initial_budgets = {f"s{key}": (11-key) for key in range(1, 11)}
+    initial_budgets = {f"s{key}": (11 - key) for key in range(1, 11)}
     allocation = divide(ACEEI.find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
                         delta=random_value, epsilon=random_value, t=random_t)
     for i in range(1, 11):
@@ -108,6 +109,7 @@ def test_case_5():
     allocation = divide(ACEEI.find_ACEEI_with_EFTB, instance=instance, initial_budgets=random_initial_budgets,
                         delta=random_value, epsilon=random_value, t=random_t)
     fairpyx.validate_allocation(instance, allocation, title="validate Algorithm 1")
+
 
 def test_case_5_mini():
     instance = Instance.random_uniform(num_of_agents=10, num_of_items=30, agent_capacity_bounds=(3, 3),

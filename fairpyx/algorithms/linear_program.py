@@ -5,6 +5,7 @@ from contextlib import redirect_stdout
 import os
 
 from fairpyx import Instance
+from fairpyx.algorithms import ACEEI
 
 # from fairpyx.algorithms.ACEEI import EFTBStatus
 
@@ -36,6 +37,7 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
         Example run 6 iteration 5
         >>> from fairpyx import Instance
         >>> from fairpyx.algorithms import ACEEI
+
         >>> instance = Instance(
         ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
         ...     agent_capacities=2,
@@ -43,7 +45,7 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
         >>> student = "Alice"
         >>> other_student = "Bob"
         >>> a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
-        >>> t = EFTBStatus.EF_TB
+        >>> t = ACEEI.EFTBStatus.EF_TB
         >>> prices = {"x": 1.5, "y": 2, "z": 0}
         >>> check_envy(instance, student, other_student, a, t, prices)
         [(('x', 'z'), ('x', 'y'))]
@@ -55,7 +57,7 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
         >>> student = "Alice"
         >>> other_student = "Bob"
         >>> a = {'Alice': {0: (), 1.1: ('y')}, 'Bob': {1.1: ('y'), 1: ('x')}}
-        >>> t = EFTBStatus.EF_TB
+        >>> t = ACEEI.EFTBStatus.EF_TB
         >>> prices = {"x": 1, "y": 1.1}
         >>> check_envy(instance, student, other_student, a, t, prices)
         [((), 'y'), ((), 'x')]
@@ -68,7 +70,7 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
         >>> student = "Alice"
         >>> other_student = "Bob"
         >>> a = {'Alice': {3.5: ('x', 'y')}, 'Bob': {3.5: ('x'), 2: ('y', 'z')}}
-        >>> t = EFTBStatus.CONTESTED_EF_TB
+        >>> t = ACEEI.EFTBStatus.CONTESTED_EF_TB
         >>> prices = {"x": 1, "y": 0.1, "z": 0, "w": 0}
         >>> check_envy(instance, student, other_student, a, t, prices)
         [(('x', 'y'), 'x'), (('x', 'y'), ('y', 'z'))]
@@ -79,7 +81,7 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
     for bundle_i in a[student].values():
         for bundle_j in a[other_student].values():
             original_bundle_j = bundle_j
-            if t == EFTBStatus.CONTESTED_EF_TB:
+            if t == ACEEI.EFTBStatus.CONTESTED_EF_TB:
                 bundle_j = list(bundle_j)  # Convert bundle_j to a list
 
                 # Iterate through keys in prices
@@ -230,10 +232,10 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
         model += xsum(x[student, bundle] for bundle in a[student].values()) == 1
 
     # Add EF-TB constraints based on parameter t
-    if t == EFTBStatus.NO_EF_TB:
+    if t == ACEEI.EFTBStatus.NO_EF_TB:
         pass  # No EF-TB constraints, no need to anything
 
-    elif t == EFTBStatus.EF_TB or t == EFTBStatus.CONTESTED_EF_TB:
+    elif t == ACEEI.EFTBStatus.EF_TB or t == ACEEI.EFTBStatus.CONTESTED_EF_TB:
         # Add EF-TB constraints here
         envy_constraints = get_envy_constraints(instance, initial_budgets, a, t, prices)
         for constraint in envy_constraints:
@@ -265,7 +267,6 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
     logging.info("New budgets: %s\nObjective Value: %s\nExcess Demand: %s", new_budgets, model.objective_value,
                  excess_demand_per_course)
 
-
     # # Process and print results todo: loogger
     # if model.num_solutions:
     #     print("Objective Value:", model.objective_value)
@@ -280,14 +281,9 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
     return new_budgets, model.objective_value, excess_demand_per_course
 
 
-class EFTBStatus(Enum):
-    NO_EF_TB = 0
-    EF_TB = 1
-    CONTESTED_EF_TB = 2
-
-
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()
     # instance = Instance(
     #     valuations={"Alice": {"x": 5, "y": 4, "z": 1, "w": 6}, "Bob": {"x": 4, "y": 6, "z": 3, "w": 1}},
