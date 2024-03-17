@@ -92,7 +92,7 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
                 logger.info(f"----------{t}---------")
                 logger.info(f"bundle_j of {other_student} = {bundle_j}")
 
-                sorted_bundle_j = sorted(bundle_j, key=lambda course: instance._valuations[student][course],
+                sorted_bundle_j = sorted(bundle_j, key=lambda course: instance.agent_item_value(student, course),
                                          reverse=True)
                 logger.info(f"sorted_bundle_j by {student} valuation = {sorted_bundle_j}")
 
