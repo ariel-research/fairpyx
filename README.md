@@ -55,7 +55,7 @@ Then, use the function `fairpyx.divide` to run an algorithm on the instance. For
 
 You are welcome to add fair allocation algorithms, including your published algorithms, to `fairpyx`. Please use the following steps to contribute:
 
-1. Fork `fairpyx` and install your fork locally as follows:
+1. Fork the repository, then install your fork locally as follows:
 
     ```
     clone https://github.com/<your-username>/fairpyx.git

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # This example instance is used in doctests throughout this file:
 example_instance = Instance(
-    valuations = {"Alice": {"c1": 10, "c2": 8, "c3": 6}, "Bob": {"c1": 10, "c2": 8, "c3": 6}, "Chana": {"c1": 6, "c2": 8, "c3": 10}, "Dana": {"c1": 6, "c2": 8, "c3": 10}},
+    valuations = {"Alice": {"c1": 8, "c2": 6, "c3": 10}, "Bob": {"c1": 8, "c2": 10, "c3": 6}, "Chana": {"c1": 6, "c2": 8, "c3": 10}, "Dana": {"c1": 6, "c2": 8, "c3": 10}},
     agent_capacities = {"Alice": 2, "Bob": 3, "Chana": 2, "Dana": 3},      
     item_capacities = {"c1": 2, "c2": 3, "c3": 4},
 )
@@ -55,9 +55,30 @@ def algorithm2(alloc: AllocationBuilder):
         else:
             for i in range(agent_capacity):
                 alloc.give(agent, bundle[i])
-        logger.info("%s picks %s", agent, bundle)   
+        logger.info("%s picks %s", agent, bundle)
 
+def algorithm3(alloc: AllocationBuilder):
+    """
+    This dummy algorithm demonstrates how to call algorithms sequentially.
 
+    It first allocates one high-value item to each agent, and then run algorithm2.
+    
+    >>> divide(algorithm3, example_instance)
+    {'Alice': ['c1', 'c3'], 'Bob': ['c1', 'c2'], 'Chana': ['c2', 'c3'], 'Dana': ['c3']}
+    """
+    logger.info("\nAlgorithm 3 starts. items %s , agents %s", alloc.remaining_item_capacities, alloc.remaining_agent_capacities)
+
+    logger.info("\nFirst phase: allocate one high-value item per agent.")
+    for agent in list(alloc.remaining_agents()):
+        for item in list(alloc.remaining_items()):
+            value = alloc.effective_value(agent, item)    # `effective_value` returns the agent's item to the value if there is no conflict; otherwise, it returns minus infinity.
+            if value >= 10:
+                logger.info("%s gets %s, with value %s", agent, item, value)   
+                alloc.give(agent, item)
+                break
+
+    logger.info("\nSecond phase: serial-dictatorship.")
+    algorithm2(alloc)    
 
 ### MAIN PROGRAM
 
@@ -66,14 +87,12 @@ if __name__ == "__main__":
     import doctest, sys
     print("\n",doctest.testmod(), "\n")
 
-
     # 2. Run the algorithm on random instances, with logging:
     logger.addHandler(logging.StreamHandler(sys.stdout))
     logger.setLevel(logging.INFO)
 
     from fairpyx.adaptors import divide_random_instance
-
-    divide_random_instance(algorithm=algorithm2, 
+    divide_random_instance(algorithm=algorithm3, 
                            num_of_agents=30, num_of_items=10, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12], 
                            item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
                            random_seed=1)

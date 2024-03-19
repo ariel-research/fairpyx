@@ -30,7 +30,7 @@ def picking_sequence(alloc: AllocationBuilder, agent_order:list):
     """
     logger.info("\nPicking-sequence with items %s , agents %s, and agent-order %s", alloc.remaining_item_capacities, alloc.remaining_agent_capacities, agent_order)
     for agent in cycle(agent_order):
-        if len(alloc.remaining_agents())==0 or len(alloc.remaining_items())==0:
+        if alloc.isdone():
             break 
         if not agent in alloc.remaining_agent_capacities:
             continue
