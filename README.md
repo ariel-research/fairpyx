@@ -31,7 +31,7 @@ or run the tests:
 
 ## Usage
 
-To activate a fair division algorithm, first construct a `fairpyx.instance`, for example:
+To activate a fair division algorithm, first construct a `fairpyx.Instance`, for example:
 
     import fairpyx
     valuations = {"Alice": {"w":11,"x":22,"y":44,"z":0}, "George": {"w":22,"x":11,"y":66,"z":33}}
@@ -63,12 +63,10 @@ You are welcome to add fair allocation algorithms, including your published algo
     pip install -e .
     ```
 
-2. Read the code of some existing algorithms, to see how their implemented
+2. Read the code at [algorithm_examples.py](fairpyx/algorithms/algorithm_examples.py) to see how the implementation works. Note that the implementation does not use the `Instance` variable directly - it uses an `AllocationBuilder` variable, which tracks both the ongoing allocation and the remaining input (the remaining capacities of agents and items). The function `divide` converts an `Instance` to an `AllocationBuilder` with an empty allocation.
 
-Write a function that accepts a parameter of type `AllocationBuilder`, as well as any custom parameters your algorithm needs. The `AllocationBuilder` argument sent to your function is already initialized with an empty allocation. Your function has to modify this argument using the method `give`, which gives an item to an agent and updates the capacities. Your function need not return any value; the allocation is read from the modified parameter. See:
-
-* [picking_sequence.py](fairpyx/algorithms/picking_sequence.py) and [iterated_maximum_matching.py](fairpyx/algorithms/iterated_maximum_matching.py) for examples of algorithms;
-* [allocations.py](fairpyx/allocations.py) for more details on the `AllocationBuilder` object.
+3. Write a function that accepts a parameter of type `AllocationBuilder`, as well as any custom parameters your algorithm needs. The `AllocationBuilder` argument sent to your function is already initialized with an empty allocation. Your function has to modify this argument using the methods `give` or `give_bundle`, which give an item or a set of items to an agent and update the capacities accordingly. Your function need not return any value; the allocation is read from the modified parameter. 
+See [allocations.py](fairpyx/allocations.py) for more details on the `AllocationBuilder` object.
 
 ## See also
 
