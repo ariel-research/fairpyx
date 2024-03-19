@@ -2,7 +2,7 @@
 This is a dummy algorithm, that serves as an example how to implement an algorithm.
 
 Programmer: Erel Segal-Halevi
-Since: 2023-06
+Since: 2024-03
 """
 
 # The end-users of the algorithm feed the input into an "Instance" variable, which tracks the original input (agents, items and their capacities).
