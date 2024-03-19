@@ -63,9 +63,19 @@ You are welcome to add fair allocation algorithms, including your published algo
     pip install -e .
     ```
 
-2. Read the code at [algorithm_examples.py](fairpyx/algorithms/algorithm_examples.py) to see how the implementation works. Note that the implementation does not use the `Instance` variable directly - it uses an `AllocationBuilder` variable, which tracks both the ongoing allocation and the remaining input (the remaining capacities of agents and items). The function `divide` converts an `Instance` to an `AllocationBuilder` with an empty allocation.
+2. Read the code at [algorithm_examples.py](fairpyx/algorithms/algorithm_examples.py) to see how the implementation works. 
 
-3. Write a function that accepts a parameter of type `AllocationBuilder`, as well as any custom parameters your algorithm needs. The `AllocationBuilder` argument sent to your function is already initialized with an empty allocation. Your function has to modify this argument using the methods `give` or `give_bundle`, which give an item or a set of items to an agent and update the capacities accordingly. Your function need not return any value; the allocation is read from the modified parameter. 
+  * Note that the implementation does not use the `Instance` variable directly - it uses an `AllocationBuilder` variable, which tracks both the ongoing allocation and the remaining input (the remaining capacities of agents and items).
+
+3. Write a function that accepts a parameter of type `AllocationBuilder`, as well as any custom parameters your algorithm needs. 
+
+  * The `AllocationBuilder` argument sent to your function is already initialized with an empty allocation. 
+  Your function has to modify this argument using the methods `give` or `give_bundle`, which give an item or a set of items to an agent and update the capacities accordingly. 
+  * You can easily chain algorithms. For example, if the last phase of your algorithm is dividing the remaining items using round-robin, you can simply call `round_robin(alloc)` at the end of your function; the AllocationBundle object already tracks the remaining items for you.
+  * Your function need not return any value; the allocation is read from the `alloc`.
+  * The `divide` function is responsible for converting the `Instance` to an `AllocationBuilder` before your function starts, and extracting the allocation from the `AllocationBuilder` after your function ends, so you can focus on writing the algorithm itself.
+
+
 See [allocations.py](fairpyx/allocations.py) for more details on the `AllocationBuilder` object.
 
 ## See also
