@@ -14,12 +14,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-
-
 def picking_sequence(alloc: AllocationBuilder, agent_order:list):
     """
     Allocate the given items to the given agents using the given picking sequence.
-    :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents. of the fair course allocation problem. 
+    :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents.
     :param agent_order: a list of indices of agents, representing the picking sequence. The agents will pick items in this order.
 
     >>> from fairpyx.adaptors import divide
@@ -32,14 +30,14 @@ def picking_sequence(alloc: AllocationBuilder, agent_order:list):
     """
     logger.info("\nPicking-sequence with items %s , agents %s, and agent-order %s", alloc.remaining_item_capacities, alloc.remaining_agent_capacities, agent_order)
     for agent in cycle(agent_order):
-        if len(alloc.remaining_agent_capacities)==0 or len(alloc.remaining_item_capacities)==0:
+        if len(alloc.remaining_agents())==0 or len(alloc.remaining_items())==0:
             break 
         if not agent in alloc.remaining_agent_capacities:
             continue
         potential_items_for_agent = set(alloc.remaining_items()).difference(alloc.bundles[agent])
         if len(potential_items_for_agent)==0:
             logger.info("Agent %s cannot pick any more items: remaining=%s, bundle=%s", agent, alloc.remaining_item_capacities, alloc.bundles[agent])
-            alloc.remove_agent(agent)
+            alloc.remove_agent_from_loop(agent)
             continue
         best_item_for_agent = max(potential_items_for_agent, key=lambda item: alloc.effective_value(agent,item))
         alloc.give(agent, best_item_for_agent, logger)
@@ -125,15 +123,15 @@ if __name__ == "__main__":
     # logger.addHandler(logging.StreamHandler(sys.stdout))
     # logger.setLevel(logging.INFO)
 
-    from fairpyx.adaptors import divide_random_instance
+    # from fairpyx.adaptors import divide_random_instance
 
-    print("\n\nRound robin:")
-    divide_random_instance(algorithm=round_robin, 
-                           num_of_agents=30, num_of_items=10, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12], 
-                           item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
-                           random_seed=1)
-    print("\n\nBidirectional round robin:")
-    divide_random_instance(algorithm=bidirectional_round_robin, 
-                           num_of_agents=30, num_of_items=10, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12], 
-                           item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
-                           random_seed=1)
+    # print("\n\nRound robin:")
+    # divide_random_instance(algorithm=round_robin, 
+    #                        num_of_agents=30, num_of_items=10, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12], 
+    #                        item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
+    #                        random_seed=1)
+    # print("\n\nBidirectional round robin:")
+    # divide_random_instance(algorithm=bidirectional_round_robin, 
+    #                        num_of_agents=30, num_of_items=10, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12], 
+    #                        item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
+    #                        random_seed=1)

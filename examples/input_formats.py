@@ -24,7 +24,7 @@ print(divide(fairpyx.algorithms.round_robin, valuations={"Ami": [8,7,6,5], "Tami
 print(divide(fairpyx.algorithms.round_robin, valuations=[[8,7,6,5], [12,8,4,2]]))
 
 
-# #' For experiments, you can use a numpy random matrix:
+#' For experiments, you can use a numpy random matrix:
 
 import numpy as np
 valuations = np.random.randint(1,100,[2,4])

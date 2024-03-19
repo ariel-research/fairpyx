@@ -169,10 +169,10 @@ class AllocationBuilder:
             item_conflicts=self.instance.item_conflicts,               # item conflicts are the same as in the original instance   
             items=self.remaining_items())                              # item list may be smaller than in the original instance 
 
-    def remove_item(self, item:any):
+    def remove_item_from_loop(self, item:any):
         del self.remaining_item_capacities[item]
 
-    def remove_agent(self, agent:any):
+    def remove_agent_from_loop(self, agent:any):
         del self.remaining_agent_capacities[agent]
 
     def update_conflicts(self, agent:any, item:any):
@@ -193,10 +193,10 @@ class AllocationBuilder:
         # Update capacities:
         self.remaining_agent_capacities[agent] -= 1
         if self.remaining_agent_capacities[agent] <= 0:
-            self.remove_agent(agent)
+            self.remove_agent_from_loop(agent)
         self.remaining_item_capacities[item] -= 1
         if self.remaining_item_capacities[item] <= 0:
-            self.remove_item(item)
+            self.remove_item_from_loop(item)
         self.update_conflicts(agent,item)
 
 
@@ -221,7 +221,7 @@ class AllocationBuilder:
                 raise ValueError(f"Agent {agent} has no remaining capacity for {num_of_items} new items")
             self.remaining_agent_capacities[agent] -= num_of_items
             if self.remaining_agent_capacities[agent] <= 0:
-                self.remove_agent(agent)
+                self.remove_agent_from_loop(agent)
 
         for item,num_of_owners in map_item_to_num_of_owners.items():
             if num_of_owners==0: continue
@@ -229,7 +229,7 @@ class AllocationBuilder:
                 raise ValueError(f"Item {item} has no remaining capacity for {num_of_owners} new agents")
             self.remaining_item_capacities[item] -= num_of_owners
             if self.remaining_item_capacities[item] <= 0:
-                self.remove_item(item)
+                self.remove_item_from_loop(item)
 
         for agent,bundle in new_bundles.items():
             self.bundles[agent].update(bundle)

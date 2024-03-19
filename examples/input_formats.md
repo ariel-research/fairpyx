@@ -43,10 +43,17 @@ You can call the same algorithm with only the values, or only the value matrix:
 ```python
 print(divide(fairpyx.algorithms.round_robin, valuations={"Ami": [8,7,6,5], "Tami": [12,8,4,2]}))
 print(divide(fairpyx.algorithms.round_robin, valuations=[[8,7,6,5], [12,8,4,2]]))
+```
+
+```
+{'Ami': [0, 2], 'Tami': [1, 3]}
+{0: [0, 2], 1: [1, 3]}
+```
 
 
-# #' For experiments, you can use a numpy random matrix:
+For experiments, you can use a numpy random matrix:
 
+```python
 import numpy as np
 valuations = np.random.randint(1,100,[2,4])
 print(valuations)
@@ -55,8 +62,6 @@ print(allocation)
 ```
 
 ```
-{'Ami': [0, 2], 'Tami': [1, 3]}
-{0: [0, 2], 1: [1, 3]}
 [[44  1 43 50]
  [83 90 44 20]]
 {0: [0, 3], 1: [1, 2]}

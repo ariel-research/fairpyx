@@ -103,7 +103,7 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
         agents_with_empty_bundles = [agent for agent,bundle in map_agent_to_bundle.items() if len(bundle)==0]
         for agent in agents_with_empty_bundles:
             explanation_logger.info(_("you_did_not_get_any"), agents=agent)
-            alloc.remove_agent(agent)
+            alloc.remove_agent_from_loop(agent)
             del map_agent_to_bundle[agent]
 
         map_agent_to_item = {agent: bundle[0] for agent,bundle in map_agent_to_bundle.items()}
