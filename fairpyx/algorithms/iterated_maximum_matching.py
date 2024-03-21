@@ -2,8 +2,9 @@
 
 The Iterated Maximum Matching algorithm for fair item allocation. Reference:
 
-    Johannes Brustle, Jack Dippel, Vishnu V. Narayan, Mashbat Suzuki, Adrian Vetta (2019).
+    Johannes Brustle, Jack Dippel, Vishnu V. Narayan, Mashbat Suzuki, Adrian Vetta (2020).
     ["One Dollar Each Eliminates Envy"](https://arxiv.org/abs/1912.02797).
+    Proceedings of the 21st ACM Conference on Economics and Computation. 2020
     * Algorithm 1.
 
 Programmer: Erel Segal-Halevi
