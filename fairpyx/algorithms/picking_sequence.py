@@ -13,6 +13,10 @@ from fairpyx import Instance, AllocationBuilder
 import logging
 logger = logging.getLogger(__name__)
 
+def per_category_round_robin():
+    return False
+def capped_round_robin():
+    return False
 
 def picking_sequence(alloc: AllocationBuilder, agent_order:list):
     """
