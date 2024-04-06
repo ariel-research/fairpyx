@@ -45,42 +45,50 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
 
 
 def test_1():
-    print(main)
+    print(main())
+    assert False
 
 
 def test_2():
-    print(main)
+    print(main())
+    assert False
 
 
 def test_3():
-    print(main)
+    print(main())
+    assert False
 
 
 def test_4():
-    print(main)
+    print(main())
+    assert False
 
 
 def test_5():
-    print(main)
+    print(main())
+    assert False
 
 
 def test_6():
-    print(main)
+    print(main())
+    assert False
 
 
 def test_7():
-    print(main)
+    print(main())
+    assert False
 
 
 def test_8():
     print(main())
+    assert False
 
 
 # @pytest.fixture
 def main():  # todo add randomization for arguments .
-    random_num_of_categories=np.random.randint(1,10+1)
     random_num_of_agents = np.random.randint(1, 10 + 1)
     random_num_of_items = np.random.randint(1, 10 + 1)
+    random_num_of_categories = np.random.randint(1, random_num_of_items + 1)
     random_instance = random_uniform_extended(
         num_of_categories=random_num_of_categories,
         num_of_agents=random_num_of_agents, num_of_items=random_num_of_items,
