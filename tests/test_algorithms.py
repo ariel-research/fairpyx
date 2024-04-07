@@ -45,7 +45,14 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                     categories} for agent
             in result_instance.agents}
     # print(f"and categories are :{categories}\n and agent capacities are : {agent_capacities_2d}") # TODO remove after finish
-    for item in result_instance.items:
+    #NOTE: to make sure a case of empty category doesnt exist we do a 1 run on all the  categories and fill them with random item
+    temporary_items=list(result_instance.items).copy()
+
+    for cat in categories:
+        random_item = np.random.choice(temporary_items)
+        categories[cat].append(random_item)
+        temporary_items.remove(random_item)
+    for item in temporary_items:
         random_category = np.random.choice(list(categories.keys()))
         categories[random_category].append(item)
 
@@ -71,7 +78,31 @@ def random_instance(equal_capacities):  # todo add randomization for arguments .
 # 1) time-complexity-based tests
 # 2) validate Envy-freeness up to 1 good in worst case scenario
 def is_fef1(alloc: dict,instance:Instance,item_ctegories:dict,agent_category_capacities:dict) -> bool:
-    # TODO implement as the definition says for every pair of agents (i,j) vi(xi) >= vi(Xj-{certain item})
+    # TODO implement as the definition says for every pair of agents (i,j) vi(xi) >= vi(Xj-{certain item}) we need to
+    #  calculate how much items every agent has in his bundle divided by categories and make sure to only count k of
+    #  them as k stands for the capacity of agent i for that category for each category im going to loop over  the
+    #  items in each agent bundle and check if item in category i'll be making a dict agent_category_items={agent:{
+    #  category:[items.....]}} so that way we can calculate things easily by simply len(agent_category_items[agent][
+    #  category]) then in case agent i has capacity < agent j capacity we'll only take in consideration the amount of
+    #  i's capacity items in j's bundle (if agent i has capacity of k in category c and agent j got in his allocated
+    #  bundle more than k items which belong to that category agent i shall only take in consideration k items when
+    #  calulating the valuation of items in j's bundle)
+    agent_category_items:dict[dict[list]]
+    agent_category_items = {}
+    agent_category_items[0] = {}
+    agent_category_items[0][0] = []
+    print(f"items categories are : {item_ctegories}")
+    print(f"allo is: {alloc}")
+    # for cat in item_ctegories:
+    #     print(f"{cat}")
+    #     for agent in alloc:
+    #         for item in alloc[agent]:
+    #             print(f"{item}")
+    #             if item in cat:
+    #                 agent_category_items[agent][cat].append(item)
+    # print()
+    # print(agent_category_items)
+
     return False
 
 
