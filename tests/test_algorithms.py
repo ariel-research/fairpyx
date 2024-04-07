@@ -77,7 +77,7 @@ def random_instance(equal_capacities):  # todo add randomization for arguments .
 # TODO the only logical way to test random instances , is either
 # 1) time-complexity-based tests
 # 2) validate Envy-freeness up to 1 good in worst case scenario
-def is_fef1(alloc: dict,instance:Instance,item_ctegories:dict,agent_category_capacities:dict) -> bool:
+def is_fef1(alloc: dict,instance:Instance,item_ctegories:dict,agent_category_capacities:dict,valuations_func:callable) -> bool:
     # TODO implement as the definition says for every pair of agents (i,j) vi(xi) >= vi(Xj-{certain item}) we need to
     #  calculate how much items every agent has in his bundle divided by categories and make sure to only count k of
     #  them as k stands for the capacity of agent i for that category for each category im going to loop over  the
@@ -113,12 +113,24 @@ def is_fef1(alloc: dict,instance:Instance,item_ctegories:dict,agent_category_cap
                # print(f"{item}")
                 if item in item_ctegories[cat]:
                     agent_categorized_allocation[agent][cat].append(item)
-    print()
     print(f"agent new 2d dictionary : {agent_categorized_allocation}")
+    for agent in alloc.keys():
+        agent_valuations={}
+        for item_list in item_ctegories.values():
+            for item in item_list:
+                agent_valuations[item]=valuations_func(agent, item)
+                # print(
+                #     f"agent valuations : {[valuations_func(agent, item)]}")
+        print(f"{agent} valuation : {agent_valuations}")
+    #print(f"agent valuations : {[valuations_func(agent,item)for agent in alloc.keys() for item in item_ctegories.values()]}")
     #TODO so now we have a 2d version of the allocation categorized , to ease the check of F-EF1 ! :)
     for agent_i in agent_categorized_allocation.keys():
         for agent_j in agent_categorized_allocation.keys():
             #TODO here we do the  FEF1 check
+            agent_i_bundle_value=sum(valuations_func(agent_i,item)for item in alloc[agent_i]) # the value of agent i bundle
+            print(f"{agent_i}: valuation is: {agent_i_bundle_value}")
+            if agent_i != agent_j: # no use of comparing same agent to himself
+                pass
            # if(value(best_feasible_subset(first=agent_i,second=agent_j)))
     return False
 
@@ -127,14 +139,14 @@ def test_algorithm_1():
     instance, agent_capacities_2d, categories = random_instance(equal_capacities=True)
     assert is_fef1(divide(algorithm=picking_sequence.per_category_round_robin, instance=instance,
                           item_categories=categories, agent_category_capacities=agent_capacities_2d),instance=instance
-                   ,agent_category_capacities=agent_capacities_2d,item_ctegories=categories) is True
+                   ,agent_category_capacities=agent_capacities_2d,item_ctegories=categories,valuations_func=instance.agent_item_value) is True
 
 
 def test_algorithm_2():
     instance, agent_capacities_2d, categories = random_instance(equal_capacities=False)
     assert is_fef1(divide(algorithm=picking_sequence.capped_round_robin, instance=instance,
                           item_categories=categories, agent_category_capacities=agent_capacities_2d), instance=instance
-                   , agent_category_capacities=agent_capacities_2d, item_ctegories=categories) is True
+                   , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,valuations_func=instance.agent_item_value) is True
 
 
 def test_algorithm_3():
