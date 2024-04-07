@@ -87,22 +87,39 @@ def is_fef1(alloc: dict,instance:Instance,item_ctegories:dict,agent_category_cap
     #  i's capacity items in j's bundle (if agent i has capacity of k in category c and agent j got in his allocated
     #  bundle more than k items which belong to that category agent i shall only take in consideration k items when
     #  calulating the valuation of items in j's bundle)
-    agent_category_items:dict[dict[list]]
-    agent_category_items = {}
-    agent_category_items[0] = {}
-    agent_category_items[0][0] = []
-    print(f"items categories are : {item_ctegories}")
-    print(f"allo is: {alloc}")
-    # for cat in item_ctegories:
-    #     print(f"{cat}")
-    #     for agent in alloc:
-    #         for item in alloc[agent]:
-    #             print(f"{item}")
-    #             if item in cat:
-    #                 agent_category_items[agent][cat].append(item)
-    # print()
-    # print(agent_category_items)
-
+    agent_categorized_allocation:dict[dict[list]]
+    agent_categorized_allocation = {agent:{category:[] for category in item_ctegories.keys()} for agent in agent_category_capacities.keys()}
+    # agent_category_items[0] = {}
+    # agent_category_items[0][0] = []
+    # print(f"\nitems categories are : {item_ctegories}")
+    # print(f"\nagent category capacities : {agent_category_capacities}")
+    # print(f"allocation is: {alloc}") # alloc is empty for now , its hard to tell if the upcoming lines of code would achieve it
+    # TODO : for the sake of implementing the algorithm im going to change the allocation to something which is non-empty
+    #alloc={'agent1': [], 'agent2': [], 'agent3': [], 'agent4': []}
+    alloc={agent:[]for agent in agent_category_capacities.keys()} # initializing
+    for item_list in item_ctegories.values():
+        for item in item_list:
+            random_agent=np.random.choice(list(agent_category_capacities.keys()))
+            alloc[random_agent].append(item)
+    #TODO remove after completing the impl
+    print(f"\nitems categories are : {item_ctegories}")
+    print(f"\nagent category capacities : {agent_category_capacities}")
+    print(
+        f"allocation is: {alloc}")  # alloc is empty for now , its hard to tell if the upcoming lines of code would achieve it
+    for cat in item_ctegories.keys():
+        #print(f"{cat}")
+        for agent in alloc.keys():
+            for item in alloc[agent]:
+               # print(f"{item}")
+                if item in item_ctegories[cat]:
+                    agent_categorized_allocation[agent][cat].append(item)
+    print()
+    print(f"agent new 2d dictionary : {agent_categorized_allocation}")
+    #TODO so now we have a 2d version of the allocation categorized , to ease the check of F-EF1 ! :)
+    for agent_i in agent_categorized_allocation.keys():
+        for agent_j in agent_categorized_allocation.keys():
+            #TODO here we do the  FEF1 check
+           # if(value(best_feasible_subset(first=agent_i,second=agent_j)))
     return False
 
 
