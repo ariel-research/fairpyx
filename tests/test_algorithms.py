@@ -33,7 +33,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
     # TODO make ranmdomize categories
     category_string_template = "Category:{cat}"
     categories = {category_string_template.format(cat=cat): [] for cat in range(num_of_categories)}
-    if equal_capacities:
+    if not equal_capacities:
         agent_capacities_2d = {
             agent: {category: np.random.randint(agent_capacity_bounds[0], agent_capacity_bounds[1] + 1) for category in
                     categories} for agent
