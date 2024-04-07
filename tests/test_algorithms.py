@@ -70,20 +70,23 @@ def random_instance(equal_capacities):  # todo add randomization for arguments .
 # TODO the only logical way to test random instances , is either
 # 1) time-complexity-based tests
 # 2) validate Envy-freeness up to 1 good in worst case scenario
-def is_fef1(alloc: dict) -> bool:
+def is_fef1(alloc: dict,instance:Instance,item_ctegories:dict,agent_category_capacities:dict) -> bool:
+    # TODO implement as the definition says for every pair of agents (i,j) vi(xi) >= vi(Xj-{certain item})
     return False
 
 
 def test_algorithm_1():
     instance, agent_capacities_2d, categories = random_instance(equal_capacities=True)
     assert is_fef1(divide(algorithm=picking_sequence.per_category_round_robin, instance=instance,
-                          item_categories=categories, agent_category_capacities=agent_capacities_2d)) is True
+                          item_categories=categories, agent_category_capacities=agent_capacities_2d),instance=instance
+                   ,agent_category_capacities=agent_capacities_2d,item_ctegories=categories) is True
 
 
 def test_algorithm_2():
-    instance, agent_capacities_2d, categories = random_instance()
+    instance, agent_capacities_2d, categories = random_instance(equal_capacities=False)
     assert is_fef1(divide(algorithm=picking_sequence.capped_round_robin, instance=instance,
-                          item_categories=categories, agent_category_capacities=agent_capacities_2d)) is True
+                          item_categories=categories, agent_category_capacities=agent_capacities_2d), instance=instance
+                   , agent_category_capacities=agent_capacities_2d, item_ctegories=categories) is True
 
 
 def test_algorithm_3():
