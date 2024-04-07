@@ -71,7 +71,7 @@ def random_instance(equal_capacities):  # todo add randomization for arguments .
 # 1) time-complexity-based tests
 # 2) validate Envy-freeness up to 1 good in worst case scenario
 def is_fef1(alloc: dict) -> bool:
-    return True
+    return False
 
 
 def test_algorithm_1():
@@ -87,27 +87,27 @@ def test_algorithm_2():
 
 
 def test_algorithm_3():
-    print(random_instance())
+
     assert False
 
 
 def test_algorithm_4():
-    print(random_instance())
+
     assert False
 
 
 def test_algorithm_5():
-    print(random_instance())
+
     assert False
 
 
 def test_algorithm_6():
-    print(random_instance())
+
     assert False
 
 
 def test_algorithm_7():
-    print(random_instance())
+
     assert False
 
 
