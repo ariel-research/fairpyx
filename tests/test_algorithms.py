@@ -1,3 +1,5 @@
+import random
+
 import pytest
 from fairpyx.instances import Instance
 from fairpyx.algorithms import picking_sequence
@@ -16,20 +18,21 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                             agent_name_template="s{index}", item_name_template="c{index}",
                             random_seed: int = None,
                             equal_capacities: bool = False):
-    inst = Instance(
-        valuations={"Agent1": {'item1': 1}})  # helping varialbe (for the sake of calling inner # non-static-methods)
-    result_instance = inst.random_uniform(num_of_agents=
-                                          num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=
-                                          agent_capacity_bounds, item_capacity_bounds=item_capacity_bounds,
-                                          item_base_value_bounds=item_base_value_bounds
-                                          , item_subjective_ratio_bounds=item_subjective_ratio_bounds
-                                          , normalized_sum_of_values=normalized_sum_of_values,
-                                          agent_name_template=agent_name_template
-                                          , item_name_template=item_name_template, random_seed=random_seed)
+    result_instance = Instance.random_uniform(num_of_agents=
+                                              num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=
+                                              agent_capacity_bounds, item_capacity_bounds=item_capacity_bounds,
+                                              item_base_value_bounds=item_base_value_bounds
+                                              , item_subjective_ratio_bounds=item_subjective_ratio_bounds
+                                              , normalized_sum_of_values=normalized_sum_of_values,
+                                              agent_name_template=agent_name_template
+                                              , item_name_template=item_name_template, random_seed=random_seed)
     if random_seed is not None:
         random_seed = np.random.randint(1, 2 ** 31)
     np.random.seed(random_seed)
 
+    # TODO order (tuple)
+    order = [agent for agent in result_instance.agents]
+    random.shuffle(order)
     # TODO make ranmdomize categories
     category_string_template = "Category:{cat}"
     categories = {category_string_template.format(cat=cat): [] for cat in range(num_of_categories)}
@@ -39,15 +42,12 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                     categories} for agent
             in result_instance.agents}
     else:
-        random_capacity=np.random.randint(agent_capacity_bounds[0], agent_capacity_bounds[1] + 1)
+        random_capacity = np.random.randint(agent_capacity_bounds[0], agent_capacity_bounds[1] + 1)
         agent_capacities_2d = {
             agent: {category: random_capacity for category in
                     categories} for agent
             in result_instance.agents}
-    # print(f"and categories are :{categories}\n and agent capacities are : {agent_capacities_2d}") # TODO remove after finish
-    #NOTE: to make sure a case of empty category doesnt exist we do a 1 run on all the  categories and fill them with random item
-    temporary_items=list(result_instance.items).copy()
-
+    temporary_items = list(result_instance.items).copy()
     for cat in categories:
         random_item = np.random.choice(temporary_items)
         categories[cat].append(random_item)
@@ -56,7 +56,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
         random_category = np.random.choice(list(categories.keys()))
         categories[random_category].append(item)
 
-    return result_instance, agent_capacities_2d, categories
+    return result_instance, agent_capacities_2d, categories, order
 
 
 def random_instance(equal_capacities):  # todo add randomization for arguments .
@@ -66,8 +66,8 @@ def random_instance(equal_capacities):  # todo add randomization for arguments .
     random_instance = random_uniform_extended(
         num_of_categories=random_num_of_categories,
         num_of_agents=random_num_of_agents, num_of_items=random_num_of_items,
-        agent_capacity_bounds=[1, 20], item_capacity_bounds=[1, 50],
-        item_base_value_bounds=[1, 200], item_subjective_ratio_bounds=[0.5, 1.5],
+        agent_capacity_bounds=(1, 20), item_capacity_bounds=(1, 50),
+        item_base_value_bounds=(1, 200), item_subjective_ratio_bounds=(0.5, 1.5),
         agent_name_template="agent{index}", item_name_template="item{index}",
         normalized_sum_of_values=1000, equal_capacities=equal_capacities
     )
@@ -77,7 +77,8 @@ def random_instance(equal_capacities):  # todo add randomization for arguments .
 # TODO the only logical way to test random instances , is either
 # 1) time-complexity-based tests
 # 2) validate Envy-freeness up to 1 good in worst case scenario
-def is_fef1(alloc: dict,instance:Instance,item_ctegories:dict,agent_category_capacities:dict,valuations_func:callable) -> bool:
+def is_fef1(alloc: dict, instance: Instance, item_ctegories: dict, agent_category_capacities: dict,
+            valuations_func: callable) -> bool:
     # TODO implement as the definition says for every pair of agents (i,j) vi(xi) >= vi(Xj-{certain item}) we need to
     #  calculate how much items every agent has in his bundle divided by categories and make sure to only count k of
     #  them as k stands for the capacity of agent i for that category for each category im going to loop over  the
@@ -87,90 +88,113 @@ def is_fef1(alloc: dict,instance:Instance,item_ctegories:dict,agent_category_cap
     #  i's capacity items in j's bundle (if agent i has capacity of k in category c and agent j got in his allocated
     #  bundle more than k items which belong to that category agent i shall only take in consideration k items when
     #  calulating the valuation of items in j's bundle)
-    agent_categorized_allocation:dict[dict[list]]
-    agent_categorized_allocation = {agent:{category:[] for category in item_ctegories.keys()} for agent in agent_category_capacities.keys()}
-    # agent_category_items[0] = {}
-    # agent_category_items[0][0] = []
-    # print(f"\nitems categories are : {item_ctegories}")
-    # print(f"\nagent category capacities : {agent_category_capacities}")
-    # print(f"allocation is: {alloc}") # alloc is empty for now , its hard to tell if the upcoming lines of code would achieve it
+    agent_categorized_allocation: dict[str, dict[str, list]]
+    agent_categorized_allocation = {agent: {category: [] for category in item_ctegories.keys()} for agent in
+                                    agent_category_capacities.keys()}
     # TODO : for the sake of implementing the algorithm im going to change the allocation to something which is non-empty
-    #alloc={'agent1': [], 'agent2': [], 'agent3': [], 'agent4': []}
-    alloc={agent:[]for agent in agent_category_capacities.keys()} # initializing
-    for item_list in item_ctegories.values():
+    agent_capacities_copy = agent_category_capacities.copy()
+    alloc = {agent: [] for agent in agent_category_capacities.keys()}  # initializing
+    for category, item_list in item_ctegories.items():
         for item in item_list:
-            random_agent=np.random.choice(list(agent_category_capacities.keys()))
+            random_agent = np.random.choice(list(agent_category_capacities.keys()))
+            agent_capacities_copy[random_agent][category] -= 1
+            while agent_capacities_copy[random_agent][category] < 0:
+                random_agent = np.random.choice(list(agent_category_capacities.keys()))
+                agent_capacities_copy[random_agent][category] -= 1
             alloc[random_agent].append(item)
-    #TODO remove after completing the impl
+    # TODO remove after completing the impl
     print(f"\nitems categories are : {item_ctegories}")
     print(f"\nagent category capacities : {agent_category_capacities}")
     print(
-        f"allocation is: {alloc}")  # alloc is empty for now , its hard to tell if the upcoming lines of code would achieve it
+        f"allocation is: {alloc}")
     for cat in item_ctegories.keys():
-        #print(f"{cat}")
+        # print(f"{cat}")
         for agent in alloc.keys():
             for item in alloc[agent]:
-               # print(f"{item}")
+                # print(f"{item}")
                 if item in item_ctegories[cat]:
                     agent_categorized_allocation[agent][cat].append(item)
     print(f"agent new 2d dictionary : {agent_categorized_allocation}")
     for agent in alloc.keys():
-        agent_valuations={}
+        agent_valuations = {}
         for item_list in item_ctegories.values():
             for item in item_list:
-                agent_valuations[item]=valuations_func(agent, item)
-                # print(
-                #     f"agent valuations : {[valuations_func(agent, item)]}")
+                agent_valuations[item] = valuations_func(agent, item)
         print(f"{agent} valuation : {agent_valuations}")
-    #print(f"agent valuations : {[valuations_func(agent,item)for agent in alloc.keys() for item in item_ctegories.values()]}")
-    #TODO so now we have a 2d version of the allocation categorized , to ease the check of F-EF1 ! :)
+    # TODO so now we have a 2d version of the allocation categorized , to ease the check of F-EF1 ! :)
     for agent_i in agent_categorized_allocation.keys():
+        agent_i_bundle_value = sum(
+            valuations_func(agent_i, item) for item in alloc[agent_i])  # the value of agent i bundle
+        print(f"{agent_i}: vi(bundle)= {agent_i_bundle_value}")
         for agent_j in agent_categorized_allocation.keys():
-            #TODO here we do the  FEF1 check
-            agent_i_bundle_value=sum(valuations_func(agent_i,item)for item in alloc[agent_i]) # the value of agent i bundle
-            print(f"{agent_i}: valuation is: {agent_i_bundle_value}")
-            if agent_i != agent_j: # no use of comparing same agent to himself
-                pass
-           # if(value(best_feasible_subset(first=agent_i,second=agent_j)))
-    return False
+            print(f"*****************{agent_categorized_allocation.keys()}**********************")
+            # init a list to contain the final feasible bundle of agent_j in agent_i perspective
+            feasible_agent_j_bundle = []
+            flag = False
+            # TODO sum the most valuable k items in agent_j bundle according to agent_i capacity
+            for cat, cap in agent_category_capacities[agent_i].items():
+                # TODO get the most valueable cap items in agent_categorized_allocation[agent_j][cat]
+                temp_j_list = agent_categorized_allocation[agent_j][cat].copy()
+                temp_j_list.sort(key=lambda x: valuations_func(agent_i, x))
+                first_k_items = temp_j_list[:cap]
+                # feasible_agent_j_bundle[cat]=first_k_items;
+                feasible_agent_j_bundle.extend(
+                    first_k_items)  # adding all the time the set of feasible items to the final bundle so we can compare it later with agent_i bundle
+            feasible_agent_j_bundle_value = sum(valuations_func(agent_i, item) for item in feasible_agent_j_bundle)
+            print(f"\n{agent_i} bundle is{alloc[agent_i]} and its vi(bundle)= {agent_i_bundle_value}")
+            print(
+                f"\n{agent_j} bundle is{alloc[agent_j]}, its best feasible subset is {feasible_agent_j_bundle} and its vi(bundle)= {feasible_agent_j_bundle_value}")
+            if feasible_agent_j_bundle_value > agent_i_bundle_value:
+                # we check if exists an item such that subtracting an item so agent_i_bundle_value >= feasible_agent_j_bundle_value - <item>\
+                for current_item in feasible_agent_j_bundle:
+                    print(f"\n{agent_i} bundle is{alloc[agent_i]} and its vi(bundle)= {agent_i_bundle_value}")
+                    print(f"\n{agent_j} bundle is{alloc[agent_j]}, its best feasible subset is {feasible_agent_j_bundle} and its vi(bundle)= {feasible_agent_j_bundle_value}")
+                    if feasible_agent_j_bundle_value - valuations_func(agent_i, current_item) <= agent_i_bundle_value:
+                        flag = True
+                        break
+                return flag # false
+            else:
+                flag = True
+        #return flag
+
+    return True  ## TODO check
 
 
 def test_algorithm_1():
-    instance, agent_capacities_2d, categories = random_instance(equal_capacities=True)
+    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=True)
     assert is_fef1(divide(algorithm=picking_sequence.per_category_round_robin, instance=instance,
-                          item_categories=categories, agent_category_capacities=agent_capacities_2d),instance=instance
-                   ,agent_category_capacities=agent_capacities_2d,item_ctegories=categories,valuations_func=instance.agent_item_value) is True
+                          item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
+                   instance=instance
+                   , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
+                   valuations_func=instance.agent_item_value) is True
 
 
 def test_algorithm_2():
-    instance, agent_capacities_2d, categories = random_instance(equal_capacities=False)
+    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False)
     assert is_fef1(divide(algorithm=picking_sequence.capped_round_robin, instance=instance,
-                          item_categories=categories, agent_category_capacities=agent_capacities_2d), instance=instance
-                   , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,valuations_func=instance.agent_item_value) is True
+                          item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
+                   instance=instance
+                   , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
+                   valuations_func=instance.agent_item_value) is True
 
 
 def test_algorithm_3():
-
     assert False
 
 
 def test_algorithm_4():
-
     assert False
 
 
 def test_algorithm_5():
-
     assert False
 
 
 def test_algorithm_6():
-
     assert False
 
 
 def test_algorithm_7():
-
     assert False
 
 

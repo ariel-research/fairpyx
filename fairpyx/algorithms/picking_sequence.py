@@ -20,8 +20,9 @@ logger = logging.getLogger(__name__)
 #  (alloc:AllocationBuilder, item_categories:dict, agent_category_capacities: dict) but still when calling
 #  alloc.give(yadayada...) it treats the builtin attribute which is 1d when ours is more
 #  {'agent1':{category1:2, ....},.....} (2 keys , 1 for agent-category , and other for-category-capacity)
-def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):
+def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,order:list):
     """
+    this is the Algorithm 1 from the paper
     per category round-robin is an allocation algorithm which guarantees EF1 (envy-freeness up to 1 good) allocation
     under settings in which agent-capacities are equal across all agents,
     no capacity-inequalities are allowed since this algorithm doesnt provie a cycle-prevention mechanism
@@ -67,8 +68,9 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     pass
 
 
-def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):
+def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,order:list):
     """
+    this is Algorithm 2
     CRR (capped round-robin) algorithm
     TLDR: single category , may have differnt capacities , maye have different valuations -> F-EF1 (feasible envy-freeness up to 1 good) allocation
 
