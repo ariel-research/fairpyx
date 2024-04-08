@@ -1,0 +1,73 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.1.1, pluggy-1.4.0
+rootdir: /home/abodi-massarwa/Ariel@PycharmProjects/fairpyx
+configfile: pyproject.toml
+collected 12 items
+
+test_algorithms.py .FFFFFF                                               [ 58%]
+test_almost_egalitarian_allocation.py .                                  [ 66%]
+test_iterated_maximum_matching.py .                                      [ 75%]
+test_round_robin.py .                                                    [ 83%]
+test_serial_dictatorship.py .                                            [ 91%]
+test_utilitarian_matching.py .                                           [100%]
+
+=================================== FAILURES ===================================
+_______________________________ test_algorithm_2 _______________________________
+
+    def test_algorithm_2():
+        instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False)
+>       assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.capped_round_robin, instance=instance,
+                              item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
+                       instance=instance
+                       , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
+                       valuations_func=instance.agent_item_value) is True
+E       AssertionError: assert False is True
+E        +  where False = is_fef1({'agent1': [], 'agent2': []}, instance=<fairpyx.instances.Instance object at 0x7f4358662860>, agent_category_capacities={'agent1': {'Category:0': 14, 'Category:1': 9, 'Category:2': 10, 'Category:3': 5}, 'agent2': {'Category:0': 12, 'Category:1': 11, 'Category:2': 16, 'Category:3': 4}}, item_ctegories={'Category:0': ['item4'], 'Category:1': ['item3', 'item1'], 'Category:2': ['item2'], 'Category:3': ['item5']}, valuations_func=<function get_keys_and_mapping_2d.<locals>.<lambda> at 0x7f43ad5316c0>)
+E        +    where {'agent1': [], 'agent2': []} = divide(algorithm=<function capped_round_robin at 0x7f435867a170>, instance=<fairpyx.instances.Instance object at 0x7f4358662860>, item_categories={'Category:0': ['item4'], 'Category:1': ['item3', 'item1'], 'Category:2': ['item2'], 'Category:3': ['item5']}, agent_category_capacities={'agent1': {'Category:0': 14, 'Category:1': 9, 'Category:2': 10, 'Category:3': 5}, 'agent2': {'Category:0': 12, 'Category:1': 11, 'Category:2': 16, 'Category:3': 4}}, order=['agent2', 'agent1'])
+E        +      where <function capped_round_robin at 0x7f435867a170> = heterogeneous_matroid_constraints_algorithms.capped_round_robin
+E        +    and   <function get_keys_and_mapping_2d.<locals>.<lambda> at 0x7f43ad5316c0> = <fairpyx.instances.Instance object at 0x7f4358662860>.agent_item_value
+
+test_algorithms.py:161: AssertionError
+_______________________________ test_algorithm_3 _______________________________
+
+    def test_algorithm_3():
+>       assert False
+E       assert False
+
+test_algorithms.py:169: AssertionError
+_______________________________ test_algorithm_4 _______________________________
+
+    def test_algorithm_4():
+>       assert False
+E       assert False
+
+test_algorithms.py:173: AssertionError
+_______________________________ test_algorithm_5 _______________________________
+
+    def test_algorithm_5():
+>       assert False
+E       assert False
+
+test_algorithms.py:177: AssertionError
+_______________________________ test_algorithm_6 _______________________________
+
+    def test_algorithm_6():
+>       assert False
+E       assert False
+
+test_algorithms.py:181: AssertionError
+_______________________________ test_algorithm_7 _______________________________
+
+    def test_algorithm_7():
+>       assert False
+E       assert False
+
+test_algorithms.py:185: AssertionError
+=========================== short test summary info ============================
+FAILED test_algorithms.py::test_algorithm_2 - AssertionError: assert False is...
+FAILED test_algorithms.py::test_algorithm_3 - assert False
+FAILED test_algorithms.py::test_algorithm_4 - assert False
+FAILED test_algorithms.py::test_algorithm_5 - assert False
+FAILED test_algorithms.py::test_algorithm_6 - assert False
+FAILED test_algorithms.py::test_algorithm_7 - assert False
+========================= 6 failed, 6 passed in 4.83s ==========================
