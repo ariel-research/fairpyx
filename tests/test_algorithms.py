@@ -2,10 +2,10 @@ import random
 
 import pytest
 from fairpyx.instances import Instance
-from fairpyx.algorithms import picking_sequence
+from fairpyx.algorithms import heterogeneous_matroid_constraints_algorithms
 from fairpyx import divide
 import numpy as np
-import pytest
+
 
 
 def random_uniform_extended(num_of_agents: int, num_of_items: int,
@@ -29,11 +29,8 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
     if random_seed is not None:
         random_seed = np.random.randint(1, 2 ** 31)
     np.random.seed(random_seed)
-
-    # TODO order (tuple)
     order = [agent for agent in result_instance.agents]
     random.shuffle(order)
-    # TODO make ranmdomize categories
     category_string_template = "Category:{cat}"
     categories = {category_string_template.format(cat=cat): [] for cat in range(num_of_categories)}
     if not equal_capacities:
@@ -73,82 +70,40 @@ def random_instance(equal_capacities):  # todo add randomization for arguments .
     )
     return random_instance
 
-
-# TODO the only logical way to test random instances , is either
-# 1) time-complexity-based tests
-# 2) validate Envy-freeness up to 1 good in worst case scenario
 def is_fef1(alloc: dict, instance: Instance, item_ctegories: dict, agent_category_capacities: dict,
             valuations_func: callable) -> bool:
-    # TODO implement as the definition says for every pair of agents (i,j) vi(xi) >= vi(Xj-{certain item}) we need to
-    #  calculate how much items every agent has in his bundle divided by categories and make sure to only count k of
-    #  them as k stands for the capacity of agent i for that category for each category im going to loop over  the
-    #  items in each agent bundle and check if item in category i'll be making a dict agent_category_items={agent:{
-    #  category:[items.....]}} so that way we can calculate things easily by simply len(agent_category_items[agent][
-    #  category]) then in case agent i has capacity < agent j capacity we'll only take in consideration the amount of
-    #  i's capacity items in j's bundle (if agent i has capacity of k in category c and agent j got in his allocated
-    #  bundle more than k items which belong to that category agent i shall only take in consideration k items when
-    #  calulating the valuation of items in j's bundle)
+    """
+    description: this function checks if the allocation given satisfies the property of F-EF1 (feasible-envy-freeness up to 1 good)
+    param alloc: the allocation
+    param instance: the instance which belongs to the allocation
+    param item_ctegories: dictionary of categories paired with lists of items
+    param agent_category_capacities: dictionary of agents paired with dict of categories paired with values (capacities for each category)
+    param valuations_func: this function directs us to the valuation of each (agent,item)
+    """
     agent_categorized_allocation: dict[str, dict[str, list]]
     agent_categorized_allocation = {agent: {category: [] for category in item_ctegories.keys()} for agent in
                                     agent_category_capacities.keys()}
-    # TODO : for the sake of implementing the algorithm im going to change the allocation to something which is non-empty
-    agent_capacities_copy = agent_category_capacities.copy()
-    alloc = {agent: [] for agent in agent_category_capacities.keys()}  # initializing
-    for category, item_list in item_ctegories.items():
-        for item in item_list:
-            random_agent = np.random.choice(list(agent_category_capacities.keys()))
-            agent_capacities_copy[random_agent][category] -= 1
-            while agent_capacities_copy[random_agent][category] < 0:
-                random_agent = np.random.choice(list(agent_category_capacities.keys()))
-                agent_capacities_copy[random_agent][category] -= 1
-            alloc[random_agent].append(item)
-    # TODO remove after completing the impl
-    print(f"\nitems categories are : {item_ctegories}")
-    print(f"\nagent category capacities : {agent_category_capacities}")
-    print(
-        f"allocation is: {alloc}")
-    for cat in item_ctegories.keys():
-        # print(f"{cat}")
-        for agent in alloc.keys():
-            for item in alloc[agent]:
-                # print(f"{item}")
-                if item in item_ctegories[cat]:
-                    agent_categorized_allocation[agent][cat].append(item)
-    print(f"agent new 2d dictionary : {agent_categorized_allocation}")
-    for agent in alloc.keys():
-        agent_valuations = {}
-        for item_list in item_ctegories.values():
-            for item in item_list:
-                agent_valuations[item] = valuations_func(agent, item)
-        print(f"{agent} valuation : {agent_valuations}")
-    # TODO so now we have a 2d version of the allocation categorized , to ease the check of F-EF1 ! :)
+    # TODO : for the sake of implementing the algorithm im going to change the allocation to something which is non-empty remove after completing the algorithms impl
+    alloc = alloc_random_filler(agent_category_capacities, alloc, item_ctegories)
+    alloc_2d_converter(agent_categorized_allocation, alloc, item_ctegories)
+
     for agent_i in agent_categorized_allocation.keys():
+        # we compare for each pair of agents the property of F-EF1
         agent_i_bundle_value = sum(
             valuations_func(agent_i, item) for item in alloc[agent_i])  # the value of agent i bundle
-        print(f"{agent_i}: vi(bundle)= {agent_i_bundle_value}")
         for agent_j in agent_categorized_allocation.keys():
-            print(f"*****************{agent_categorized_allocation.keys()}**********************")
             # init a list to contain the final feasible bundle of agent_j in agent_i perspective
             feasible_agent_j_bundle = []
             flag = False
-            # TODO sum the most valuable k items in agent_j bundle according to agent_i capacity
             for cat, cap in agent_category_capacities[agent_i].items():
-                # TODO get the most valueable cap items in agent_categorized_allocation[agent_j][cat]
                 temp_j_list = agent_categorized_allocation[agent_j][cat].copy()
                 temp_j_list.sort(key=lambda x: valuations_func(agent_i, x))
                 first_k_items = temp_j_list[:cap]
-                # feasible_agent_j_bundle[cat]=first_k_items;
-                feasible_agent_j_bundle.extend(
-                    first_k_items)  # adding all the time the set of feasible items to the final bundle so we can compare it later with agent_i bundle
+                feasible_agent_j_bundle.extend(first_k_items)  # adding all the time the set of feasible items to the final bundle so we can compare it later with agent_i bundle
             feasible_agent_j_bundle_value = sum(valuations_func(agent_i, item) for item in feasible_agent_j_bundle)
-            print(f"\n{agent_i} bundle is{alloc[agent_i]} and its vi(bundle)= {agent_i_bundle_value}")
-            print(
-                f"\n{agent_j} bundle is{alloc[agent_j]}, its best feasible subset is {feasible_agent_j_bundle} and its vi(bundle)= {feasible_agent_j_bundle_value}")
             if feasible_agent_j_bundle_value > agent_i_bundle_value:
-                # we check if exists an item such that subtracting an item so agent_i_bundle_value >= feasible_agent_j_bundle_value - <item>\
+                # we check if exists an item such that subtracting an item so agent_i_bundle_value >= feasible_agent_j_bundle_value - <item>.
                 for current_item in feasible_agent_j_bundle:
-                    print(f"\n{agent_i} bundle is{alloc[agent_i]} and its vi(bundle)= {agent_i_bundle_value}")
-                    print(f"\n{agent_j} bundle is{alloc[agent_j]}, its best feasible subset is {feasible_agent_j_bundle} and its vi(bundle)= {feasible_agent_j_bundle_value}")
                     if feasible_agent_j_bundle_value - valuations_func(agent_i, current_item) <= agent_i_bundle_value:
                         flag = True
                         break
@@ -160,9 +115,41 @@ def is_fef1(alloc: dict, instance: Instance, item_ctegories: dict, agent_categor
     return True  ## TODO check
 
 
+def alloc_2d_converter(agent_categorized_allocation, alloc, item_ctegories):
+    """
+    in short this function converts normal allocation dictionary to a more precise form of it in which the items are categorized
+    in other words dict[string,dict[string,list]]
+    :param agent_categorized_allocation: is a 2d dict in which will be the result
+    :param alloc: the allocation we have as a result of invoking divide(algorithm=...,**kwargs)
+    :param item_ctegories: is a dict[string,list] in which keys are category names and values are lists of items which belong to that category
+    """
+    for cat in item_ctegories.keys():
+        for agent in alloc.keys():
+            for item in alloc[agent]:
+                if item in item_ctegories[cat]:
+                    agent_categorized_allocation[agent][cat].append(item)
+
+
+def alloc_random_filler(agent_category_capacities, alloc, item_ctegories):
+    """
+    a temporary function to fill the empty allocation , used till we implement the allocation algorithms in heterogeneous_matroid_constraints_algorithms.py
+    """
+    agent_capacities_copy = agent_category_capacities.copy()
+    alloc = {agent: [] for agent in agent_category_capacities.keys()}  # initializing
+    for category, item_list in item_ctegories.items():
+        for item in item_list:
+            random_agent = np.random.choice(list(agent_category_capacities.keys()))
+            agent_capacities_copy[random_agent][category] -= 1
+            while agent_capacities_copy[random_agent][category] < 0:
+                random_agent = np.random.choice(list(agent_category_capacities.keys()))
+                agent_capacities_copy[random_agent][category] -= 1
+            alloc[random_agent].append(item)
+    return alloc
+
+
 def test_algorithm_1():
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=True)
-    assert is_fef1(divide(algorithm=picking_sequence.per_category_round_robin, instance=instance,
+    assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_round_robin, instance=instance,
                           item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
                    instance=instance
                    , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
@@ -171,7 +158,7 @@ def test_algorithm_1():
 
 def test_algorithm_2():
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False)
-    assert is_fef1(divide(algorithm=picking_sequence.capped_round_robin, instance=instance,
+    assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.capped_round_robin, instance=instance,
                           item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
                    instance=instance
                    , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
@@ -196,7 +183,3 @@ def test_algorithm_6():
 
 def test_algorithm_7():
     assert False
-
-
-if __name__ == "__main__":
-    random_instance()

@@ -18,7 +18,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
 
     >>> # Example 1
     >>> from fairpyx import  divide
-    >>> order=(1,2)
+    >>> order=[1,2]
     >>> items=['m1','m2','m3']
     >>> item_categories = {'c1': ['m1', 'm2'], 'c2': ['m3']}
     >>> agent_category_capacities = {'Agent1': {'c1': 2, 'c2': 2}, 'Agent2': {'c1': 2, 'c2': 2}}
@@ -28,7 +28,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
 
     >>> # Example 2
     >>> from fairpyx import  divide
-    >>> order=(1,3,2)
+    >>> order=[1,3,2]
     >>> items=['m1','m2','m3']
     >>> item_categories = {'c1': ['m1', 'm2','m3']}
     >>> agent_category_capacities = {'Agent1': {'c1':3}, 'Agent2': {'c1':3},'Agent3': {'c1':3}}
@@ -39,7 +39,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
 
      >>> # Example 3  (4 agents ,4 items)
     >>> from fairpyx import  divide
-    >>> order=(1,2,3,4)
+    >>> order=[1,2,3,4]
     >>> items=['m1','m2','m3','m4']
     >>> item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
     >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':1}, 'Agent2': {'c1':1,'c2':1},'Agent3': {'c1':1,'c2':1}}
@@ -65,7 +65,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
 
         >>> # Example 1 (2 agents 1 of them with capacity of 0)
         >>> from fairpyx import  divide
-        >>> order=(1,2)
+        >>> order=[1,2]
         >>> items=['m1']
         >>> item_categories = {'c1': ['m1']}
         >>> agent_category_capacities = {'Agent1': {'c1':0}, 'Agent2': {'c1':1}}
@@ -75,7 +75,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
 
         >>> # Example 2 (3 agents , 4 items)
         >>> from fairpyx import  divide
-        >>> order=(1,2,3)
+        >>> order=[1,2,3]
         >>> items=['m1','m2','m3','m4']
         >>> item_categories = {'c1': ['m1', 'm2','m3','m4']}
         >>> agent_category_capacities = {'Agent1': {'c1':2}, 'Agent2': {'c1':2},'Agent3': {'c1':2}}
@@ -86,12 +86,12 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
 
          >>> # Example 3  (to show that F-EF (feasible envy-free) is sometimes achievable in good scenarios)
         >>> from fairpyx import  divide
-        >>> order=(1,2)
+        >>> order=[1,2]
         >>> items=['m1','m2']
         >>> item_categories = {'c1': ['m1', 'm2']}
         >>> agent_category_capacities = {'Agent1': {'c1':1}, 'Agent2': {'c1':1},'Agent3': {'c1':1}}
         >>> valuations = {'Agent1':{'m1':10,'m2':5},'Agent2':{'m1':5,'m2':10}}
         >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)
-        >>> {'Agent1':['m1'],'Agent2':['m2']} #TODO ask Erel if i should take treat it as this or each allocation categorized for each agent ? like{'Agent1':{'c1':['m1'}...}....}
+        >>> {'Agent1':['m1'],'Agent2':['m2']}
         """
     pass
