@@ -53,9 +53,9 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
 
 def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict, order: list):
     """
-    this is Algorithm 2
-    CRR (capped round-robin) algorithm
-    TLDR: single category , may have differnt capacities , maye have different valuations -> F-EF1 (feasible envy-freeness up to 1 good) allocation
+    this is Algorithm 2 CRR (capped round-robin) algorithm TLDR: single category , may have differnt capacities
+    capped in CRR stands for capped capacity for each agent unlke RR , maye have different valuations -> F-EF1 (
+    feasible envy-freeness up to 1 good) allocation
 
         :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents.
         :param item_categories: a dictionary of the categories  in which each category is paired with a list of items.
@@ -106,4 +106,99 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
 
         """
     pass
+def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict, order: list):
+    """
+        this is Algorithm 3 back and forth capped round-robin algorithm (2 categories,may have different capacities,may have different valuations)
+        in which we simply
+        1)call capped_round_robin(arg1 ,.... argk,item_categories=<first category>)
+        2) reverse(order)
+        3)call capped_round_robin(arg1 ,.... argk,item_categories=<second category>)
+        -> F-EF1 (feasible envy-freeness up to 1 good) allocation
+
+            :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents.
+            :param item_categories: a dictionary of the categories  in which each category is paired with a list of items.
+            :param agent_category_capacities:  a dictionary of dictionaru in which in the first dimension we have agents then
+            paired with a dictionary of category-capacity.
+            :param order: a list representing the order we start with in the algorithm
+
+            >>> # Example 1 (basic: 2 agents 3 items same capacities same valuations)
+            >>> from fairpyx import  divide
+            >>> order=[1,2]
+            >>> items=['m1','m2','m3']
+            >>> item_categories = {'c1': ['m1','m2'],'c2':['m3']}
+            >>> agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2}}
+            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':1}}
+            >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order = order)
+            >>>{'Agent1':['m1'],'Agent2':['m2','m3']}
+
+            >>> # Example 2 (case of single category so we deal with it as the normal CRR)
+            >>> from fairpyx import  divide
+            >>> order=[1,2,3]
+            >>> items=['m1','m2','m3']
+            >>> item_categories = {'c1': ['m1', 'm2','m3'],'c2':[]}
+            >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':0}, 'Agent2': {'c1':2,'c2':0},'Agent3': {'c1':0,'c2':0}}
+            >>> valuations = {'Agent1':{'m1':2,'m2':3,'m3':3},'Agent2':{'m1':3,'m2':1,'m3':1},'Agent3':{'m1':10,'m2':10,'m3':10}} # in the papers agent 3 values at infinite in here we did 10  which is more than the others
+            >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
+            >>> {'Agent1':['m1'],'Agent2':['m2','m3'],'Agent3':[]} # TODO check if better do [] or NONE for an empty alloc
+
+
+             >>> # Example 3  (4 agents 6 items same valuations same capacities)-> EF in best case scenario
+            >>> from fairpyx import  divide
+            >>> order=[2,4,1,3]
+            >>> items=['m1','m2','m3','m4','m5','m6']
+            >>> item_categories = {'c1': ['m1', 'm2'],'c2': ['m3', 'm4','m5','m6']}
+            >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':1}, 'Agent2': {'c1':1,'c2':1},'Agent3': {'c1':1,'c2':1},'Agent4': {'c1':1,'c2':1}}
+            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1},'Agent2':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1},'Agent3':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1}}
+            >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order = order)
+            >>> {'Agent1':['m4'],'Agent2':['m1','m6'],'Agent3':['m3'],'Agent4':['m2','m5']}
+            #TODO example with differnt capacities different valuations and remainder items (in which no one takes)
+            """
+    pass
+def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict, order: list):
+    """
+    this is Algorithm 4 deals with (Different Capacities, Identical Valuations), suitable for any number of categories
+    CRR (per-category capped round-robin) algorithm
+    TLDR: single category , may have different capacities , but have identical valuations -> F-EF1 (feasible envy-freeness up to 1 good) allocation
+
+        :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents.
+        :param item_categories: a dictionary of the categories  in which each category is paired with a list of items.
+        :param agent_category_capacities:  a dictionary of dictionary in which in the first dimension we have agents then
+        paired with a dictionary of category-capacity.
+        :param order: a list representing the order we start with in the algorithm
+
+         >>> # Example 1 (basic: 2 agents 3 items same capacities same valuations)
+            >>> from fairpyx import  divide
+            >>> order=[1,2]
+            >>> items=['m1','m2','m3','m4']
+            >>> item_categories = {'c1': ['m1','m2','m3'],'c2':['m4']}
+            >>> agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2}}
+            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1,'m4':1},'Agent2':{'m1':1,'m2':1,'m3':1,'m4':1}}
+            >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order = order)
+            >>>{'Agent1':['m1','m3'],'Agent2':['m2','m4']}
+
+            >>> # Example 2 (3 agents 3 categories , different capacities )
+            >>> from fairpyx import  divide
+            >>> order=[1,2,3]
+            >>> items=['m1','m2','m3','m4','m5','m6','m7','m8','m9']
+            >>> item_categories = {'c1': ['m1','m2','m3','m4'],'c2':['m5','m6','m7'],'c3':['m8','m9']}
+            >>> agent_category_capacities = {'Agent1': {'c1':0,'c2':4,'c3':4}, 'Agent2': {'c1':4,'c2':0,'c3':4},'Agent3': {'c1':4,'c2':4,'c3':0}}
+            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1,'m7':1,'m8':1,'m9':1},'Agent2':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1,'m7':1,'m8':1,'m9':1},'Agent3':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1,'m7':1,'m8':1,'m9':1}}
+            >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order = order)
+            >>>{'Agent1':['m5','m7','m9'],'Agent2':['m1','m3','m8'],'Agent3':['m2','m4','m6']}
+
+             >>> # Example 3 (3 agents 3 categories , 1 item per category)
+            >>> from fairpyx import  divide
+            >>> order=[1,2,3]
+            >>> items=['m1','m2','m3']
+            >>> item_categories = {'c1': ['m1'],'c2':['m2'],'c3':['m3']}
+            >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':1,'c3':1}, 'Agent2': {'c1':1,'c2':1,'c3':1},'Agent3': {'c1':1,'c2':1,'c3':1}}
+            >>> valuations = {'Agent1':{'m1':7,'m2':8,'m3':9},'Agent2':{'m1':7,'m2':8,'m3':9},'Agent3':{'m1':7,'m2':8,'m3':9}}
+            >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order = order)
+            >>>{'Agent1':['m1'],'Agent2':['m2'],'Agent3':['m3']}
+    """
+    pass
+def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict, order: list):
+   """
+    this is Algorithm 5  deals with (partition Matroids with Binary Valuations)
+   """
 #TODO finish to algorithm 5 by 15/4
