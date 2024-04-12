@@ -18,7 +18,8 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                             agent_name_template="s{index}", item_name_template="c{index}",
                             random_seed: int = None,
                             equal_capacities: bool = False
-                            ,equal_valuations: bool = False):
+                            ,equal_valuations: bool = False
+                            ):
     result_instance = Instance.random_uniform(num_of_agents=
                                               num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=
                                               agent_capacity_bounds, item_capacity_bounds=item_capacity_bounds,
@@ -83,15 +84,16 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
     return modified_valuations_instance, agent_capacities_2d, categories, order
 
 
-def random_instance(equal_capacities:bool, equal_valuations:bool):  # todo add randomization for arguments .
+def random_instance(equal_capacities:bool=False, equal_valuations:bool=False,binary_valuations:bool=False):  # todo add randomization for arguments .
     random_num_of_agents = np.random.randint(1, 10 + 1)
     random_num_of_items = np.random.randint(1, 10 + 1)
     random_num_of_categories = np.random.randint(1, random_num_of_items + 1)
+    item_base_value_bounds =(0,1) if binary_valuations else (1,200)
     random_instance = random_uniform_extended(
         num_of_categories=random_num_of_categories,
         num_of_agents=random_num_of_agents, num_of_items=random_num_of_items,
         agent_capacity_bounds=(1, 20), item_capacity_bounds=(1, 50),
-        item_base_value_bounds=(1, 200), item_subjective_ratio_bounds=(0.5, 1.5),
+        item_base_value_bounds=item_base_value_bounds, item_subjective_ratio_bounds=(0.5, 1.5),
         agent_name_template="agent{index}", item_name_template="item{index}",
         normalized_sum_of_values=1000, equal_capacities=equal_capacities, equal_valuations=equal_valuations
     )
@@ -202,7 +204,7 @@ def test_algorithm_3():
 
 
 def test_algorithm_4(): # TODO equal_valuations=True
-    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False)
+    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False,equal_valuations=True)
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_capped_round_robin, instance=instance,
                           item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
                    instance=instance
@@ -211,7 +213,7 @@ def test_algorithm_4(): # TODO equal_valuations=True
 
 
 def test_algorithm_5():  # binary valuations
-    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False)
+    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False,binary_valuations=True)
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
                           instance=instance,
                           item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
