@@ -74,9 +74,9 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
             for agent in result_instance.agents
         }# so now we have random valuations generated and applied the same set to everyone so everyone has the same valuations in case of equal_valuations=True
     else:# means the valuations aren't supposed to be equal for every agent
-        normalized_random_valuation = {agent:{item: result_instance.agent_item_value[item]for item in result_instance.items}for agent in result_instance.agents} # we simply reconstructed the vaulations dict from the mappings because we have no access to private attributes of result_instance
+        normalized_random_valuation = {agent:{item: result_instance.agent_item_value(agent,item)for item in result_instance.items}for agent in result_instance.agents} # we simply reconstructed the vaulations dict from the mappings because we have no access to private attributes of result_instance
         # no interest in inner attribute capacities whatsoever because we made our own outer parameter which matches the problems we're solving (categorized)
-        item_capacities={item: result_instance.item_capacity[item] for item in result_instance.items}
+    item_capacities={item: result_instance.item_capacity(item) for item in result_instance.items}
 
 
     #def __init__(self, valuations:any, agent_capacities:any=None, agent_entitlements:any=None, item_capacities:any=None, agent_conflicts:any=None, item_conflicts:any=None, agents:list=None, items:list=None):
@@ -216,7 +216,7 @@ def test_algorithm_5():  # binary valuations
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False,binary_valuations=True)
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
                           instance=instance,
-                          item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
+                          item_categories=categories, agent_category_capacities=agent_capacities_2d),
                    instance=instance
                    , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
                    valuations_func=instance.agent_item_value) is True
