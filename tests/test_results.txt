@@ -2,14 +2,9 @@
 platform linux -- Python 3.10.12, pytest-8.1.1, pluggy-1.4.0
 rootdir: /home/abodi-massarwa/Ariel@PycharmProjects/fairpyx
 configfile: pyproject.toml
-collected 12 items
+collected 5 items
 
-test_algorithms.py .FFFFFF                                               [ 58%]
-test_almost_egalitarian_allocation.py .                                  [ 66%]
-test_iterated_maximum_matching.py .                                      [ 75%]
-test_round_robin.py .                                                    [ 83%]
-test_serial_dictatorship.py .                                            [ 91%]
-test_utilitarian_matching.py .                                           [100%]
+test_heterogeneous_matroid_constraints_algorithms.py .FF..               [100%]
 
 =================================== FAILURES ===================================
 _______________________________ test_algorithm_2 _______________________________
@@ -22,52 +17,29 @@ _______________________________ test_algorithm_2 _______________________________
                        , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
                        valuations_func=instance.agent_item_value) is True
 E       AssertionError: assert False is True
-E        +  where False = is_fef1({'agent1': [], 'agent2': []}, instance=<fairpyx.instances.Instance object at 0x7f4358662860>, agent_category_capacities={'agent1': {'Category:0': 14, 'Category:1': 9, 'Category:2': 10, 'Category:3': 5}, 'agent2': {'Category:0': 12, 'Category:1': 11, 'Category:2': 16, 'Category:3': 4}}, item_ctegories={'Category:0': ['item4'], 'Category:1': ['item3', 'item1'], 'Category:2': ['item2'], 'Category:3': ['item5']}, valuations_func=<function get_keys_and_mapping_2d.<locals>.<lambda> at 0x7f43ad5316c0>)
-E        +    where {'agent1': [], 'agent2': []} = divide(algorithm=<function capped_round_robin at 0x7f435867a170>, instance=<fairpyx.instances.Instance object at 0x7f4358662860>, item_categories={'Category:0': ['item4'], 'Category:1': ['item3', 'item1'], 'Category:2': ['item2'], 'Category:3': ['item5']}, agent_category_capacities={'agent1': {'Category:0': 14, 'Category:1': 9, 'Category:2': 10, 'Category:3': 5}, 'agent2': {'Category:0': 12, 'Category:1': 11, 'Category:2': 16, 'Category:3': 4}}, order=['agent2', 'agent1'])
-E        +      where <function capped_round_robin at 0x7f435867a170> = heterogeneous_matroid_constraints_algorithms.capped_round_robin
-E        +    and   <function get_keys_and_mapping_2d.<locals>.<lambda> at 0x7f43ad5316c0> = <fairpyx.instances.Instance object at 0x7f4358662860>.agent_item_value
+E        +  where False = is_fef1({'agent1': [], 'agent2': []}, instance=<fairpyx.instances.Instance object at 0x7ff21d35beb0>, agent_category_capacities={'agent1': {'Category:0': 9, 'Category:1': 13}, 'agent2': {'Category:0': 0, 'Category:1': 9}}, item_ctegories={'Category:0': ['item1'], 'Category:1': ['item3', 'item2']}, valuations_func=<function get_keys_and_mapping_2d.<locals>.<lambda> at 0x7ff21d37f520>)
+E        +    where {'agent1': [], 'agent2': []} = divide(algorithm=<function capped_round_robin at 0x7ff27205a7a0>, instance=<fairpyx.instances.Instance object at 0x7ff21d35beb0>, item_categories={'Category:0': ['item1'], 'Category:1': ['item3', 'item2']}, agent_category_capacities={'agent1': {'Category:0': 9, 'Category:1': 13}, 'agent2': {'Category:0': 0, 'Category:1': 9}}, order=['agent2', 'agent1'])
+E        +      where <function capped_round_robin at 0x7ff27205a7a0> = heterogeneous_matroid_constraints_algorithms.capped_round_robin
+E        +    and   <function get_keys_and_mapping_2d.<locals>.<lambda> at 0x7ff21d37f520> = <fairpyx.instances.Instance object at 0x7ff21d35beb0>.agent_item_value
 
-test_algorithms.py:161: AssertionError
+test_heterogeneous_matroid_constraints_algorithms.py:190: AssertionError
 _______________________________ test_algorithm_3 _______________________________
 
     def test_algorithm_3():
->       assert False
-E       assert False
+        instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False)
+>       assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin, instance=instance,
+                              item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
+                       instance=instance
+                       , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
+                       valuations_func=instance.agent_item_value) is True
+E       AssertionError: assert False is True
+E        +  where False = is_fef1({'agent1': [], 'agent2': [], 'agent3': [], 'agent4': [], ...}, instance=<fairpyx.instances.Instance object at 0x7ff21d20a4a0>, agent_category_capacities={'agent1': {'Category:0': 16, 'Category:1': 9, 'Category:2': 16}, 'agent2': {'Category:0': 10, 'Category:1': 16, 'Cate...tegory:0': 12, 'Category:1': 7, 'Category:2': 12}, 'agent4': {'Category:0': 7, 'Category:1': 8, 'Category:2': 11}, ...}, item_ctegories={'Category:0': ['item8', 'item9'], 'Category:1': ['item6', 'item3', 'item4', 'item7'], 'Category:2': ['item2', 'item1', 'item5']}, valuations_func=<function get_keys_and_mapping_2d.<locals>.<lambda> at 0x7ff21d1e4040>)
+E        +    where {'agent1': [], 'agent2': [], 'agent3': [], 'agent4': [], ...} = divide(algorithm=<function two_categories_capped_round_robin at 0x7ff27205a9e0>, instance=<fairpyx.instances.Instance object at 0x7ff21d20a4a0>, item_categories={'Category:0': ['item8', 'item9'], 'Category:1': ['item6', 'item3', 'item4', 'item7'], 'Category:2': ['item2', 'item1', 'item5']}, agent_category_capacities={'agent1': {'Category:0': 16, 'Category:1': 9, 'Category:2': 16}, 'agent2': {'Category:0': 10, 'Category:1': 16, 'Cate...tegory:0': 12, 'Category:1': 7, 'Category:2': 12}, 'agent4': {'Category:0': 7, 'Category:1': 8, 'Category:2': 11}, ...}, order=['agent6', 'agent8', 'agent1', 'agent4', 'agent5', 'agent7', ...])
+E        +      where <function two_categories_capped_round_robin at 0x7ff27205a9e0> = heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin
+E        +    and   <function get_keys_and_mapping_2d.<locals>.<lambda> at 0x7ff21d1e4040> = <fairpyx.instances.Instance object at 0x7ff21d20a4a0>.agent_item_value
 
-test_algorithms.py:169: AssertionError
-_______________________________ test_algorithm_4 _______________________________
-
-    def test_algorithm_4():
->       assert False
-E       assert False
-
-test_algorithms.py:173: AssertionError
-_______________________________ test_algorithm_5 _______________________________
-
-    def test_algorithm_5():
->       assert False
-E       assert False
-
-test_algorithms.py:177: AssertionError
-_______________________________ test_algorithm_6 _______________________________
-
-    def test_algorithm_6():
->       assert False
-E       assert False
-
-test_algorithms.py:181: AssertionError
-_______________________________ test_algorithm_7 _______________________________
-
-    def test_algorithm_7():
->       assert False
-E       assert False
-
-test_algorithms.py:185: AssertionError
+test_heterogeneous_matroid_constraints_algorithms.py:199: AssertionError
 =========================== short test summary info ============================
-FAILED test_algorithms.py::test_algorithm_2 - AssertionError: assert False is...
-FAILED test_algorithms.py::test_algorithm_3 - assert False
-FAILED test_algorithms.py::test_algorithm_4 - assert False
-FAILED test_algorithms.py::test_algorithm_5 - assert False
-FAILED test_algorithms.py::test_algorithm_6 - assert False
-FAILED test_algorithms.py::test_algorithm_7 - assert False
-========================= 6 failed, 6 passed in 4.83s ==========================
+FAILED test_heterogeneous_matroid_constraints_algorithms.py::test_algorithm_2
+FAILED test_heterogeneous_matroid_constraints_algorithms.py::test_algorithm_3
+========================= 2 failed, 3 passed in 0.55s ==========================
