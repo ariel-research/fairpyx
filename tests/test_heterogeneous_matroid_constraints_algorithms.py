@@ -17,7 +17,8 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                             normalized_sum_of_values: int,
                             agent_name_template="s{index}", item_name_template="c{index}",
                             random_seed: int = None,
-                            equal_capacities: bool = False):
+                            equal_capacities: bool = False
+                            ,equal_valuations: bool = False):
     result_instance = Instance.random_uniform(num_of_agents=
                                               num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=
                                               agent_capacity_bounds, item_capacity_bounds=item_capacity_bounds,
@@ -33,6 +34,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
     random.shuffle(order)
     category_string_template = "Category:{cat}"
     categories = {category_string_template.format(cat=cat): [] for cat in range(num_of_categories)}
+    # check whether equal capacities or doesn't matter
     if not equal_capacities:
         agent_capacities_2d = {
             agent: {category: np.random.randint(agent_capacity_bounds[0], agent_capacity_bounds[1] + 1) for category in
@@ -44,6 +46,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
             agent: {category: random_capacity for category in
                     categories} for agent
             in result_instance.agents}
+
     temporary_items = list(result_instance.items).copy()
     for cat in categories:
         random_item = np.random.choice(temporary_items)
@@ -53,10 +56,34 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
         random_category = np.random.choice(list(categories.keys()))
         categories[random_category].append(item)
 
-    return result_instance, agent_capacities_2d, categories, order
+    if equal_valuations:
+        #check whether equal valuations or doesnt matter
+        # case of random different valuations is already handled in random_uniform()
+        # we can simply pick 1 and copy his valuations to the others .
+        # or regenerate num_of_items random valuations and apply them to all
+        random_valuation=np.random.uniform(low=item_base_value_bounds[0], high=item_base_value_bounds[1] + 1, size=num_of_items)
+        # we need to normalize is
+        sum_of_valuations = np.sum(random_valuation)
+        ratio=normalized_sum_of_values/sum_of_valuations
+        normalized_random_values =np.round(random_valuation * normalized_sum_of_values / sum_of_valuations).astype(int)
+
+        normalized_random_valuation = {
+            agent: dict(zip(result_instance.items,normalized_random_values
+                            ))
+            for agent in result_instance.agents
+        }# so now we have random valuations generated and applied the same set to everyone so everyone has the same valuations in case of equal_valuations=True
+    else:# means the valuations aren't supposed to be equal for every agent
+        normalized_random_valuation = {agent:{item: result_instance.agent_item_value[item]for item in result_instance.items}for agent in result_instance.agents} # we simply reconstructed the vaulations dict from the mappings because we have no access to private attributes of result_instance
+        # no interest in inner attribute capacities whatsoever because we made our own outer parameter which matches the problems we're solving (categorized)
+        item_capacities={item: result_instance.item_capacity[item] for item in result_instance.items}
 
 
-def random_instance(equal_capacities):  # todo add randomization for arguments .
+    #def __init__(self, valuations:any, agent_capacities:any=None, agent_entitlements:any=None, item_capacities:any=None, agent_conflicts:any=None, item_conflicts:any=None, agents:list=None, items:list=None):
+    modified_valuations_instance=Instance(valuations=normalized_random_valuation,item_capacities=item_capacities)
+    return modified_valuations_instance, agent_capacities_2d, categories, order
+
+
+def random_instance(equal_capacities:bool, equal_valuations:bool):  # todo add randomization for arguments .
     random_num_of_agents = np.random.randint(1, 10 + 1)
     random_num_of_items = np.random.randint(1, 10 + 1)
     random_num_of_categories = np.random.randint(1, random_num_of_items + 1)
@@ -66,7 +93,7 @@ def random_instance(equal_capacities):  # todo add randomization for arguments .
         agent_capacity_bounds=(1, 20), item_capacity_bounds=(1, 50),
         item_base_value_bounds=(1, 200), item_subjective_ratio_bounds=(0.5, 1.5),
         agent_name_template="agent{index}", item_name_template="item{index}",
-        normalized_sum_of_values=1000, equal_capacities=equal_capacities
+        normalized_sum_of_values=1000, equal_capacities=equal_capacities, equal_valuations=equal_valuations
     )
     return random_instance
 
@@ -166,20 +193,29 @@ def test_algorithm_2():
 
 
 def test_algorithm_3():
-    assert False
+    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False)
+    assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin, instance=instance,
+                          item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
+                   instance=instance
+                   , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
+                   valuations_func=instance.agent_item_value) is True
 
 
-def test_algorithm_4():
-    assert False
+def test_algorithm_4(): # TODO equal_valuations=True
+    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False)
+    assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_capped_round_robin, instance=instance,
+                          item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
+                   instance=instance
+                   , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
+                   valuations_func=instance.agent_item_value) is True
 
 
-def test_algorithm_5():
-    assert False
+def test_algorithm_5():  # binary valuations
+    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False)
+    assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
+                          instance=instance,
+                          item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
+                   instance=instance
+                   , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
+                   valuations_func=instance.agent_item_value) is True
 
-
-def test_algorithm_6():
-    assert False
-
-
-def test_algorithm_7():
-    assert False
