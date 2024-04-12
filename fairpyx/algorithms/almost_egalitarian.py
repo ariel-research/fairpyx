@@ -18,6 +18,77 @@ from fairpyx.utils.solve import solve
 import logging
 logger = logging.getLogger(__name__)
 
+class AgentItemGraph(nx.Graph):
+    """
+    Overrides networkx graph to fix a bug when agent and item have the same name.
+    """
+
+    def __init__(self, incoming_graph_data=None, **attr):
+        super().__init__(incoming_graph_data, **attr)
+        self.map_agent_str_to_agent = {}
+        self.map_item_str_to_item   = {}
+        self.map_agent_to_agent_str = {}
+        self.map_item_to_item_str   = {}
+
+    def add_edge(self, agent, item, weight=0, value=0):
+        agent_str = agent if isinstance(agent,str) else f"A{agent}"
+        self.map_agent_str_to_agent[agent_str] = self.map_agent_str_to_agent[agent] = agent
+        self.map_agent_to_agent_str[agent] = self.map_agent_to_agent_str[agent_str] = agent_str
+        item_str  = item if isinstance(item,str) else f"I{item}"
+        self.map_item_to_item_str[item] = self.map_item_to_item_str[item_str] = item_str
+        self.map_item_str_to_item[item_str] = self.map_item_str_to_item[item] = item
+        return super().add_edge(agent_str, item_str, weight=weight, value=value)
+
+    def remove_edge(self, agent, item):
+        agent_str = self.map_agent_to_agent_str[agent]
+        item_str  = self.map_item_to_item_str[item]
+        return super().remove_edge(agent_str, item_str)
+
+    def has_edge(self, agent, item):
+        agent_str = self.map_agent_to_agent_str[agent]
+        item_str  = self.map_item_to_item_str[item]
+        return super().has_edge(agent_str, item_str)
+    
+    def agent_degree(self, agent)->int:
+        return super().degree[self.map_agent_to_agent_str[agent]]
+    
+    def item_degree(self, item)->int:
+        return super().degree[self.map_item_to_item_str[item]]
+
+    def __contains__(self, node):
+        if node in self.map_agent_to_agent_str:
+            return super().__contains__(self.map_agent_to_agent_str[node])
+        elif node in self.map_item_to_item_str:
+            return super().__contains__(self.map_item_to_item_str[node])
+        else:
+            return False
+        
+    def contains_item(self,item):
+        if not item in self.map_item_to_item_str:
+            return False
+        return super().__contains__(self.map_item_to_item_str[item])
+        
+    def contains_agent(self,agent):
+        if not agent in self.map_agent_to_agent_str:
+            return False
+        return super().__contains__(self.map_agent_to_agent_str[agent])
+        
+    def agent_neighbors(self, agent):
+        return super().neighbors(self.map_agent_to_agent_str[agent])
+        
+    def item_neighbors(self, item):
+        return super().neighbors(self.map_item_to_item_str[item])
+    
+    def weight(self, agent, item):
+        return super().__getitem__(self.map_agent_to_agent_str[agent])[self.map_item_to_item_str[item]]["weight"]
+    
+    def set_weight(self, agent, item, weight):
+        super().__getitem__(self.map_agent_to_agent_str[agent])[self.map_item_to_item_str[item]]["weight"] = weight
+    
+    
+
+
+
 MIN_EDGE_FRACTION=0.01
 def almost_egalitarian_allocation(alloc: AllocationBuilder, surplus_donation:bool=False, explanation_logger:ExplanationLogger=ExplanationLogger(), **solver_options):
     """
@@ -44,6 +115,11 @@ def almost_egalitarian_allocation(alloc: AllocationBuilder, surplus_donation:boo
     >>> instance = Instance(valuations={"avi": {"x":5, "y":4, "z":3, "w":2}, "beni": {"x":2, "y":3, "z":4, "w":5}}, agent_capacities=4, item_capacities=2)
     >>> stringify(divide(almost_egalitarian_allocation, instance=instance))
     "{avi:['w', 'x', 'y', 'z'], beni:['w', 'x', 'y', 'z']}"
+
+    ### Matrix of values:
+    >>> instance = Instance(valuations=[[5,4,3,2],[2,3,4,5]], agent_capacities=2, item_capacities=1)
+    >>> stringify(divide(almost_egalitarian_allocation, instance=instance))
+    '{0:[0, 1], 1:[2, 3]}'
     """
     # fractional_allocation = fractional_leximin_optimal_allocation(alloc.remaining_instance(), **solver_options) # Too slow
 
@@ -63,9 +139,9 @@ def almost_egalitarian_allocation(alloc: AllocationBuilder, surplus_donation:boo
 
 
     def agent_item_tuple(edge):
-        if edge[0] in alloc.remaining_agents():
+        if edge[0] in fractional_allocation_graph.map_agent_str_to_agent:  # (agent,item) tuple
             return (edge[0],edge[1])
-        else:
+        else:                                                              # (item,agent) tuple
             return (edge[1],edge[0])
         
     agent_surplus = {agent: 0 for agent in alloc.remaining_agents()}
@@ -73,7 +149,7 @@ def almost_egalitarian_allocation(alloc: AllocationBuilder, surplus_donation:boo
     def add_surplus (agent, value_to_add):
         agent_surplus[agent] += value_to_add
         items_to_remove = []
-        for neighbor_item in fractional_allocation_graph.neighbors(agent):
+        for neighbor_item in fractional_allocation_graph.agent_neighbors(agent):
             current_neighbor_weight = fractional_allocation_graph[agent][neighbor_item]['weight']
             current_neighbor_value  = current_neighbor_weight * alloc.effective_value(agent,neighbor_item)
             if current_neighbor_value <= agent_surplus[agent]:
@@ -84,20 +160,26 @@ def almost_egalitarian_allocation(alloc: AllocationBuilder, surplus_donation:boo
             remove_edge_from_graph(agent, neighbor_item)
 
 
-    def remove_edge_from_graph(agent,item):
+    def remove_edge_from_graph(agent_str,item_str):
         """
         Remove the edge (agent,item) from the graph, and redistribute its weight among the neighboring agents of item.
         """
+        agent = fractional_allocation_graph.map_agent_str_to_agent[agent_str]
+        item  = fractional_allocation_graph.map_item_str_to_item[item_str]
         weight_for_redistribution = fractional_allocation[agent][item] # this weight should be redistributed to other neighbors of the item
+        explanation_logger.debug(f"  Your fraction {weight_for_redistribution} of item {item} is given to other agents", agents=agent)
         fractional_allocation[agent][item] = 0
         if fractional_allocation_graph.has_edge(agent,item):
             fractional_allocation_graph.remove_edge(agent,item)
         surplus_to_add = {}
-        for neighbor_agent in fractional_allocation_graph.neighbors(item):
-            current_neighbor_weight = fractional_allocation_graph[neighbor_agent][item]['weight']
+        for neighbor_agent_str in fractional_allocation_graph.item_neighbors(item):
+            neighbor_agent = fractional_allocation_graph.map_agent_str_to_agent[neighbor_agent_str]
+            current_neighbor_weight = fractional_allocation_graph.weight(neighbor_agent,item)
 
             weight_to_add = min(weight_for_redistribution, 1-current_neighbor_weight)
-            fractional_allocation[neighbor_agent][item] = fractional_allocation_graph[neighbor_agent][item]['weight'] = current_neighbor_weight + weight_to_add
+            new_neighbor_weight = current_neighbor_weight + weight_to_add
+            fractional_allocation[neighbor_agent][item] = new_neighbor_weight
+            fractional_allocation_graph.set_weight(neighbor_agent, item, new_neighbor_weight)
             weight_for_redistribution -= weight_to_add
 
             value_to_add = weight_to_add*alloc.effective_value(agent,item)
@@ -114,7 +196,7 @@ def almost_egalitarian_allocation(alloc: AllocationBuilder, surplus_donation:boo
         """
         Remove the agent from the graph, and redistribute its belongings among the neighboring agents of these items.
         """
-        neighbors = list(fractional_allocation_graph.neighbors(agent))
+        neighbors = list(fractional_allocation_graph.agent_neighbors(agent))
         for item in neighbors:
             remove_edge_from_graph(agent,item)
 
@@ -126,33 +208,42 @@ def almost_egalitarian_allocation(alloc: AllocationBuilder, surplus_donation:boo
 
         found_item_leaf = False
         for item in list(alloc.remaining_items()):
-            if item in fractional_allocation_graph.nodes:
-                item_neighbors = list(fractional_allocation_graph.neighbors(item))
-                for agent in item_neighbors:
-                    if fractional_allocation[agent][item] >= 1-2*MIN_EDGE_FRACTION:
-                        # Give an entire unit of the item to the neighbor agent
-                        alloc.give(agent, item)
-                        explanation_logger.info("Course %s is a leaf node, and you are its only neighbor, so you get all of it to yourself.", item, agents=agent)
-                        fractional_allocation[agent][item] = 0
-                        fractional_allocation_graph.remove_edge(agent,item)
-                        if not agent in alloc.remaining_agent_capacities:
-                            explanation_logger.info("You have received %s and you have no remaining capacity.", alloc.bundles[agent], agents=agent)
-                            remove_agent_from_graph(agent)
-                        explanation_logger.debug("\nfractional_allocation_graph:\n%s", fractional_allocation_graph.edges.data())
-                        found_item_leaf = True
+            if not fractional_allocation_graph.contains_item(item):
+                continue
+            item_neighbors = list(fractional_allocation_graph.item_neighbors(item))
+            for agent_str in item_neighbors:
+                agent = fractional_allocation_graph.map_agent_str_to_agent[agent_str]
+                if agent not in fractional_allocation:
+                    raise ValueError(f"agent {agent} not in fractional allocation {fractional_allocation}")
+                fractional_bundle = fractional_allocation[agent]
+                if item not in fractional_bundle:
+                    raise ValueError(f"item {item} not in fractional bundle of agent {agent} = {fractional_bundle}")
+                if fractional_allocation[agent][item] >= 1-2*MIN_EDGE_FRACTION:
+                    # Give an entire unit of the item to the neighbor agent
+                    alloc.give(agent, item)
+                    explanation_logger.info("Course %s is a leaf node, and you are its only neighbor, so you get all of it to yourself.", item, agents=agent)
+                    fractional_allocation[agent][item] = 0
+                    fractional_allocation_graph.remove_edge(agent,item)
+                    if not agent in alloc.remaining_agent_capacities:
+                        explanation_logger.info("You have received %s and you have no remaining capacity.", alloc.bundles[agent], agents=agent)
+                        remove_agent_from_graph(agent)
+                    explanation_logger.debug("\nfractional_allocation_graph:\n%s", fractional_allocation_graph.edges.data())
+                    found_item_leaf = True
         if found_item_leaf:
             # draw_bipartite_weighted_graph(fractional_allocation_graph, alloc.remaining_agents())
             continue
 
         # No item is a leaf - look for an agent leaf:
         found_agent_leaf = False
-        for agent in alloc.remaining_agents():
-            if not agent in fractional_allocation_graph:
+        for agent in list(alloc.remaining_agents()):
+            if not fractional_allocation_graph.contains_agent(agent):
                 continue
-            if fractional_allocation_graph.degree[agent]==1:
+            agent_degree = fractional_allocation_graph.agent_degree(agent)
+            explanation_logger.debug(f"  Your degree in the consumption graph is {agent_degree}", agents=agent)
+            if agent_degree==1:
                 # A leaf agent: disconnect him from his only neighbor (since it is a good)
-                item = next(fractional_allocation_graph.neighbors(agent))
-                if fractional_allocation_graph.degree[item]>1:
+                item = next(fractional_allocation_graph.agent_neighbors(agent))
+                if fractional_allocation_graph.item_degree(item)>1:
                     explanation_logger.info("\nYou are a leaf node, so you lose your only neighbor %s", item, agents=agent)
                     remove_agent_from_graph(agent)
                 else:
@@ -193,13 +284,12 @@ def almost_egalitarian_with_donation(alloc:AllocationBuilder, **kwargs):
 
 almost_egalitarian_allocation.logger = logger
 
-
-def consumption_graph(allocation:dict, min_fraction=0.01, agent_item_value=None)->nx.Graph:
+def consumption_graph(allocation:dict, min_fraction=0.01, agent_item_value=None)->AgentItemGraph:
     """
     Generate the consumption graph of the given allocation.
     It is a bipartite graph between agents and items, where there is an edge if the agent consumes a positive amount of the item.
     """
-    G = nx.Graph()
+    G = AgentItemGraph()
     for agent,bundle in allocation.items():
         for item,fraction in bundle.items():
             if fraction>=min_fraction:
@@ -209,7 +299,7 @@ def consumption_graph(allocation:dict, min_fraction=0.01, agent_item_value=None)
 
 
 
-def draw_bipartite_weighted_graph(G: nx.Graph, top_nodes:list):
+def draw_bipartite_weighted_graph(G: AgentItemGraph, top_nodes:list):
     draw_options = {
         "font_size": 10,
         "node_size": 700,
@@ -230,11 +320,18 @@ if __name__ == "__main__":
     import doctest, sys
     print("\n",doctest.testmod(), "\n")
 
-    logger.addHandler(logging.StreamHandler(sys.stdout))
-    logger.setLevel(logging.WARNING)
+    sys.exit(0)
 
-    from fairpyx.adaptors import divide_random_instance
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.setLevel(logging.DEBUG)
+
+    from fairpyx.adaptors import divide_random_instance, divide
     from fairpyx.explanations import ConsoleExplanationLogger, FilesExplanationLogger, StringsExplanationLogger
+
+    instance = Instance(valuations=[[5, 4, 3, 2], [2, 3, 4, 5]])
+    print(divide(almost_egalitarian_allocation, instance=instance, explanation_logger=ConsoleExplanationLogger()))
+
+    # sys.exit(1)
 
     num_of_agents = 30
     num_of_items = 10

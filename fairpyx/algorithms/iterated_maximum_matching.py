@@ -51,6 +51,11 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
     >>> map_agent_name_to_bundle = divide(iterated_maximum_matching,instance=instance)
     >>> stringify(map_agent_name_to_bundle)
     "{avi:['x', 'y', 'z'], beni:['w', 'y', 'z']}"
+
+    ### Matrix of values:
+    >>> instance = Instance(valuations=[[5,4,3,2],[2,3,4,5]], agent_capacities=2, item_capacities=1)
+    >>> stringify(divide(iterated_maximum_matching, instance=instance))
+    '{0:[0, 1], 1:[2, 3]}'
     """
 
     TEXTS = {
@@ -100,6 +105,8 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
             agents=alloc.remaining_agents(),
             agent_capacity=lambda _:1,
             agent_item_value=agent_item_value_with_bonus)
+        
+        explanation_logger.debug("map_agent_to_bundle: %s", map_agent_to_bundle)
 
         agents_with_empty_bundles = [agent for agent,bundle in map_agent_to_bundle.items() if len(bundle)==0]
         for agent in agents_with_empty_bundles:
@@ -140,7 +147,7 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
                     explanation_logger.info("The maximum possible value you could get in this iteration is %g. You get course %s whose value for you is %g.", map_agent_to_max_possible_value[agent], item, map_agent_to_value[agent], agents=agent)
                 explanation_logger.info("\nThere are no more remaining courses!", agents=map_agent_to_item.keys())
 
-        else:
+        else:   # Simple algorithm: do not adjust utilities 
             for agent,item in map_agent_to_item.items():
                 explanation_logger.info("You get course %s", item, agents=agent)
                 alloc.give(agent,item)
@@ -156,11 +163,19 @@ def iterated_maximum_matching_unadjusted(alloc:AllocationBuilder, **kwargs):
 
 
 if __name__ == "__main__":
-    import doctest
-    print("\n",doctest.testmod(), "\n")
+    import doctest, sys
+    # print("\n",doctest.testmod(), "\n")
 
-    from fairpyx.adaptors import divide_random_instance
+    # sys.exit(0)
+
+    from fairpyx.adaptors import divide_random_instance, divide
     from fairpyx.explanations import ConsoleExplanationLogger, FilesExplanationLogger, StringsExplanationLogger
+
+    instance = Instance(valuations=[[5,4,3,2],[2,3,4,5]], agent_capacities=2, item_capacities=1)
+    print(divide(iterated_maximum_matching, instance=instance, explanation_logger=ConsoleExplanationLogger()))
+
+    sys.exit()
+
     num_of_agents = 30
     num_of_items = 10
 

@@ -109,13 +109,13 @@ class SingleExplanationLogger(ExplanationLogger):
         if agents is None or not is_individual_agent(agents):  # to all agents
             self.logger.debug(message, *args)
         else:                                          # to one agent
-            self.logger.debug(agents+": "+message.strip(), *args)
+            self.logger.debug(str(agents)+": "+message.strip(), *args)
 
     def info(self, message:str, *args, agents=None):
         if agents is None or not is_individual_agent(agents):  # to all agents
             self.logger.info(message, *args)
         else:                                          # to one agent
-            self.logger.info(agents+": "+message.strip(), *args)
+            self.logger.info(str(agents)+": "+message.strip(), *args)
 
 
 class ConsoleExplanationLogger(SingleExplanationLogger):
