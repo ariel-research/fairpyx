@@ -70,14 +70,16 @@ print(allocation)
 
 #' You can specify agent_conflicts - a set of items that cannot be allocated to this agent (e.g. due to missing preliminaries):
 
-# valuations = {
-#     "Ami": {"green": 8, "red":7, "blue": 6, "yellow": 5},
-#     "Tami": {"green": 12, "red":8, "blue": 4, "yellow": 2} }
-# allocation = divide(fairpyx.algorithms.round_robin, valuations=valuations, agent_conflicts={"Ami": ["green", "red", "blue"], "Tami": ["red", "blue", "yellow"]}) 
-# print(allocation)
+valuations = {
+    "Ami": {"green": 8, "red":7, "blue": 6, "yellow": 5},
+    "Tami": {"green": 12, "red":8, "blue": 4, "yellow": 2} }
+allocation = divide(fairpyx.algorithms.round_robin, valuations=valuations, agent_conflicts={"Ami": ["green", "red", "blue"], "Tami": ["red", "blue", "yellow"]}) 
+print(allocation)
 
 #' You can also specify item_conflicts - a set of items that cannot be taken together (e.g. due to overlapping times):
 
-# allocation = divide(fairpyx.algorithms.round_robin, valuations=valuations, item_conflicts={"green": ["yellow", "red", "blue"]})
-# print(allocation)
+allocation = divide(fairpyx.algorithms.round_robin, valuations=valuations, item_conflicts={"green": ["yellow", "red", "blue"]})
+print(allocation)
+
+#' Note that not all algorithms can handle conflicts.
 
