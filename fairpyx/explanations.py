@@ -54,6 +54,9 @@ class ExplanationLogger:
     def __init__(self, language='en'):
         self.language=language
 
+    def warning(self, message:str, *args, agents=None):
+        pass
+
     def info(self, message:str, *args, agents=None):
         pass
 
@@ -117,6 +120,12 @@ class SingleExplanationLogger(ExplanationLogger):
         else:                                          # to one agent
             self.logger.info(str(agents)+": "+message.strip(), *args)
 
+    def warning(self, message:str, *args, agents=None):
+        if agents is None or not is_individual_agent(agents):  # to all agents
+            self.logger.warning(message, *args)
+        else:                                          # to one agent
+            self.logger.warning(str(agents)+": "+message.strip(), *args)
+
 
 class ConsoleExplanationLogger(SingleExplanationLogger):
     """
@@ -159,6 +168,16 @@ class ExplanationLoggerPerAgent(ExplanationLogger):
         else:
             for agent in agents:
                 self.map_agent_to_logger[agent].info(message, *args)
+
+    def warning(self, message:str, *args, agents=None):
+        if agents is None:
+            for agent,logger in self.map_agent_to_logger.items():
+                logger.warning(message, *args)
+        elif is_individual_agent(agents):
+            self.map_agent_to_logger[agents].warning(message, *args)
+        else:
+            for agent in agents:
+                self.map_agent_to_logger[agent].warning(message, *args)
 
 
 

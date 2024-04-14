@@ -282,8 +282,8 @@ def almost_egalitarian_allocation(alloc: AllocationBuilder, surplus_donation:boo
         edge_with_min_weight = min(fractional_allocation_graph.edges(), key=lambda edge:fractional_allocation_graph.weight(edge[0],edge[1]))
         agent_min_weight,item_min_weight = edge_with_min_weight
         min_weight = fractional_allocation_graph.weight(agent_min_weight,item_min_weight)
-        logger.warning("No leafs - removing edge %s with minimum weight %g", edge_with_min_weight, min_weight)
-        explanation_logger.info("There are no leaf nodes, but the edge %s has minimum weight %g, so it is removed.", edge_with_min_weight, min_weight, agents=agent_min_weight)
+        # logger.warning("No leafs - removing edge %s with minimum weight %g", edge_with_min_weight, min_weight)
+        explanation_logger.warning("There are no leaf nodes, but the edge %s has minimum weight %g, so it is removed.", edge_with_min_weight, min_weight, agents=agent_min_weight)
         remove_edge_from_graph(agent_min_weight,item_min_weight)
 
     iterated_maximum_matching(alloc)  # Avoid waste
