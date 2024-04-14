@@ -34,7 +34,7 @@ def picking_sequence(alloc: AllocationBuilder, agent_order:list):
             break 
         if not agent in alloc.remaining_agent_capacities:
             continue
-        potential_items_for_agent = set(alloc.remaining_items()).difference(alloc.bundles[agent])
+        potential_items_for_agent = set(alloc.remaining_items_for_agent(agent))
         if len(potential_items_for_agent)==0:
             logger.info("Agent %s cannot pick any more items: remaining=%s, bundle=%s", agent, alloc.remaining_item_capacities, alloc.bundles[agent])
             alloc.remove_agent_from_loop(agent)
@@ -81,6 +81,16 @@ def round_robin(alloc: AllocationBuilder, agent_order:list=None):
     >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
     >>> divide(round_robin, instance=instance)
     {'Alice': ['c1', 'c2'], 'Bob': ['c1', 'c2', 'c3'], 'Chana': ['c2', 'c3'], 'Dana': ['c3']}
+
+    # Agent conflicts:
+    >>> instance  = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations, agent_conflicts={"Alice": ['c1', 'c2']})
+    >>> divide(round_robin, instance=instance)
+    {'Alice': ['c3'], 'Bob': ['c1', 'c2', 'c3'], 'Chana': ['c2', 'c3'], 'Dana': ['c1', 'c2', 'c3']}
+
+    # Item conflicts:
+    >>> instance  = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations, item_conflicts={"c1": ['c2'], "c2": ['c1']})
+    >>> divide(round_robin, instance=instance)
+    {'Alice': ['c1', 'c3'], 'Bob': ['c1', 'c3'], 'Chana': ['c2', 'c3'], 'Dana': ['c2', 'c3']}
     """
     if agent_order is None: agent_order = list(alloc.remaining_agents())
     picking_sequence(alloc, agent_order)

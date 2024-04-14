@@ -105,7 +105,7 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
             agents=alloc.remaining_agents(),
             agent_capacity=lambda _:1,
             agent_item_value=agent_item_value_with_bonus)
-        
+
         explanation_logger.debug("map_agent_to_bundle: %s", map_agent_to_bundle)
 
         agents_with_empty_bundles = [agent for agent,bundle in map_agent_to_bundle.items() if len(bundle)==0]
@@ -126,7 +126,8 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
                 for agent in map_agent_to_item.keys()
             }
             for agent,item in map_agent_to_item.items():
-                alloc.give(agent,item)
+                if (agent,item) not in alloc.remaining_conflicts:
+                    alloc.give(agent,item)
             if alloc.remaining_items():
                 for agent,item in map_agent_to_item.items():
                     explanation_logger.info(_("your_course_this_iteration"), map_agent_to_max_possible_value[agent], item, map_agent_to_value[agent], agents=agent)

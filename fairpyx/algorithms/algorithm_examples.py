@@ -27,7 +27,8 @@ example_instance = Instance(
 def algorithm1(alloc: AllocationBuilder):
     """
     This dummy algorithm gives one item to the first agent, and all items to the second agent.
-    
+    This algorithm ignores agent and item conflicts.
+
     >>> divide(algorithm1, example_instance)
     {'Alice': ['c1'], 'Bob': ['c1', 'c2', 'c3'], 'Chana': [], 'Dana': []}
     """
@@ -40,7 +41,8 @@ def algorithm1(alloc: AllocationBuilder):
 
 def algorithm2(alloc: AllocationBuilder):
     """
-    This is a serial dictatorship algorithm: it lets each agent in turn pick all remaining items. 
+    This is a serial dictatorship algorithm: it lets each agent in turn 
+    pick all remaining items that have no agent or item conflicts.
     
     >>> divide(algorithm2, example_instance)
     {'Alice': ['c1', 'c2'], 'Bob': ['c1', 'c2', 'c3'], 'Chana': ['c2', 'c3'], 'Dana': ['c3']}
@@ -48,7 +50,7 @@ def algorithm2(alloc: AllocationBuilder):
     logger.info("\nAlgorithm 2 starts. items %s , agents %s", alloc.remaining_item_capacities, alloc.remaining_agent_capacities)
     picking_order = list(alloc.remaining_agents())
     for agent in picking_order:
-        bundle = list(alloc.remaining_items())
+        bundle = list(alloc.remaining_items_for_agent(agent))    # remaining_items_for_agent returns all items that the agent can pick (i.e., all items with remaining capacities that the agent does not already have, and have no agent or item conflits).
         agent_capacity = alloc.remaining_agent_capacities[agent]
         if agent_capacity >= len(bundle):
             alloc.give_bundle(agent, bundle)
@@ -64,13 +66,13 @@ def algorithm3(alloc: AllocationBuilder):
     It first allocates one high-value item to each agent, and then run algorithm2.
     
     >>> divide(algorithm3, example_instance)
-    {'Alice': ['c1', 'c3'], 'Bob': ['c1', 'c2'], 'Chana': ['c2', 'c3'], 'Dana': ['c3']}
+    {'Alice': ['c1', 'c3'], 'Bob': ['c1', 'c2', 'c3'], 'Chana': ['c2', 'c3'], 'Dana': ['c2', 'c3']}
     """
     logger.info("\nAlgorithm 3 starts. items %s , agents %s", alloc.remaining_item_capacities, alloc.remaining_agent_capacities)
 
     logger.info("\nFirst phase: allocate one high-value item per agent.")
     for agent in list(alloc.remaining_agents()):
-        for item in list(alloc.remaining_items()):
+        for item in list(alloc.remaining_items_for_agent(agent)):
             value = alloc.effective_value(agent, item)    # `effective_value` returns the agent's item to the value if there is no conflict; otherwise, it returns minus infinity.
             if value >= 10:
                 logger.info("%s gets %s, with value %s", agent, item, value)   
