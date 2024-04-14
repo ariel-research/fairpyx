@@ -41,18 +41,12 @@ print(allocation)
 
 #' There are several input formats for agent capacities. You can set the same capacity to all agents:
 
-allocation = divide(fairpyx.algorithms.almost_egalitarian_allocation, valuations=valuations, agent_capacities=2)  # , explanation_logger=fairpyx.ConsoleExplanationLogger()
+allocation = divide(fairpyx.algorithms.almost_egalitarian_allocation, valuations=valuations, agent_capacities=2)  
 print(allocation)
 
 #' Or different capacities to different agents:
 
-allocation = divide(fairpyx.algorithms.almost_egalitarian_allocation, valuations=valuations, agent_capacities=[1,2,3,2,1])  # , explanation_logger=fairpyx.ConsoleExplanationLogger()
-print(allocation)
-
-
-#' There are several input formats for agent capacities. You can set the same capacity to all agents:
-
-allocation = divide(fairpyx.algorithms.almost_egalitarian_allocation, valuations=valuations, agent_capacities=2)  # , explanation_logger=fairpyx.ConsoleExplanationLogger()
+allocation = divide(fairpyx.algorithms.almost_egalitarian_allocation, valuations=valuations, agent_capacities=[1,2,3,2,1]) 
 print(allocation)
 
 #' Similarly, you can set the same capacity to all items:

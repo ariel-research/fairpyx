@@ -68,12 +68,12 @@ print(allocation)
 ```
 
 ```
-[[11 51 26 40 92 22 25  9 26 44 52 98]
- [58 55  4 57 48  3 24 24 51 84 97  2]
- [ 6  5 31 66 74 95 11 21 81 28 98 28]
- [ 9 50  8  9 37 24 42 22 90 15 36 11]
- [43 73 76 60 30 20  4 11  1 54 68 86]]
-{0: [4], 1: [0, 7, 9], 2: [5, 10], 3: [6, 8], 4: [1, 2, 3, 11]}
+[[96 51 98 31  1 62 36 50 21 47 97 29]
+ [58 91 31 79 42 60 49 86 64 88 39 56]
+ [88 81 73 16 67 65 92 26 52  3 60  6]
+ [91 55 72 43 10 61 97 21 89 97 69 35]
+ [ 9 96 39 82 59 68 52 78 93 87 84 26]]
+{0: [2], 1: [7, 11], 2: [0, 4], 3: [6, 9], 4: [1, 3, 5, 8, 10]}
 ```
 
 
@@ -84,12 +84,12 @@ There are several input formats for agent capacities. You can set the same capac
 
 
 ```python
-allocation = divide(fairpyx.algorithms.almost_egalitarian_allocation, valuations=valuations, agent_capacities=2)  # , explanation_logger=fairpyx.ConsoleExplanationLogger()
+allocation = divide(fairpyx.algorithms.almost_egalitarian_allocation, valuations=valuations, agent_capacities=2)  
 print(allocation)
 ```
 
 ```
-{0: [4, 11], 1: [0, 9], 2: [5, 10], 3: [6, 8], 4: [1, 2]}
+{0: [2, 10], 1: [5, 7], 2: [0, 6], 3: [8, 9], 4: [1, 3]}
 ```
 
 
@@ -98,26 +98,12 @@ Or different capacities to different agents:
 
 
 ```python
-allocation = divide(fairpyx.algorithms.almost_egalitarian_allocation, valuations=valuations, agent_capacities=[1,2,3,2,1])  # , explanation_logger=fairpyx.ConsoleExplanationLogger()
+allocation = divide(fairpyx.algorithms.almost_egalitarian_allocation, valuations=valuations, agent_capacities=[1,2,3,2,1]) 
 print(allocation)
 ```
 
 ```
-{0: [3], 1: [0, 9], 2: [4, 5, 10], 3: [1, 8], 4: [11]}
-```
-
-
-
-There are several input formats for agent capacities. You can set the same capacity to all agents:
-
-
-```python
-allocation = divide(fairpyx.algorithms.almost_egalitarian_allocation, valuations=valuations, agent_capacities=2)  # , explanation_logger=fairpyx.ConsoleExplanationLogger()
-print(allocation)
-```
-
-```
-{0: [4, 11], 1: [0, 9], 2: [5, 10], 3: [6, 8], 4: [1, 2]}
+{0: [10], 1: [1, 7], 2: [0, 2, 4], 3: [6, 9], 4: [8]}
 ```
 
 
@@ -131,8 +117,8 @@ print(allocation)
 ```
 
 ```
-{0: [1, 4, 9, 11], 1: [0, 3, 9, 10], 2: [4, 5, 8, 10], 3: [1, 5, 6,
-8], 4: [0, 2, 3, 11]}
+{0: [1, 2, 5, 10], 1: [1, 3, 7, 9], 2: [0, 2, 4, 6], 3: [0, 6, 8, 9],
+4: [3, 7, 8, 10]}
 ```
 
 
@@ -146,8 +132,8 @@ print(allocation)
 ```
 
 ```
-{0: [1, 4, 11], 1: [0, 3, 7, 9], 2: [3, 5, 10], 3: [5, 6, 7, 8], 4:
-[1, 2, 9, 11]}
+{0: [0, 2, 10], 1: [3, 7, 11], 2: [1, 4, 5, 6], 3: [5, 8, 9, 11], 4:
+[1, 3, 7, 9]}
 ```
 
 
