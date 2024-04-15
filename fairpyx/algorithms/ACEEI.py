@@ -57,7 +57,7 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
 
     # Alice: 3-7 -> (9, [x,y], p=3.5) (6, [x,z], p=1.5) (5, [y,z], p=2) (5 , x , p=1.5) (4, y, p=2) (1, z, p=0)
-    # Bob: 2-6 -> (10, [x,y]. p=3.5) , (9, [y,z], p=2) , (7, [x.z] , p=1.5) , (6, [y] p=1.5) , (4, [x]. p= 1.5), (3, [z]], p=0)
+    # Bob: 2-6 -> (10, [x,y]. p=3.5) , (9, [y,z], p=2) , (7, [x.z] , p=1.5) , (6, [y] p=1.5) , (4, [x]. p= 1.5), (3, [z]), p=0)
 
 
     >>> instance = Instance(
@@ -73,7 +73,7 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     """
 
     best_bundle_per_budget = {student: {} for student in instance.agents}
-
+    logger.info("START combinations")
     for student in instance.agents:
 
         # Creating a list of combinations of courses up to the size of the student's capacity
@@ -81,6 +81,7 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
         capacity = instance.agent_capacity(student)
         for r in range(1, capacity + 1):
             combinations_courses_list.extend(combinations(instance.items, r))
+        logger.info(f"FINISH combinations for {student}")
 
         #  We would like to meet the requirement of the number of courses a student needs, therefore if
         #  the current combination meets the requirement we will give it more weight
@@ -119,6 +120,7 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
 
 def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict, instance: Instance, t:Enum):
     # return: new_budgets, norma, allocation, excess_demand
+    logger.info("START find_budget_perturbation")
     map_student_to_best_bundle_per_budget = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
     new_budgets, clearing_error, excess_demand_per_course = lp.optimize_model(map_student_to_best_bundle_per_budget,
                                                                               instance, prices, t, initial_budgets)
@@ -223,6 +225,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     """
     # allocation = [[0 for _ in range(instance.num_of_agents)] for _ in range(instance.num_of_items)]
     # 1) init prices vector to be 0
+    logger.info("START ACEEI")
     prices = {key: 0 for key in alloc.remaining_items()}
     clearing_error = 1
     new_budgets = {}
