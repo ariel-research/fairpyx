@@ -15,20 +15,59 @@ from fairpyx import Instance
 logger = logging.getLogger(__name__)
 
 
-# TODO: add doco
+
 def excess_demand(instance: Instance, allocation: dict):
+    """
+    Calculate for every course its excess demand
+    𝑧𝑗 (𝒖,𝒄, 𝒑, 𝒃) = ∑︁ 𝑎𝑖𝑗 (𝒖, 𝒑, 𝒃) − 𝑐𝑗
+                  𝑖=1 to n
+
+    :param instance: fair-course-allocation instance
+    :param allocation: a dictionary that maps each student to his bundle
+
+    :return: a dictionary that maps each course to its excess demand
+
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":2, "y":1, "z":3})
+    >>> allocation = {"ami":('x','y'), "tami":('x','y')}
+    >>> excess_demand(instance, allocation)
+    {'x': 0, 'y': 1, 'z': -3}
+    """
     z = {}  # Initialize z as a dictionary
     for course in instance.items:
         sum_allocation = 0
-        for student in range(instance.num_of_agents):
-            sum_allocation += allocation[student][course]
-        z[course] = sum_allocation - instance.item_capacity[course]
+        for student, bundle in allocation.items():
+            if course in bundle:
+                sum_allocation += 1
+        z[course] = sum_allocation - instance.item_capacity(course)
     return z
 
 
-# TODO: add doco
-def clipped_excess_demand(instance: Instance, initial_budgets: dict, prices: dict):
-    z = excess_demand(instance, initial_budgets)
+
+def clipped_excess_demand(instance: Instance, prices: dict, allocation: dict):
+    """
+       Calculate for every course its clipped excess demand
+       𝑧˜𝑗 (𝒖,𝒄, 𝒑, 𝒃) =  𝑧𝑗 (𝒖,𝒄, 𝒑, 𝒃) if 𝑝𝑗 > 0,
+                         max{0, 𝑧𝑗 (𝒖,𝒄, 𝒑, 𝒃)} if 𝑝𝑗 = 0
+
+
+       :param instance: fair-course-allocation instance
+       :param allocation: a dictionary that maps each student to his bundle
+
+       :return: a dictionary that maps each course to its clipped excess demand
+
+       >>> instance = Instance(
+       ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}},
+       ... agent_capacities=2,
+       ... item_capacities={"x":2, "y":1, "z":3})
+       >>> allocation = {"ami":('x','y'), "tami":('x','y')}
+       >>> prices = {"x":2, "y":2, "z":0}
+       >>> clipped_excess_demand(instance ,prices, allocation)
+       {'x': 0, 'y': 1, 'z': 0}
+    """
+    z = excess_demand(instance, allocation)
     clipped_z = {course: max(0, z[course]) if prices[course] == 0 else z[course] for course in z}
     return clipped_z
 
@@ -115,10 +154,12 @@ def find_all_equivalent_prices(instance: Instance, history: list, prices: dict):
 
     pass
 
+
 def find_gradient_neighbors(neighbors: list, history: list, prices: dict, delta: float, excess_demand_vector: dict):
-    #TODO ask erel about delta
+    # TODO ask erel about delta
     """
     Add the gradient neighbors to the neighbors list
+    N_gradient(𝒑, Δ) = {𝒑 + 𝛿 · 𝒛(𝒖,𝒄, 𝒑, 𝒃) : 𝛿 ∈ Δ}
 
     :param neighbors: list of Gradient neighbors and Individual price adjustment neighbors.
     :param history: all equivalent prices of 𝒑
@@ -157,7 +198,7 @@ def find_gradient_neighbors(neighbors: list, history: list, prices: dict, delta:
     >>> find_gradient_neighbors(neighbors,history,prices,delta,excess_demand_vector)
     {'x': 2, 'y': 4, 'z': 0}
     """
-    # N gradient(𝒑, Δ) = {𝒑 + 𝛿 · 𝒛(𝒖,𝒄, 𝒑, 𝒃) : 𝛿 ∈ Δ} .
+
     updated_prices = {}
     for item, price in prices.items():
         updated_prices[item] = max(0, price + delta * excess_demand_vector.get(item, 0))
@@ -166,13 +207,62 @@ def find_gradient_neighbors(neighbors: list, history: list, prices: dict, delta:
         neighbors.append(updated_prices)
 
     return updated_prices
+
+
 def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: list, history: list, prices: dict,
-                                               excess_demand_vector: dict):
-    pass
+                                               excess_demand_vector: dict, initial_budgets: dict, allocation: dict):
+    """
+    Add the individual price adjustment neighbors to the neighbors list
+
+    :param instance: fair-course-allocation
+    :param neighbors: list of Gradient neighbors and Individual price adjustment neighbors.
+    :param history: all equivalent prices of 𝒑
+    :param prices: dictionary with courses prices
+    :param excess_demand_vector: excess demand of the courses
+    :param initial_budgets: students' initial budgets
+    :param allocation: a dictionary that maps each student to his bundle
+    :return: None
+
+    Example run 1 iteration 1
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":2, "y":1, "z":3})
+    >>> neighbors = []
+    >>> history = []
+    >>> prices = {"x": 1, "y": 2, "z": 1}
+    >>> excess_demand_vector = {"x":0,"y":2,"z":-2}
+    >>> initial_budgets = {"ami":5,"tami":4,"tzumi":3}
+    >>> allocation = {"ami":('x','y'),"tami":('x','y'),"tzumi":('y','z')}
+    >>> find_individual_price_adjustment_neighbors(instance,neighbors, history, prices, excess_demand_vector, initial_budgets, allocation)
+    {'x': 1, 'y': 3, 'z': 1}
+
+    """
+    # TODO: NOT WORKING
+
+    for course, demand in excess_demand_vector.items():
+        if demand == 0:
+            continue
+        for _ in range(35):  # TODO: ask erel if here we need to do this
+            updated_prices = prices.copy()
+            if demand > 0:
+                original_demand = demand
+                while demand != original_demand - 1:
+                    updated_prices[course] += 1
+                    # get the new demand of the course
+                    demand = clipped_excess_demand(instance, prices, allocation)[course]
+
+            elif demand < 0:
+                updated_prices[course] = 0
+
+            if updated_prices not in history:
+                neighbors.append(updated_prices)
+
+    return neighbors
 
 
 def find_all_neighbors(instance: Instance, neighbors: list, history: list, prices: dict, delta: float,
-                       excess_demand_vector: dict):
+                       excess_demand_vector: dict, initial_budgets: dict, allocation: dict):
     # todo: ask erel about delta
     """
     Update neighbors N (𝒑) - list of Gradient neighbors and Individual price adjustment neighbors.
@@ -185,7 +275,8 @@ def find_all_neighbors(instance: Instance, neighbors: list, history: list, price
     """
 
     find_gradient_neighbors(neighbors, history, prices, delta, excess_demand_vector)
-    find_individual_price_adjustment_neighbors(instance, neighbors, history, prices, excess_demand_vector)  # TODO: implement
+    find_individual_price_adjustment_neighbors(instance, neighbors, history, prices,
+                                               excess_demand_vector, initial_budgets, allocation)  # TODO: implement
 
 
 def find_min_error_prices(instance: Instance, prices: dict, neighbors: list, initial_budgets: dict):
@@ -272,14 +363,15 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
     while norma2:
         neighbors = []  # resets on every iteration
         allocation = student_best_bundle(prices, instance, initial_budgets)
-        excess_demand_vector = clipped_excess_demand(instance, initial_budgets, prices)
+        excess_demand_vector = clipped_excess_demand(instance, prices, allocation)
         values = np.array(list(excess_demand_vector.values()))
         norma2 = np.linalg.norm(values)
         # 3) Otherwise,
         # • include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑},
         find_all_equivalent_prices(instance, history, prices)  # TODO - implement
         delta = 1  # TODO- ask erel how to get delta
-        find_all_neighbors(instance, neighbors, history, prices, delta, excess_demand_vector)  # TODO - implement
+        find_all_neighbors(instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
+                           allocation)  # TODO - implement
 
         # • update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2, and then
         find_min_error_prices(instance, prices, neighbors, initial_budgets)
@@ -288,6 +380,21 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
 
 
 if __name__ == "__main__":
-    import doctest
+    # import doctest
+    #
+    # doctest.testmod()
 
-    doctest.testmod()
+    instance = Instance(
+        valuations={"ami": {"x": 3, "y": 4, "z": 2}, "tami": {"x": 4, "y": 3, "z": 2}},
+        agent_capacities=2,
+        item_capacities={"x": 2, "y": 1, "z": 3})
+    neighbors = []
+    history = []
+    prices = {"x": 1, "y": 2, "z": 0}
+    excess_demand_vector = {"x": 0, "y": 2, "z": -2}
+    initial_budgets = {"ami": 5, "tami": 4, "tzumi": 3}
+    allocation = {"ami": ('x', 'y'), "tami": ('x', 'y')}
+    # find_individual_price_adjustment_neighbors(instance, neighbors, history, prices, excess_demand_vector,
+    #                                            initial_budgets, allocation)
+
+    print(clipped_excess_demand(instance,prices,allocation))
