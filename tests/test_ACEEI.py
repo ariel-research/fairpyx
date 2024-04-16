@@ -131,4 +131,4 @@ if __name__ == "__main__":
     # pytest.main(["-v", __file__])
     # logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
-    test_case_1()
+    test_case_3()
