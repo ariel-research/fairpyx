@@ -4,10 +4,13 @@ Implement "Tabu search" course allocation,
 Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
 Since: 2024-01
 """
+import logging
 import random
+from itertools import combinations
 
 from fairpyx import Instance
 
+logger = logging.getLogger(__name__)
 
 def excess_demand(instance, initial_budgets: dict, prices, allocation):
     z = [0] * instance.num_of_items  # in size of the number of courses
@@ -34,8 +37,67 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
     :param initial_budgets: students' initial budgets
 
     :return: a dictionary that maps each student to its best bundle.
+
+     Example run 1 iteration 1
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":3, "y":4, "z":2}, "Bob":{"x":4, "y":3, "z":2}, "Eve":{"x":2, "y":4, "z":3}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":2, "y":1, "z":3})
+    >>> initial_budgets = {"Alice": 5, "Bob": 4, "Eve": 3}
+    >>> prices = {"x": 1, "y": 2, "z": 1}
+    >>> student_best_bundle(prices, instance, initial_budgets)
+    {'Alice': ('x', 'y'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}
+
+     Example run 2 iteration 1
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":5, "y":4, "z":3, "w":2}, "Bob":{"x":5, "y":2, "z":4, "w":3}},
+    ...     agent_capacities=3,
+    ...     item_capacities={"x":1, "y":2, "z":1, "w":2})
+    >>> initial_budgets = {"Alice": 8, "Bob": 6}
+    >>> prices = {"x": 1, "y": 2, "z": 3, "w":4}
+    >>> student_best_bundle(prices, instance, initial_budgets)
+    {'Alice': ('x', 'y', 'z'), 'Bob': ('x', 'y', 'z')}
+
+
+    Example run 3 iteration 1
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":3, "y":3, "z":3, "w":3}, "Bob":{"x":3, "y":3, "z":3, "w":3}, "Eve":{"x":4, "y":4, "z":4, "w":4}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":2, "z":2, "w":1})
+    >>> initial_budgets = {"Alice": 4, "Bob": 5, "Eve": 2}
+    >>> prices = {"x": 1, "y": 1, "z": 1, "w":1}
+    >>> student_best_bundle(prices, instance, initial_budgets)
+    {'Alice': ('x', 'y'), 'Bob': ('x', 'y'), 'Eve': ('x', 'y')}
+
     """
-    pass
+    best_bundle = {student: None for student in instance.agents}
+    logger.info("START combinations")
+
+    for student in instance.agents:
+
+        # Creating a list of combinations of courses up to the size of the student's capacity
+        combinations_courses_list = []
+        capacity = instance.agent_capacity(student)
+        for r in range(1, capacity + 1):
+            combinations_courses_list.extend(combinations(instance.items, r))
+        logger.info(f"FINISH combinations for {student}")
+
+        # Define a lambda function that calculates the valuation of a combination
+        valuation_function = lambda combination: instance.agent_bundle_value(student, combination)
+
+        # Sort the combinations_set based on their valuations in descending order
+        combinations_courses_sorted = sorted(combinations_courses_list, key=valuation_function, reverse=True)
+
+        for combination in combinations_courses_sorted:
+            price_combination = sum(prices[course] for course in combination)
+            if price_combination <= initial_budgets[student]:
+                best_bundle[student] = combination
+                break
+
+    return best_bundle
+
+
+
 
 
 def find_all_equivalent_prices(instance: Instance, history: list, prices: dict):
