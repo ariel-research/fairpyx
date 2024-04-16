@@ -15,7 +15,6 @@ from fairpyx import Instance
 logger = logging.getLogger(__name__)
 
 
-
 def excess_demand(instance: Instance, allocation: dict):
     """
     Calculate for every course its excess demand
@@ -43,7 +42,6 @@ def excess_demand(instance: Instance, allocation: dict):
                 sum_allocation += 1
         z[course] = sum_allocation - instance.item_capacity(course)
     return z
-
 
 
 def clipped_excess_demand(instance: Instance, prices: dict, allocation: dict):
@@ -209,6 +207,26 @@ def find_gradient_neighbors(neighbors: list, history: list, prices: dict, delta:
     return updated_prices
 
 
+def differ_in_one_value(dict1, dict2):
+    """
+    Check if two dictionaries differ with each other in exactly one value.
+
+    :param dict1: First dictionary
+    :param dict2: Second dictionary
+    :return: True if the dictionaries differ in exactly one value, False otherwise
+    """
+    # Count the number of differing values
+    diff_count = 0
+    for key in dict1:
+        if key in dict2 and dict1[key] != dict2[key]:
+            diff_count += 1
+            # If more than one value differs, return False immediately
+            if diff_count > 1:
+                return False
+    # Return True if exactly one value differs
+    return diff_count == 1
+
+
 def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: list, history: list, prices: dict,
                                                excess_demand_vector: dict, initial_budgets: dict, allocation: dict):
     """
@@ -229,33 +247,75 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
     ... agent_capacities=2,
     ... item_capacities={"x":2, "y":1, "z":3})
     >>> neighbors = []
-    >>> history = []
+    >>> history = [
+    ...    {'x': 1, 'y': 2, 'z': 1}, {'x': 0, 'y': 0, 'z': 0}, {'x': 1, 'y': 0, 'z': 0},
+    ...    {'x': 0, 'y': 1, 'z': 0}, {'x': 0, 'y': 0, 'z': 1}, {'x': 1, 'y': 1, 'z': 0},
+    ...    {'x': 1, 'y': 0, 'z': 1}, {'x': 0, 'y': 1, 'z': 1}, {'x': 1, 'y': 1, 'z': 1},
+    ...    {'x': 0, 'y': 1, 'z': 2}, {'x': 0, 'y': 2, 'z': 1}, {'x': 1, 'y': 0, 'z': 2},
+    ...    {'x': 1, 'y': 2, 'z': 0}, {'x': 2, 'y': 0, 'z': 1}, {'x': 2, 'y': 1, 'z': 0},
+    ...    {'x': 2, 'y': 2, 'z': 0}, {'x': 2, 'y': 2, 'z': 1}, {'x': 1, 'y': 1, 'z': 2},
+    ...    {'x': 2, 'y': 1, 'z': 1}, {'x': 3, 'y': 0, 'z': 0}, {'x': 3, 'y': 1, 'z': 0},
+    ...    {'x': 3, 'y': 0, 'z': 1}, {'x': 3, 'y': 1, 'z': 1}, {'x': 0, 'y': 3, 'z': 0},
+    ...    {'x': 1, 'y': 3, 'z': 0}, {'x': 0, 'y': 0, 'z': 3}, {'x': 1, 'y': 0, 'z': 3},
+    ...   {'x': 2, 'y': 0, 'z': 3}, {'x': 3, 'y': 0, 'z': 3}, {'x': 4, 'y': 0, 'z': 3}]
     >>> prices = {"x": 1, "y": 2, "z": 1}
     >>> excess_demand_vector = {"x":0,"y":2,"z":-2}
     >>> initial_budgets = {"ami":5,"tami":4,"tzumi":3}
     >>> allocation = {"ami":('x','y'),"tami":('x','y'),"tzumi":('y','z')}
     >>> find_individual_price_adjustment_neighbors(instance,neighbors, history, prices, excess_demand_vector, initial_budgets, allocation)
-    {'x': 1, 'y': 3, 'z': 1}
+    [{'x': 1, 'y': 3, 'z': 1}]
+
+
+     Example run 1 iteration 2
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":2, "y":1, "z":3})
+    >>> neighbors = []
+    >>> history = [
+    ...    {'x': 1, 'y': 2, 'z': 1}, {'x': 0, 'y': 0, 'z': 0}, {'x': 1, 'y': 0, 'z': 0},
+    ...    {'x': 0, 'y': 1, 'z': 0}, {'x': 0, 'y': 0, 'z': 1}, {'x': 1, 'y': 1, 'z': 0},
+    ...    {'x': 1, 'y': 0, 'z': 1}, {'x': 0, 'y': 1, 'z': 1}, {'x': 1, 'y': 1, 'z': 1},
+    ...    {'x': 0, 'y': 1, 'z': 2}, {'x': 0, 'y': 2, 'z': 1}, {'x': 1, 'y': 0, 'z': 2},
+    ...    {'x': 1, 'y': 2, 'z': 0}, {'x': 2, 'y': 0, 'z': 1}, {'x': 2, 'y': 1, 'z': 0},
+    ...    {'x': 2, 'y': 2, 'z': 0}, {'x': 2, 'y': 2, 'z': 1}, {'x': 1, 'y': 1, 'z': 2},
+    ...    {'x': 2, 'y': 1, 'z': 1}, {'x': 3, 'y': 0, 'z': 0}, {'x': 3, 'y': 1, 'z': 0},
+    ...    {'x': 3, 'y': 0, 'z': 1}, {'x': 3, 'y': 1, 'z': 1}, {'x': 0, 'y': 3, 'z': 0},
+    ...    {'x': 1, 'y': 3, 'z': 0}, {'x': 0, 'y': 0, 'z': 3}, {'x': 1, 'y': 0, 'z': 3},
+    ...    {'x': 2, 'y': 0, 'z': 3}, {'x': 3, 'y': 0, 'z': 3}, {'x': 4, 'y': 0, 'z': 3},
+    ...    {'x': 1, 'y': 4, 'z': 0}, {'x': 2, 'y': 3, 'z': 1}, {'x': 0, 'y': 5, 'z': 0}]
+    >>> prices = {"x": 1, "y": 4, "z": 0}
+    >>> excess_demand_vector = {"x":1,"y":0,"z":0}
+    >>> initial_budgets = {"ami":5,"tami":4,"tzumi":3}
+    >>> allocation = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
+    >>> find_individual_price_adjustment_neighbors(instance,neighbors, history, prices, excess_demand_vector, initial_budgets, allocation)
+    [{'x': 2, 'y': 4, 'z': 0}, {'x': 3, 'y': 4, 'z': 0}]
+
+
 
     """
-    # TODO: NOT WORKING
+    #TODO-NOT WORKING
 
     for course, demand in excess_demand_vector.items():
         if demand == 0:
             continue
-        for _ in range(35):  # TODO: ask erel if here we need to do this
-            updated_prices = prices.copy()
-            if demand > 0:
-                original_demand = demand
-                while demand != original_demand - 1:
-                    updated_prices[course] += 1
-                    # get the new demand of the course
-                    demand = clipped_excess_demand(instance, prices, allocation)[course]
+        updated_prices = prices.copy()
+        if demand > 0:
+            for _ in range(35):  # TODO: ask erel if here we need to do this
+                updated_prices[course] += 1
+                # get the new demand of the course
+                new_allocation = student_best_bundle(updated_prices, instance, initial_budgets)
+                if differ_in_one_value(new_allocation,
+                                       allocation) and updated_prices not in history and updated_prices not in neighbors:
+                    neighbors.append(updated_prices)
+                    allocation.clear()
+                    allocation.update(new_allocation)
+                continue
 
-            elif demand < 0:
-                updated_prices[course] = 0
 
-            if updated_prices not in history:
+        elif demand < 0:
+            updated_prices[course] = 0
+            if updated_prices not in history and updated_prices not in neighbors:
                 neighbors.append(updated_prices)
 
     return neighbors
@@ -383,18 +443,31 @@ if __name__ == "__main__":
     # import doctest
     #
     # doctest.testmod()
+    #
+    # instance = Instance(
+    #     valuations={"ami": {"x": 3, "y": 4, "z": 2}, "tami": {"x": 4, "y": 3, "z": 2}},
+    #     agent_capacities=2,
+    #     item_capacities={"x": 2, "y": 1, "z": 3})
+    # neighbors = []
+    # history = []
+    # prices = {"x": 1, "y": 2, "z": 0}
+    # excess_demand_vector = {"x": 0, "y": 2, "z": -2}
+    # initial_budgets = {"ami": 5, "tami": 4, "tzumi": 3}
+    # allocation = {"ami": ('x', 'y'), "tami": ('x', 'y')}
+    # # find_individual_price_adjustment_neighbors(instance, neighbors, history, prices, excess_demand_vector,
+    # #                                            initial_budgets, allocation)
+    #
+    # print(clipped_excess_demand(instance,prices,allocation))
 
-    instance = Instance(
-        valuations={"ami": {"x": 3, "y": 4, "z": 2}, "tami": {"x": 4, "y": 3, "z": 2}},
-        agent_capacities=2,
-        item_capacities={"x": 2, "y": 1, "z": 3})
+    instance = Instance(valuations={"ami": {"x": 3, "y": 4, "z": 2}, "tami": {"x": 4, "y": 3, "z": 2},
+                                    "tzumi": {"x": 2, "y": 4, "z": 3}},
+                        agent_capacities=2,
+                        item_capacities={"x": 2, "y": 1, "z": 3})
     neighbors = []
     history = []
-    prices = {"x": 1, "y": 2, "z": 0}
+    prices = {"x": 1, "y": 2, "z": 1}
     excess_demand_vector = {"x": 0, "y": 2, "z": -2}
     initial_budgets = {"ami": 5, "tami": 4, "tzumi": 3}
-    allocation = {"ami": ('x', 'y'), "tami": ('x', 'y')}
-    # find_individual_price_adjustment_neighbors(instance, neighbors, history, prices, excess_demand_vector,
-    #                                            initial_budgets, allocation)
-
-    print(clipped_excess_demand(instance,prices,allocation))
+    allocation = {"ami": ('x', 'y'), "tami": ('x', 'y'), "tzumi": ('y', 'z')}
+    find_individual_price_adjustment_neighbors(instance, neighbors, history, prices, excess_demand_vector,
+                                               initial_budgets, allocation)
