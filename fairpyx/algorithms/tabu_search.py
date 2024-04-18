@@ -326,8 +326,8 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
                 new_allocation = student_best_bundle(updated_prices, instance, initial_budgets)
                 if (differ_in_one_value(new_allocation, allocation)
                         and updated_prices not in history and updated_prices not in neighbors):
-                            logger.info(f"Found new allocation for {allocation}")
-                            neighbors.append(updated_prices.copy())
+                    logger.info(f"Found new allocation for {allocation}")
+                    neighbors.append(updated_prices.copy())
 
 
         elif demand < 0:
@@ -353,10 +353,10 @@ def find_all_neighbors(instance: Instance, neighbors: list, history: list, price
 
     find_gradient_neighbors(neighbors, history, prices, delta, excess_demand_vector)
     find_individual_price_adjustment_neighbors(instance, neighbors, history, prices,
-                                               excess_demand_vector, initial_budgets, allocation)  # TODO: implement
+                                               excess_demand_vector, initial_budgets, allocation)
 
 
-def find_min_error_prices(instance: Instance, prices: dict, neighbors: list, initial_budgets: dict):
+def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: dict):
     """
     Return the update prices that minimize the market clearing error.
 
@@ -366,8 +366,40 @@ def find_min_error_prices(instance: Instance, prices: dict, neighbors: list, ini
     :param initial_budgets: students' initial budgets
 
     :return: update prices
+
+    Example run 1 iteration 1
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":2, "y":1, "z":3})
+    >>> neighbors = [{"x":1, "y":4, "z":0}, {"x":1, "y":3, "z":1}]
+    >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
+    >>> find_min_error_prices(instance, neighbors, initial_budgets)
+    {'x': 1, 'y': 4, 'z': 0}
+
+     Example run 1 iteration 2
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":2, "y":1, "z":3})
+    >>> neighbors = [{"x":2, "y":4, "z":0}, {"x":3, "y":4, "z":0}]
+    >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
+    >>> find_min_error_prices(instance, neighbors, initial_budgets)
+    {'x': 2, 'y': 4, 'z': 0}
+
     """
-    pass
+    min_error = float('inf')
+    prices_vector = None
+    for neighbor in neighbors:
+        allocation = student_best_bundle(neighbor, instance, initial_budgets)
+        error = clipped_excess_demand(instance, neighbor, allocation)
+        norma2 = np.linalg.norm(np.array(list(error.values())))
+
+        if norma2 < min_error:
+            min_error = norma2
+            prices_vector = neighbor
+
+    return prices_vector
 
 
 def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
@@ -448,12 +480,14 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
         find_all_equivalent_prices(instance, history, prices)  # TODO - implement
         delta = 1  # TODO- ask erel how to get delta
         find_all_neighbors(instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
-                           allocation)  # TODO - implement
+                           allocation)
 
         # • update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2, and then
-        find_min_error_prices(instance, prices, neighbors, initial_budgets)
+        find_min_error_prices(instance, prices, neighbors, initial_budgets, allocation)  # TODO: implement
 
-    return allocation  # TODO: print p*
+    # print the final price (p* = prices) for each course
+    logger.info(f"\nfinal prices p* = {prices}")
+    return allocation
 
 
 if __name__ == "__main__":
