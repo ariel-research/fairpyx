@@ -214,6 +214,26 @@ def differ_in_one_value(dict1, dict2):
     :param dict1: First dictionary
     :param dict2: Second dictionary
     :return: True if the dictionaries differ in exactly one value, False otherwise
+
+    >>> allocation1 = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
+    >>> allocation2 = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','t')}
+    >>> differ_in_one_value(allocation1, allocation2)
+    True
+
+    >>> allocation1 = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
+    >>> allocation2 = {"ami":('x','y'),"tami":('h','z'),"tzumi":('x','t')}
+    >>> differ_in_one_value(allocation1, allocation2)
+    False
+
+    >>> allocation1 = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
+    >>> allocation2 = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
+    >>> differ_in_one_value(allocation1, allocation2)
+    False
+
+    >>> allocation1 = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
+    >>> allocation2 = {"ami":('y','z'),"tami":('x','z'),"tzumi":('x','z')}
+    >>> differ_in_one_value(allocation1, allocation2)
+    True
     """
     # Count the number of differing values
     diff_count = 0
@@ -294,7 +314,6 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
 
 
     """
-    #TODO-NOT WORKING
 
     for course, demand in excess_demand_vector.items():
         if demand == 0:
@@ -305,12 +324,10 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
                 updated_prices[course] += 1
                 # get the new demand of the course
                 new_allocation = student_best_bundle(updated_prices, instance, initial_budgets)
-                if differ_in_one_value(new_allocation,
-                                       allocation) and updated_prices not in history and updated_prices not in neighbors:
-                    neighbors.append(updated_prices)
-                    allocation.clear()
-                    allocation.update(new_allocation)
-                continue
+                if (differ_in_one_value(new_allocation, allocation)
+                        and updated_prices not in history and updated_prices not in neighbors):
+                            logger.info(f"Found new allocation for {allocation}")
+                            neighbors.append(updated_prices.copy())
 
 
         elif demand < 0:
@@ -440,6 +457,9 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
 
 
 if __name__ == "__main__":
+    # logger.addHandler(logging.StreamHandler())
+    # logger.setLevel(logging.INFO)
+
     # import doctest
     #
     # doctest.testmod()
@@ -464,10 +484,22 @@ if __name__ == "__main__":
                         agent_capacities=2,
                         item_capacities={"x": 2, "y": 1, "z": 3})
     neighbors = []
-    history = []
-    prices = {"x": 1, "y": 2, "z": 1}
-    excess_demand_vector = {"x": 0, "y": 2, "z": -2}
+    history = [
+        {'x': 1, 'y': 2, 'z': 1}, {'x': 0, 'y': 0, 'z': 0}, {'x': 1, 'y': 0, 'z': 0},
+        {'x': 0, 'y': 1, 'z': 0}, {'x': 0, 'y': 0, 'z': 1}, {'x': 1, 'y': 1, 'z': 0},
+        {'x': 1, 'y': 0, 'z': 1}, {'x': 0, 'y': 1, 'z': 1}, {'x': 1, 'y': 1, 'z': 1},
+        {'x': 0, 'y': 1, 'z': 2}, {'x': 0, 'y': 2, 'z': 1}, {'x': 1, 'y': 0, 'z': 2},
+        {'x': 1, 'y': 2, 'z': 0}, {'x': 2, 'y': 0, 'z': 1}, {'x': 2, 'y': 1, 'z': 0},
+        {'x': 2, 'y': 2, 'z': 0}, {'x': 2, 'y': 2, 'z': 1}, {'x': 1, 'y': 1, 'z': 2},
+        {'x': 2, 'y': 1, 'z': 1}, {'x': 3, 'y': 0, 'z': 0}, {'x': 3, 'y': 1, 'z': 0},
+        {'x': 3, 'y': 0, 'z': 1}, {'x': 3, 'y': 1, 'z': 1}, {'x': 0, 'y': 3, 'z': 0},
+        {'x': 1, 'y': 3, 'z': 0}, {'x': 0, 'y': 0, 'z': 3}, {'x': 1, 'y': 0, 'z': 3},
+        {'x': 2, 'y': 0, 'z': 3}, {'x': 3, 'y': 0, 'z': 3}, {'x': 4, 'y': 0, 'z': 3},
+        {'x': 1, 'y': 4, 'z': 0}, {'x': 2, 'y': 3, 'z': 1}, {'x': 0, 'y': 5, 'z': 0}
+    ]
+    prices = {"x": 1, "y": 4, "z": 0}
+    excess_demand_vector = {"x": 1, "y": 0, "z": 0}
     initial_budgets = {"ami": 5, "tami": 4, "tzumi": 3}
-    allocation = {"ami": ('x', 'y'), "tami": ('x', 'y'), "tzumi": ('y', 'z')}
+    allocation = {"ami": ('x', 'y'), "tami": ('x', 'z'), "tzumi": ('x', 'z')}
     find_individual_price_adjustment_neighbors(instance, neighbors, history, prices, excess_demand_vector,
                                                initial_budgets, allocation)
