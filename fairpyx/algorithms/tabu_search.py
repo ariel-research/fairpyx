@@ -207,44 +207,50 @@ def find_gradient_neighbors(neighbors: list, history: list, prices: dict, delta:
     return updated_prices
 
 
-def differ_in_one_value(dict1, dict2):
+def differ_in_one_value(original_allocation:dict, new_allocation:dict, course:str) -> bool:
     """
     Check if two dictionaries differ with each other in exactly one value.
 
-    :param dict1: First dictionary
-    :param dict2: Second dictionary
+    :param original_allocation: First dictionary
+    :param new_allocation: Second dictionary
     :return: True if the dictionaries differ in exactly one value, False otherwise
 
     >>> allocation1 = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
     >>> allocation2 = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','t')}
-    >>> differ_in_one_value(allocation1, allocation2)
+    >>> course ="z"
+    >>> differ_in_one_value(allocation1, allocation2, course)
     True
 
     >>> allocation1 = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
     >>> allocation2 = {"ami":('x','y'),"tami":('h','z'),"tzumi":('x','t')}
-    >>> differ_in_one_value(allocation1, allocation2)
+    >>> course = "x"
+    >>> differ_in_one_value(allocation1, allocation2, course)
     False
 
     >>> allocation1 = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
     >>> allocation2 = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
-    >>> differ_in_one_value(allocation1, allocation2)
+    >>> course = "z"
+    >>> differ_in_one_value(allocation1, allocation2, course)
     False
 
     >>> allocation1 = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
     >>> allocation2 = {"ami":('y','z'),"tami":('x','z'),"tzumi":('x','z')}
-    >>> differ_in_one_value(allocation1, allocation2)
+    >>> course = "x"
+    >>> differ_in_one_value(allocation1, allocation2 , course)
     True
     """
     # Count the number of differing values
     diff_count = 0
-    for key in dict1:
-        if key in dict2 and dict1[key] != dict2[key]:
+    diff_course = None
+    for key in original_allocation:
+        if key in new_allocation and original_allocation[key] != new_allocation[key]:
+            diff_course = key
             diff_count += 1
             # If more than one value differs, return False immediately
             if diff_count > 1:
                 return False
     # Return True if exactly one value differs
-    return diff_count == 1
+    return diff_count == 1 and course in original_allocation[diff_course] and course not in new_allocation[diff_course]
 
 
 def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: list, history: list, prices: dict,
@@ -310,9 +316,6 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
     >>> allocation = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
     >>> find_individual_price_adjustment_neighbors(instance,neighbors, history, prices, excess_demand_vector, initial_budgets, allocation)
     [{'x': 2, 'y': 4, 'z': 0}, {'x': 3, 'y': 4, 'z': 0}]
-
-
-
     """
 
     for course, demand in excess_demand_vector.items():
@@ -324,7 +327,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
                 updated_prices[course] += 1
                 # get the new demand of the course
                 new_allocation = student_best_bundle(updated_prices, instance, initial_budgets)
-                if (differ_in_one_value(new_allocation, allocation)
+                if (differ_in_one_value(new_allocation, allocation , course)
                         and updated_prices not in history and updated_prices not in neighbors):
                     logger.info(f"Found new allocation for {allocation}")
                     neighbors.append(updated_prices.copy())
@@ -483,7 +486,7 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
                            allocation)
 
         # • update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2, and then
-        find_min_error_prices(instance, prices, neighbors, initial_budgets, allocation)  # TODO: implement
+        find_min_error_prices(instance, neighbors, initial_budgets)
 
     # print the final price (p* = prices) for each course
     logger.info(f"\nfinal prices p* = {prices}")
@@ -535,5 +538,10 @@ if __name__ == "__main__":
     excess_demand_vector = {"x": 1, "y": 0, "z": 0}
     initial_budgets = {"ami": 5, "tami": 4, "tzumi": 3}
     allocation = {"ami": ('x', 'y'), "tami": ('x', 'z'), "tzumi": ('x', 'z')}
-    find_individual_price_adjustment_neighbors(instance, neighbors, history, prices, excess_demand_vector,
-                                               initial_budgets, allocation)
+    # find_individual_price_adjustment_neighbors(instance, neighbors, history, prices, excess_demand_vector,
+    #                                            initial_budgets, allocation)
+
+    allocation1 = {"ami": ('x', 'y'), "tami": ('x', 'z'), "tzumi": ('x', 'z')}
+    allocation2 = {"ami": ('x', 'y'), "tami": ('x', 'z'), "tzumi": ('x', 't')}
+    course = "z"
+    differ_in_one_value(allocation1, allocation2, course)
