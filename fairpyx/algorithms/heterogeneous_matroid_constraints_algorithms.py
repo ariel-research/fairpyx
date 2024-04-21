@@ -48,14 +48,13 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
     >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
-    >>> {'Agent1':['m1'],'Agent2':['m2'],'Agent3':['m3'],'Agent4':['m4']} #TODO ask Erel if i should take treat it as this or each allocation categorized for each agent ? like{'Agent1':{'c1':['m1'}...}....}
+    >>> {'Agent1':['m1'],'Agent2':['m2'],'Agent3':['m3'],'Agent4':['m4']}
     """
-    # TODO there is a way to pass for each category a sub-instnace which is personalized for that category in terms of valuations , item capacities , agent capacities and else
-    # TODO which also makes us make use of the 1dimensional agent_capacities once again since each loop we're dealing with a certain category no need fo a complex structure
     per_category_instance_list=per_category_sub_instance_extractor(agent_category_capacities, alloc, item_categories)
     for curr in per_category_instance_list:
         curr_alloc=AllocationBuilder(curr)
         round_robin(alloc=curr_alloc,agent_order=order)
+        #TODO check for the envy graph
         print(curr_alloc.bundles)
         print("*****************************")
     pass
