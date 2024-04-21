@@ -1,4 +1,7 @@
+import fairpyx.algorithms
 from fairpyx import Instance, AllocationBuilder
+from fairpyx.algorithms import *
+from fairpyx import divide
 
 
 def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
@@ -47,9 +50,44 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
     >>> {'Agent1':['m1'],'Agent2':['m2'],'Agent3':['m3'],'Agent4':['m4']} #TODO ask Erel if i should take treat it as this or each allocation categorized for each agent ? like{'Agent1':{'c1':['m1'}...}....}
     """
+    # TODO there is a way to pass for each category a sub-instnace which is personalized for that category in terms of valuations , item capacities , agent capacities and else
+    # TODO which also makes us make use of the 1dimensional agent_capacities once again since each loop we're dealing with a certain category no need fo a complex structure
+    per_category_instance_list=per_category_sub_instance_extractor(agent_category_capacities, alloc, item_categories)
 
     pass
 
+
+def per_category_sub_instance_extractor(agent_category_capacities, alloc, item_categories):
+    per_category_instance_list = []
+    for category in item_categories.keys():
+        sub_instance = Instance(items=[item for item in items if item in item_categories[category]]
+                                , valuations={
+                agent: {item: alloc.instance.agent_item_value(agent, item) for item in alloc.instance.items if
+                        item in item_categories[category]} for agent in alloc.instance.agents}
+                                , agent_capacities={agent: capacity for agent, dic in agent_category_capacities.items()
+                                                    for current_category, capacity in dic.items() if
+                                                    current_category is category}  # 100% right
+                                , item_capacities={item: alloc.instance.item_capacity(item) for item in
+                                                   alloc.instance.items if item in item_categories[category]}
+                                # 100% right
+                                )
+        per_category_instance_list.append(sub_instance)
+        # print(sub_instance)
+        # print("*************************************")
+    return per_category_instance_list
+
+
+if __name__ == '__main__':
+    order = [1, 2, 3, 4]
+    items = ['m1', 'm2', 'm3', 'm4']
+    item_categories = {'c1': ['m1', 'm2', 'm3'], 'c2': ['m4']}
+    agent_category_capacities = {'Agent1': {'c1': 3, 'c2': 2}, 'Agent2': {'c1': 3, 'c2': 2},
+                                 'Agent3': {'c1': 3, 'c2': 2}}  # in the papers its written capacity=size(catergory)
+    valuations = {'Agent1': {'m1': 5, 'm2': 6, 'm3': 5}, 'Agent2': {'m1': 6, 'm2': 5, 'm3': 6},
+                  'Agent3': {'m1': 5, 'm2': 6, 'm3': 5}}
+    instance = Instance(valuations=valuations, items=items)
+    divide(algorithm=per_category_round_robin, instance=Instance(valuations=valuations, items=items),
+           item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order)
 
 def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict, order: list):
     """
