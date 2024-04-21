@@ -4,6 +4,16 @@ from fairpyx.algorithms import *
 from fairpyx import divide
 
 
+def envy(source:str, target:str,alloc:AllocationBuilder):
+
+    print(alloc.bundles)
+    val=alloc.instance.agent_item_value
+    source_bundle_val=sum(list(val(source,current_item) for current_item in alloc.bundles[source]))
+    target_bundle_val=sum(list(val(source,current_item) for current_item in alloc.bundles[target]))
+    #print(f"sum of {source} bundle is : {source_bundle_val} and sum of {target} bundle is : {target_bundle_val}")
+    return target_bundle_val > source_bundle_val
+
+
 def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
                              order: list):
     """
@@ -55,6 +65,15 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
         curr_alloc=AllocationBuilder(curr)
         round_robin(alloc=curr_alloc,agent_order=order)
         #TODO check for the envy graph(also topological sort based on cycle-removal)
+        for agent1,bundle1 in curr_alloc.bundles.items():
+            for agent2,bundle_agent2 in curr_alloc.bundles.items():
+                if agent1 is not agent2:
+                    #TODO check if envies him
+                    # make sure to value with respect to the constraints of feasibility
+                    # since in algo 1 its always feasible because everyone has equal capacity we dont pay much attention to it
+                    if envy(source=agent1,target=agent2,alloc=curr_alloc):
+                        # do the graph thing
+                        pass
         print(curr_alloc.bundles)
         print("*****************************")
     pass
