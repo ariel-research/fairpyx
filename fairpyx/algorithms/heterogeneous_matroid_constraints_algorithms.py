@@ -54,7 +54,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     for curr in per_category_instance_list:
         curr_alloc=AllocationBuilder(curr)
         round_robin(alloc=curr_alloc,agent_order=order)
-        #TODO check for the envy graph
+        #TODO check for the envy graph(also topological sort based on cycle-removal)
         print(curr_alloc.bundles)
         print("*****************************")
     pass
