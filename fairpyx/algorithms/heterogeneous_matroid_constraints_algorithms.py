@@ -74,6 +74,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     for curr in per_category_instance_list:
         curr_alloc = AllocationBuilder(curr)
         round_robin(alloc=curr_alloc, agent_order=order)
+        #visualize_graph(envy_graph)
         #print(f"bundles after RR#{index}{curr_alloc.bundles}")
         index += 1
         for agent, allocations in curr_alloc.bundles.items():
@@ -108,7 +109,7 @@ def update_envy_graph(curr_alloc, valuation_func: callable, envy_graph):
                 # make sure to value with respect to the constraints of feasibility
                 # since in algo 1 its always feasible because everyone has equal capacity we dont pay much attention to it
                 if envy(source=agent1, target=agent2, alloc=curr_alloc, val_func=valuation_func):
-                    print(f"{agent1} envies {agent2}")  # works great .
+                    #print(f"{agent1} envies {agent2}")  # works great .
                     # we need to add edge from the envier to the envyee
                     envy_graph.add_edge(agent1, agent2)
 
