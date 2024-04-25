@@ -42,7 +42,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> agent_category_capacities = {'Agent1': {'c1': 2, 'c2': 2}, 'Agent2': {'c1': 2, 'c2': 2}}
     >>> valuations = {'Agent1':{'m1':2,'m2':8,'m3':7},'Agent2':{'m1':2,'m2':8,'m3':1}}
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order = order)
-    >>>{'Agent1':['m1','m3'],'Agent2':['m2']}
+    >>> {'Agent1':['m1','m3'],'Agent2':['m2']}
 
     >>> # Example 2
     >>> from fairpyx import  divide
@@ -94,7 +94,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
             non_cyclic_alloc = AllocationBuilder(curr_alloc.instance)
             non_cyclic_alloc.bundles = current_bundle
             update_envy_graph(non_cyclic_alloc, valuation_func, envy_graph)
-            #visualize_graph(envy_graph)
+            visualize_graph(envy_graph)
         # topological sort
         order = list(nx.topological_sort(envy_graph))
     #     print("*****************************")
@@ -125,7 +125,7 @@ def per_category_sub_instance_extractor(agent_category_capacities: dict, alloc: 
                                         item_categories: dict):
     per_category_instance_list = []
     for category in item_categories.keys():
-        sub_instance = Instance(items=[item for item in items if item in item_categories[category]]
+        sub_instance = Instance(items=[item for item in alloc.instance.items if item in item_categories[category]]
                                 , valuations={
                 agent: {item: alloc.instance.agent_item_value(agent, item) for item in alloc.instance.items if
                         item in item_categories[category]} for agent in alloc.instance.agents}
@@ -165,6 +165,9 @@ if __name__ == '__main__':
            item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order)
     # expected output ------ > {'Agent1': ['m1', 'm3'], 'Agent2': ['m2']}
 
+# if __name__ == "__main__":
+#     import doctest
+#     doctest.testmod()
 
 def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict, order: list):
     """
