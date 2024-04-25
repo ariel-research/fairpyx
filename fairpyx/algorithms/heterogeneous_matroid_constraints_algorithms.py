@@ -36,23 +36,23 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
 
     >>> # Example 1
     >>> from fairpyx import  divide
-    >>> order=[1,2]
+    >>> order=['Agent1','Agent2']
     >>> items=['m1','m2','m3']
     >>> item_categories = {'c1': ['m1', 'm2'], 'c2': ['m3']}
     >>> agent_category_capacities = {'Agent1': {'c1': 2, 'c2': 2}, 'Agent2': {'c1': 2, 'c2': 2}}
     >>> valuations = {'Agent1':{'m1':2,'m2':8,'m3':7},'Agent2':{'m1':2,'m2':8,'m3':1}}
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order = order)
-    >>> {'Agent1':['m1','m3'],'Agent2':['m2']}
+    {'Agent1':[m1','m3'],'Agent2':['m2']}
 
     >>> # Example 2
     >>> from fairpyx import  divide
-    >>> order=[1,3,2]
+    >>> order=['Agent1','Agent3','Agent2']
     >>> items=['m1','m2','m3']
     >>> item_categories = {'c1': ['m1', 'm2','m3']}
     >>> agent_category_capacities = {'Agent1': {'c1':3}, 'Agent2': {'c1':3},'Agent3': {'c1':3}}
     >>> valuations = {'Agent1':{'m1':5,'m2':6,'m3':5},'Agent2':{'m1':6,'m2':5,'m3':6},'Agent3':{'m1':5,'m2':6,'m3':5}}
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
-    >>> {'Agent1':['m2'],'Agent2':['m1'],'Agent3':['m3']}
+    {'Agent1':['m2'],'Agent2':['m1'],'Agent3':['m3']}
 
 
      >>> # Example 3  (4 agents ,4 items)
@@ -63,7 +63,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
     >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
-    >>> {'Agent1':['m1'],'Agent2':['m2'],'Agent3':['m3'],'Agent4':['m4']}
+     {'Agent1':['m1'],'Agent2':['m2'],'Agent3':['m3'],'Agent4':['m4']}
     """
     per_category_instance_list = per_category_sub_instance_extractor(agent_category_capacities, alloc, item_categories)
     valuation_func = alloc.effective_value
@@ -99,7 +99,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
         order = list(nx.topological_sort(envy_graph))
     #     print("*****************************")
     # print(f"FINAL ALLOCATION AFTER TERMINATION OF THE ALGORITHM IS {current_bundle}")
-    return current_bundle
+    return current_bundle # TODO this function shouldn't return anything but rather modify the allocationbuilder it gets
 
 
 def update_envy_graph(curr_alloc, valuation_func: callable, envy_graph):
@@ -142,27 +142,27 @@ def per_category_sub_instance_extractor(agent_category_capacities: dict, alloc: 
     return per_category_instance_list
 
 
-if __name__ == '__main__':
-    # order = ['Agent1', 'Agent2', 'Agent3', 'Agent4']
-    # items = ['m1', 'm2', 'm3', 'm4']
-    # item_categories = {'c1': ['m1', 'm2', 'm3'], 'c2': ['m4']}
-    # agent_category_capacities = {'Agent1': {'c1': 3, 'c2': 2}, 'Agent2': {'c1': 3, 'c2': 2},
-    #                              'Agent3': {'c1': 3, 'c2': 2},
-    #                              'Agent4': {'c1': 3, 'c2': 2}}  # in the papers its written capacity=size(catergory)
-    # valuations = {'Agent1': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}, 'Agent2': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10},
-    #               'Agent3': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}, 'Agent4': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}}
-    # instance = Instance(valuations=valuations, items=items)
-    # divide(algorithm=per_category_round_robin, instance=Instance(valuations=valuations, items=items),
-    #        item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order)
-    # Example 1
-
+# if __name__ == '__main__':
+#     # order = ['Agent1', 'Agent2', 'Agent3', 'Agent4']
+#     # items = ['m1', 'm2', 'm3', 'm4']
+#     # item_categories = {'c1': ['m1', 'm2', 'm3'], 'c2': ['m4']}
+#     # agent_category_capacities = {'Agent1': {'c1': 3, 'c2': 2}, 'Agent2': {'c1': 3, 'c2': 2},
+#     #                              'Agent3': {'c1': 3, 'c2': 2},
+#     #                              'Agent4': {'c1': 3, 'c2': 2}}  # in the papers its written capacity=size(catergory)
+#     # valuations = {'Agent1': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}, 'Agent2': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10},
+#     #               'Agent3': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}, 'Agent4': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}}
+#     # instance = Instance(valuations=valuations, items=items)
+#     # divide(algorithm=per_category_round_robin, instance=Instance(valuations=valuations, items=items),
+#     #        item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order)
+#     # Example 1
+#
     order = ['Agent1', 'Agent2']
     items = ['m1', 'm2', 'm3']
     item_categories = {'c1': ['m1', 'm2'], 'c2': ['m3']}
     agent_category_capacities = {'Agent1': {'c1': 2, 'c2': 2}, 'Agent2': {'c1': 2, 'c2': 2}}
     valuations = {'Agent1': {'m1': 2, 'm2': 8, 'm3': 7}, 'Agent2': {'m1': 2, 'm2': 8, 'm3': 1}}
-    divide(algorithm=per_category_round_robin, instance=Instance(valuations=valuations, items=items),
-           item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order)
+    print(divide(algorithm=per_category_round_robin, instance=Instance(valuations=valuations, items=items),
+           item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order))
     # expected output ------ > {'Agent1': ['m1', 'm3'], 'Agent2': ['m2']}
 
 # if __name__ == "__main__":
