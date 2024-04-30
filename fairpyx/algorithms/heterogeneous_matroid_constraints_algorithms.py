@@ -62,18 +62,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> result=divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
     >>> assert result in [{'Agent1': ['m2'], 'Agent2': ['m1'], 'Agent3': ['m3']},{'Agent1': ['m1'], 'Agent2': ['m3'], 'Agent3': ['m2']}]
 
-
-     >>> # Example 3  (4 agents ,4 items)
-    >>> from fairpyx import  divide
-    >>> order=['Agent1','Agent2','Agent3','Agent4']
-    >>> items=['m1','m2','m3','m4']
-    >>> item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
-    >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
-    >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
-    >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
-    {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3'], 'Agent4': ['m4']}
-
-    >>> # Example 4= example 3 but trying to get the expected output exactly (modifying valuations)  (4 agents ,4 items)
+    >>> # example 3 but trying to get the expected output exactly (modified valuations different than on papers)  (4 agents ,4 items)
     >>> from fairpyx import  divide
     >>> order=['Agent1','Agent2','Agent3','Agent4']
     >>> items=['m1','m2','m3','m4']
