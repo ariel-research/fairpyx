@@ -19,6 +19,12 @@ def initialize_graph(g: nx.DiGraph, alloc: AllocationBuilder):
     g.add_nodes_from(alloc.instance.agents)
 
 
+def update_alloc_builder(allocbuilder: AllocationBuilder, instance: Instance, bundles: dict[any, set]):
+    allocbuilder.bundles = bundles
+    allocbuilder.instance = instance
+    #TODO modify literally everything so it makes sense , not only the bundle because you care about the output
+
+
 def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
                              order: list):
     """
@@ -42,7 +48,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> agent_category_capacities = {'Agent1': {'c1': 2, 'c2': 2}, 'Agent2': {'c1': 2, 'c2': 2}}
     >>> valuations = {'Agent1':{'m1':2,'m2':8,'m3':7},'Agent2':{'m1':2,'m2':8,'m3':1}}
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order = order)
-    {'Agent1':[m1','m3'],'Agent2':['m2']}
+    {'Agent1': ['m1', 'm3'], 'Agent2': ['m2']}
 
     >>> # Example 2
     >>> from fairpyx import  divide
@@ -51,8 +57,8 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> item_categories = {'c1': ['m1', 'm2','m3']}
     >>> agent_category_capacities = {'Agent1': {'c1':3}, 'Agent2': {'c1':3},'Agent3': {'c1':3}}
     >>> valuations = {'Agent1':{'m1':5,'m2':6,'m3':5},'Agent2':{'m1':6,'m2':5,'m3':6},'Agent3':{'m1':5,'m2':6,'m3':5}}
-    >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
-    {'Agent1':['m2'],'Agent2':['m1'],'Agent3':['m3']}
+    >>> result=divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
+    >>> assert result in [{'Agent1': ['m2'], 'Agent2': ['m1'], 'Agent3': ['m3']},{'Agent1': ['m2'], 'Agent2': ['m3'], 'Agent3': ['m1']}]
 
 
      >>> # Example 3  (4 agents ,4 items)
@@ -62,8 +68,8 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
     >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
     >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
-    >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
-     {'Agent1':['m1'],'Agent2':['m2'],'Agent3':['m3'],'Agent4':['m4']}
+    >>> result=divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
+    >>> assert result in [{'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3'], 'Agent4': ['m4']},{'Agent1': ['m4'], 'Agent2': ['m1'], 'Agent3': ['m2'], 'Agent4': ['m3']}, {'Agent1': ['m3'], 'Agent2': ['m1'], 'Agent3': ['m4'], 'Agent4': ['m2']},{'Agent1': ['m4'], 'Agent2': ['m3'], 'Agent3': ['m2'], 'Agent4': ['m1']},{'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m4'], 'Agent4': ['m3']},{'Agent1': ['m2'], 'Agent2': ['m3'], 'Agent3': ['m4'], 'Agent4': ['m1']},{'Agent1': ['m4'], 'Agent2': ['m2'], 'Agent3': ['m1'], 'Agent4': ['m3']}]
     """
     per_category_instance_list = per_category_sub_instance_extractor(agent_category_capacities, alloc, item_categories)
     valuation_func = alloc.effective_value
@@ -74,11 +80,19 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     for curr in per_category_instance_list:
         curr_alloc = AllocationBuilder(curr)
         round_robin(alloc=curr_alloc, agent_order=order)
+        #TODO update the original alloc argument
+        #update_alloc_builder(alloc,alloc=curr_alloc,bundles=current_bundle)
         #visualize_graph(envy_graph)
         #print(f"bundles after RR#{index}{curr_alloc.bundles}")
         index += 1
+        #print(f"current allocationbuilder bundle is {curr_alloc.bundles}")
         for agent, allocations in curr_alloc.bundles.items():
+            #alloc.bundles.setdefault(agent, set()).update(allocations)
+
             current_bundle.setdefault(agent, set()).update(allocations)
+            #print(alloc.bundles)
+            #print(f"current_bundle is {current_bundle}")
+            #print(f"alloc.bundles is {alloc.bundles}")
         update_envy_graph(curr_alloc, valuation_func, envy_graph)
         if not nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
             envy_cycles = list(nx.simple_cycles(envy_graph))
@@ -93,13 +107,20 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
             initialize_graph(envy_graph, curr_alloc)
             non_cyclic_alloc = AllocationBuilder(curr_alloc.instance)
             non_cyclic_alloc.bundles = current_bundle
+            #print(f"final a-cyclic current bundle{current_bundle}")
             update_envy_graph(non_cyclic_alloc, valuation_func, envy_graph)
             visualize_graph(envy_graph)
         # topological sort
         order = list(nx.topological_sort(envy_graph))
+        #update_alloc_builder(allocbuilder=alloc, instance=curr_alloc.instance, bundles=curr_alloc.bundles)
+        #TODO trying to update the given alloc argument after each iteration and cycle-removal process
+    curr_alloc.bundles=current_bundle
+    update_alloc(alloc_from=curr_alloc,alloc_to=alloc)
     #     print("*****************************")
     # print(f"FINAL ALLOCATION AFTER TERMINATION OF THE ALGORITHM IS {current_bundle}")
-    return current_bundle # TODO this function shouldn't return anything but rather modify the allocationbuilder it gets
+    #update_alloc_builder(alloc, current_bundle)
+    # current_bundle  # TODO this function shouldn't return anything but rather modify the allocationbuilder it gets
+
 
 
 def update_envy_graph(curr_alloc, valuation_func: callable, envy_graph):
@@ -143,31 +164,55 @@ def per_category_sub_instance_extractor(agent_category_capacities: dict, alloc: 
 
 
 # if __name__ == '__main__':
-#     # order = ['Agent1', 'Agent2', 'Agent3', 'Agent4']
-#     # items = ['m1', 'm2', 'm3', 'm4']
-#     # item_categories = {'c1': ['m1', 'm2', 'm3'], 'c2': ['m4']}
-#     # agent_category_capacities = {'Agent1': {'c1': 3, 'c2': 2}, 'Agent2': {'c1': 3, 'c2': 2},
-#     #                              'Agent3': {'c1': 3, 'c2': 2},
-#     #                              'Agent4': {'c1': 3, 'c2': 2}}  # in the papers its written capacity=size(catergory)
-#     # valuations = {'Agent1': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}, 'Agent2': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10},
-#     #               'Agent3': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}, 'Agent4': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}}
-#     # instance = Instance(valuations=valuations, items=items)
-#     # divide(algorithm=per_category_round_robin, instance=Instance(valuations=valuations, items=items),
-#     #        item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order)
-#     # Example 1
-#
-    order = ['Agent1', 'Agent2']
-    items = ['m1', 'm2', 'm3']
-    item_categories = {'c1': ['m1', 'm2'], 'c2': ['m3']}
-    agent_category_capacities = {'Agent1': {'c1': 2, 'c2': 2}, 'Agent2': {'c1': 2, 'c2': 2}}
-    valuations = {'Agent1': {'m1': 2, 'm2': 8, 'm3': 7}, 'Agent2': {'m1': 2, 'm2': 8, 'm3': 1}}
-    print(divide(algorithm=per_category_round_robin, instance=Instance(valuations=valuations, items=items),
-           item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order))
-    # expected output ------ > {'Agent1': ['m1', 'm3'], 'Agent2': ['m2']}
+#     #     # order = ['Agent1', 'Agent2', 'Agent3', 'Agent4']
+#     #     # items = ['m1', 'm2', 'm3', 'm4']
+#     #     # item_categories = {'c1': ['m1', 'm2', 'm3'], 'c2': ['m4']}
+#     #     # agent_category_capacities = {'Agent1': {'c1': 3, 'c2': 2}, 'Agent2': {'c1': 3, 'c2': 2},
+#     #     #                              'Agent3': {'c1': 3, 'c2': 2},
+#     #     #                              'Agent4': {'c1': 3, 'c2': 2}}  # in the papers its written capacity=size(catergory)
+#     #     # valuations = {'Agent1': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}, 'Agent2': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10},
+#     #     #               'Agent3': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}, 'Agent4': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}}
+#     #     # instance = Instance(valuations=valuations, items=items)
+#     #     # divide(algorithm=per_category_round_robin, instance=Instance(valuations=valuations, items=items),
+#     #     #        item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order)
+#     #     # Example 1
+#     #
+#     order = ['Agent1', 'Agent2']
+#     items = ['m1', 'm2', 'm3']
+#     item_categories = {'c1': ['m1', 'm2'], 'c2': ['m3']}
+#     agent_category_capacities = {'Agent1': {'c1': 2, 'c2': 2}, 'Agent2': {'c1': 2, 'c2': 2}}
+#     valuations = {'Agent1': {'m1': 2, 'm2': 8, 'm3': 7}, 'Agent2': {'m1': 2, 'm2': 8, 'm3': 1}}
+#     divide(algorithm=per_category_round_robin, instance=Instance(valuations=valuations, items=items),
+#            item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order)
+#     #print(type(AllocationBuilder(instance=Instance(valuations=valuations, items=items)).bundles['Agent1'])) -> set()
+#     # expected output ------ > {'Agent1': ['m1', 'm3'], 'Agent2': ['m2']}
+def merge_dicts(dict1, dict2):
+    merged_dict = dict1.copy()  # Make a copy of the first dictionary
 
-# if __name__ == "__main__":
-#     import doctest
-#     doctest.testmod()
+    for key, values in dict2.items():
+        if key in merged_dict:
+            merged_dict[key].update(values)  # Update the set if the key exists
+        else:
+            merged_dict[key] = values.copy()  # Add a new key-value pair if it doesn't exist
+
+    return merged_dict
+
+
+def update_alloc(alloc_from: AllocationBuilder, alloc_to: AllocationBuilder):
+    #shallow copies everything but bundles is constantly extended without overriding previous info
+    alloc_to.instance = alloc_from.instance
+    alloc_to.remaining_agent_capacities = alloc_from.remaining_agent_capacities
+    alloc_to.remaining_item_capacities = alloc_from.remaining_item_capacities
+    alloc_to.remaining_agents = alloc_from.remaining_agents
+    alloc_to.remaining_items = alloc_from.remaining_items
+    alloc_to.bundles = merge_dicts(alloc_from.bundles, alloc_to.bundles)
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()
+
 
 def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict, order: list):
     """
