@@ -1,3 +1,5 @@
+from networkx import DiGraph
+
 import fairpyx.algorithms
 from fairpyx import Instance, AllocationBuilder
 from fairpyx.algorithms import *
@@ -6,10 +8,10 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 
-def envy(source: str, target: str, alloc: AllocationBuilder, val_func: callable):
+def envy(source: str, target: str, bundles: dict, val_func: callable):
     val = val_func
-    source_bundle_val = sum(list(val(source, current_item) for current_item in alloc.bundles[source]))
-    target_bundle_val = sum(list(val(source, current_item) for current_item in alloc.bundles[target]))
+    source_bundle_val = sum(list(val(source, current_item) for current_item in bundles[source]))
+    target_bundle_val = sum(list(val(source, current_item) for current_item in bundles[target]))
     return target_bundle_val > source_bundle_val
 
 
@@ -54,11 +56,11 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> from fairpyx import  divide
     >>> order=['Agent1','Agent3','Agent2']
     >>> items=['m1','m2','m3']
-    >>> item_categories = {'c1': ['m1', 'm2','m3']}
-    >>> agent_category_capacities = {'Agent1': {'c1':3}, 'Agent2': {'c1':3},'Agent3': {'c1':3}}
-    >>> valuations = {'Agent1':{'m1':5,'m2':6,'m3':5},'Agent2':{'m1':6,'m2':5,'m3':6},'Agent3':{'m1':5,'m2':6,'m3':5}}
+    >>> item_categories = {'c1': ['m1','m3'], 'c2': ['m2']}
+    >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':3}, 'Agent2': {'c1':3,'c2':3},'Agent3': {'c1':3,'c2':3}}
+    >>> valuations = {'Agent1':{'m1':5,'m2':6,'m3':4},'Agent2':{'m1':6,'m2':5,'m3':6},'Agent3':{'m1':4,'m2':6,'m3':5}}
     >>> result=divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
-    >>> assert result in [{'Agent1': ['m2'], 'Agent2': ['m1'], 'Agent3': ['m3']},{'Agent1': ['m2'], 'Agent2': ['m3'], 'Agent3': ['m1']}]
+    >>> assert result in [{'Agent1': ['m2'], 'Agent2': ['m1'], 'Agent3': ['m3']},{'Agent1': ['m1'], 'Agent2': ['m3'], 'Agent3': ['m2']}]
 
 
      >>> # Example 3  (4 agents ,4 items)
@@ -68,33 +70,37 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
     >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
     >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':1,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
-    >>> result=divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
-    >>> assert result in [{'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3'], 'Agent4': ['m4']},{'Agent1': ['m4'], 'Agent2': ['m1'], 'Agent3': ['m2'], 'Agent4': ['m3']}, {'Agent1': ['m3'], 'Agent2': ['m1'], 'Agent3': ['m4'], 'Agent4': ['m2']},{'Agent1': ['m4'], 'Agent2': ['m3'], 'Agent3': ['m2'], 'Agent4': ['m1']},{'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m4'], 'Agent4': ['m3']},{'Agent1': ['m2'], 'Agent2': ['m3'], 'Agent3': ['m4'], 'Agent4': ['m1']},{'Agent1': ['m4'], 'Agent2': ['m2'], 'Agent3': ['m1'], 'Agent4': ['m3']}]
+    >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
+    {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3'], 'Agent4': ['m4']}
+
+    >>> # Example 4= example 3 but trying to get the expected output exactly (modifying valuations)  (4 agents ,4 items)
+    >>> from fairpyx import  divide
+    >>> order=['Agent1','Agent2','Agent3','Agent4']
+    >>> items=['m1','m2','m3','m4']
+    >>> item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
+    >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
+    >>> valuations = {'Agent1':{'m1':2,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':2,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':2,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
+    >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
+    {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3'], 'Agent4': ['m4']}
     """
     per_category_instance_list = per_category_sub_instance_extractor(agent_category_capacities, alloc, item_categories)
+    per_category_allocation_builder_list = [AllocationBuilder(instance) for instance in per_category_instance_list]
     valuation_func = alloc.effective_value
     envy_graph = nx.DiGraph()
     envy_graph.add_nodes_from(alloc.instance.agents)
     index = 1
     current_bundle = dict()
-    for curr in per_category_instance_list:
-        curr_alloc = AllocationBuilder(curr)
+    for curr_alloc in per_category_allocation_builder_list:
+        #print(f"order before RR category{index} is {order}")
         round_robin(alloc=curr_alloc, agent_order=order)
-        #TODO update the original alloc argument
-        #update_alloc_builder(alloc,alloc=curr_alloc,bundles=current_bundle)
-        #visualize_graph(envy_graph)
-        #print(f"bundles after RR#{index}{curr_alloc.bundles}")
+        #print(f"alloc after RR category{index} is {curr_alloc.bundles}")
         index += 1
-        #print(f"current allocationbuilder bundle is {curr_alloc.bundles}")
         for agent, allocations in curr_alloc.bundles.items():
-            #alloc.bundles.setdefault(agent, set()).update(allocations)
-
             current_bundle.setdefault(agent, set()).update(allocations)
-            #print(alloc.bundles)
-            #print(f"current_bundle is {current_bundle}")
-            #print(f"alloc.bundles is {alloc.bundles}")
-        update_envy_graph(curr_alloc, valuation_func, envy_graph)
+        update_envy_graph(curr_bundles=current_bundle, valuation_func=valuation_func, envy_graph=envy_graph)
         if not nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
+            # print("found cycles")
+            # visualize_graph(envy_graph)
             envy_cycles = list(nx.simple_cycles(envy_graph))
             for cycle in envy_cycles:
                 #do bundle switching along the cycle
@@ -103,33 +109,30 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
                     original = current_bundle[cycle[(i + 1) % len(cycle)]]
                     current_bundle[cycle[(i + 1) % len(cycle)]] = temp_val
                     temp_val = original
+            #after eleminating a cycle we update the graph there migh be no need to touch the other cycle because it might disappear after dealing with 1 !
+                update_envy_graph(curr_bundles=current_bundle, valuation_func=valuation_func, envy_graph=envy_graph)
+                if  nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
+                    # print("no need to elimiate the other cycle !")
+                    # visualize_graph(envy_graph)
+                    break
             #update the graph after cycle removal
-            initialize_graph(envy_graph, curr_alloc)
-            non_cyclic_alloc = AllocationBuilder(curr_alloc.instance)
-            non_cyclic_alloc.bundles = current_bundle
-            #print(f"final a-cyclic current bundle{current_bundle}")
-            update_envy_graph(non_cyclic_alloc, valuation_func, envy_graph)
-            visualize_graph(envy_graph)
+            update_envy_graph(curr_bundles=current_bundle, valuation_func=valuation_func, envy_graph=envy_graph)
+            # visualize_graph(envy_graph)
+            # print(f"current bundle after cycle-check {current_bundle}")
         # topological sort
         order = list(nx.topological_sort(envy_graph))
-        #update_alloc_builder(allocbuilder=alloc, instance=curr_alloc.instance, bundles=curr_alloc.bundles)
-        #TODO trying to update the given alloc argument after each iteration and cycle-removal process
-    curr_alloc.bundles=current_bundle
-    update_alloc(alloc_from=curr_alloc,alloc_to=alloc)
-    #     print("*****************************")
-    # print(f"FINAL ALLOCATION AFTER TERMINATION OF THE ALGORITHM IS {current_bundle}")
-    #update_alloc_builder(alloc, current_bundle)
-    # current_bundle  # TODO this function shouldn't return anything but rather modify the allocationbuilder it gets
+    update_alloc(alloc_from=per_category_allocation_builder_list[len(item_categories.keys()) - 1], alloc_to=alloc,
+                 bundles=current_bundle)
 
 
-
-def update_envy_graph(curr_alloc, valuation_func: callable, envy_graph):
-    for agent1, bundle1 in curr_alloc.bundles.items():
-        for agent2, bundle_agent2 in curr_alloc.bundles.items():
+def update_envy_graph(curr_bundles:dict, valuation_func: callable, envy_graph:DiGraph):
+    envy_graph.clear_edges()
+    for agent1, bundle1 in curr_bundles.items():
+        for agent2, bundle_agent2 in curr_bundles.items():
             if agent1 is not agent2:  # make sure w're not comparing same agent to himself
                 # make sure to value with respect to the constraints of feasibility
                 # since in algo 1 its always feasible because everyone has equal capacity we dont pay much attention to it
-                if envy(source=agent1, target=agent2, alloc=curr_alloc, val_func=valuation_func):
+                if envy(source=agent1, target=agent2, bundles=curr_bundles, val_func=valuation_func):
                     #print(f"{agent1} envies {agent2}")  # works great .
                     # we need to add edge from the envier to the envyee
                     envy_graph.add_edge(agent1, agent2)
@@ -198,14 +201,15 @@ def merge_dicts(dict1, dict2):
     return merged_dict
 
 
-def update_alloc(alloc_from: AllocationBuilder, alloc_to: AllocationBuilder):
+def update_alloc(alloc_from: AllocationBuilder, alloc_to: AllocationBuilder, bundles: dict = None):
     #shallow copies everything but bundles is constantly extended without overriding previous info
     alloc_to.instance = alloc_from.instance
     alloc_to.remaining_agent_capacities = alloc_from.remaining_agent_capacities
     alloc_to.remaining_item_capacities = alloc_from.remaining_item_capacities
     alloc_to.remaining_agents = alloc_from.remaining_agents
     alloc_to.remaining_items = alloc_from.remaining_items
-    alloc_to.bundles = merge_dicts(alloc_from.bundles, alloc_to.bundles)
+    alloc_to.bundles = merge_dicts(alloc_from.bundles, alloc_to.bundles) if bundles is None else merge_dicts(bundles,
+                                                                                                             alloc_to.bundles)
 
 
 if __name__ == "__main__":
