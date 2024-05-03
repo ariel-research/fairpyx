@@ -6,6 +6,7 @@ Since: 2024-01
 """
 from enum import Enum
 import logging
+import numpy as np
 
 from fairpyx import Instance, AllocationBuilder
 from itertools import combinations
@@ -235,7 +236,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
                                                                                                      epsilon, prices,
                                                                                                      alloc.instance, t)
         # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
-        if clearing_error == 0:
+        if np.allclose(clearing_error, 0):
             break
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
         for key in prices:
