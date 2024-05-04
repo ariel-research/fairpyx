@@ -28,7 +28,7 @@ def update_alloc_builder(allocbuilder: AllocationBuilder, instance: Instance, bu
 
 
 def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
-                             order: list):
+                             initial_agent_order: list):
     """
     this is the Algorithm 1 from the paper
     per category round-robin is an allocation algorithm which guarantees EF1 (envy-freeness up to 1 good) allocation
@@ -40,7 +40,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     :param item_categories: a dictionary of the categories  in which each category is paired with a list of items.
     :param agent_category_capacities:  a dictionary of dictionaru in which in the first dimension we have agents then
     paired with a dictionary of category-capacity.
-    :param order: a list representing the order we start with in the algorithm
+    :param initial_agent_order: a list representing the order we start with in the algorithm
 
     >>> # Example 1
     >>> from fairpyx import  divide
@@ -49,7 +49,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> item_categories = {'c1': ['m1', 'm2'], 'c2': ['m3']}
     >>> agent_category_capacities = {'Agent1': {'c1': 2, 'c2': 2}, 'Agent2': {'c1': 2, 'c2': 2}}
     >>> valuations = {'Agent1':{'m1':2,'m2':8,'m3':7},'Agent2':{'m1':2,'m2':8,'m3':1}}
-    >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order = order)
+    >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order = initial_agent_order)
     {'Agent1': ['m1', 'm3'], 'Agent2': ['m2']}
 
     >>> # Example 2
@@ -59,7 +59,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> item_categories = {'c1': ['m1','m3'], 'c2': ['m2']}
     >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':3}, 'Agent2': {'c1':3,'c2':3},'Agent3': {'c1':3,'c2':3}}
     >>> valuations = {'Agent1':{'m1':5,'m2':6,'m3':4},'Agent2':{'m1':6,'m2':5,'m3':6},'Agent3':{'m1':4,'m2':6,'m3':5}}
-    >>> result=divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
+    >>> result=divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=initial_agent_order)
     >>> assert result in [{'Agent1': ['m2'], 'Agent2': ['m1'], 'Agent3': ['m3']},{'Agent1': ['m1'], 'Agent2': ['m3'], 'Agent3': ['m2']}]
 
     >>> # example 3 but trying to get the expected output exactly (modified valuations different than on papers)  (4 agents ,4 items)
@@ -69,9 +69,19 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
     >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
     >>> valuations = {'Agent1':{'m1':2,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':2,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':2,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
-    >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=order)
+    >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=initial_agent_order)
     {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3'], 'Agent4': ['m4']}
     """
+    #TODO Erel suggested that if we stick to working with only 1 AllocationBuilder its recommended
+    # thinking of a way to make this
+    # regarding remaining agents , item_capacities , conflicts , they are all the same not a big change
+    # change is in remaining agent capacities in which im still confused since we'll need to have k different capacities for each agent
+    # so im thinking of keeping the remianing agent capacities values as sum(capacity for capacity in agent_category_capacities[agent] for agent in agent_category_capacities.keys())
+    # FROM DIVIDE IMPL ->
+    # instance = Instance(valuations=valuations, agent_capacities=agent_capacities, item_capacities=item_capacities)
+    # alloc = AllocationBuilder(instance)
+    # agent_capacities are playing a good role ... im sticking to the sum of all capacities idea and relying on the agent_category_capacities kwarg passed to determine
+    # a modification for RR is happening there is no other way.
     per_category_instance_list = per_category_sub_instance_extractor(agent_category_capacities, alloc, item_categories)
     per_category_allocation_builder_list = [AllocationBuilder(instance) for instance in per_category_instance_list]
     valuation_func = alloc.effective_value
@@ -81,7 +91,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     current_bundle = dict()
     for curr_alloc in per_category_allocation_builder_list:
         #print(f"order before RR category{index} is {order}")
-        round_robin(alloc=curr_alloc, agent_order=order)
+        round_robin(alloc=curr_alloc, agent_order=initial_agent_order)
         #print(f"alloc after RR category{index} is {curr_alloc.bundles}")
         index += 1
         for agent, allocations in curr_alloc.bundles.items():
@@ -90,6 +100,9 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
         if not nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
             # print("found cycles")
             # visualize_graph(envy_graph)
+            #TODO find only 1 cycle ,  needs seperate function
+            # TODO make sure to work with only 1 allocationbuilder , add argument list of intersection with remaining items
+
             envy_cycles = list(nx.simple_cycles(envy_graph))
             for cycle in envy_cycles:
                 #do bundle switching along the cycle
@@ -109,7 +122,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
             # visualize_graph(envy_graph)
             # print(f"current bundle after cycle-check {current_bundle}")
         # topological sort
-        order = list(nx.topological_sort(envy_graph))
+        initial_agent_order = list(nx.topological_sort(envy_graph))
     update_alloc(alloc_from=per_category_allocation_builder_list[len(item_categories.keys()) - 1], alloc_to=alloc,
                  bundles=current_bundle)
 
