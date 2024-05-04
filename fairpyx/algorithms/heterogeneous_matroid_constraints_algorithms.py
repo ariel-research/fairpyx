@@ -1,3 +1,5 @@
+from itertools import cycle
+
 from networkx import DiGraph
 
 import fairpyx.algorithms
@@ -6,7 +8,8 @@ from fairpyx.algorithms import *
 from fairpyx import divide
 import networkx as nx
 import matplotlib.pyplot as plt
-
+import logging
+logger = logging.getLogger(__name__) #TODO understand what the flip is this
 
 def envy(source: str, target: str, bundles: dict, val_func: callable):
     val = val_func
@@ -49,7 +52,8 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> item_categories = {'c1': ['m1', 'm2'], 'c2': ['m3']}
     >>> agent_category_capacities = {'Agent1': {'c1': 2, 'c2': 2}, 'Agent2': {'c1': 2, 'c2': 2}}
     >>> valuations = {'Agent1':{'m1':2,'m2':8,'m3':7},'Agent2':{'m1':2,'m2':8,'m3':1}}
-    >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order = initial_agent_order)
+    >>> sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
+    >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order = initial_agent_order)
     {'Agent1': ['m1', 'm3'], 'Agent2': ['m2']}
 
     >>> # Example 2
@@ -82,49 +86,59 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     # alloc = AllocationBuilder(instance)
     # agent_capacities are playing a good role ... im sticking to the sum of all capacities idea and relying on the agent_category_capacities kwarg passed to determine
     # a modification for RR is happening there is no other way.
-    per_category_instance_list = per_category_sub_instance_extractor(agent_category_capacities, alloc, item_categories)
-    per_category_allocation_builder_list = [AllocationBuilder(instance) for instance in per_category_instance_list]
-    valuation_func = alloc.effective_value
-    envy_graph = nx.DiGraph()
-    envy_graph.add_nodes_from(alloc.instance.agents)
-    index = 1
-    current_bundle = dict()
-    for curr_alloc in per_category_allocation_builder_list:
-        #print(f"order before RR category{index} is {order}")
-        round_robin(alloc=curr_alloc, agent_order=initial_agent_order)
-        #print(f"alloc after RR category{index} is {curr_alloc.bundles}")
-        index += 1
-        for agent, allocations in curr_alloc.bundles.items():
-            current_bundle.setdefault(agent, set()).update(allocations)
-        update_envy_graph(curr_bundles=current_bundle, valuation_func=valuation_func, envy_graph=envy_graph)
-        if not nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
-            # print("found cycles")
-            # visualize_graph(envy_graph)
-            #TODO find only 1 cycle ,  needs seperate function
-            # TODO make sure to work with only 1 allocationbuilder , add argument list of intersection with remaining items
 
-            envy_cycles = list(nx.simple_cycles(envy_graph))
-            for cycle in envy_cycles:
-                #do bundle switching along the cycle
-                temp_val = current_bundle[cycle[0]]
-                for i in range(len(cycle)):
-                    original = current_bundle[cycle[(i + 1) % len(cycle)]]
-                    current_bundle[cycle[(i + 1) % len(cycle)]] = temp_val
-                    temp_val = original
-            #after eleminating a cycle we update the graph there migh be no need to touch the other cycle because it might disappear after dealing with 1 !
-                update_envy_graph(curr_bundles=current_bundle, valuation_func=valuation_func, envy_graph=envy_graph)
-                if  nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
-                    # print("no need to elimiate the other cycle !")
-                    # visualize_graph(envy_graph)
-                    break
-            #update the graph after cycle removal
-            update_envy_graph(curr_bundles=current_bundle, valuation_func=valuation_func, envy_graph=envy_graph)
-            # visualize_graph(envy_graph)
-            # print(f"current bundle after cycle-check {current_bundle}")
-        # topological sort
-        initial_agent_order = list(nx.topological_sort(envy_graph))
-    update_alloc(alloc_from=per_category_allocation_builder_list[len(item_categories.keys()) - 1], alloc_to=alloc,
-                 bundles=current_bundle)
+
+
+
+
+
+
+
+
+    # TODO this is old impl
+    # per_category_instance_list = per_category_sub_instance_extractor(agent_category_capacities, alloc, item_categories)
+    # per_category_allocation_builder_list = [AllocationBuilder(instance) for instance in per_category_instance_list]
+    # valuation_func = alloc.effective_value
+    # envy_graph = nx.DiGraph()
+    # envy_graph.add_nodes_from(alloc.instance.agents)
+    # index = 1
+    # current_bundle = dict()
+    # for curr_alloc in per_category_allocation_builder_list:
+    #     #print(f"order before RR category{index} is {order}")
+    #     round_robin(alloc=curr_alloc, agent_order=initial_agent_order)
+    #     #print(f"alloc after RR category{index} is {curr_alloc.bundles}")
+    #     index += 1
+    #     for agent, allocations in curr_alloc.bundles.items():
+    #         current_bundle.setdefault(agent, set()).update(allocations)
+    #     update_envy_graph(curr_bundles=current_bundle, valuation_func=valuation_func, envy_graph=envy_graph)
+    #     if not nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
+    #         # print("found cycles")
+    #         # visualize_graph(envy_graph)
+    #         #TODO find only 1 cycle ,  needs seperate function
+    #         # TODO make sure to work with only 1 allocationbuilder , add argument list of intersection with remaining items
+    #
+    #         envy_cycles = list(nx.simple_cycles(envy_graph))
+    #         for cycle in envy_cycles:
+    #             #do bundle switching along the cycle
+    #             temp_val = current_bundle[cycle[0]]
+    #             for i in range(len(cycle)):
+    #                 original = current_bundle[cycle[(i + 1) % len(cycle)]]
+    #                 current_bundle[cycle[(i + 1) % len(cycle)]] = temp_val
+    #                 temp_val = original
+    #         #after eleminating a cycle we update the graph there migh be no need to touch the other cycle because it might disappear after dealing with 1 !
+    #             update_envy_graph(curr_bundles=current_bundle, valuation_func=valuation_func, envy_graph=envy_graph)
+    #             if  nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
+    #                 # print("no need to elimiate the other cycle !")
+    #                 # visualize_graph(envy_graph)
+    #                 break
+    #         #update the graph after cycle removal
+    #         update_envy_graph(curr_bundles=current_bundle, valuation_func=valuation_func, envy_graph=envy_graph)
+    #         # visualize_graph(envy_graph)
+    #         # print(f"current bundle after cycle-check {current_bundle}")
+    #     # topological sort
+    #     initial_agent_order = list(nx.topological_sort(envy_graph))
+    # update_alloc(alloc_from=per_category_allocation_builder_list[len(item_categories.keys()) - 1], alloc_to=alloc,
+    #              bundles=current_bundle)
 
 
 def update_envy_graph(curr_bundles:dict, valuation_func: callable, envy_graph:DiGraph):
@@ -168,29 +182,84 @@ def per_category_sub_instance_extractor(agent_category_capacities: dict, alloc: 
     return per_category_instance_list
 
 
-# if __name__ == '__main__':
-#     #     # order = ['Agent1', 'Agent2', 'Agent3', 'Agent4']
-#     #     # items = ['m1', 'm2', 'm3', 'm4']
-#     #     # item_categories = {'c1': ['m1', 'm2', 'm3'], 'c2': ['m4']}
-#     #     # agent_category_capacities = {'Agent1': {'c1': 3, 'c2': 2}, 'Agent2': {'c1': 3, 'c2': 2},
-#     #     #                              'Agent3': {'c1': 3, 'c2': 2},
-#     #     #                              'Agent4': {'c1': 3, 'c2': 2}}  # in the papers its written capacity=size(catergory)
-#     #     # valuations = {'Agent1': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}, 'Agent2': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10},
-#     #     #               'Agent3': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}, 'Agent4': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}}
-#     #     # instance = Instance(valuations=valuations, items=items)
-#     #     # divide(algorithm=per_category_round_robin, instance=Instance(valuations=valuations, items=items),
-#     #     #        item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order)
-#     #     # Example 1
-#     #
-#     order = ['Agent1', 'Agent2']
-#     items = ['m1', 'm2', 'm3']
-#     item_categories = {'c1': ['m1', 'm2'], 'c2': ['m3']}
-#     agent_category_capacities = {'Agent1': {'c1': 2, 'c2': 2}, 'Agent2': {'c1': 2, 'c2': 2}}
-#     valuations = {'Agent1': {'m1': 2, 'm2': 8, 'm3': 7}, 'Agent2': {'m1': 2, 'm2': 8, 'm3': 1}}
-#     divide(algorithm=per_category_round_robin, instance=Instance(valuations=valuations, items=items),
-#            item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order)
-#     #print(type(AllocationBuilder(instance=Instance(valuations=valuations, items=items)).bundles['Agent1'])) -> set()
-#     # expected output ------ > {'Agent1': ['m1', 'm3'], 'Agent2': ['m2']}
+if __name__ == '__main__':
+    #     # order = ['Agent1', 'Agent2', 'Agent3', 'Agent4']
+    #     # items = ['m1', 'm2', 'm3', 'm4']
+    #     # item_categories = {'c1': ['m1', 'm2', 'm3'], 'c2': ['m4']}
+    #     # agent_category_capacities = {'Agent1': {'c1': 3, 'c2': 2}, 'Agent2': {'c1': 3, 'c2': 2},
+    #     #                              'Agent3': {'c1': 3, 'c2': 2},
+    #     #                              'Agent4': {'c1': 3, 'c2': 2}}  # in the papers its written capacity=size(catergory)
+    #     # valuations = {'Agent1': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}, 'Agent2': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10},
+    #     #               'Agent3': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}, 'Agent4': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 10}}
+    #     # instance = Instance(valuations=valuations, items=items)
+    #     # divide(algorithm=per_category_round_robin, instance=Instance(valuations=valuations, items=items),
+    #     #        item_categories=item_categories, agent_category_capacities=agent_category_capacities, order=order)
+    #     # Example 1
+    #
+    order = ['Agent1', 'Agent2']
+    items = ['m1', 'm2', 'm3']
+    item_categories = {'c1': ['m1', 'm2'], 'c2': ['m3']}
+    agent_category_capacities = {'Agent1': {'c1': 2, 'c2': 2}, 'Agent2': {'c1': 2, 'c2': 2}}
+    valuations = {'Agent1': {'m1': 2, 'm2': 8, 'm3': 7}, 'Agent2': {'m1': 2, 'm2': 8, 'm3': 1}}
+    sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
+    print(sum_agent_category_capacities)
+    divide(algorithm=per_category_round_robin
+           , instance=Instance(valuations=valuations, items=items,agent_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()})
+           ,item_categories=item_categories, agent_category_capacities=agent_category_capacities, initial_agent_order=order)
+    #print(type(AllocationBuilder(instance=Instance(valuations=valuations, items=items)).bundles['Agent1'])) -> set()
+    # expected output ------ > {'Agent1': ['m1', 'm3'], 'Agent2': ['m2']}
+
+
+def categorization_friendly_picking_sequence(alloc: AllocationBuilder, agent_order: list,item_categories:dict,agent_category_capacities:dict,target_category:str):
+    # TODO we want to make it rely on a given dict of capacities instead the reamining agent capacities which is
+    #  built in and used in isdone() now i still cant understand the wisdom behind my choice of giving the classic
+    #  remaining_agent_capacities the sum of all their capacities (maybe the only use case is statistics after the
+    #  termination but still cant tell if the remaining capacity belongs to category i or category j s.t i!=j )
+
+    # we will stick to the concept of "for each category run RR(category[i]:Any,alloc:AllocationBuilder, <argument>(indicator to force RR only touch items which belong to category[i]))
+    # if we're smart enough we could pass only agent_category_capacities , as they have all the info we need .
+    """
+    Allocate the given items to the given agents using the given picking sequence.
+    :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents.
+    :param agent_order: a list of indices of agents, representing the picking sequence. The agents will pick items in this order.
+
+    >>> from fairpyx.adaptors import divide
+    >>> agent_capacities = {"Alice": 2, "Bob": 3, "Chana": 2, "Dana": 3}      # 10 seats required
+    >>> course_capacities = {"c1": 2, "c2": 3, "c3": 4}                       # 9 seats available
+    >>> valuations = {"Alice": {"c1": 10, "c2": 8, "c3": 6}, "Bob": {"c1": 10, "c2": 8, "c3": 6}, "Chana": {"c1": 6, "c2": 8, "c3": 10}, "Dana": {"c1": 6, "c2": 8, "c3": 10}}
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    >>> divide(picking_sequence, instance=instance, agent_order=["Alice","Bob", "Chana", "Dana","Dana","Chana","Bob", "Alice"])
+    {'Alice': ['c1', 'c3'], 'Bob': ['c1', 'c2', 'c3'], 'Chana': ['c2', 'c3'], 'Dana': ['c2', 'c3']}
+    """
+    remaining_category_agent_capacities={agent:agent_category_capacities[agent][target_category] for agent in agent_category_capacities} # should look {'Agenti':[k:int]}
+    remaining_category_items=[x for x in alloc.remaining_items() if x in item_categories[target_category]]
+    logger.info("\nPicking-sequence with items %s , agents %s, and agent-order %s", alloc.remaining_item_capacities,
+                alloc.remaining_agent_capacities, agent_order)
+    for agent in cycle(agent_order):
+        if  len(remaining_category_agent_capacities)==0 or len(remaining_category_items)==0:                   #replaces-> alloc.isdone():  isdone impl : return len(self.remaining_item_capacities) == 0 or len(self.remaining_agent_capacities) == 0
+            break
+        if not agent in remaining_category_agent_capacities:
+            continue
+        potential_items_for_agent = set(remaining_category_items).difference(alloc.bundles[agent])# we only deal with relevant items which are in target category
+        if len(potential_items_for_agent) == 0: # means you already have 1 of the same item and there is onflic or you simply no reamining items
+            logger.info("Agent %s cannot pick any more items: remaining=%s, bundle=%s", agent,
+                        alloc.remaining_item_capacities, alloc.bundles[agent])
+            alloc.remove_agent_from_loop(agent)
+            continue
+        best_item_for_agent = max(potential_items_for_agent, key=lambda item: alloc.effective_value(agent, item))
+        alloc.give(agent, best_item_for_agent, logger)
+        remaining_category_agent_capacities[agent]-=1
+        if remaining_category_agent_capacities[agent]<=0: del remaining_category_agent_capacities[agent]
+        alloc.remaining_item_capacities[best_item_for_agent] -= 1
+        if alloc.remaining_item_capacities[best_item_for_agent] <= 0: # by defualt this is triggered after first give() since by default each item capacity is =1
+            alloc.remove_item_from_loop(best_item_for_agent)
+            remaining_category_items.remove(best_item_for_agent) # equivelant for removing the item in allocationbuiler
+
+
+
+
+
+
 def merge_dicts(dict1, dict2):
     merged_dict = dict1.copy()  # Make a copy of the first dictionary
 
@@ -214,10 +283,10 @@ def update_alloc(alloc_from: AllocationBuilder, alloc_to: AllocationBuilder, bun
                                                                                                              alloc_to.bundles)
 
 
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
+# if __name__ == "__main__":
+#     import doctest
+#
+#     doctest.testmod()
 
 
 def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict, order: list):
