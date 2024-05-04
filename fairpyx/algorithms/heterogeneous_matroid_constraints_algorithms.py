@@ -17,7 +17,7 @@ def envy(source: str, target: str, bundles: dict, val_func: callable):
     val = val_func
     source_bundle_val = sum(list(val(source, current_item) for current_item in bundles[source]))
     target_bundle_val = sum(list(val(source, current_item) for current_item in bundles[target]))
-    print(source_bundle_val, target_bundle_val) # TODO FIXXXXXXXXXX -inf source bundle val agent gets blocklisted in conflict list
+    #print(source_bundle_val, target_bundle_val)
     return target_bundle_val > source_bundle_val
 
 
@@ -142,13 +142,13 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     # agent_capacities are playing a good role ... im sticking to the sum of all capacities idea and relying on the agent_category_capacities kwarg passed to determine
     # a modification for RR is happening there is no other way.
     envy_graph = nx.DiGraph()
-    valuation_func = alloc.effective_value
+    valuation_func = alloc.instance.agent_item_value
     for category in item_categories.keys():
         categorization_friendly_picking_sequence(alloc, initial_agent_order, item_categories, agent_category_capacities,
                                                  category)  # this is RR without wrapper
         update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph)
-        print(f"{category} bundle is {alloc.bundles}")
-        visualize_graph(envy_graph)
+        #print(f"{category} bundle is {alloc.bundles}")
+        #visualize_graph(envy_graph)
 
     # TODO this is old impl
     # per_category_instance_list = per_category_sub_instance_extractor(agent_category_capacities, alloc, item_categories)
@@ -204,7 +204,7 @@ def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: 
                 # make sure to value with respect to the constraints of feasibility
                 # since in algo 1 its always feasible because everyone has equal capacity we dont pay much attention to it
                 if envy(source=agent1, target=agent2, bundles=curr_bundles, val_func=valuation_func):
-                    print(f"{agent1} envies {agent2}")  # works great .
+                    #print(f"{agent1} envies {agent2}")  # works great .
                     # we need to add edge from the envier to the envyee
                     envy_graph.add_edge(agent1, agent2)
 
