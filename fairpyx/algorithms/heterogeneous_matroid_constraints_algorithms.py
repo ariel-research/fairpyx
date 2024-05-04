@@ -142,13 +142,15 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     # agent_capacities are playing a good role ... im sticking to the sum of all capacities idea and relying on the agent_category_capacities kwarg passed to determine
     # a modification for RR is happening there is no other way.
     envy_graph = nx.DiGraph()
+    current_order= initial_agent_order
     valuation_func = alloc.instance.agent_item_value
     for category in item_categories.keys():
-        categorization_friendly_picking_sequence(alloc, initial_agent_order, item_categories, agent_category_capacities,
+        categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
                                                  category)  # this is RR without wrapper
         update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph)
         #print(f"{category} bundle is {alloc.bundles}")
         visualize_graph(envy_graph)
+        current_order = list(nx.topological_sort(envy_graph))
 
     # TODO this is old impl
     # per_category_instance_list = per_category_sub_instance_extractor(agent_category_capacities, alloc, item_categories)
