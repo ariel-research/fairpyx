@@ -150,6 +150,28 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
         update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph)
         #print(f"{category} bundle is {alloc.bundles}")
         visualize_graph(envy_graph)
+        if not nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
+        # print("found cycles")
+                # visualize_graph(envy_graph)
+                #TODO find only 1 cycle ,  needs seperate function
+                # TODO make sure to work with only 1 allocationbuilder , add argument list of intersection with remaining items
+
+                envy_cycles = list(nx.simple_cycles(envy_graph))
+                for cycle in envy_cycles:
+                    #do bundle switching along the cycle
+                    temp_val = alloc.bundles[cycle[0]]
+                    for i in range(len(cycle)):
+                        original = alloc.bundles[cycle[(i + 1) % len(cycle)]]
+                        alloc.bundles[cycle[(i + 1) % len(cycle)]] = temp_val
+                        temp_val = original
+                #after eleminating a cycle we update the graph there migh be no need to touch the other cycle because it might disappear after dealing with 1 !
+                    update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph)
+                    if  nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
+                        # print("no need to elimiate the other cycle !")
+                        # visualize_graph(envy_graph)
+                        break
+                #update the graph after cycle removal
+                update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph)
         current_order = list(nx.topological_sort(envy_graph))
 
     # TODO this is old impl
@@ -259,12 +281,13 @@ if __name__ == '__main__':
     agent_category_capacities = {'Agent1': {'c1': 2, 'c2': 2}, 'Agent2': {'c1': 2, 'c2': 2}}
     valuations = {'Agent1': {'m1': 2, 'm2': 8, 'm3': 7}, 'Agent2': {'m1': 2, 'm2': 8, 'm3': 1}}
     sum_agent_category_capacities = {agent: sum(cap.values()) for agent, cap in agent_category_capacities.items()}
-    divide(algorithm=per_category_round_robin
+    print(divide(algorithm=per_category_round_robin
            , instance=Instance(valuations=valuations, items=items,
                                agent_capacities={agent: sum(cap.values()) for agent, cap in
                                                  agent_category_capacities.items()})
            , item_categories=item_categories, agent_category_capacities=agent_category_capacities,
-           initial_agent_order=order)
+           initial_agent_order=order))
+
     #print(type(AllocationBuilder(instance=Instance(valuations=valuations, items=items)).bundles['Agent1'])) -> set()
     # expected output ------ > {'Agent1': ['m1', 'm3'], 'Agent2': ['m2']}
 
