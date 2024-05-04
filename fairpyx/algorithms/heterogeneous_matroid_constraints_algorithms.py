@@ -148,7 +148,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
                                                  category)  # this is RR without wrapper
         update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph)
         #print(f"{category} bundle is {alloc.bundles}")
-        #visualize_graph(envy_graph)
+        visualize_graph(envy_graph)
 
     # TODO this is old impl
     # per_category_instance_list = per_category_sub_instance_extractor(agent_category_capacities, alloc, item_categories)
