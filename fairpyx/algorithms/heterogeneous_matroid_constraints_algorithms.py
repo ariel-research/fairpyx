@@ -30,15 +30,11 @@ def initialize_graph(g: nx.DiGraph, alloc: AllocationBuilder):
 def update_alloc_builder(allocbuilder: AllocationBuilder, instance: Instance, bundles: dict[any, set]):
     allocbuilder.bundles = bundles
     allocbuilder.instance = instance
-    #TODO modify literally everything so it makes sense , not only the bundle because you care about the output
+
 
 
 def categorization_friendly_picking_sequence(alloc: AllocationBuilder, agent_order: list, item_categories: dict,
                                              agent_category_capacities: dict, target_category: str):
-    # TODO we want to make it rely on a given dict of capacities instead the reamining agent capacities which is
-    #  built in and used in isdone() now i still cant understand the wisdom behind my choice of giving the classic
-    #  remaining_agent_capacities the sum of all their capacities (maybe the only use case is statistics after the
-    #  termination but still cant tell if the remaining capacity belongs to category i or category j s.t i!=j )
 
     # we will stick to the concept of "for each category run RR(category[i]:Any,alloc:AllocationBuilder, <argument>(indicator to force RR only touch items which belong to category[i]))
     # if we're smart enough we could pass only agent_category_capacities , as they have all the info we need .
@@ -131,16 +127,6 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,order=initial_agent_order)
     {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3'], 'Agent4': ['m4']}
     """
-    #TODO Erel suggested that if we stick to working with only 1 AllocationBuilder its recommended
-    # thinking of a way to make this
-    # regarding remaining agents , item_capacities , conflicts , they are all the same not a big change
-    # change is in remaining agent capacities in which im still confused since we'll need to have k different capacities for each agent
-    # so im thinking of keeping the remianing agent capacities values as sum(capacity for capacity in agent_category_capacities[agent] for agent in agent_category_capacities.keys())
-    # FROM DIVIDE IMPL ->
-    # instance = Instance(valuations=valuations, agent_capacities=agent_capacities, item_capacities=item_capacities)
-    # alloc = AllocationBuilder(instance)
-    # agent_capacities are playing a good role ... im sticking to the sum of all capacities idea and relying on the agent_category_capacities kwarg passed to determine
-    # a modification for RR is happening there is no other way.
     envy_graph = nx.DiGraph()
     current_order= initial_agent_order
     valuation_func = alloc.instance.agent_item_value
