@@ -142,8 +142,8 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
                 #TODO find only 1 cycle ,  needs seperate function
                 # TODO make sure to work with only 1 allocationbuilder , add argument list of intersection with remaining items
 
-                envy_cycles = list(nx.simple_cycles(envy_graph))
-                for cycle in envy_cycles:
+                #envy_cycles = list(nx.simple_cycles(envy_graph)) cancelled because its time consuming.
+                for cycle in nx.simple_cycles(envy_graph):
                     #do bundle switching along the cycle
                     temp_val = alloc.bundles[cycle[0]]
                     for i in range(len(cycle)):
