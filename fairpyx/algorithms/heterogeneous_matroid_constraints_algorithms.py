@@ -190,7 +190,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> agent_category_capacities = {'Agent1': {'c1':0}, 'Agent2': {'c1':1}}
     >>> valuations = {'Agent1':{'m1':0},'Agent2':{'m1':420}}
     >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order = order)
-    {'Agent1':[],'Agent2':['m1']}
+    {'Agent1': [], 'Agent2': ['m1']}
 
     >>> # Example 2 (3 agents , 4 items)
     >>> from fairpyx import  divide
@@ -200,7 +200,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> agent_category_capacities = {'Agent1': {'c1':2}, 'Agent2': {'c1':2},'Agent3': {'c1':2}}
     >>> valuations = {'Agent1':{'m1':10,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':10,'m3':1},'Agent3':{'m1':1,'m2':1,'m3':10}}
     >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
-    {'Agent1':['m1','m4'],'Agent2':['m2'],'Agent3':['m3']}
+    {'Agent1': ['m1', 'm4'], 'Agent2': ['m2'], 'Agent3': ['m3']}
 
 
     >>> # Example 3  (to show that F-EF (feasible envy-free) is sometimes achievable in good scenarios)
@@ -211,7 +211,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> agent_category_capacities = {'Agent1': {'c1':1}, 'Agent2': {'c1':1},'Agent3': {'c1':1}}
     >>> valuations = {'Agent1':{'m1':10,'m2':5},'Agent2':{'m1':5,'m2':10}}
     >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order = order)
-    {'Agent1':['m1'],'Agent2':['m2']}
+    {'Agent1': ['m1'], 'Agent2': ['m2']}
 
     >>> # Example 4  (4 Agents , different capacities ,extra unallocated item at the termination of the algorithm)
     >>> from fairpyx import  divide
@@ -221,7 +221,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> agent_category_capacities = {'Agent1': {'c1':0}, 'Agent2': {'c1':1},'Agent3': {'c1':2},'Agent4': {'c1':3}}
     >>> valuations = {'Agent1':{'m1':1,'m2':2,'m3':3,'m4':4,'m5':5,'m6':6,'m7':0},'Agent2':{'m1':6,'m2':5,'m3':4,'m4':3,'m5':2,'m6':1,'m7':0},'Agent3':{'m1':1,'m2':2,'m3':5,'m4':6,'m5':3,'m6':4,'m7':0},'Agent4':{'m1':5,'m2':4,'m3':1,'m4':2,'m5':3,'m6':6,'m7':0}}
     >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
-    {'Agent1':[],'Agent2':['m1'],'Agent3':['m3','m4'],'Agent4':['m2','m5','m6']}
+    {'Agent1': [], 'Agent2': ['m1'], 'Agent3': ['m3', 'm4'], 'Agent4': ['m2', 'm5', 'm6']}
         """
     #TODO i strongly believe we could use RR from the first algorithm simply run it one time since there is no more than 1 category
     # no need for envy graphs whatsoever
@@ -257,7 +257,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2}}
             >>> valuations = {'Agent1':{'m1':10,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':1}}
             >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
-            {'Agent1':['m1'],'Agent2':['m2','m3']}
+            {'Agent1': ['m1'], 'Agent2': ['m2', 'm3']}
 
             >>> # Example 2 (case of single category so we deal with it as the normal CRR)
             >>> from fairpyx import  divide
@@ -267,7 +267,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':0}, 'Agent2': {'c1':2,'c2':0},'Agent3': {'c1':0,'c2':0}}
             >>> valuations = {'Agent1':{'m1':10,'m2':3,'m3':3},'Agent2':{'m1':3,'m2':1,'m3':1},'Agent3':{'m1':10,'m2':10,'m3':10}}
             >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
-            {'Agent1':['m1'],'Agent2':['m2','m3'],'Agent3':[]}
+            {'Agent1': ['m1'], 'Agent2': ['m2', 'm3'], 'Agent3': []}
 
 
              >>> # Example 3  (4 agents 6 items same valuations same capacities)-> EF in best case scenario
@@ -278,7 +278,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':1}, 'Agent2': {'c1':1,'c2':1},'Agent3': {'c1':1,'c2':1},'Agent4': {'c1':1,'c2':1}}
             >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1,'m4':10,'m5':1,'m6':1},'Agent2':{'m1':10,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1},'Agent3':{'m1':1,'m2':1,'m3':10,'m4':1,'m5':1,'m6':1},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':10,'m6':1}}
             >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
-            {'Agent1':['m4'],'Agent2':['m1','m6'],'Agent3':['m3'],'Agent4':['m2','m5']}
+            {'Agent1': ['m4'], 'Agent2': ['m1', 'm6'], 'Agent3': ['m3'], 'Agent4': ['m2', 'm5']}
 
 
             >>> # Example 4  (3 agents 6 items different valuations different capacities, remainder item at the end)-> F-EF1
@@ -289,7 +289,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':1}, 'Agent2': {'c1':0,'c2':2},'Agent3': {'c1':0,'c2':5}}
             >>> valuations = {'Agent1':{'m1':1,'m2':2,'m3':3,'m4':4,'m5':5,'m6':6},'Agent2':{'m1':6,'m2':5,'m3':4,'m4':3,'m5':2,'m6':1},'Agent3':{'m1':5,'m2':3,'m3':1,'m4':2,'m5':4,'m6':6}}
             >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
-            {'Agent1':['m2','m3','m4'],'Agent2':['m5'],'Agent3':['m6']}
+            {'Agent1': ['m2', 'm3', 'm4'], 'Agent2': ['m5'], 'Agent3': ['m6']}
             >>> # m1 remains unallocated unfortunately :-(
             """
     current_order = initial_order
