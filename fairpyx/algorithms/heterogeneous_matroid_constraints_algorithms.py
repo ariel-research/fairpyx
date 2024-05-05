@@ -198,7 +198,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> items=['m1','m2','m3','m4']
     >>> item_categories = {'c1': ['m1', 'm2','m3','m4']}
     >>> agent_category_capacities = {'Agent1': {'c1':2}, 'Agent2': {'c1':2},'Agent3': {'c1':2}}
-    >>> valuations = {'Agent1':{'m1':10,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':10,'m3':1},'Agent3':{'m1':1,'m2':1,'m3':10}} #TODO change in papers i forced them to take items by order
+    >>> valuations = {'Agent1':{'m1':10,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':10,'m3':1},'Agent3':{'m1':1,'m2':1,'m3':10}}
     >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
     {'Agent1':['m1','m4'],'Agent2':['m2'],'Agent3':['m3']}
 
