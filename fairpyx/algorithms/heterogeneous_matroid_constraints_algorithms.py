@@ -255,7 +255,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> items=['m1','m2','m3']
             >>> item_categories = {'c1': ['m1','m2'],'c2':['m3']}
             >>> agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2}}
-            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':1}}
+            >>> valuations = {'Agent1':{'m1':10,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':1}}
             >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
             {'Agent1':['m1'],'Agent2':['m2','m3']}
 
@@ -265,7 +265,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> items=['m1','m2','m3']
             >>> item_categories = {'c1': ['m1', 'm2','m3'],'c2':[]}
             >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':0}, 'Agent2': {'c1':2,'c2':0},'Agent3': {'c1':0,'c2':0}}
-            >>> valuations = {'Agent1':{'m1':10,'m2':3,'m3':3},'Agent2':{'m1':3,'m2':1,'m3':1},'Agent3':{'m1':10,'m2':10,'m3':10}} #TODO change v(agent1(m1))=10 in papers
+            >>> valuations = {'Agent1':{'m1':10,'m2':3,'m3':3},'Agent2':{'m1':3,'m2':1,'m3':1},'Agent3':{'m1':10,'m2':10,'m3':10}}
             >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
             {'Agent1':['m1'],'Agent2':['m2','m3'],'Agent3':[]}
 
@@ -287,7 +287,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> items=['m1','m2','m3','m4','m5','m6']
             >>> item_categories = {'c1': ['m1', 'm2','m3', 'm4'],'c2': ['m5','m6']}
             >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':1}, 'Agent2': {'c1':0,'c2':2},'Agent3': {'c1':0,'c2':5}}
-            >>> valuations = {'Agent1':{'m1':1,'m2':2,'m3':3,'m4':4,'m5':5,'m6':6},'Agent2':{'m1':6,'m2':5,'m3':4,'m4':3,'m5':2,'m6':1},'Agent3':{'m1':5,'m2':3,'m3':1,'m4':2,'m5':4,'m6':6}} # TODO change values in papers
+            >>> valuations = {'Agent1':{'m1':1,'m2':2,'m3':3,'m4':4,'m5':5,'m6':6},'Agent2':{'m1':6,'m2':5,'m3':4,'m4':3,'m5':2,'m6':1},'Agent3':{'m1':5,'m2':3,'m3':1,'m4':2,'m5':4,'m6':6}}
             >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
             {'Agent1':['m2','m3','m4'],'Agent2':['m5'],'Agent3':['m6']}
             >>> # m1 remains unallocated unfortunately :-(
