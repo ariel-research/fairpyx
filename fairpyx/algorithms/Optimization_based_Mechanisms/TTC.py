@@ -62,7 +62,7 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
             for current_agent in agents_with_no_potential_items:
                 logger.info("Agent %s cannot pick any more items: remaining=%s, bundle=%s", current_agent,
                             alloc.remaining_item_capacities, alloc.bundles[current_agent])
-                alloc.remove_agent(current_agent)
+                alloc.remove_agent_from_loop(current_agent)
                 agents_who_need_an_item_in_current_iteration.remove(current_agent)
 
             # 2. Allocate the remaining seats in each course:
