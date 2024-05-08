@@ -58,7 +58,7 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
                     logger.info("Agent %s cannot pick any more items: remaining=%s, bundle=%s", current_agent,
                                 alloc.remaining_item_capacities, alloc.bundles[current_agent])
                     if current_agent in agent_order and current_agent in alloc.remaining_agent_capacities:  # checking if the agent in dict before removing
-                        alloc.remove_agent(current_agent)
+                        alloc.remove_agent_from_loop(current_agent)
                         agent_order.remove(current_agent)
                     continue
 
