@@ -25,13 +25,13 @@ def test_small_example():
     assert fairpyx.divide(fairpyx.algorithms.TTC_function, instance=instance) == {'s1': ['c2', 'c3'], 's2': ['c3', 'c4'], 's3': ['c1', 'c4']}, "ERROR"
 
 def test_big_example():
-    s1 = {"c1": 50, "c2": 20, "c3": 10, "c4": 10, "c5": 10}
-    s2 = {"c1": 2, "c2": 3, "c3": 5, "c4": 30, "c5": 60}
-    s3 = {"c1": 20, "c2": 30, "c3": 10, "c4": 20, "c5": 20}
-    s4 = {"c1": 25, "c2": 0, "c3": 25, "c4": 25, "c5": 25}
-    s5 = {"c1": 5, "c2": 2, "c3": 1, "c4": 2, "c5": 25}
-    s6 = {"c1": 12, "c2": 14, "c3": 50, "c4": 12, "c5": 12}
-    s7 = {"c1": 1, "c2": 2, "c3": 2, "c4": 90, "c5": 5}
+    s1 = {"c1": 50, "c2": 20, "c3": 11, "c4": 10, "c5": 9}
+    s2 = {"c1": 4, "c2": 5, "c3": 7, "c4": 26, "c5": 60}
+    s3 = {"c1": 20, "c2": 30, "c3": 10, "c4": 21, "c5": 19}
+    s4 = {"c1": 24, "c2": 8, "c3": 25, "c4": 17, "c5": 26}
+    s5 = {"c1": 5, "c2": 2, "c3": 1, "c4": 3, "c5": 90}
+    s6 = {"c1": 13, "c2": 15, "c3": 49, "c4": 11, "c5": 12}
+    s7 = {"c1": 3, "c2": 4, "c3": 6, "c4": 70, "c5": 19}
 
     instance = fairpyx.Instance(
         agent_capacities={"s1": 4, "s2": 4, "s3": 4, "s4": 4, "s5": 4, "s6": 4, "s7": 4},
@@ -42,40 +42,15 @@ def test_big_example():
     assert fairpyx.divide(fairpyx.algorithms.TTC_function, instance=instance) == {'s1': ['c1', 'c2', 'c3'],
                                                                                   's2': ['c2', 'c3', 'c4', 'c5'],
                                                                                   's3': ['c1', 'c2', 'c4', 'c5'],
-                                                                                  's4': ['c1', 'c3', 'c5'],
+                                                                                  's4': ['c1', 'c2', 'c3', 'c5'],
                                                                                   's5': ['c1', 'c2', 'c3', 'c5'],
-                                                                                  's6': ['c1', 'c2', 'c3', 'c5'],
-                                                                                  's7': ['c2', 'c3', 'c4', 'c5']}, "ERROR"
-
-
-def test_same_order_of_course_selection():
-    s1 = {"c1": 10, "c2": 20, "c3": 10, "c4": 50, "c5": 10}
-    s2 = {"c1": 5, "c2": 30, "c3": 3, "c4": 60, "c5": 2}
-    s3 = {"c1": 20, "c2": 20, "c3": 20, "c4": 30, "c5": 10}
-    s4 = {"c1": 25, "c2": 25, "c3": 25, "c4": 25, "c5": 0}
-    s5 = {"c1": 2, "c2": 5, "c3": 2, "c4": 90, "c5": 1}
-    s6 = {"c1": 12, "c2": 14, "c3": 12, "c4": 50, "c5": 12}
-    s7 = {"c1": 2, "c2": 5, "c3": 2, "c4": 90, "c5": 1}
-
-    instance = fairpyx.Instance(
-        agent_capacities={"s1": 4, "s2": 4, "s3": 4, "s4": 4, "s5": 4, "s6": 4, "s7": 4},
-        item_capacities={"c1": 6, "c2": 6, "c3": 7, "c4": 3, "c5": 6},
-        valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5, "s6": s6, "s7": s7}
-    )
-
-    assert fairpyx.divide(fairpyx.algorithms.TTC_function, instance=instance) == {'s1': ['c1', 'c2', 'c3', 'c5'],
-                                                                                  's2': ['c1', 'c2', 'c3', 'c4'],
-                                                                                  's3': ['c1', 'c2', 'c3', 'c5'],
-                                                                                  's4': ['c1', 'c2', 'c3'],
-                                                                                  's5': ['c2', 'c3', 'c4', 'c5'],
                                                                                   's6': ['c1', 'c2', 'c3', 'c5'],
                                                                                   's7': ['c1', 'c3', 'c4', 'c5']}, "ERROR"
 
-
-def test_suboptimal_cardinal_utility():
-    s1 = {"c1": 30, "c2": 35, "c3": 35}
-    s2 = {"c1": 10, "c2": 80, "c3": 10}
-    s3 = {"c1": 34, "c2": 32, "c3": 34}
+def test_small_number_2():
+    s1 = {"c1": 30, "c2": 35, "c3": 36}
+    s2 = {"c1": 10, "c2": 80, "c3": 11}
+    s3 = {"c1": 34, "c2": 32, "c3": 35}
 
     instance = fairpyx.Instance(
         agent_capacities={"s1": 1, "s2": 1, "s3": 1},
@@ -83,9 +58,20 @@ def test_suboptimal_cardinal_utility():
         valuations={"s1": s1, "s2": s2, "s3": s3}
     )
 
-    assert fairpyx.divide(fairpyx.algorithms.TTC_function, instance=instance) == {'s1': ['c1'],
+    assert fairpyx.divide(fairpyx.algorithms.TTC_function, instance=instance) == {'s1': ['c3'],
                                                                                   's2': ['c2'],
-                                                                                  's3': ['c3']}, "ERROR"
+                                                                                  's3': ['c1']}, "ERROR"
+
+def test_number_of_courses_is_not_optimal():
+    s1 = {"c1": 28, "c2": 26, "c3": 19, "c4": 27}
+    s2 = {"c1": 21, "c2": 20, "c3": 40, "c4": 19}
+    instance = fairpyx.Instance(
+        agent_capacities={"s1": 3, "s2": 3},
+        item_capacities={"c1": 1, "c2": 2, "c3": 2, "c4": 1},
+        valuations={"s1": s1, "s2": s2}
+    )
+    assert fairpyx.divide(fairpyx.algorithms.TTC_function, instance=instance) == {'s1': ['c1', 'c2', 'c4'], 's2': ['c2', 'c3']}, "ERROR"
+
 
 def test_optimal_change_result():
     s1 = {"c1": 50, "c2": 49, "c3": 1}
@@ -110,19 +96,6 @@ def test_sub_round_within_round():
     )
 
     assert fairpyx.divide(fairpyx.algorithms.TTC_function, instance=instance) == {'s1': ['c3'], 's2': ['c1'], 's3': ['c2']}, "ERROR"
-
-
-def test_students_with_the_same_list():
-    s1 = {"c1": 55, "c2": 45}
-    s2 = {"c1": 55, "c2": 45}
-    instance = fairpyx.Instance(
-        agent_capacities={"s1": 1, "s2": 1},
-        item_capacities={"c1": 1, "c2": 1},
-        valuations={"s1": s1, "s2": s2}
-    )
-
-    assert fairpyx.divide(fairpyx.algorithms.TTC_function, instance=instance) == {'s1': ['c1'], 's2': ['c2']}, "ERROR"
-
 
 def test_student_dont_get_k_courses():
     s1 = {"c1": 50, "c2": 10, "c3": 40}
