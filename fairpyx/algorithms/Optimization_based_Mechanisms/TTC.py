@@ -42,17 +42,16 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
         agents_who_need_an_item_in_current_iteration = set(alloc.remaining_agents())  # only the agents that still need courses
         while agents_who_need_an_item_in_current_iteration:     # round i
             # 1. Create the dict map_agent_to_best_item
-            agents_with_no_potential_items = set()
-            for current_agent in agents_who_need_an_item_in_current_iteration:                                                                             # check the course with the max bids for each agent in the set (who didnt get a course in this round)
-                # potential_items_for_agent = set(alloc.remaining_items()).difference(alloc.bundles[current_agent])       # set of all the courses that have places sub the courses the agent got (under the assumption that if agent doesnt want a course the course got 0 bids automaticlly)
-                potential_items_for_agent = alloc.remaining_items_for_agent(current_agent)       # set of all the courses that have places sub the courses the agent got (under the assumption that if agent doesnt want a course the course got 0 bids automaticlly)
+            agents_with_no_potential_items = set()  # agents that don't need courses to be removed later
+            for current_agent in agents_who_need_an_item_in_current_iteration:    # check the course with the max bids for each agent in the set (who didnt get a course in this round)
+                potential_items_for_agent = alloc.remaining_items_for_agent(current_agent)       # set of all the courses that have places sub the courses the agent got
                 if len(potential_items_for_agent) == 0:
                     agents_with_no_potential_items.add(current_agent)
                 else:
                     map_agent_to_best_item[current_agent] = max(potential_items_for_agent,
                                                           key=lambda item: alloc.effective_value(current_agent, item))  # for each agent save the course with the max bids from the potential courses only
 
-            for current_agent in agents_with_no_potential_items:
+            for current_agent in agents_with_no_potential_items:  # remove agents that don't need courses
                 logger.info("Agent %s cannot pick any more items: remaining=%s, bundle=%s", current_agent,
                             alloc.remaining_item_capacities, alloc.bundles[current_agent])
                 alloc.remove_agent_from_loop(current_agent)
@@ -64,37 +63,12 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
                     [student for student in map_agent_to_best_item if map_agent_to_best_item[student] == course],
                     key=lambda student: alloc.effective_value(student,course),
                     reverse=True)  # sort the keys by their values (descending order)
-                remaining_capacity = alloc.remaining_item_capacities[course]
-                sorted_students_who_can_get_course = sorted_students_pointing_to_course[:remaining_capacity]
+                remaining_capacity = alloc.remaining_item_capacities[course]  # the amount of seats left in the current course
+                sorted_students_who_can_get_course = sorted_students_pointing_to_course[:remaining_capacity]  # list of the student that can get the course
                 for student in sorted_students_who_can_get_course:
                     alloc.give(student, course, logger)
-                    agents_who_need_an_item_in_current_iteration.remove(student)                                                                 # removing the agent from the set (dont worry he will come back in the next round)
+                    agents_who_need_an_item_in_current_iteration.remove(student)    # removing the agent from the set (dont worry he will come back in the next round)
                     map_agent_to_best_item.pop(student, None)   # Delete student if exists in the dict
-
-
-
-
-            # max_val = 0
-            # student_with_max_bids = None
-            # for agent,best_item in map_agent_to_best_item.items():                                                                            # checking the agent with the most bids from agents_with_max_item
-            #     if alloc.effective_value(agent,best_item) > max_val:
-            #         max_val = alloc.effective_value(agent,best_item)
-            #         student_with_max_bids = agent
-           #
-           # # if max_val == 0:                          # if agent bids 0 on item he won't get that item
-           #  #    return
-           #  if student_with_max_bids is not None and student_with_max_bids in alloc.remaining_agent_capacities:         #after we found the agent we want to give him the course, checking if the agent in dict before removing
-           #      if alloc.remaining_agent_capacities[student_with_max_bids] > 0:
-           #          alloc.give(student_with_max_bids, map_agent_to_best_item[student_with_max_bids], logger)              #the agent gets the course
-           #      agents_who_need_an_item_in_current_iteration.remove(student_with_max_bids)                                                                 # removing the agent from the set (dont worry he will come back in the next round)
-           #      if student_with_max_bids in map_agent_to_best_item:                                                       # removing the agent from the max dict
-           #          del map_agent_to_best_item[student_with_max_bids]
-           #  else:
-           #      agents_who_need_an_item_in_current_iteration = ()
-
-        #agents_who_need_an_item_in_current_iteration = list(dict.fromkeys(agent_order))                                                                    # adding all the agents for the next round
-        #agents_who_need_an_item_in_current_iteration = list(dict.fromkeys(alloc.remaining_agents()))
-
 
 if __name__ == "__main__":
     import doctest
