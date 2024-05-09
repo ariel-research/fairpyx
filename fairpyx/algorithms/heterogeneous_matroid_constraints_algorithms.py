@@ -13,10 +13,18 @@ import logging
 logger = logging.getLogger(__name__)  #TODO understand what the flip is this
 
 
-def envy(source: str, target: str, bundles: dict, val_func: callable):
+def envy(source: str, target: str, bundles: dict[str,set or list ], val_func: callable, item_categories: dict,
+         agent_category_capacities: dict):
     val = val_func
     source_bundle_val = sum(list(val(source, current_item) for current_item in bundles[source]))
-    target_bundle_val = sum(list(val(source, current_item) for current_item in bundles[target]))
+    #target_bundle_val = sum(list(val(source, current_item) for current_item in bundles[target])) old non feasible method
+    copy= bundles[target].copy()
+    target_bundle_val=0
+    sorted(copy, key=lambda x: val(source, x),reverse=True) # sort target items  in the perspective of the envier
+    for category in item_categories.keys():
+        candidates=[item for item in copy if item in item_categories[category]] # assumes sorted in reverse (maximum comes first)
+        target_bundle_val+=sum(val(source,x) for x in candidates[:agent_category_capacities[source][category]])
+
     #print(source_bundle_val, target_bundle_val)
     return target_bundle_val > source_bundle_val
 
@@ -55,14 +63,17 @@ def categorization_friendly_picking_sequence(alloc: AllocationBuilder, agent_ord
         if best_item_for_agent not in alloc.remaining_item_capacities:
             remaining_category_items.remove(best_item_for_agent)  # equivelant for removing the item in allocationbuiler
 
-def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph):
+
+def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph, item_categories: dict,
+                      agent_category_capacities: dict):
     envy_graph.clear_edges()
     for agent1, bundle1 in curr_bundles.items():
         for agent2, bundle_agent2 in curr_bundles.items():
             if agent1 is not agent2:  # make sure w're not comparing same agent to himself
                 # make sure to value with respect to the constraints of feasibility
                 # since in algo 1 its always feasible because everyone has equal capacity we dont pay much attention to it
-                if envy(source=agent1, target=agent2, bundles=curr_bundles, val_func=valuation_func):
+                if envy(source=agent1, target=agent2, bundles=curr_bundles, val_func=valuation_func,
+                        item_categories=item_categories, agent_category_capacities=agent_category_capacities):
                     #print(f"{agent1} envies {agent2}")  # works great .
                     # we need to add edge from the envier to the envyee
                     envy_graph.add_edge(agent1, agent2)
@@ -129,7 +140,8 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     for category in item_categories.keys():
         categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
                                                  category)  # this is RR without wrapper
-        update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph)
+        update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
+                          item_categories=item_categories, agent_category_capacities=agent_category_capacities)
         #print(f"{category} bundle is {alloc.bundles}")
         #visualize_graph(envy_graph)
         if not nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
@@ -147,6 +159,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
             #update the graph after cycle removal
             update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph)
         current_order = list(nx.topological_sort(envy_graph))
+
 
 def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
                        initial_order: list):
@@ -337,17 +350,38 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
     valuation_func = alloc.instance.agent_item_value
     for category in item_categories.keys():
         #capped_round_robin(alloc=alloc,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_order=initial_order)# TODO its more appropriate to use this but i cant target specific category since it only deals with 'c1'
-        categorization_friendly_picking_sequence(alloc=alloc, agent_order=current_order, item_categories=item_categories, agent_category_capacities=agent_category_capacities, target_category=category)
+        categorization_friendly_picking_sequence(alloc=alloc, agent_order=current_order,
+                                                 item_categories=item_categories,
+                                                 agent_category_capacities=agent_category_capacities,
+                                                 target_category=category)
         update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph)
         current_order = list(nx.topological_sort(envy_graph))
 
 
-
-
 if __name__ == "__main__":
-    import doctest
+    # import doctest
+    #
+    # doctest.testmod()
+    import networkx as nx
+    import matplotlib.pyplot as plt
 
-    doctest.testmod()
+    # Create an empty bipartite graph
+    G = nx.Graph()
+
+    # Add nodes to the graph. Nodes in set A are labeled 0 to 4, and nodes in set B are labeled 'a' to 'e'.
+    G.add_nodes_from([0, 1, 2, 3, 4], bipartite=0)  # Set A nodes
+    G.add_nodes_from(['a', 'b', 'c', 'd', 'e'], bipartite=1)  # Set B nodes
+
+    # Add edges between nodes in set A and set B
+    edges = [(0, 'a'), (1, 'b'), (2, 'c'), (3, 'd'), (4, 'e')]
+    G.add_edges_from(edges)
+
+    # Draw the bipartite graph
+    pos = nx.bipartite_layout(G, [0, 1, 2, 3, 4])  # Specify the nodes in set A for layout
+    nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=1000, font_size=10, font_weight='bold')
+
+    # Display the graph
+    plt.show()
 
 
 def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):
