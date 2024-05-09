@@ -153,11 +153,13 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
                     alloc.bundles[cycle[(i + 1) % len(cycle)]] = temp_val
                     temp_val = original
                 #after eleminating a cycle we update the graph there migh be no need to touch the other cycle because it might disappear after dealing with 1 !
-                update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph)
+                update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
+                                  item_categories=item_categories, agent_category_capacities=agent_category_capacities)
                 if nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
                     break
             #update the graph after cycle removal
-            update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph)
+            update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
+                              item_categories=item_categories, agent_category_capacities=agent_category_capacities)
         current_order = list(nx.topological_sort(envy_graph))
 
 
@@ -354,34 +356,35 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
                                                  item_categories=item_categories,
                                                  agent_category_capacities=agent_category_capacities,
                                                  target_category=category)
-        update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph)
+        update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
+                          item_categories=item_categories, agent_category_capacities=agent_category_capacities)
         current_order = list(nx.topological_sort(envy_graph))
 
 
 if __name__ == "__main__":
-    # import doctest
+    import doctest
+
+    doctest.testmod()
+    # import networkx as nx
+    # import matplotlib.pyplot as plt
     #
-    # doctest.testmod()
-    import networkx as nx
-    import matplotlib.pyplot as plt
-
-    # Create an empty bipartite graph
-    G = nx.Graph()
-
-    # Add nodes to the graph. Nodes in set A are labeled 0 to 4, and nodes in set B are labeled 'a' to 'e'.
-    G.add_nodes_from([0, 1, 2, 3, 4], bipartite=0)  # Set A nodes
-    G.add_nodes_from(['a', 'b', 'c', 'd', 'e'], bipartite=1)  # Set B nodes
-
-    # Add edges between nodes in set A and set B
-    edges = [(0, 'a'), (1, 'b'), (2, 'c'), (3, 'd'), (4, 'e')]
-    G.add_edges_from(edges)
-
-    # Draw the bipartite graph
-    pos = nx.bipartite_layout(G, [0, 1, 2, 3, 4])  # Specify the nodes in set A for layout
-    nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=1000, font_size=10, font_weight='bold')
-
-    # Display the graph
-    plt.show()
+    # # Create an empty bipartite graph
+    # G = nx.Graph()
+    #
+    # # Add nodes to the graph. Nodes in set A are labeled 0 to 4, and nodes in set B are labeled 'a' to 'e'.
+    # G.add_nodes_from([0, 1, 2, 3, 4], bipartite=0)  # Set A nodes
+    # G.add_nodes_from(['a', 'b', 'c', 'd', 'e'], bipartite=1)  # Set B nodes
+    #
+    # # Add edges between nodes in set A and set B
+    # edges = [(0, 'a'), (1, 'b'), (2, 'c'), (3, 'd'), (4, 'e')]
+    # G.add_edges_from(edges)
+    #
+    # # Draw the bipartite graph
+    # pos = nx.bipartite_layout(G, [0, 1, 2, 3, 4])  # Specify the nodes in set A for layout
+    # nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=1000, font_size=10, font_weight='bold')
+    #
+    # # Display the graph
+    # plt.show()
 
 
 def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):
