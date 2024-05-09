@@ -361,10 +361,10 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
         current_order = list(nx.topological_sort(envy_graph))
 
 
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
+# if __name__ == "__main__":
+#     import doctest
+#
+#     doctest.testmod()
     # import networkx as nx
     # import matplotlib.pyplot as plt
     #
@@ -409,8 +409,8 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             >>> item_categories = {'c1': ['m1','m2','m3']}
             >>> agent_category_capacities = {'Agent1': {'c1':1}, 'Agent2': {'c1':2}}
             >>> valuations = {'Agent1':{'m1':1,'m2':0,'m3':0},'Agent2':{'m1':0,'m2':1,'m3':0}}
-            >>> divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities
-            >>>{'Agent1':['m1'],'Agent2':['m2','m3']}
+            >>> divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)
+            {'Agent1':['m1'],'Agent2':['m2','m3']}
 
 
             >>> # Example 2 ( 3 agents  with common interests in certain items)
@@ -420,14 +420,72 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             >>> agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
             >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':1}}
             >>> divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)
-            >>>{'Agent1':['m1','m3'],'Agent2':['m2'],'Agent3':[]}
+            {'Agent1':['m1','m3'],'Agent2':['m2'],'Agent3':[]}
 
              >>> # Example 3 ( 3 agents , 3 categories , with common interests, and remainder unallocated items at the end )
             >>> from fairpyx import  divide
             >>> items=['m1','m2','m3','m4','m5','m6']
             >>> item_categories = {'c1': ['m1','m2','m3'],'c2':['m4','m5'],'c3':['m6']}
             >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':1,'c3':1}, 'Agent2': {'c1':1,'c2':1,'c3':1},'Agent3': {'c1':0,'c2':0,'c3':1}}
-            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':0,'m4':1,'m5':1,'m6':1},'Agent2':{'m1':0,'m2':1,'m3':0,'m4':1,'m5':1,'m6':1},'Agent3':{'m1':,'m2':0,'m3':0,'m4':0,'m5':0,'m6':1}}
-            >>> divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)
-            >>>{'Agent1':['m1','m4'],'Agent2':['m2','m5'],'Agent3':['m6']} # m3 remains unallocated ....
+            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':0,'m4':1,'m5':1,'m6':1},'Agent2':{'m1':0,'m2':1,'m3':0,'m4':1,'m5':1,'m6':1},'Agent3':{'m1':0,'m2':0,'m3':0,'m4':0,'m5':0,'m6':1}}
+            >>> divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)# m3 remains unallocated ....
+            {'Agent1':['m1','m4'],'Agent2':['m2','m5'],'Agent3':['m6']}
    """
+    envy_graph = nx.DiGraph()
+    current_order = [agent for agent in alloc.remaining_agents()]
+    valuation_func = alloc.instance.agent_item_value
+    for category in item_categories.keys():
+        maximum_capacity=max([agent_category_capacities[agent][category] for agent in agent_category_capacities.keys()])
+        remaining_category_agent_capacities = {agent: agent_category_capacities[agent][category] for agent in
+                                               agent_category_capacities if agent_category_capacities[agent][
+                                                   category] != 0}
+        current_item_list = [item for item in alloc.remaining_items() if item in item_categories[category]]
+        for i in range(maximum_capacity):
+            # creation of agent-item graph and adding edges with weight based on current order
+            agent_item_bipartite_graph=nx.Graph()
+            agent_item_bipartite_graph.add_nodes_from([agent for agent in  remaining_category_agent_capacities.keys()], bipartite=0) # cant use alloc.remaining_agents() since it doesnt support multiple categorization
+            agent_item_bipartite_graph.add_nodes_from([item for item in alloc.remaining_items() if item in item_categories[category]], bipartite=1)
+            current_agent_list=[agent for agent in current_order if agent in remaining_category_agent_capacities.keys()]
+            #current_item_list=[item for item in alloc.remaining_items() if item in item_categories[category]]
+            #print(f'category={category}  index={i} \ncurrent_agent_list is={current_agent_list} , current_item_list={current_item_list}\n current_order={current_order}')
+            for agent in current_agent_list:
+                counter= len(current_agent_list)
+                for item in current_item_list:
+                    if valuation_func(agent,item)!=0:
+                        agent_item_bipartite_graph.add_edge(agent,item,weight=counter)
+                counter-=1
+            update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
+                              item_categories=item_categories, agent_category_capacities=agent_category_capacities)
+            #visualize_graph(envy_graph)
+            sort=list(nx.topological_sort(envy_graph))
+            current_order = current_order if not sort else sort
+
+            print(current_order)
+            #TODO priority matching based on topological sort
+            for match in nx.max_weight_matching(agent_item_bipartite_graph):
+                if match[0].startswith('A'):
+                    alloc.give(match[0], match[1], logger)
+                    remaining_category_agent_capacities[match[0]] -= 1
+                    if remaining_category_agent_capacities[match[0]] <= 0:
+                        del remaining_category_agent_capacities[match[0]]
+                else:
+                    alloc.give(match[1], match[0], logger)
+                    remaining_category_agent_capacities[match[1]] -= 1
+                    if remaining_category_agent_capacities[match[1]] <= 0:
+                        del remaining_category_agent_capacities[match[1]]
+        for item in current_item_list:
+            for agent,capacity in remaining_category_agent_capacities.items():
+                if capacity>0:
+                    alloc.give(agent,item, logger)
+        #randomly allocate remaining items to agents with remaining capacity
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()
