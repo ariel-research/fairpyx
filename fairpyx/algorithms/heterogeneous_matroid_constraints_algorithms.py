@@ -17,7 +17,7 @@ def envy(source: str, target: str, bundles: dict[str,set or list ], val_func: ca
          agent_category_capacities: dict):
     val = val_func
     source_bundle_val = sum(list(val(source, current_item) for current_item in bundles[source]))
-    #target_bundle_val = sum(list(val(source, current_item) for current_item in bundles[target])) old non feasible method
+    #target_bundle_val = sum(list(val(source, current_item) for current_item in bundles[target])) #old non feasible method
     copy= bundles[target].copy()
     target_bundle_val=0
     sorted(copy, key=lambda x: val(source, x),reverse=True) # sort target items  in the perspective of the envier
@@ -329,13 +329,13 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
 
             >>> # Example 2 (3 agents 3 categories , different capacities )
             >>> from fairpyx import  divide
-            >>> order=['Agent1','Agent2','Agent3']
+            >>> order=['Agent2','Agent3','Agent1']#TODO change in papers
             >>> items=['m1','m2','m3','m4','m5','m6','m7','m8','m9']
             >>> item_categories = {'c1': ['m1','m2','m3','m4'],'c2':['m5','m6','m7'],'c3':['m8','m9']}
-            >>> agent_category_capacities = {'Agent1': {'c1':0,'c2':4,'c3':4}, 'Agent2': {'c1':4,'c2':0,'c3':4},'Agent3': {'c1':4,'c2':4,'c3':0}}
+            >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':4,'c3':4}, 'Agent2': {'c1':4,'c2':0,'c3':4},'Agent3': {'c1':4,'c2':4,'c3':0}}
             >>> valuations = {'Agent1':{'m1':11,'m2':10,'m3':9,'m4':1,'m5':10,'m6':9.5,'m7':9,'m8':2,'m9':3},'Agent2':{'m1':11,'m2':10,'m3':9,'m4':1,'m5':10,'m6':9.5,'m7':9,'m8':2,'m9':3},'Agent3':{'m1':11,'m2':10,'m3':9,'m4':1,'m5':10,'m6':9.5,'m7':9,'m8':2,'m9':3}}
             >>> divide(algorithm=per_category_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order = order)
-            {'Agent1': ['m5', 'm7', 'm9'], 'Agent2': ['m1', 'm3', 'm8'], 'Agent3': ['m2', 'm4', 'm6']}
+            {'Agent1': ['m3', 'm5', 'm7', 'm8'], 'Agent2': ['m1', 'm4', 'm9'], 'Agent3': ['m2', 'm6']}
 
              >>> # Example 3 (3 agents 3 categories , 1 item per category)
             >>> from fairpyx import  divide
