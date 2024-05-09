@@ -31,83 +31,94 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
     explanation_logger.info("\nAlgorithm SP starts.\n")
 
-    agent_order = []                                                    # list of all the instances of agents as many as their items capacities (from the article: sum of Ki)
+    # agent_order = []                                                    # list of all the instances of agents as many as their items capacities (from the article: sum of Ki)
     map_agent_to_best_item = {}                                           # dict of the max bids for each agent in specific iteration (from the article: max{i, b})
     map_course_to_students_with_max_bids = {c: {} for c in alloc.remaining_item_capacities}
 
-    for agent, capacity in alloc.remaining_agent_capacities.items():    # save the agent number of his needed courses (שומר את הסטודנט מספר פעמים כמספר הקורסים שהוא צריך)
-        agent_order.extend([agent] * capacity)
+    #for agent, capacity in alloc.remaining_agent_capacities.items():    # save the agent number of his needed courses (שומר את הסטודנט מספר פעמים כמספר הקורסים שהוא צריך)
+    #    agent_order.extend([agent] * capacity)
 
-    set_agent = list(dict.fromkeys(agent_order))                        # set of the agents by thier order . each agent appears only once
+    #set_agent = list(dict.fromkeys(agent_order))                        # set of the agents by thier order . each agent appears only once
 
-    dict_extra_bids = {s: 0 for s in set_agent}
+    map_student_to_his_sum_bids = {s: 0 for s in alloc.remaining_agents()}
 
-    for agent in agent_order:
-        if agent not in alloc.remaining_agent_capacities:  # to check if not all the agents got k courses
-            continue
-
-        while set_agent:  # round i
-            for current_agent in set_agent:  # check the course with the max bids for each agent in the set (who didnt get a course in this round)
-                if len(alloc.remaining_agent_capacities) == 0 or len(
-                        alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
-                    set_agent = []
-                    break
-
-                potential_items_for_agent = set(alloc.remaining_items()).difference(alloc.bundles[current_agent])  # set of all the courses that have places sub the courses the agent got (under the assumption that if agent doesnt want a course the course got 0 bids automaticlly)
+    max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())
+    for iteration in range(max_iterations):  # External loop of algorithm: in each iteration, each student gets 1 seat (if possible).
+        if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
+            break
+        agents_who_need_an_item_in_current_iteration = set(alloc.remaining_agents())
+        while agents_who_need_an_item_in_current_iteration:  # round i
+            # 1. Create the dict map_agent_to_best_item
+            agents_with_no_potential_items = set()
+            for current_agent in agents_who_need_an_item_in_current_iteration:  # check the course with the max bids for each agent in the set (who didnt get a course in this round)
+                # potential_items_for_agent = set(alloc.remaining_items()).difference(alloc.bundles[current_agent])  # set of all the courses that have places sub the courses the agent got (under the assumption that if agent doesnt want a course the course got 0 bids automaticlly)
+                potential_items_for_agent = alloc.remaining_items_for_agent(current_agent)       # set of all the courses that have places sub the courses the agent got (under the assumption that if agent doesnt want a course the course got 0 bids automaticlly)
                 if len(potential_items_for_agent) == 0:
-                    logger.info("Agent %s cannot pick any more items: remaining=%s, bundle=%s", current_agent,
-                                alloc.remaining_item_capacities, alloc.bundles[current_agent])
-                    if current_agent in agent_order and current_agent in alloc.remaining_agent_capacities:  # checking if the agent in dict before removing
-                        alloc.remove_agent_from_loop(current_agent)
-                        agent_order.remove(current_agent)
-                    continue
+                    agents_with_no_potential_items.add(current_agent)
+                else:
+                    map_agent_to_best_item[current_agent] = max(potential_items_for_agent,
+                                                                key=lambda item: alloc.effective_value(current_agent,item))  # for each agent save the course with the max bids from the potential courses only
 
-                map_agent_to_best_item[current_agent] = max(potential_items_for_agent,
-                                                          key=lambda item: alloc.effective_value(current_agent,
-                                                                                                 item))  # for each agent save the course with the max bids from the potential courses only
-            # update bids for all student in dict_extra_bids
-            for s in dict_extra_bids:
-                if s in map_agent_to_best_item:
-                    dict_extra_bids[s] += alloc.effective_value(s ,map_agent_to_best_item[s])
+            for current_agent in agents_with_no_potential_items:
+                logger.info("Agent %s cannot pick any more items: remaining=%s, bundle=%s", current_agent,
+                            alloc.remaining_item_capacities, alloc.bundles[current_agent])
+                alloc.remove_agent_from_loop(current_agent)
+                agents_who_need_an_item_in_current_iteration.remove(current_agent)
+
+            #map_student_to_his_sum_bids += [alloc.effective_value(student,course) for student, course in map_student_to_his_sum_bids.items()]
+            for student, course in map_student_to_his_sum_bids.items():
+                if student in map_agent_to_best_item:
+                    map_student_to_his_sum_bids[student] += alloc.effective_value(student ,course)
 
             #create dict for each course of student that point on the course and their bids
             map_course_to_students_with_max_bids = {course:
-                {student: dict_extra_bids[student] for student in map_agent_to_best_item if map_agent_to_best_item[student] == course}
-                for course in alloc.remaining_items()
-            }
-            # for c in map_course_to_students_with_bids:
-            #     map_course_to_students_with_bids[c] = {s: dict_extra_bids[s] for s in map_agent_to_best_item if map_agent_to_best_item[s] == c}
-            # for s in map_agent_to_best_item:
-            #     if map_agent_to_best_item[s] == c:
-            #         dict_s_to_c[s] = dict_extra_bids[s]
-            # dict_by_course[c] = dict_s_to_c
+                {student: map_student_to_his_sum_bids[student] for student in map_agent_to_best_item if map_agent_to_best_item[student] == course}
+                for course in alloc.remaining_items()}
 
-            #loop on the dict_by_course and for each curse give it to as many studens it can
+            #loop on the dict_by_course and for each course give it to as many studens it can
             for course in map_course_to_students_with_max_bids:
                 if course in alloc.remaining_item_capacities:
-                    c_capacity = alloc.remaining_item_capacities[course]
-                    if len(map_course_to_students_with_max_bids[course]) == 0:
-                        continue
-                    elif len(map_course_to_students_with_max_bids[course]) <= c_capacity:
-                        for s in map_course_to_students_with_max_bids[course]:
-                            alloc.give(s,course,logger)
-                            set_agent.remove(s)                                            # removing the agent from the set (dont worry he will come back in the next round)
-                            if s in map_agent_to_best_item:                                  # removing the agent from the max dict
-                                del map_agent_to_best_item[s]
-                            #del dict_by_course[c][s]
-                    else:
-                        sorted_students = sorted(map_course_to_students_with_max_bids[course].keys(), key=lambda name: map_course_to_students_with_max_bids[course][name], reverse=True)      #sort the keys by their values (descending order)
-                        price = dict_extra_bids[sorted_students[c_capacity]]                   #the amount of bids of the first studen that cant get the course
-                        for i in range(c_capacity):
-                            s = sorted_students[i]
-                            alloc.give(s, course, logger)
-                            set_agent.remove(s)                                            # removing the agent from the set (dont worry he will come back in the next round)
-                            if s in map_agent_to_best_item:                                  # removing the agent from the max dict
-                                del map_agent_to_best_item[s]                                 # removing the agent from the max dict
-                            del map_course_to_students_with_max_bids[course][s]
-                            dict_extra_bids[s] -= price
 
-        set_agent = list(dict.fromkeys(alloc.remaining_agents()))           #with this random in loop and k passes
+
+                    sorted_students_pointing_to_course = sorted(
+                        [student for student in map_agent_to_best_item if map_agent_to_best_item[student] == course],
+                        key=lambda student: alloc.effective_value(student, course),
+                        reverse=True)  # sort the keys by their values (descending order)
+                    remaining_capacity = alloc.remaining_item_capacities[course]
+                    sorted_students_who_can_get_course = sorted_students_pointing_to_course[:remaining_capacity]
+                    price = 0
+                    if len(sorted_students_pointing_to_course) > remaining_capacity:
+                        price = map_student_to_his_sum_bids[sorted_students_pointing_to_course[remaining_capacity]]  # the amount of bids of the first studen that cant get the course
+                    for student in sorted_students_who_can_get_course:
+                        alloc.give(student, course, logger)
+                        agents_who_need_an_item_in_current_iteration.remove(student)  # removing the agent from the set (dont worry he will come back in the next round)
+                        map_agent_to_best_item.pop(student, None)  # Delete student if exists in the dict
+                        #del map_course_to_students_with_max_bids[course][s]
+                        map_student_to_his_sum_bids[student] -= price
+
+
+                    #if len(map_course_to_students_with_max_bids[course]) == 0:
+                    #    continue
+                    #if len(map_course_to_students_with_max_bids[course]) <= remaining_capacity:
+                        #for student in map_course_to_students_with_max_bids[course]:
+                        #    alloc.give(student,course,logger)
+                        #    agents_who_need_an_item_in_current_iteration.remove(student)                                            # removing the agent from the set (dont worry he will come back in the next round)
+                        #    if student in map_agent_to_best_item:                                  # removing the agent from the max dict
+                        #        del map_agent_to_best_item[student]
+                            #del dict_by_course[c][s]
+                    # else:
+                    #     sorted_students = sorted(map_course_to_students_with_max_bids[course].keys(), key=lambda name: map_course_to_students_with_max_bids[course][name], reverse=True)      #sort the keys by their values (descending order)
+                    #     price = map_student_to_his_sum_bids[sorted_students[remaining_capacity]]                   #the amount of bids of the first studen that cant get the course
+                    #     for i in range(remaining_capacity):
+                    #         s = sorted_students[i]
+                    #         alloc.give(s, course, logger)
+                    #         set_agent.remove(s)                                            # removing the agent from the set (dont worry he will come back in the next round)
+                    #         if s in map_agent_to_best_item:                                  # removing the agent from the max dict
+                    #             del map_agent_to_best_item[s]                                 # removing the agent from the max dict
+                    #         del map_course_to_students_with_max_bids[course][s]
+                    #         map_student_to_his_sum_bids[s] -= price
+
+        # set_agent = list(dict.fromkeys(alloc.remaining_agents()))           #with this random in loop and k passes
         #set_agent = list(dict.fromkeys(agent_order))                       #with this the random and k diffrent got ValueError
 
 if __name__ == "__main__":

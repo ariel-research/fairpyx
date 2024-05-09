@@ -34,25 +34,18 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
     """
     explanation_logger.info("\nAlgorithm TTC starts.\n")
 
-    agent_order = []                        # list of all the instances of agents as many as their items capacities (from the article: sum of Ki)
     map_agent_to_best_item = {}               # dict of the max bids for each agent in specific iteration (from the article: max{i, b})
-
-    # for agent, capacity in alloc.remaining_agent_capacities.items():                            # save the agent number of his needed courses (שומר את הסטודנט מספר פעמים כמספר הקורסים שהוא צריך)
-    #     agent_order.extend([agent] * capacity)
-    #
-    # agents_who_need_an_item_in_current_iteration = list(dict.fromkeys(agent_order))                                                # set of the agents by thier order . each agent appears only once
-
-    max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())
+    max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
     for iteration in range(max_iterations):   # External loop of algorithm: in each iteration, each student gets 1 seat (if possible).
-        if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
+        if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more courses with seats
             break
-        agents_who_need_an_item_in_current_iteration = set(alloc.remaining_agents())
+        agents_who_need_an_item_in_current_iteration = set(alloc.remaining_agents())  # only the agents that still need courses
         while agents_who_need_an_item_in_current_iteration:     # round i
             # 1. Create the dict map_agent_to_best_item
             agents_with_no_potential_items = set()
             for current_agent in agents_who_need_an_item_in_current_iteration:                                                                             # check the course with the max bids for each agent in the set (who didnt get a course in this round)
-                potential_items_for_agent = set(alloc.remaining_items()).difference(alloc.bundles[current_agent])       # set of all the courses that have places sub the courses the agent got (under the assumption that if agent doesnt want a course the course got 0 bids automaticlly)
-                # potential_items_for_agent = alloc.remaining_items_for_agent(current_agent)       # set of all the courses that have places sub the courses the agent got (under the assumption that if agent doesnt want a course the course got 0 bids automaticlly)
+                # potential_items_for_agent = set(alloc.remaining_items()).difference(alloc.bundles[current_agent])       # set of all the courses that have places sub the courses the agent got (under the assumption that if agent doesnt want a course the course got 0 bids automaticlly)
+                potential_items_for_agent = alloc.remaining_items_for_agent(current_agent)       # set of all the courses that have places sub the courses the agent got (under the assumption that if agent doesnt want a course the course got 0 bids automaticlly)
                 if len(potential_items_for_agent) == 0:
                     agents_with_no_potential_items.add(current_agent)
                 else:
@@ -100,7 +93,7 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
            #      agents_who_need_an_item_in_current_iteration = ()
 
         #agents_who_need_an_item_in_current_iteration = list(dict.fromkeys(agent_order))                                                                    # adding all the agents for the next round
-        agents_who_need_an_item_in_current_iteration = list(dict.fromkeys(alloc.remaining_agents()))
+        #agents_who_need_an_item_in_current_iteration = list(dict.fromkeys(alloc.remaining_agents()))
 
 
 if __name__ == "__main__":
