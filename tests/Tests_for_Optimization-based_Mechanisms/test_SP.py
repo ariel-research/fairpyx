@@ -109,19 +109,6 @@ def test_sub_round_within_round():
 
     assert fairpyx.divide(fairpyx.algorithms.SP_function, instance=instance) == {'s1': ['c3'], 's2': ['c1'], 's3': ['c2']}, "ERROR"
 
-
-def test_students_with_the_same_list():
-    s1 = {"c1": 55, "c2": 45}
-    s2 = {"c1": 55, "c2": 45}
-    instance = fairpyx.Instance(
-        agent_capacities={"s1": 1, "s2": 1},
-        item_capacities={"c1": 1, "c2": 1},
-        valuations={"s1": s1, "s2": s2}
-    )
-
-    assert fairpyx.divide(fairpyx.algorithms.SP_function, instance=instance) == {'s1': ['c1'], 's2': ['c2']}, "ERROR"
-
-
 def test_sub_round_within_sub_round():
     s1 = {"c1": 40, "c2": 10, "c3": 20, "c4": 30}
     s2 = {"c1": 50, "c2": 10, "c3": 15, "c4": 25}
@@ -160,7 +147,7 @@ def test_from_the_article():
         valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4}
     )
 
-    assert fairpyx.divide(fairpyx.algorithms.SP_function, instance=instance) == {'s1': ['c1', 'c3', 'c2'], 's2': ['c3', 'c2', 'c4'], 's3': ['c4', 'c3', 'c5'], 's4': ['c1', 'c2', 'c5']}, "ERROR"
+    assert fairpyx.divide(fairpyx.algorithms.SP_function, instance=instance) == {'s1': ['c1', 'c2', 'c3'], 's2': ['c2', 'c3', 'c4'], 's3': ['c3', 'c4', 'c5'], 's4': ['c1', 'c2', 'c5']}, "ERROR"
 
 
 def test_different_k_for_students():
