@@ -410,7 +410,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             >>> agent_category_capacities = {'Agent1': {'c1':1}, 'Agent2': {'c1':2}}
             >>> valuations = {'Agent1':{'m1':1,'m2':0,'m3':0},'Agent2':{'m1':0,'m2':1,'m3':0}}
             >>> divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)
-            {'Agent1':['m1'],'Agent2':['m2','m3']}
+            {'Agent1': ['m1'], 'Agent2': ['m2', 'm3']}
 
 
             >>> # Example 2 ( 3 agents  with common interests in certain items)
@@ -420,16 +420,16 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             >>> agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
             >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':1}}
             >>> divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)
-            {'Agent1':['m1','m3'],'Agent2':['m2'],'Agent3':[]}
+            {'Agent1': ['m1', 'm3'], 'Agent2': ['m2'], 'Agent3': []}
 
              >>> # Example 3 ( 3 agents , 3 categories , with common interests, and remainder unallocated items at the end )
             >>> from fairpyx import  divide
-            >>> items=['m1','m2','m3','m4','m5','m6']
+            >>> items=['m1','m2','m3','m4','m5','m6']#TODO change in papers since in case there is no envy we cant choose whatever order we want. maybe on papers yes but in here no
             >>> item_categories = {'c1': ['m1','m2','m3'],'c2':['m4','m5'],'c3':['m6']}
             >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':1,'c3':1}, 'Agent2': {'c1':1,'c2':1,'c3':1},'Agent3': {'c1':0,'c2':0,'c3':1}}
             >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':0,'m4':1,'m5':1,'m6':1},'Agent2':{'m1':0,'m2':1,'m3':0,'m4':1,'m5':1,'m6':1},'Agent3':{'m1':0,'m2':0,'m3':0,'m4':0,'m5':0,'m6':1}}
             >>> divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)# m3 remains unallocated ....
-            {'Agent1':['m1','m4'],'Agent2':['m2','m5'],'Agent3':['m6']}
+            {'Agent1': ['m1', 'm5', 'm6'], 'Agent2': ['m2', 'm4'], 'Agent3': []}
    """
     envy_graph = nx.DiGraph()
     current_order = [agent for agent in alloc.remaining_agents()]
@@ -460,15 +460,11 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             #visualize_graph(envy_graph)
             #topological sort
             sort=list(nx.topological_sort(envy_graph))
-
             current_order = current_order if not sort else sort
-            print(current_order)
-
-
             # priority matching based on topological sort
             for match in nx.max_weight_matching(agent_item_bipartite_graph):
-                print(f'category={category}  index={i}')
-                print(match)
+                # print(f'category={category}  index={i}')
+                # print(match)
                 if match[0].startswith('A'):
                     alloc.give(match[0], match[1])
 
