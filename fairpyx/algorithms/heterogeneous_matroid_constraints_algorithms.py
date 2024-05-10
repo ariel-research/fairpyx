@@ -439,14 +439,14 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
         remaining_category_agent_capacities = {agent: agent_category_capacities[agent][category] for agent in
                                                agent_category_capacities if agent_category_capacities[agent][
                                                    category] != 0}
-        current_item_list = [item for item in alloc.remaining_items() if item in item_categories[category]]
+        current_item_list = update_item_list(alloc, category, item_categories)
+        current_agent_list = update_agent_list(current_order, remaining_category_agent_capacities)
+       #current_item_list = update_item_list(alloc, category, item_categories)
         for i in range(maximum_capacity):
             # creation of agent-item graph and adding edges with weight based on current order
             agent_item_bipartite_graph=nx.Graph()
             agent_item_bipartite_graph.add_nodes_from([agent for agent in  remaining_category_agent_capacities.keys()], bipartite=0) # cant use alloc.remaining_agents() since it doesnt support multiple categorization
             agent_item_bipartite_graph.add_nodes_from([item for item in alloc.remaining_items() if item in item_categories[category]], bipartite=1)
-            current_agent_list=[agent for agent in current_order if agent in remaining_category_agent_capacities.keys()]
-            #current_item_list=[item for item in alloc.remaining_items() if item in item_categories[category]]
             #print(f'category={category}  index={i} \ncurrent_agent_list is={current_agent_list} , current_item_list={current_item_list}\n current_order={current_order}')
             for agent in current_agent_list:
                 counter= len(current_agent_list)
@@ -454,35 +454,55 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
                     if valuation_func(agent,item)!=0:
                         agent_item_bipartite_graph.add_edge(agent,item,weight=counter)
                 counter-=1
+                #creation of envy graph
             update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
                               item_categories=item_categories, agent_category_capacities=agent_category_capacities)
             #visualize_graph(envy_graph)
+            #topological sort
             sort=list(nx.topological_sort(envy_graph))
-            current_order = current_order if not sort else sort
 
+            current_order = current_order if not sort else sort
             print(current_order)
-            #TODO priority matching based on topological sort
+
+
+            # priority matching based on topological sort
             for match in nx.max_weight_matching(agent_item_bipartite_graph):
+                print(f'category={category}  index={i}')
+                print(match)
                 if match[0].startswith('A'):
-                    alloc.give(match[0], match[1], logger)
+                    alloc.give(match[0], match[1])
+
                     remaining_category_agent_capacities[match[0]] -= 1
                     if remaining_category_agent_capacities[match[0]] <= 0:
                         del remaining_category_agent_capacities[match[0]]
                 else:
-                    alloc.give(match[1], match[0], logger)
+                    alloc.give(match[1], match[0])
                     remaining_category_agent_capacities[match[1]] -= 1
                     if remaining_category_agent_capacities[match[1]] <= 0:
                         del remaining_category_agent_capacities[match[1]]
-        for item in current_item_list:
+                current_item_list = update_item_list(alloc, category, item_categories)
+                current_agent_list = update_agent_list(current_order, remaining_category_agent_capacities)
+        for item in current_item_list:#arbitrarely allocate remaining items to agents with remaining capacity
             for agent,capacity in remaining_category_agent_capacities.items():
                 if capacity>0:
-                    alloc.give(agent,item, logger)
-        #randomly allocate remaining items to agents with remaining capacity
+                    alloc.give(agent,item)
+                    current_item_list = update_item_list(alloc, category, item_categories)
+                    current_agent_list = update_agent_list(current_order, remaining_category_agent_capacities)
 
 
+def update_agent_list(current_order, remaining_category_agent_capacities):
+    current_agent_list = [agent for agent in current_order if agent in remaining_category_agent_capacities.keys()]
+    return current_agent_list
 
 
+def update_item_list(alloc, category, item_categories):
+    current_item_list = [item for item in alloc.remaining_items() if item in item_categories[category]]
+    return current_item_list
 
+
+def update_item_list(alloc, category, item_categories):
+    current_item_list = [item for item in alloc.remaining_items() if item in item_categories[category]]
+    return current_item_list
 
 
 if __name__ == "__main__":
