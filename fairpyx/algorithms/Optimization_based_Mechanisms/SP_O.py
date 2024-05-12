@@ -4,11 +4,11 @@
 
     Programmer: Tamar Bar-Ilan, Moriya Ester Ohayon, Ofek Kats
 """
-from fairpyx import Instance, AllocationBuilder
+from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import logging
 logger = logging.getLogger(__name__)
 
-def SP_O_function(alloc: AllocationBuilder):
+def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger()):
     """
     Algorethem 4: Allocate the given items to the given agents using the SP-O protocol.
 

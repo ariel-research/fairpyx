@@ -38,7 +38,6 @@ def test_small_example():
 
     assert fairpyx.divide(fairpyx.algorithms.SP_function, instance=instance) == {'s1': ['c2', 'c3'], 's2': ['c3', 'c4'], 's3': ['c1', 'c4']}, "ERROR"
 
-# TODO check the algorithem
 def test_big_example():
     s1 = {"c1": 50, "c2": 20, "c3": 11, "c4": 10, "c5": 9}
     s2 = {"c1": 2, "c2": 5, "c3": 7, "c4": 26, "c5": 60}

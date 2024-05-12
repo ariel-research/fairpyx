@@ -4,11 +4,12 @@
 
     Programmer: Tamar Bar-Ilan, Moriya Ester Ohayon, Ofek Kats
 """
-from fairpyx import Instance, AllocationBuilder
+from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import logging
+import cvxpy as cp
 logger = logging.getLogger(__name__)
 
-def TTC_O_function(alloc: AllocationBuilder):
+def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger()):
     """
     Algorethem 3: Allocate the given items to the given agents using the TTC-O protocol.
 
@@ -29,7 +30,52 @@ def TTC_O_function(alloc: AllocationBuilder):
     >>> divide(TTC_O_function, instance=instance)
     {'s1': ['c2'], 's2': ['c1']}
     """
-    
+    explanation_logger.info("\nAlgorithm TTC-O starts.\n")
+
+    max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
+    for iteration in range(max_iterations):
+        map_agent_to_best_item = {}
+        for student in alloc.remaining_agents():
+            map_agent_to_best_item[student] = max(alloc.remaining_items_for_agent(student),
+                                                  key=lambda item: alloc.effective_value(student, item))
+        obj = cp.Maximize(sum(alloc.effective_value(student, map_agent_to_best_item[student]) for student in map_agent_to_best_item))
+
+        remaining_item_capacities_in_prev_iteretion = {}
+        for student in alloc.remaining_agents():
+                remaining_item_capacities_in_prev_iteretion[student] = alloc.remaining_agent_capacities[student]
+
+
+        constraints = []
+
+        # condition number 7:
+        # check that the number of students who took course j does not exceed the capacity of the course
+        for course in alloc.remaining_items():
+            count = 0
+            for student in map_agent_to_best_item:
+                if map_agent_to_best_item[student] == course:
+                    count += 1
+            constraints.append(count <= alloc.remaining_item_capacities[course])
+
+        # condition number 8:
+        # check that each student receives only one course in each iteration
+        for student in alloc.remaining_agents():
+            constraints.append(remaining_item_capacities_in_prev_iteretion[student] - alloc.remaining_agent_capacities[student] <= 1)
+
+        # condition number 9:
+        # we don't need
+
+        problem = cp.Problem(obj, constraints=constraints)
+        result = problem.solve()
+
+        if result is not None:
+            optimal_value = problem.value
+            print("Optimal Objective Value:", optimal_value)
+            # Now you can use this optimal value for further processing
+        else:
+            print("Solver failed to find a solution or the problem is infeasible/unbounded.")
+
+
+
 if __name__ == "__main__":
     import doctest, sys
     print(doctest.testmod())

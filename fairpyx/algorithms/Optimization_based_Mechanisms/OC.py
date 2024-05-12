@@ -5,11 +5,11 @@
     Programmer: Tamar Bar-Ilan, Moriya Ester Ohayon, Ofek Kats
 """
 
-from fairpyx import Instance, AllocationBuilder
+from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import logging
 logger = logging.getLogger(__name__)
 
-def OC_function(alloc: AllocationBuilder):
+def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger()):
     """
     Algorethem 5: Allocate the given items to the given agents using the OC protocol.
 
