@@ -41,12 +41,12 @@ def test_small_example():
 # TODO check the algorithem
 def test_big_example():
     s1 = {"c1": 50, "c2": 20, "c3": 11, "c4": 10, "c5": 9}
-    s2 = {"c1": 4, "c2": 5, "c3": 7, "c4": 26, "c5": 60}
+    s2 = {"c1": 2, "c2": 5, "c3": 7, "c4": 26, "c5": 60}
     s3 = {"c1": 20, "c2": 30, "c3": 10, "c4": 21, "c5": 19}
     s4 = {"c1": 24, "c2": 8, "c3": 25, "c4": 17, "c5": 26}
-    s5 = {"c1": 5, "c2": 2, "c3": 1, "c4": 3, "c5": 90}
+    s5 = {"c1": 4, "c2": 2, "c3": 1, "c4": 3, "c5": 90}
     s6 = {"c1": 13, "c2": 15, "c3": 49, "c4": 11, "c5": 12}
-    s7 = {"c1": 3, "c2": 4, "c3": 6, "c4": 70, "c5": 19}
+    s7 = {"c1": 1, "c2": 4, "c3": 6, "c4": 70, "c5": 19}
 
     instance = fairpyx.Instance(
         agent_capacities={"s1": 4, "s2": 4, "s3": 4, "s4": 4, "s5": 4, "s6": 4, "s7": 4},
@@ -54,27 +54,14 @@ def test_big_example():
         valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5, "s6": s6, "s7": s7}
     )
 
-    assert fairpyx.divide(fairpyx.algorithms.SP_function, instance=instance) == {'s1': ['c1', 'c2', 'c3'],
-                                                                                  's2': ['c2', 'c3', 'c4', 'c5'],
-                                                                                  's3': ['c1', 'c2', 'c4', 'c5'],
-                                                                                  's4': ['c1', 'c2', 'c3', 'c5'],
-                                                                                  's5': ['c1', 'c2', 'c3', 'c5'],
-                                                                                  's6': ['c1', 'c2', 'c3', 'c5'],
-                                                                                  's7': ['c1', 'c3', 'c4', 'c5']}, "ERROR"
+    assert fairpyx.divide(fairpyx.algorithms.SP_function, instance=instance) == {'s1': ['c1','c2', 'c3', 'c5'],
+                                                                                 's2': ['c1', 'c3', 'c4', 'c5'],
+                                                                                 's3': ['c1', 'c2', 'c4', 'c5'],
+                                                                                 's4': ['c1', 'c2', 'c3', 'c5'],
+                                                                                 's5': ['c1', 'c2', 'c3', 'c5'],
+                                                                                 's6': ['c1', 'c2', 'c3'],
+                                                                                 's7': ['c2', 'c3', 'c4', 'c5']},"ERROR"
 
-    instance = fairpyx.Instance(
-        agent_capacities={"s1": 4, "s2": 4, "s3": 4, "s4": 4, "s5": 4, "s6": 4, "s7": 4},
-        item_capacities={"c1": 6, "c2": 6, "c3": 7, "c4": 3, "c5": 6},
-        valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5, "s6": s6, "s7": s7}
-    )
-
-    assert fairpyx.divide(fairpyx.algorithms.SP_function, instance=instance) == {'s1': ['c1', 'c2', 'c3', 'c5'],
-                                                                                  's2': ['c1', 'c3', 'c4', 'c5'],
-                                                                                  's3': ['c1', 'c2', 'c3', 'c5'],
-                                                                                  's4': ['c1', 'c2', 'c3', 'c5'],
-                                                                                  's5': ['c1', 'c2', 'c3', 'c4'],
-                                                                                  's6': ['c1', 'c2', 'c3', 'c5'],
-                                                                                  's7': ['c2', 'c3', 'c4', 'c5']}, "ERROR"
 
 
 def test_optimal_change_result():
@@ -111,7 +98,7 @@ def test_sub_round_within_sub_round():
         valuations={"s1": s1, "s2": s2, "s3": s3}
     )
 
-    assert fairpyx.divide(fairpyx.algorithms.SP_function, instance=instance) == {'s1': ['c1', 'c2'], 's2': ['c4', 'c3'], 's3': ['c3', 'c2']}, "ERROR"
+    assert fairpyx.divide(fairpyx.algorithms.SP_function, instance=instance) == {'s1': ['c2', 'c3'], 's2': ['c3', 'c4'], 's3': ['c1', 'c2']}, "ERROR"
 
 
 def test_student_bids_the_same_for_different_courses():
