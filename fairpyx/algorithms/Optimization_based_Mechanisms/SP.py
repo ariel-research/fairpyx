@@ -35,7 +35,7 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     map_student_to_his_sum_bids = {s: 0 for s in alloc.remaining_agents()}  # the amount of bids agent have from all the courses he got before
 
     # {'s1': {} , 's2': {} ...}
-    map_student_to_course_with_no_seats_and_the_bids = {student: {} for student in alloc.remaining_agents()}
+    map_student_to_course_with_no_seats_and_the_bids = {student: {} for student in alloc.remaining_agents()} # map students to courses he can't get for update bids
 
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
     for iteration in range(max_iterations):  # External loop of algorithm: in each iteration, each student gets 1 seat (if possible).
@@ -58,10 +58,11 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
                     pop_course_that_moved_bids = []
                     if current_agent in map_student_to_course_with_no_seats_and_the_bids:
                         for course_that_no_longer_potential in map_student_to_course_with_no_seats_and_the_bids[current_agent]:
+                            # if the algorithm pass a course that the student can't get - add his bids if needed
                             if alloc.effective_value(current_agent, current_course) < map_student_to_course_with_no_seats_and_the_bids[current_agent][course_that_no_longer_potential]:
                                 map_student_to_his_sum_bids[current_agent] += map_student_to_course_with_no_seats_and_the_bids[current_agent][course_that_no_longer_potential]
-                                pop_course_that_moved_bids.append(course_that_no_longer_potential)
-                for course in pop_course_that_moved_bids:
+                                pop_course_that_moved_bids.append(course_that_no_longer_potential) #save the courses should delete
+                for course in pop_course_that_moved_bids: # remove the courses that the algorithm add the bids
                     map_student_to_course_with_no_seats_and_the_bids[current_agent].pop(course, None)
 
             for current_agent in agents_with_no_potential_items:  # remove agents that don't need courses
@@ -92,19 +93,18 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
                     price = 0  # the course price (0 if evert student that want the course this round can get it)
                     if len(sorted_students_pointing_to_course) > remaining_capacity:
                         price = map_student_to_his_sum_bids[sorted_students_pointing_to_course[remaining_capacity]]  # the amount of bids of the first studen that cant get the course
-                        #map_student_to_his_sum_bids = {s: 0 for s in alloc.remaining_agents()}
-                    if len(sorted_students_pointing_to_course) >= remaining_capacity:
+                    if len(sorted_students_pointing_to_course) >= remaining_capacity: # if there are equal or more students than capacity
                         for student in alloc.remaining_agents():
-                            map_student_to_course_with_no_seats_and_the_bids[student][course] = alloc.effective_value(student, course)
+                            map_student_to_course_with_no_seats_and_the_bids[student][course] = alloc.effective_value(student, course) # save the bids for each student for the courses that there aren't more seats
                     for student in sorted_students_who_can_get_course:
-                        for conflict_course in alloc.instance.item_conflicts(course):
-                            map_student_to_course_with_no_seats_and_the_bids[student][conflict_course] = alloc.effective_value(student, conflict_course)
+                        for conflict_course in alloc.instance.item_conflicts(course): #each course that have a conflict with the current course
+                            map_student_to_course_with_no_seats_and_the_bids[student][conflict_course] = alloc.effective_value(student, conflict_course) # save the bids for each student for the courses that have conflict
                         alloc.give(student, course, logger)
                         agents_who_need_an_item_in_current_iteration.remove(student)  # removing the agent from the set (dont worry he will come back in the next round)
                         map_agent_to_best_item.pop(student, None)  # Delete student if exists in the dict
                         del map_course_to_students_with_max_bids[course][student]
                         map_student_to_his_sum_bids[student] -= price  # remove the price of the course from the bids of the student who got the course
-                        map_student_to_course_with_no_seats_and_the_bids[student].pop(course, None)
+                        map_student_to_course_with_no_seats_and_the_bids[student].pop(course, None) # remove the course from the dict because the student get this course
 
 
 if __name__ == "__main__":
