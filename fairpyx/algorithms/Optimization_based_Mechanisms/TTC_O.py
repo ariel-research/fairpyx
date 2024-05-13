@@ -4,6 +4,8 @@
 
     Programmer: Tamar Bar-Ilan, Moriya Ester Ohayon, Ofek Kats
 """
+import cvxpy
+
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import logging
 import cvxpy as cp
@@ -34,6 +36,22 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
 
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
     for iteration in range(max_iterations):
+        x = cvxpy.Variable((len(alloc.remaining_agents()), len(alloc.remaining_items())), boolean=True)  # mat Xij
+
+        i, j = 0, 0
+        for student in alloc.remaining_agents():
+            for course in alloc.remaining_items_for_agent(student):
+                sum = x[i][j] * alloc.effective_value(student, course);
+                j += 1
+            j = 0
+            i += 1
+
+
+
+        obj = cp.Maximize(sum())
+
+
+
         map_agent_to_best_item = {}
         for student in alloc.remaining_agents():
             map_agent_to_best_item[student] = max(alloc.remaining_items_for_agent(student),
