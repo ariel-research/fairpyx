@@ -16,15 +16,11 @@ class criteria_for_profitable_manipulation(Enum):
 
 logger = logging.getLogger(__name__)
 
-# TODO ask erel about the mechanism type
-# TODO ask erel how to test random
-# TODO ask erel how to pass utilities in population (it is random)
-# TODO ask erel handle the instance
-# TODO ask erel about large tests
+# TODO: how to test random - add helper function that return random budgets
+# TODO: how to pass utilities in population - use random_uniform
 
-# TODO check if we need the utility
 def find_profitable_manipulation(mechanism: callable, student: str, utility: dict,
-                                 criteria: Enum, neu: float, alloc: AllocationBuilder, delta: float, epsilon: float, t: Enum):
+                                 criteria: Enum, neu: float, instance: Instance, delta: float, epsilon: float, t: Enum):
     """
    "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
     by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
