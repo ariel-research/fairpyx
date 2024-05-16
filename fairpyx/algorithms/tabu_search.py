@@ -478,6 +478,11 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
         excess_demand_vector = clipped_excess_demand(instance, prices, allocation)
         values = np.array(list(excess_demand_vector.values()))
         norma2 = np.linalg.norm(values)
+
+        # If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑
+        if np.allclose(norma2, 0):
+            break
+
         # 3) Otherwise,
         # • include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑},
         find_all_equivalent_prices(instance, history, prices)  # TODO - implement
