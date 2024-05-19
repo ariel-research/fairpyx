@@ -38,79 +38,46 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
     for iteration in range(max_iterations):
         x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)  # mat Xij
 
-        i, j = 0, 0
-        sums = 0
-        for course in alloc.remaining_items():
-            for student in alloc.remaining_agents():
-                sums = x[i, j] * alloc.effective_value(student, course)
-                j += 1
-            j = 0
-            i += 1
-
-        obj = cp.Maximize(sums)
+        objective = cp.Maximize(cp.sum(cp.multiply(x, [[alloc.effective_value(student, course)
+                                                        for i, course in enumerate(alloc.remaining_items())]
+                                                       for j, student in enumerate(alloc.remaining_agents())])))
 
         constraints = []
 
         # condition number 7:
         # check that the number of students who took course j does not exceed the capacity of the course
-        i = 0
-        the_number_of_student_fit_the_course = 0
-        for course in alloc.remaining_items():
-            for j in range(len(alloc.remaining_agents())):
-                the_number_of_student_fit_the_course += x[i, j]
-            constraints.append(the_number_of_student_fit_the_course <= alloc.remaining_item_capacities[course])
-            i += 1
-            the_number_of_student_fit_the_course = 0
+        for i, course in enumerate(alloc.remaining_items()):
+            constraints.append(cp.sum(x[i, :]) <= alloc.remaining_item_capacities[course])
+
 
         # condition number 8:
         # check that each student receives only one course in each iteration
-        the_number_of_courses_a_student_got = 0
-        for i in range(len(alloc.remaining_agents())):
-            for j in range(len(alloc.remaining_items())):
-                the_number_of_courses_a_student_got += x[i, j]
-            constraints.append(the_number_of_courses_a_student_got <= 1)
-            the_number_of_courses_a_student_got = 0  # reset for the next column
+        for j, student in enumerate(alloc.remaining_agents()):
+            constraints.append(cp.sum(x[:, j]) <= 1)
 
-        # map_agent_to_best_item = {}
-        # for student in alloc.remaining_agents():
-        #     map_agent_to_best_item[student] = max(alloc.remaining_items_for_agent(student),
-        #                                           key=lambda item: alloc.effective_value(student, item))
-        # obj = cp.Maximize(sum(alloc.effective_value(student, map_agent_to_best_item[student]) for student in map_agent_to_best_item))
-        #
-        # remaining_item_capacities_in_prev_iteretion = {}
-        # for student in alloc.remaining_agents():
-        #         remaining_item_capacities_in_prev_iteretion[student] = alloc.remaining_agent_capacities[student]
-
-
-
-
-        # # condition number 7:
-        # # check that the number of students who took course j does not exceed the capacity of the course
-        # for course in alloc.remaining_items():
-        #     count = 0
-        #     for student in map_agent_to_best_item:
-        #         if map_agent_to_best_item[student] == course:
-        #             count += 1
-        #     constraints.append(count <= alloc.remaining_item_capacities[course])
-        #
-        # # condition number 8:
-        # # check that each student receives only one course in each iteration
-        # for student in alloc.remaining_agents():
-        #     constraints.append(remaining_item_capacities_in_prev_iteretion[student] - alloc.remaining_agent_capacities[student] <= 1)
-        #
-        # # condition number 9:
-        # # we don't need
-
-        problem = cp.Problem(obj, constraints=constraints)
+        problem = cp.Problem(objective, constraints=constraints)
         result = problem.solve()
 
+        # Check if the optimization problem was successfully solved
         if result is not None:
+            # Extract the optimized values of x
+            x_values = x.value
+
+            # Assign courses based on the optimized values of x
+            assign_map_course_to_student = {}
+            for j, student in enumerate(alloc.remaining_agents()):
+                for i, course in enumerate(alloc.remaining_items()):
+                    if x_values[i, j] == 1:
+                        assign_map_course_to_student[student] = course
+
+            for student, course in assign_map_course_to_student.items():
+                alloc.give(student,course)
+
             optimal_value = problem.value
-            print("Optimal Objective Value:", optimal_value)
+            explanation_logger.info("Optimal Objective Value:", optimal_value)
             # Now you can use this optimal value for further processing
         else:
-            print("Solver failed to find a solution or the problem is infeasible/unbounded.")
-
+            explanation_logger.info("Solver failed to find a solution or the problem is infeasible/unbounded.")
 
 
 if __name__ == "__main__":
