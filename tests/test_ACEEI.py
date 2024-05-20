@@ -6,6 +6,7 @@ from fairpyx import Instance, divide
 # from fairpyx.algorithms import ACEEI
 # from fairpyx.algorithms.linear_program import optimize_model
 from fairpyx.algorithms.ACEEI import EFTBStatus, logger, find_ACEEI_with_EFTB
+import numpy as np
 
 
 
@@ -58,19 +59,21 @@ def test_case_3():
     instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
     initial_budgets = {f"s{key}": (101 - key) for key in range(1, 101)}
     allocation = divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
-                        delta=random_value, epsilon=0.5, t=EFTBStatus.EF_TB)
+                        delta=0.5, epsilon=0.5, t=EFTBStatus.NO_EF_TB)
     for i in range(1, 101):
         assert (f"c{i}" in allocation[f"s{i}"])
 
 
 def test_case__3_mini():
-    utilities = {f"s{i}": {f"c{6 - j}": j for j in range(5, 0, -1)} for i in range(1, 6)}
-    instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
-    initial_budgets = {f"s{key}": (6 - key) for key in range(1, 6)}
-    allocation = divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
-                        delta=random_value, epsilon=0.5, t=EFTBStatus.EF_TB)
-    for i in range(1, 6):
-        assert (f"c{i}" in allocation[f"s{i}"])
+    for delta in np.linspace(0.1, 2, 20):
+        logger.info(f"----------DELTA = {delta}---------------")
+        utilities = {f"s{i}": {f"c{6 - j}": j for j in range(5, 0, -1)} for i in range(1, 6)}
+        instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
+        initial_budgets = {f"s{key}": (6 - key) for key in range(1, 6)}
+        allocation = divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
+                            delta=delta, epsilon=0.5, t=EFTBStatus.EF_TB)
+        for i in range(1, 6):
+            assert (f"c{i}" in allocation[f"s{i}"])
 
 
 # Each student will get his 3 favorite courses

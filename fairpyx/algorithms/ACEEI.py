@@ -73,8 +73,9 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
 
     """
 
+    logger.info("START student_best_bundle_per_budget")
     best_bundle_per_budget = {student: {} for student in instance.agents}
-    logger.info("START combinations")
+    # logger.info("START combinations")
     for student in instance.agents:
 
         # Creating a list of combinations of courses up to the size of the student's capacity
@@ -82,7 +83,7 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
         capacity = instance.agent_capacity(student)
         for r in range(1, capacity + 1):
             combinations_courses_list.extend(combinations(instance.items, r))
-        logger.info(f"FINISH combinations for {student}")
+        # logger.info(f"FINISH combinations for {student}")
 
         #  We would like to meet the requirement of the number of courses a student needs, therefore if
         #  the current combination meets the requirement we will give it more weight
@@ -119,7 +120,7 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     return best_bundle_per_budget
 
 
-def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict, instance: Instance, t:Enum):
+def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict, instance: Instance, t: Enum):
     # return: new_budgets, norma, allocation, excess_demand
     logger.info("START find_budget_perturbation")
     map_student_to_best_bundle_per_budget = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
@@ -241,6 +242,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
         for key in prices:
             prices[key] += delta * excess_demand_per_course[key]
+        logger.info("UPDATE PRICES: %s", prices)
 
     logger.info("Clearing error 0!")
     for student, (price, bundle) in new_budgets.items():
@@ -261,8 +263,9 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
 
 if __name__ == "__main__":
     import doctest
+    from fairpyx.adaptors import divide
 
-    doctest.testmod()
+    # doctest.testmod()
 
     # from fairpyx.adaptors import divide
     #
@@ -272,16 +275,43 @@ if __name__ == "__main__":
     #
     # logger.addHandler(logging.StreamHandler())
     # logger.setLevel(logging.INFO)
+    # logging.basicConfig(level=logging.WARNING)
 
     # instance = Instance(
-    #    valuations={"avi":{"x":1, "y":2, "z":4}, "beni":{"x":2, "y":3, "z":1}},
-    #    agent_capacities=2,
-    #    item_capacities={"x":1, "y":1, "z":2})
-    # initial_budgets = {"avi":2, "beni":3}
+    #     valuations={"alice": {"CS161": 5, "ECON101": 3, "IR": 6},
+    #                 "bob": {"CS161": 3, "ECON101": 2, "IR": 0},
+    #                 "eve-1": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-2": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-3": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-4": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-5": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-6": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-7": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-8": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-9": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-10": {"CS161": 0, "ECON101": 10, "IR": 1}},  # TODO
+    #     agent_capacities=2,
+    #     item_capacities={"CS161": 1, "ECON101": 10, "IR": 100})
+    # initial_budgets = {"alice": 4.7, "bob": 4.4, "eve-1": 6, "eve-2": 1, "eve-3": 1, "eve-4": 1, "eve-5": 1, "eve-6": 1,
+    #                    "eve-7": 1, "eve-8": 1, "eve-9": 1, "eve-10": 1}
     # delta = 0.5
     # epsilon = 0.5
-    # t = EFTBStatus.NO_EF_TB
-    # print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon, t=t))
+    # t = EFTBStatus.EF_TB
+    #
+    # print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
+    #              t=t))
+
+    instance = Instance(
+        valuations={"alice": {"CS161": 5, "ECON101": 3, "IR": 6}, "bob": {"CS161": 3, "ECON101": 5, "IR": 0},
+                    "eve": {"CS161": 1, "ECON101": 10, "IR": 0}},
+        agent_capacities=2,
+        item_capacities={"CS161": 1, "ECON101": 1, "IR": 100000})
+    initial_budgets = {"alice": 2, "bob": 1, "eve": 4}
+    delta = 0.5
+    epsilon = 0.5
+    t = EFTBStatus.EF_TB
+    print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
+                 t=t))
 
     # instance = Instance(
     #     valuations={"avi":{"x":2}, "beni":{"x":3}},

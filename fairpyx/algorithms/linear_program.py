@@ -91,19 +91,19 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
                         # Add key to bundle_j
                         bundle_j.append(key)
 
-                logger.info(f"----------{t}---------")
-                logger.info(f"bundle_j of {other_student} = {bundle_j}")
+                # logger.info(f"----------{t}---------")
+                # logger.info(f"bundle_j of {other_student} = {bundle_j}")
 
                 sorted_bundle_j = sorted(bundle_j, key=lambda course: instance.agent_item_value(student, course),
                                          reverse=True)
-                logger.info(f"sorted_bundle_j by {student} valuation = {sorted_bundle_j}")
+                # logger.info(f"sorted_bundle_j by {student} valuation = {sorted_bundle_j}")
 
                 sorted_bundle_j = sorted_bundle_j[:instance.agent_capacity(student)]
-                logger.info(f"instance.agent_capacity = {instance.agent_capacity(student)}")
-                logger.info(f"sorted_bundle_j of {student} = {sorted_bundle_j}")
+                # logger.info(f"instance.agent_capacity = {instance.agent_capacity(student)}")
+                # logger.info(f"sorted_bundle_j of {student} = {sorted_bundle_j}")
 
                 bundle_j = tuple(sorted_bundle_j)
-                logger.info(f"finish update bundle_j of {student} = {bundle_j}")
+                # logger.info(f"finish update bundle_j of {student} = {bundle_j}")
 
             if instance.agent_bundle_value(student, bundle_j) > instance.agent_bundle_value(student, bundle_i):
                 result.append((bundle_i, original_bundle_j))
@@ -165,10 +165,10 @@ def get_envy_constraints(instance: Instance, initial_budgets: dict, a: dict, t: 
                     if result:
                         for pair in result:
                             i, j = pair
-                            logger.info(f"bundle {i} , bundle {j}")
+                            # logger.info(f"bundle {i} , bundle {j}")
                             # envy_constraints.append((x[student, i], x[other_student, j]))
                             envy_constraints.append(((student, i), (other_student, j)))
-                            logger.info(f"student {student} bundle {i} envy student {other_student} bundle {j}")
+                            # logger.info(f"student {student} bundle {i} envy student {other_student} bundle {j}")
     return envy_constraints
 
 
@@ -189,7 +189,9 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
         ({'Alice': (3, ('x', 'z')), 'Bob': (2, ('y', 'z'))}, 0.0, {'x': 0.0, 'y': 0.0, 'z': 0.0})
     """
 
-    logger.info(f"a {a}")
+    # logger.info(f"a {a}")
+    logger.info("START LINEAR_PROGRAM")
+
     model = Model("allocations")
     courses_names = list(instance.items)
     students_names = list(instance.agents)
