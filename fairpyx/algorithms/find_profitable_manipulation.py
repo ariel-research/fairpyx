@@ -6,6 +6,9 @@ Since: 2024-05
 """
 import logging
 from enum import Enum
+
+import numpy as np
+
 from fairpyx import Instance, AllocationBuilder
 
 
@@ -16,11 +19,17 @@ class criteria_for_profitable_manipulation(Enum):
 
 logger = logging.getLogger(__name__)
 
-# TODO: how to test random - add helper function that return random budgets
-# TODO: how to pass utilities in population - use random_uniform
+
+# TODO: ask erel how to change the instance for the criteria population - how to change moti values to the correct
+
+
+def random_initial_budgets(instance: Instance, beta: float):
+    return {agent: np.random.uniform(1 + (beta / 4), 1 + ((3 * beta) / 4)) for agent in instance.agents}
+
 
 def find_profitable_manipulation(mechanism: callable, student: str, utility: dict,
-                                 criteria: Enum, neu: float, instance: Instance, delta: float, epsilon: float, t: Enum):
+                                 criteria: Enum, neu: float, instance: Instance, delta: float, epsilon: float, t: Enum, initial_budgets: dict,
+                                 beta: float):
     """
    "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
     by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
@@ -41,11 +50,12 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
               0 for no EF-TB constraint,
               1 for EF-TB constraint,
               2 for contested EF-TB
+    :param beta: a parameter that determines the distribution of the initial budgets
 
     return: The profitable manipulation
 
     >>> from fairpyx.algorithms.ACEEI import find_ACEEI_with_EFTB
-    >>> from fairpyx.algorithms import ACEEI
+    >>> from fairpyx.algorithms import ACEEI, tabu_search
     >>> logger.addHandler(logging.StreamHandler())
     >>> logger.setLevel(logging.INFO)
 
@@ -59,10 +69,12 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     ...     valuations={"avi":{"x":3, "y":5, "z":1}, "beni":{"x":2, "y":3, "z":1}, "moti": {"x":1, "y":2, "z":4}},
     ...     agent_capacities=2,
     ...     item_capacities={"x":1, "y":2, "z":3})
+    >>> beta = 2
+    >>> initial_budgets = random_initial_budgets(instance, beta)
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t)
+    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
     {"x":1, "y":2, "z":4}
 
     Example run 2
@@ -75,10 +87,12 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     ...     valuations={"avi":{"x":3, "y":5, "z":1}, "beni":{"x":2, "y":3, "z":1}, "moti": {"x":1, "y":2, "z":4}},
     ...     agent_capacities=2,
     ...     item_capacities={"x":1, "y":2, "z":3})
+    >>> beta = 2
+    >>> initial_budgets = random_initial_budgets(instance, beta)
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.EF_TB
-    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t)
+    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
     {"x":1, "y":2, "z":4}
 
 
@@ -92,10 +106,12 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     ...     valuations={"avi":{"x":5, "y":3}, "moti": {"x":6, "y":2}},
     ...     agent_capacities=2,
     ...     item_capacities={"x":1, "y":2})
+    >>> beta = 2
+    >>> initial_budgets = random_initial_budgets(instance, beta)
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t)
+    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
     {"x":6, "y":2}
 
     Example run 5
@@ -104,14 +120,16 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     >>> utility = {"x":1, "y":2, "z":5}
     >>> criteria = criteria_for_profitable_manipulation.population
     >>> neu = 2
-    >>> instance = Instance(
-    ...     valuations={"moti": {"x":1, "y":2, "z":5}},
-    ...     agent_capacities=2,
-    ...     item_capacities={"x":1, "y":2, "z":3})
+    >>> instance = Instance.random_uniform(num_of_agents=3, num_of_items=3, agent_capacity_bounds=(2,2),
+    ... item_capacity_bounds=(1,3), item_base_value_bounds=(1, 5),
+    ... item_subjective_ratio_bounds=(1, 1.5),
+    ... normalized_sum_of_values=1000)
+    >>> beta = 2
+    >>> initial_budgets = random_initial_budgets(instance, beta)
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t)
+    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
     {"x":1, "y":2, "z":5}
 
    """
