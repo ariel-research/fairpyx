@@ -95,59 +95,7 @@ def visualize_graph(envy_graph):
     plt.title('Basic Envy Graph')
     plt.show()
 
-# def remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities):
-#     """
-#     Removes cycles from the envy graph by updating the bundles.
-#
-#     :param envy_graph: The envy graph (a directed graph).
-#     :param alloc: An AllocationBuilder instance for managing allocations.
-#     :param valuation_func: Function to determine the value of an item for an agent.
-#     :param item_categories: A dictionary of categories, with each category paired with a list of items.
-#     :param agent_category_capacities: A dictionary of dictionaries mapping agents to their capacities for each category.
-#
-#     >>> import networkx as nx
-#     >>> from fairpyx import Instance, AllocationBuilder
-#     >>> valuations = {'Agent1': {'Item1': 3, 'Item2': 5,'Item3': 1}, 'Agent2': {'Item1': 2, 'Item2': 6 ,'Item3':10}, 'Agent3': {'Item1': 4, 'Item2': 1,'Item3':2.8}}
-#     >>> items = ['Item1', 'Item2','Item3']
-#     >>> instance = Instance(valuations=valuations, items=items)
-#     >>> alloc = AllocationBuilder(instance)
-#     >>> alloc.give('Agent1', 'Item1')
-#     >>> alloc.give('Agent2', 'Item2')
-#     >>> alloc.give('Agent3', 'Item3')
-#     >>> item_categories = {'c1': ['Item1', 'Item2','Item3']}
-#     >>> agent_category_capacities = {'Agent1': {'c1': 1}, 'Agent2': {'c1': 1}, 'Agent3': {'c1': 1}}
-#     >>> envy_graph = nx.DiGraph()
-#     >>> valuation_callable=alloc.instance.agent_item_value
-#     >>> def valuation_func(agent, item): return valuation_callable(agent,item)
-#     >>> update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
-#     >>> list(envy_graph.edges)
-#     [('Agent1', 'Agent2'), ('Agent2', 'Agent3'), ('Agent3', 'Agent1')]
-#     >>> not nx.is_directed_acyclic_graph(envy_graph)
-#     True
-#     >>> remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
-#     >>> list(nx.simple_cycles(envy_graph))
-#     []
-#     >>> list(envy_graph.edges)
-#     [('Agent1', 'Agent2'), ('Agent1', 'Agent3')]
-#     >>> alloc.bundles
-#     {'Agent1': set(), 'Agent2': {'Item2'}, 'Agent3': {'Item1'}}
-#     """
-#     while not nx.is_directed_acyclic_graph(envy_graph):
-#         try:
-#             # Find one directed cycle
-#             cycle = nx.find_cycle(envy_graph, orientation='original')
-#             # Perform bundle switching along the cycle
-#             temp_val = alloc.bundles[cycle[0][0]].copy()
-#             for i in range(len(cycle)):
-#                 current_agent = cycle[i][0]
-#                 next_agent = cycle[(i + 1) % len(cycle)][0]
-#                 alloc.bundles[current_agent], temp_val = temp_val, alloc.bundles[next_agent].copy()
-#             # Update the envy graph
-#             update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-#                               item_categories=item_categories, agent_category_capacities=agent_category_capacities)
-#         except nx.NetworkXNoCycle:
-#             break
-#
+
 def remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities):
     """
     Removes cycles from the envy graph by updating the bundles.
@@ -185,24 +133,6 @@ def remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_cate
     >>> alloc.bundles
     {'Agent1': {'Item2'}, 'Agent2': {'Item3'}, 'Agent3': {'Item1'}}
     """
-    # while not nx.is_directed_acyclic_graph(envy_graph):
-    #     try:
-    #
-    #         # Find one directed cycle
-    #         cycle = nx.find_cycle(envy_graph, orientation='original')
-    #         #print(cycle)
-    #         # Perform bundle switching along the cycle
-    #         temp_val = alloc.bundles[cycle[0][0]].copy()
-    #         for i in range(len(cycle)):
-    #             current_agent = cycle[i][0]
-    #             next_agent = cycle[(i + 1) % len(cycle)][0]
-    #             alloc.bundles[current_agent], temp_val = temp_val, alloc.bundles[next_agent].copy()
-    #         # Update the envy graph
-    #         update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-    #                           item_categories=item_categories, agent_category_capacities=agent_category_capacities)
-    #     except nx.NetworkXNoCycle:
-    #         #print('wtf')
-    #         break
     while not nx.is_directed_acyclic_graph(envy_graph):
         try:
             cycle = nx.find_cycle(envy_graph, orientation='original')
@@ -224,41 +154,6 @@ def remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_cate
 
         except nx.NetworkXNoCycle:
             break
-
-# if __name__ == "__main__":
-#     import doctest
-#     doctest.testmod()
-
-    # valuations = {
-    #     'Agent1': {'Item1': 3, 'Item2': 5, 'Item3': 1},
-    #     'Agent2': {'Item1': 2, 'Item2': 6, 'Item3': 10},
-    #     'Agent3': {'Item1': 4, 'Item2': 1, 'Item3': 2.8}
-    # }
-    # items = ['Item1', 'Item2', 'Item3']
-    # instance = Instance(valuations=valuations, items=items)
-    # alloc = AllocationBuilder(instance)
-    # alloc.give('Agent1', 'Item1')
-    # alloc.give('Agent2', 'Item2')
-    # alloc.give('Agent3', 'Item3')
-    # item_categories = {'c1': ['Item1', 'Item2', 'Item3']}
-    # agent_category_capacities = {'Agent1': {'c1': 1}, 'Agent2': {'c1': 1}, 'Agent3': {'c1': 1}}
-    # envy_graph = nx.DiGraph()
-    #
-    # valuation_callable = alloc.instance.agent_item_value
-
-
-    # def valuation_func(agent, item): return valuation_callable(agent, item)
-    #
-    #
-    # update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
-    # print("Edges in envy graph before cycle removal:", list(envy_graph.edges))
-    # print("Is directed acyclic graph before cycle removal:", not nx.is_directed_acyclic_graph(envy_graph))
-    # print(nx.find_cycle(envy_graph,orientation="original"))
-    # remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
-    #
-    # print("Cycles in envy graph after cycle removal:", list(nx.simple_cycles(envy_graph)))
-    # print("Edges in envy graph after cycle removal:", list(envy_graph.edges))
-    # print("Final bundles:", alloc.bundles)
 
 
 def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
@@ -309,35 +204,6 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order=order)
     {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3'], 'Agent4': ['m4']}
     """
-    # envy_graph = nx.DiGraph()
-    # current_order = initial_agent_order
-    # valuation_func = alloc.instance.agent_item_value
-    # for category in item_categories.keys():
-    #     categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
-    #                                              category)  # this is RR without wrapper
-    #     update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-    #                       item_categories=item_categories, agent_category_capacities=agent_category_capacities)
-    #     #print(f"{category} bundle is {alloc.bundles}")
-    #     #visualize_graph(envy_graph)
-    #     if not nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
-    #         for cycle in nx.simple_cycles(
-    #                 envy_graph):
-    #             #do bundle switching along the cycle
-    #             temp_val = alloc.bundles[cycle[0]]
-    #             for i in range(len(cycle)):
-    #                 original = alloc.bundles[cycle[(i + 1) % len(cycle)]]
-    #                 alloc.bundles[cycle[(i + 1) % len(cycle)]] = temp_val
-    #                 temp_val = original
-    #             #after eleminating a cycle we update the graph there migh be no need to touch the other cycle because it might disappear after dealing with 1 !
-    #             update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-    #                               item_categories=item_categories, agent_category_capacities=agent_category_capacities)
-    #             if nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
-    #                 break
-    #         #update the graph after cycle removal
-    #         update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-    #                           item_categories=item_categories, agent_category_capacities=agent_category_capacities)
-    #     current_order = list(nx.topological_sort(envy_graph))
-
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
@@ -357,9 +223,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
             remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
         current_order = list(nx.topological_sort(envy_graph))
 
-# if __name__ == "__main__":
-#     import doctest
-#     doctest.testmod()
+
 def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
                        initial_agent_order: list,target_category:str='c1'):
     """
@@ -426,10 +290,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
                                              target_category=target_category)  # this is RR without wrapper
 
 
-# if __name__ == "__main__":
-#     import doctest
-#     doctest.testmod()
-#
+
 
 def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
                                       initial_agent_order: list, target_category_pair: tuple[str]=('c1','c2')):
@@ -503,10 +364,6 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
                                              target_category=target_category_pair[1])  # calling CRR on first category
 
 
-# if __name__ == "__main__":
-#     import doctest
-#     doctest.testmod()
-
 
 def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
                                     initial_agent_order: list):
@@ -566,32 +423,6 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
         update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
                           item_categories=item_categories, agent_category_capacities=agent_category_capacities)
         current_order = list(nx.topological_sort(envy_graph))
-
-
-# if __name__ == "__main__":
-#     import doctest
-#
-#     doctest.testmod()
-# import networkx as nx
-# import matplotlib.pyplot as plt
-#
-# # Create an empty bipartite graph
-# G = nx.Graph()
-#
-# # Add nodes to the graph. Nodes in set A are labeled 0 to 4, and nodes in set B are labeled 'a' to 'e'.
-# G.add_nodes_from([0, 1, 2, 3, 4], bipartite=0)  # Set A nodes
-# G.add_nodes_from(['a', 'b', 'c', 'd', 'e'], bipartite=1)  # Set B nodes
-#
-# # Add edges between nodes in set A and set B
-# edges = [(0, 'a'), (1, 'b'), (2, 'c'), (3, 'd'), (4, 'e')]
-# G.add_edges_from(edges)
-#
-# # Draw the bipartite graph
-# pos = nx.bipartite_layout(G, [0, 1, 2, 3, 4])  # Specify the nodes in set A for layout
-# nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=1000, font_size=10, font_weight='bold')
-#
-# # Display the graph
-# plt.show()
 
 
 def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):

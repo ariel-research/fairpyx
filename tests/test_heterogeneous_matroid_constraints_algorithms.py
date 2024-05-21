@@ -212,7 +212,7 @@ def test_algorithm_4(): # TODO equal_valuations=True
                           item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order),
                    instance=instance
                    , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
-                   valuations_func=instance.agent_item_value) is True
+                   valuations_func=instance.agent_item_value) is True #check the is_fef1 function
 
 
 def test_algorithm_5():  # binary valuations # TODO force it to create instance witn no cyclces in envy graph kind of weird since in binary vals no envy cycle can be imagined
