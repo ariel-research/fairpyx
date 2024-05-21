@@ -1,7 +1,12 @@
+"""
+An implementation of the algorithms in:
+"Fair Division under Heterogeneous Matroid Constraints", by Dror, Feldman, Segal-Halevi (2010), https://arxiv.org/abs/2010.07280v4
+Programmer: Abed ElKareem Massarwa.
+Date: 2024-03.
+"""
+
 from itertools import cycle
-
 from networkx import DiGraph
-
 import fairpyx.algorithms
 from fairpyx import Instance, AllocationBuilder
 from fairpyx.algorithms import *
@@ -13,17 +18,18 @@ import logging
 logger = logging.getLogger(__name__)  #TODO understand what the flip is this
 
 
-def envy(source: str, target: str, bundles: dict[str,set or list ], val_func: callable, item_categories: dict,
+def envy(source: str, target: str, bundles: dict[str, set or list], val_func: callable, item_categories: dict,
          agent_category_capacities: dict):
     val = val_func
     source_bundle_val = sum(list(val(source, current_item) for current_item in bundles[source]))
     #target_bundle_val = sum(list(val(source, current_item) for current_item in bundles[target])) #old non feasible method
-    copy= bundles[target].copy()
-    target_bundle_val=0
-    sorted(copy, key=lambda x: val(source, x),reverse=True) # sort target items  in the perspective of the envier
+    copy = bundles[target].copy()
+    target_bundle_val = 0
+    sorted(copy, key=lambda x: val(source, x), reverse=True)  # sort target items  in the perspective of the envier
     for category in item_categories.keys():
-        candidates=[item for item in copy if item in item_categories[category]] # assumes sorted in reverse (maximum comes first)
-        target_bundle_val+=sum(val(source,x) for x in candidates[:agent_category_capacities[source][category]])
+        candidates = [item for item in copy if
+                      item in item_categories[category]]  # assumes sorted in reverse (maximum comes first)
+        target_bundle_val += sum(val(source, x) for x in candidates[:agent_category_capacities[source][category]])
 
     #print(source_bundle_val, target_bundle_val)
     return target_bundle_val > source_bundle_val
@@ -85,6 +91,171 @@ def visualize_graph(envy_graph):
     plt.title('Basic Envy Graph')
     plt.show()
 
+# def remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities):
+#     """
+#     Removes cycles from the envy graph by updating the bundles.
+#
+#     :param envy_graph: The envy graph (a directed graph).
+#     :param alloc: An AllocationBuilder instance for managing allocations.
+#     :param valuation_func: Function to determine the value of an item for an agent.
+#     :param item_categories: A dictionary of categories, with each category paired with a list of items.
+#     :param agent_category_capacities: A dictionary of dictionaries mapping agents to their capacities for each category.
+#
+#     >>> import networkx as nx
+#     >>> from fairpyx import Instance, AllocationBuilder
+#     >>> valuations = {'Agent1': {'Item1': 3, 'Item2': 5,'Item3': 1}, 'Agent2': {'Item1': 2, 'Item2': 6 ,'Item3':10}, 'Agent3': {'Item1': 4, 'Item2': 1,'Item3':2.8}}
+#     >>> items = ['Item1', 'Item2','Item3']
+#     >>> instance = Instance(valuations=valuations, items=items)
+#     >>> alloc = AllocationBuilder(instance)
+#     >>> alloc.give('Agent1', 'Item1')
+#     >>> alloc.give('Agent2', 'Item2')
+#     >>> alloc.give('Agent3', 'Item3')
+#     >>> item_categories = {'c1': ['Item1', 'Item2','Item3']}
+#     >>> agent_category_capacities = {'Agent1': {'c1': 1}, 'Agent2': {'c1': 1}, 'Agent3': {'c1': 1}}
+#     >>> envy_graph = nx.DiGraph()
+#     >>> valuation_callable=alloc.instance.agent_item_value
+#     >>> def valuation_func(agent, item): return valuation_callable(agent,item)
+#     >>> update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
+#     >>> list(envy_graph.edges)
+#     [('Agent1', 'Agent2'), ('Agent2', 'Agent3'), ('Agent3', 'Agent1')]
+#     >>> not nx.is_directed_acyclic_graph(envy_graph)
+#     True
+#     >>> remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
+#     >>> list(nx.simple_cycles(envy_graph))
+#     []
+#     >>> list(envy_graph.edges)
+#     [('Agent1', 'Agent2'), ('Agent1', 'Agent3')]
+#     >>> alloc.bundles
+#     {'Agent1': set(), 'Agent2': {'Item2'}, 'Agent3': {'Item1'}}
+#     """
+#     while not nx.is_directed_acyclic_graph(envy_graph):
+#         try:
+#             # Find one directed cycle
+#             cycle = nx.find_cycle(envy_graph, orientation='original')
+#             # Perform bundle switching along the cycle
+#             temp_val = alloc.bundles[cycle[0][0]].copy()
+#             for i in range(len(cycle)):
+#                 current_agent = cycle[i][0]
+#                 next_agent = cycle[(i + 1) % len(cycle)][0]
+#                 alloc.bundles[current_agent], temp_val = temp_val, alloc.bundles[next_agent].copy()
+#             # Update the envy graph
+#             update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
+#                               item_categories=item_categories, agent_category_capacities=agent_category_capacities)
+#         except nx.NetworkXNoCycle:
+#             break
+#
+def remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities):
+    """
+    Removes cycles from the envy graph by updating the bundles.
+
+    :param envy_graph: The envy graph (a directed graph).
+    :param alloc: An AllocationBuilder instance for managing allocations.
+    :param valuation_func: Function to determine the value of an item for an agent.
+    :param item_categories: A dictionary of categories, with each category paired with a list of items.
+    :param agent_category_capacities: A dictionary of dictionaries mapping agents to their capacities for each category.
+
+    >>> import networkx as nx
+    >>> from fairpyx import Instance, AllocationBuilder
+    >>> valuations = {'Agent1': {'Item1': 3, 'Item2': 5,'Item3': 1}, 'Agent2': {'Item1': 2, 'Item2': 6 ,'Item3':10}, 'Agent3': {'Item1': 4, 'Item2': 1,'Item3':2.8}}
+    >>> items = ['Item1', 'Item2','Item3']
+    >>> instance = Instance(valuations=valuations, items=items)
+    >>> alloc = AllocationBuilder(instance)
+    >>> alloc.give('Agent1', 'Item1')
+    >>> alloc.give('Agent2', 'Item2')
+    >>> alloc.give('Agent3', 'Item3')
+    >>> item_categories = {'c1': ['Item1', 'Item2','Item3']}
+    >>> agent_category_capacities = {'Agent1': {'c1': 1}, 'Agent2': {'c1': 1}, 'Agent3': {'c1': 1}}
+    >>> envy_graph = nx.DiGraph()
+    >>> valuation_callable=alloc.instance.agent_item_value
+    >>> def valuation_func(agent, item): return valuation_callable(agent,item)
+    >>> update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
+    >>> list(envy_graph.edges)
+    [('Agent1', 'Agent2'), ('Agent2', 'Agent3'), ('Agent3', 'Agent1')]
+    >>> not nx.is_directed_acyclic_graph(envy_graph)
+    True
+    >>> remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
+    >>> list(nx.simple_cycles(envy_graph))
+    []
+    >>> list(envy_graph.edges)
+    []
+    >>> alloc.bundles
+    {'Agent1': {'Item2'}, 'Agent2': {'Item3'}, 'Agent3': {'Item1'}}
+    """
+    # while not nx.is_directed_acyclic_graph(envy_graph):
+    #     try:
+    #
+    #         # Find one directed cycle
+    #         cycle = nx.find_cycle(envy_graph, orientation='original')
+    #         #print(cycle)
+    #         # Perform bundle switching along the cycle
+    #         temp_val = alloc.bundles[cycle[0][0]].copy()
+    #         for i in range(len(cycle)):
+    #             current_agent = cycle[i][0]
+    #             next_agent = cycle[(i + 1) % len(cycle)][0]
+    #             alloc.bundles[current_agent], temp_val = temp_val, alloc.bundles[next_agent].copy()
+    #         # Update the envy graph
+    #         update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
+    #                           item_categories=item_categories, agent_category_capacities=agent_category_capacities)
+    #     except nx.NetworkXNoCycle:
+    #         #print('wtf')
+    #         break
+    while not nx.is_directed_acyclic_graph(envy_graph):
+        try:
+            cycle = nx.find_cycle(envy_graph, orientation='original')
+            #print("Detected cycle:", cycle)  # Debugging: Print detected cycle
+
+            # Extract the agents involved in the cycle
+            agents_in_cycle = [edge[0] for edge in cycle]
+            #print(f'agents in cycle{agents_in_cycle}')
+            # Perform bundle switching along the cycle
+            temp_val = alloc.bundles[agents_in_cycle[0]] # we begin with temp as the bundle of the first agent
+            for i in range(len(agents_in_cycle)):
+                #print(f"bundle in iteration {i} is {alloc.bundles}")
+                current_agent = agents_in_cycle[i]
+                next_agent = agents_in_cycle[(i + 1) % len(agents_in_cycle)]
+                alloc.bundles[next_agent], temp_val = temp_val, alloc.bundles[next_agent] # instead of the boring swap which requires extra temp val
+                #print(f"bundle in iteration {i} after modification {alloc.bundles}")
+            # Update the envy graph
+            update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
+
+        except nx.NetworkXNoCycle:
+            break
+
+# if __name__ == "__main__":
+#     import doctest
+#     doctest.testmod()
+
+    # valuations = {
+    #     'Agent1': {'Item1': 3, 'Item2': 5, 'Item3': 1},
+    #     'Agent2': {'Item1': 2, 'Item2': 6, 'Item3': 10},
+    #     'Agent3': {'Item1': 4, 'Item2': 1, 'Item3': 2.8}
+    # }
+    # items = ['Item1', 'Item2', 'Item3']
+    # instance = Instance(valuations=valuations, items=items)
+    # alloc = AllocationBuilder(instance)
+    # alloc.give('Agent1', 'Item1')
+    # alloc.give('Agent2', 'Item2')
+    # alloc.give('Agent3', 'Item3')
+    # item_categories = {'c1': ['Item1', 'Item2', 'Item3']}
+    # agent_category_capacities = {'Agent1': {'c1': 1}, 'Agent2': {'c1': 1}, 'Agent3': {'c1': 1}}
+    # envy_graph = nx.DiGraph()
+    #
+    # valuation_callable = alloc.instance.agent_item_value
+
+
+    # def valuation_func(agent, item): return valuation_callable(agent, item)
+    #
+    #
+    # update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
+    # print("Edges in envy graph before cycle removal:", list(envy_graph.edges))
+    # print("Is directed acyclic graph before cycle removal:", not nx.is_directed_acyclic_graph(envy_graph))
+    # print(nx.find_cycle(envy_graph,orientation="original"))
+    # remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
+    #
+    # print("Cycles in envy graph after cycle removal:", list(nx.simple_cycles(envy_graph)))
+    # print("Edges in envy graph after cycle removal:", list(envy_graph.edges))
+    # print("Final bundles:", alloc.bundles)
+
 
 def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
                              initial_agent_order: list):
@@ -134,37 +305,59 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order=order)
     {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3'], 'Agent4': ['m4']}
     """
+    # envy_graph = nx.DiGraph()
+    # current_order = initial_agent_order
+    # valuation_func = alloc.instance.agent_item_value
+    # for category in item_categories.keys():
+    #     categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
+    #                                              category)  # this is RR without wrapper
+    #     update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
+    #                       item_categories=item_categories, agent_category_capacities=agent_category_capacities)
+    #     #print(f"{category} bundle is {alloc.bundles}")
+    #     #visualize_graph(envy_graph)
+    #     if not nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
+    #         for cycle in nx.simple_cycles(
+    #                 envy_graph):
+    #             #do bundle switching along the cycle
+    #             temp_val = alloc.bundles[cycle[0]]
+    #             for i in range(len(cycle)):
+    #                 original = alloc.bundles[cycle[(i + 1) % len(cycle)]]
+    #                 alloc.bundles[cycle[(i + 1) % len(cycle)]] = temp_val
+    #                 temp_val = original
+    #             #after eleminating a cycle we update the graph there migh be no need to touch the other cycle because it might disappear after dealing with 1 !
+    #             update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
+    #                               item_categories=item_categories, agent_category_capacities=agent_category_capacities)
+    #             if nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
+    #                 break
+    #         #update the graph after cycle removal
+    #         update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
+    #                           item_categories=item_categories, agent_category_capacities=agent_category_capacities)
+    #     current_order = list(nx.topological_sort(envy_graph))
+
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
+
     for category in item_categories.keys():
-        categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
-                                                 category)  # this is RR without wrapper
-        update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-                          item_categories=item_categories, agent_category_capacities=agent_category_capacities)
-        #print(f"{category} bundle is {alloc.bundles}")
-        #visualize_graph(envy_graph)
-        if not nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
-            for cycle in nx.simple_cycles(envy_graph):
-                #do bundle switching along the cycle
-                temp_val = alloc.bundles[cycle[0]]
-                for i in range(len(cycle)):
-                    original = alloc.bundles[cycle[(i + 1) % len(cycle)]]
-                    alloc.bundles[cycle[(i + 1) % len(cycle)]] = temp_val
-                    temp_val = original
-                #after eleminating a cycle we update the graph there migh be no need to touch the other cycle because it might disappear after dealing with 1 !
-                update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-                                  item_categories=item_categories, agent_category_capacities=agent_category_capacities)
-                if nx.algorithms.dag.is_directed_acyclic_graph(envy_graph):
-                    break
-            #update the graph after cycle removal
-            update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-                              item_categories=item_categories, agent_category_capacities=agent_category_capacities)
+        categorization_friendly_picking_sequence(
+            alloc, current_order, item_categories, agent_category_capacities, category
+        )
+        update_envy_graph(
+            curr_bundles=alloc.bundles,
+            valuation_func=valuation_func,
+            envy_graph=envy_graph,
+            item_categories=item_categories,
+            agent_category_capacities=agent_category_capacities
+        )
+        if not nx.is_directed_acyclic_graph(envy_graph):
+            remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
         current_order = list(nx.topological_sort(envy_graph))
 
-
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
 def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
-                       initial_order: list):
+                       initial_order: list,target_category:str):
     """
     this is Algorithm 2 CRR (capped round-robin) algorithm TLDR: single category , may have differnt capacities
     capped in CRR stands for capped capacity for each agent unlke RR , maye have different valuations -> F-EF1 (
@@ -175,6 +368,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
         :param agent_category_capacities:  a dictionary of dictionaru in which in the first dimension we have agents then
         paired with a dictionary of category-capacity.
         :param initial_order: a list representing the order we start with in the algorithm
+        :param target_category: a string representing the category we are going to be processing
 
     >>> # Example 1 (2 agents 1 of them with capacity of 0)
     >>> from fairpyx import  divide
@@ -183,7 +377,8 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> item_categories = {'c1': ['m1']}
     >>> agent_category_capacities = {'Agent1': {'c1':0}, 'Agent2': {'c1':1}}
     >>> valuations = {'Agent1':{'m1':0},'Agent2':{'m1':420}}
-    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order = order)
+    >>> target_category='c1'
+    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order = order,target_category=target_category)
     {'Agent1': [], 'Agent2': ['m1']}
 
     >>> # Example 2 (3 agents , 4 items)
@@ -193,7 +388,8 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> item_categories = {'c1': ['m1', 'm2','m3','m4']}
     >>> agent_category_capacities = {'Agent1': {'c1':2}, 'Agent2': {'c1':2},'Agent3': {'c1':2}}
     >>> valuations = {'Agent1':{'m1':10,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':10,'m3':1},'Agent3':{'m1':1,'m2':1,'m3':10}}
-    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
+    >>> target_category='c1'
+    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order,target_category=target_category)
     {'Agent1': ['m1', 'm4'], 'Agent2': ['m2'], 'Agent3': ['m3']}
 
 
@@ -204,7 +400,8 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> item_categories = {'c1': ['m1', 'm2']}
     >>> agent_category_capacities = {'Agent1': {'c1':1}, 'Agent2': {'c1':1},'Agent3': {'c1':1}}
     >>> valuations = {'Agent1':{'m1':10,'m2':5},'Agent2':{'m1':5,'m2':10}}
-    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order = order)
+    >>> target_category='c1'
+    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order = order,target_category=target_category)
     {'Agent1': ['m1'], 'Agent2': ['m2']}
 
     >>> # Example 4  (4 Agents , different capacities ,extra unallocated item at the termination of the algorithm)
@@ -214,14 +411,15 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> item_categories = {'c1': ['m1', 'm2','m3','m4','m5','m6','m7']}
     >>> agent_category_capacities = {'Agent1': {'c1':0}, 'Agent2': {'c1':1},'Agent3': {'c1':2},'Agent4': {'c1':3}}
     >>> valuations = {'Agent1':{'m1':1,'m2':2,'m3':3,'m4':4,'m5':5,'m6':6,'m7':0},'Agent2':{'m1':6,'m2':5,'m3':4,'m4':3,'m5':2,'m6':1,'m7':0},'Agent3':{'m1':1,'m2':2,'m3':5,'m4':6,'m5':3,'m6':4,'m7':0},'Agent4':{'m1':5,'m2':4,'m3':1,'m4':2,'m5':3,'m6':6,'m7':0}}
-    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
+    >>> target_category='c1'
+    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order,target_category=target_category)
     {'Agent1': [], 'Agent2': ['m1'], 'Agent3': ['m3', 'm4'], 'Agent4': ['m2', 'm5', 'm6']}
         """
-    #TODO i strongly believe we could use RR from the first algorithm simply run it one time since there is no more than 1 category
+
     # no need for envy graphs whatsoever
     current_order = initial_order
     categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
-                                             'c1')  # this is RR without wrapper
+                                             target_category=target_category)  # this is RR without wrapper
 
 
 # if __name__ == "__main__":
@@ -230,7 +428,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
 #
 
 def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
-                                      initial_order: list):
+                                      initial_order: list, target_category_pair: tuple[str]):
     """
         this is Algorithm 3 back and forth capped round-robin algorithm (2 categories,may have different capacities,may have different valuations)
         in which we simply
@@ -244,6 +442,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             :param agent_category_capacities:  a dictionary of dictionaru in which in the first dimension we have agents then
             paired with a dictionary of category-capacity.
             :param initial_order: a list representing the order we start with in the algorithm
+            :param target_category_pair: a pair of 2 categories since our algorithm deals with 2
 
             >>> # Example 1 (basic: 2 agents 3 items same capacities same valuations)
             >>> from fairpyx import  divide
@@ -252,7 +451,8 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> item_categories = {'c1': ['m1','m2'],'c2':['m3']}
             >>> agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2}}
             >>> valuations = {'Agent1':{'m1':10,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':1}}
-            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
+            >>> target_category_pair=('c1','c2')
+            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order,target_category_pair=target_category_pair)
             {'Agent1': ['m1'], 'Agent2': ['m2', 'm3']}
 
             >>> # Example 2 (case of single category so we deal with it as the normal CRR)
@@ -262,7 +462,8 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> item_categories = {'c1': ['m1', 'm2','m3'],'c2':[]}
             >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':0}, 'Agent2': {'c1':2,'c2':0},'Agent3': {'c1':0,'c2':0}}
             >>> valuations = {'Agent1':{'m1':10,'m2':3,'m3':3},'Agent2':{'m1':3,'m2':1,'m3':1},'Agent3':{'m1':10,'m2':10,'m3':10}}
-            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
+            >>> target_category_pair=('c1','c2')
+            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order,target_category_pair=target_category_pair)
             {'Agent1': ['m1'], 'Agent2': ['m2', 'm3'], 'Agent3': []}
 
 
@@ -273,7 +474,8 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> item_categories = {'c1': ['m1', 'm2'],'c2': ['m3', 'm4','m5','m6']}
             >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':1}, 'Agent2': {'c1':1,'c2':1},'Agent3': {'c1':1,'c2':1},'Agent4': {'c1':1,'c2':1}}
             >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1,'m4':10,'m5':1,'m6':1},'Agent2':{'m1':10,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1},'Agent3':{'m1':1,'m2':1,'m3':10,'m4':1,'m5':1,'m6':1},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':10,'m6':1}}
-            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
+            >>> target_category_pair=('c1','c2')
+            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order,target_category_pair=target_category_pair)
             {'Agent1': ['m4'], 'Agent2': ['m1', 'm6'], 'Agent3': ['m3'], 'Agent4': ['m2', 'm5']}
 
 
@@ -284,16 +486,17 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> item_categories = {'c1': ['m1', 'm2','m3', 'm4'],'c2': ['m5','m6']}
             >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':1}, 'Agent2': {'c1':0,'c2':2},'Agent3': {'c1':0,'c2':5}}
             >>> valuations = {'Agent1':{'m1':1,'m2':2,'m3':3,'m4':4,'m5':5,'m6':6},'Agent2':{'m1':6,'m2':5,'m3':4,'m4':3,'m5':2,'m6':1},'Agent3':{'m1':5,'m2':3,'m3':1,'m4':2,'m5':4,'m6':6}}
-            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order)
+            >>> target_category_pair=('c1','c2')
+            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order,target_category_pair=target_category_pair)
             {'Agent1': ['m2', 'm3', 'm4'], 'Agent2': ['m5'], 'Agent3': ['m6']}
             >>> # m1 remains unallocated unfortunately :-(
             """
     current_order = initial_order
     categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
-                                             'c1')  #calling CRR on first category
+                                             target_category=target_category_pair[0])  #calling CRR on first category
     current_order.reverse()  #reversing order
     categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
-                                             'c2')  # calling CRR on first category
+                                             target_category=target_category_pair[1])  # calling CRR on first category
 
 
 # if __name__ == "__main__":
@@ -365,26 +568,26 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
 #     import doctest
 #
 #     doctest.testmod()
-    # import networkx as nx
-    # import matplotlib.pyplot as plt
-    #
-    # # Create an empty bipartite graph
-    # G = nx.Graph()
-    #
-    # # Add nodes to the graph. Nodes in set A are labeled 0 to 4, and nodes in set B are labeled 'a' to 'e'.
-    # G.add_nodes_from([0, 1, 2, 3, 4], bipartite=0)  # Set A nodes
-    # G.add_nodes_from(['a', 'b', 'c', 'd', 'e'], bipartite=1)  # Set B nodes
-    #
-    # # Add edges between nodes in set A and set B
-    # edges = [(0, 'a'), (1, 'b'), (2, 'c'), (3, 'd'), (4, 'e')]
-    # G.add_edges_from(edges)
-    #
-    # # Draw the bipartite graph
-    # pos = nx.bipartite_layout(G, [0, 1, 2, 3, 4])  # Specify the nodes in set A for layout
-    # nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=1000, font_size=10, font_weight='bold')
-    #
-    # # Display the graph
-    # plt.show()
+# import networkx as nx
+# import matplotlib.pyplot as plt
+#
+# # Create an empty bipartite graph
+# G = nx.Graph()
+#
+# # Add nodes to the graph. Nodes in set A are labeled 0 to 4, and nodes in set B are labeled 'a' to 'e'.
+# G.add_nodes_from([0, 1, 2, 3, 4], bipartite=0)  # Set A nodes
+# G.add_nodes_from(['a', 'b', 'c', 'd', 'e'], bipartite=1)  # Set B nodes
+#
+# # Add edges between nodes in set A and set B
+# edges = [(0, 'a'), (1, 'b'), (2, 'c'), (3, 'd'), (4, 'e')]
+# G.add_edges_from(edges)
+#
+# # Draw the bipartite graph
+# pos = nx.bipartite_layout(G, [0, 1, 2, 3, 4])  # Specify the nodes in set A for layout
+# nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=1000, font_size=10, font_weight='bold')
+#
+# # Display the graph
+# plt.show()
 
 
 def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):
@@ -434,54 +637,44 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
     envy_graph = nx.DiGraph()
     current_order = [agent for agent in alloc.remaining_agents()]
     valuation_func = alloc.instance.agent_item_value
+
     for category in item_categories.keys():
-        maximum_capacity=max([agent_category_capacities[agent][category] for agent in agent_category_capacities.keys()])
-        remaining_category_agent_capacities = {agent: agent_category_capacities[agent][category] for agent in
-                                               agent_category_capacities if agent_category_capacities[agent][
-                                                   category] != 0}
+        maximum_capacity = max(
+            [agent_category_capacities[agent][category] for agent in agent_category_capacities.keys()])
+        remaining_category_agent_capacities = {
+            agent: agent_category_capacities[agent][category] for agent in agent_category_capacities if
+            agent_category_capacities[agent][category] != 0
+        }
+
         current_item_list = update_item_list(alloc, category, item_categories)
         current_agent_list = update_agent_list(current_order, remaining_category_agent_capacities)
-       #current_item_list = update_item_list(alloc, category, item_categories)
+
         for i in range(maximum_capacity):
-            # creation of agent-item graph and adding edges with weight based on current order
-            agent_item_bipartite_graph=nx.Graph()
-            agent_item_bipartite_graph.add_nodes_from([agent for agent in  remaining_category_agent_capacities.keys()], bipartite=0) # cant use alloc.remaining_agents() since it doesnt support multiple categorization
-            agent_item_bipartite_graph.add_nodes_from([item for item in alloc.remaining_items() if item in item_categories[category]], bipartite=1)
-            #print(f'category={category}  index={i} \ncurrent_agent_list is={current_agent_list} , current_item_list={current_item_list}\n current_order={current_order}')
-            for agent in current_agent_list:
-                counter= len(current_agent_list)
-                for item in current_item_list:
-                    if valuation_func(agent,item)!=0:
-                        agent_item_bipartite_graph.add_edge(agent,item,weight=counter)
-                counter-=1
-                #creation of envy graph
+            # Creation of agent-item graph
+            agent_item_bipartite_graph = create_agent_item_bipartite_graph(
+                agents=remaining_category_agent_capacities.keys(),
+                items=[item for item in alloc.remaining_items() if item in item_categories[category]],
+                valuation_func=valuation_func,
+                current_agent_list=current_agent_list
+            )
+
+            # Creation of envy graph
             update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
                               item_categories=item_categories, agent_category_capacities=agent_category_capacities)
-            #visualize_graph(envy_graph)
-            #topological sort
-            sort=list(nx.topological_sort(envy_graph))
+            # Topological sort
+            sort = list(nx.topological_sort(envy_graph))
             current_order = current_order if not sort else sort
-            # priority matching based on topological sort
-            for match in nx.max_weight_matching(agent_item_bipartite_graph):
-                # print(f'category={category}  index={i}')
-                # print(match)
-                if match[0].startswith('A'):
-                    alloc.give(match[0], match[1])
 
-                    remaining_category_agent_capacities[match[0]] -= 1
-                    if remaining_category_agent_capacities[match[0]] <= 0:
-                        del remaining_category_agent_capacities[match[0]]
-                else:
-                    alloc.give(match[1], match[0])
-                    remaining_category_agent_capacities[match[1]] -= 1
-                    if remaining_category_agent_capacities[match[1]] <= 0:
-                        del remaining_category_agent_capacities[match[1]]
-                current_item_list = update_item_list(alloc, category, item_categories)
-                current_agent_list = update_agent_list(current_order, remaining_category_agent_capacities)
-        for item in current_item_list:#arbitrarely allocate remaining items to agents with remaining capacity
-            for agent,capacity in remaining_category_agent_capacities.items():
-                if capacity>0:
-                    alloc.give(agent,item)
+            # Perform priority matching
+            priority_matching(agent_item_bipartite_graph, current_order, alloc, remaining_category_agent_capacities)
+
+            current_item_list = update_item_list(alloc, category, item_categories)
+            current_agent_list = update_agent_list(current_order, remaining_category_agent_capacities)
+
+        for item in current_item_list:  # Arbitrarily allocate remaining items to agents with remaining capacity
+            for agent, capacity in remaining_category_agent_capacities.items():
+                if capacity > 0:
+                    alloc.give(agent, item)
                     current_item_list = update_item_list(alloc, category, item_categories)
                     current_agent_list = update_agent_list(current_order, remaining_category_agent_capacities)
 
@@ -496,12 +689,78 @@ def update_item_list(alloc, category, item_categories):
     return current_item_list
 
 
-def update_item_list(alloc, category, item_categories):
-    current_item_list = [item for item in alloc.remaining_items() if item in item_categories[category]]
-    return current_item_list
+def priority_matching(agent_item_bipartite_graph, current_order, alloc, remaining_category_agent_capacities):
+    """
+    Performs priority matching based on the agent-item bipartite graph and the current order of agents.
+
+    :param agent_item_bipartite_graph: A bipartite graph with agents and items as nodes, and edges with weights representing preferences.
+    :param current_order: The current order of agents for matching.
+    :param alloc: An AllocationBuilder instance to manage the allocation process.
+    :param remaining_category_agent_capacities: A dictionary mapping agents to their remaining capacities for the category.
+
+    >>> import networkx as nx
+    >>> from fairpyx import Instance, AllocationBuilder
+    >>> agent_item_bipartite_graph = nx.Graph()
+    >>> agent_item_bipartite_graph.add_nodes_from(['Agent1', 'Agent2'], bipartite=0)
+    >>> agent_item_bipartite_graph.add_nodes_from(['Item1', 'Item2'], bipartite=1)
+    >>> agent_item_bipartite_graph.add_edge('Agent1', 'Item1', weight=1)
+    >>> agent_item_bipartite_graph.add_edge('Agent2', 'Item2', weight=1)
+    >>> current_order = ['Agent1', 'Agent2']
+    >>> instance = Instance(valuations={'Agent1': {'Item1': 1, 'Item2': 0}, 'Agent2': {'Item1': 0, 'Item2': 1}}, items=['Item1', 'Item2'])
+    >>> alloc = AllocationBuilder(instance)
+    >>> remaining_category_agent_capacities = {'Agent1': 1, 'Agent2': 1}
+    >>> priority_matching(agent_item_bipartite_graph, current_order, alloc, remaining_category_agent_capacities)
+    >>> alloc.bundles
+    {'Agent1': {'Item1'}, 'Agent2': {'Item2'}}
+    """
+    for match in nx.max_weight_matching(agent_item_bipartite_graph):
+        if match[0].startswith('A'):
+            alloc.give(match[0], match[1])
+            remaining_category_agent_capacities[match[0]] -= 1
+            if remaining_category_agent_capacities[match[0]] <= 0:
+                del remaining_category_agent_capacities[match[0]]
+        else:
+            alloc.give(match[1], match[0])
+            remaining_category_agent_capacities[match[1]] -= 1
+            if remaining_category_agent_capacities[match[1]] <= 0:
+                del remaining_category_agent_capacities[match[1]]
 
 
-if __name__ == "__main__":
-    import doctest
+def create_agent_item_bipartite_graph(agents, items, valuation_func, current_agent_list):
+    """
+    Creates an agent-item bipartite graph with edges weighted based on agent preferences.
 
-    doctest.testmod()
+    :param agents: List of agents.
+    :param items: List of items.
+    :param valuation_func: Function to determine the value of an item for an agent.
+    :param current_agent_list: List of agents currently being considered for matching.
+    :return: A bipartite graph with agents and items as nodes, and edges with weights representing preferences.
+
+    >>> import networkx as nx
+    >>> agents = ['Agent1', 'Agent2']
+    >>> items = ['Item1', 'Item2']
+    >>> def valuation_func(agent, item):
+    ...     values = {('Agent1', 'Item1'): 3, ('Agent1', 'Item2'): 1, ('Agent2', 'Item1'): 2, ('Agent2', 'Item2'): 4}
+    ...     return values.get((agent, item), 0)
+    >>> bipartite_graph = create_agent_item_bipartite_graph(agents, items, valuation_func, agents)
+    >>> sorted(bipartite_graph.edges(data=True))
+    [('Agent1', 'Item1', {'weight': 2}), ('Agent1', 'Item2', {'weight': 2}), ('Agent2', 'Item1', {'weight': 1}), ('Agent2', 'Item2', {'weight': 1})]
+    """
+    agent_item_bipartite_graph = nx.Graph()
+    agent_item_bipartite_graph.add_nodes_from(agents, bipartite=0)
+    agent_item_bipartite_graph.add_nodes_from(items, bipartite=1)
+
+    weight = len(current_agent_list)
+    for agent in current_agent_list:
+        for item in items:
+            if valuation_func(agent, item) != 0:
+                agent_item_bipartite_graph.add_edge(agent, item, weight=weight)
+        weight -= 1
+
+    return agent_item_bipartite_graph
+
+
+# if __name__ == "__main__":
+#     import doctest
+#
+#     doctest.testmod()
