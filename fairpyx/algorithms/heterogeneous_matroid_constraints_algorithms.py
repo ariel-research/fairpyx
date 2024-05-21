@@ -36,7 +36,7 @@ def envy(source: str, target: str, bundles: dict[str, set or list], val_func: ca
 
 
 def categorization_friendly_picking_sequence(alloc: AllocationBuilder, agent_order: list, item_categories: dict,
-                                             agent_category_capacities: dict, target_category: str):
+                                             agent_category_capacities: dict, target_category: str='c1'):
     if agent_order is None: agent_order = list(alloc.remaining_agents())
     remaining_category_agent_capacities = {agent: agent_category_capacities[agent][target_category] for agent in
                                            agent_category_capacities if agent_category_capacities[agent][
@@ -353,11 +353,11 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
             remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
         current_order = list(nx.topological_sort(envy_graph))
 
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
+# if __name__ == "__main__":
+#     import doctest
+#     doctest.testmod()
 def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
-                       initial_order: list,target_category:str):
+                       initial_agent_order: list,target_category:str='c1'):
     """
     this is Algorithm 2 CRR (capped round-robin) algorithm TLDR: single category , may have differnt capacities
     capped in CRR stands for capped capacity for each agent unlke RR , maye have different valuations -> F-EF1 (
@@ -367,7 +367,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
         :param item_categories: a dictionary of the categories  in which each category is paired with a list of items.
         :param agent_category_capacities:  a dictionary of dictionaru in which in the first dimension we have agents then
         paired with a dictionary of category-capacity.
-        :param initial_order: a list representing the order we start with in the algorithm
+        :param initial_agent_order: a list representing the order we start with in the algorithm
         :param target_category: a string representing the category we are going to be processing
 
     >>> # Example 1 (2 agents 1 of them with capacity of 0)
@@ -378,7 +378,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> agent_category_capacities = {'Agent1': {'c1':0}, 'Agent2': {'c1':1}}
     >>> valuations = {'Agent1':{'m1':0},'Agent2':{'m1':420}}
     >>> target_category='c1'
-    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order = order,target_category=target_category)
+    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order = order,target_category=target_category)
     {'Agent1': [], 'Agent2': ['m1']}
 
     >>> # Example 2 (3 agents , 4 items)
@@ -389,7 +389,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> agent_category_capacities = {'Agent1': {'c1':2}, 'Agent2': {'c1':2},'Agent3': {'c1':2}}
     >>> valuations = {'Agent1':{'m1':10,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':10,'m3':1},'Agent3':{'m1':1,'m2':1,'m3':10}}
     >>> target_category='c1'
-    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order,target_category=target_category)
+    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order = order,target_category=target_category)
     {'Agent1': ['m1', 'm4'], 'Agent2': ['m2'], 'Agent3': ['m3']}
 
 
@@ -401,7 +401,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> agent_category_capacities = {'Agent1': {'c1':1}, 'Agent2': {'c1':1},'Agent3': {'c1':1}}
     >>> valuations = {'Agent1':{'m1':10,'m2':5},'Agent2':{'m1':5,'m2':10}}
     >>> target_category='c1'
-    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order = order,target_category=target_category)
+    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order = order,target_category=target_category)
     {'Agent1': ['m1'], 'Agent2': ['m2']}
 
     >>> # Example 4  (4 Agents , different capacities ,extra unallocated item at the termination of the algorithm)
@@ -412,12 +412,12 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> agent_category_capacities = {'Agent1': {'c1':0}, 'Agent2': {'c1':1},'Agent3': {'c1':2},'Agent4': {'c1':3}}
     >>> valuations = {'Agent1':{'m1':1,'m2':2,'m3':3,'m4':4,'m5':5,'m6':6,'m7':0},'Agent2':{'m1':6,'m2':5,'m3':4,'m4':3,'m5':2,'m6':1,'m7':0},'Agent3':{'m1':1,'m2':2,'m3':5,'m4':6,'m5':3,'m6':4,'m7':0},'Agent4':{'m1':5,'m2':4,'m3':1,'m4':2,'m5':3,'m6':6,'m7':0}}
     >>> target_category='c1'
-    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order,target_category=target_category)
+    >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order = order,target_category=target_category)
     {'Agent1': [], 'Agent2': ['m1'], 'Agent3': ['m3', 'm4'], 'Agent4': ['m2', 'm5', 'm6']}
         """
 
     # no need for envy graphs whatsoever
-    current_order = initial_order
+    current_order = initial_agent_order
     categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
                                              target_category=target_category)  # this is RR without wrapper
 
@@ -428,7 +428,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
 #
 
 def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
-                                      initial_order: list, target_category_pair: tuple[str]):
+                                      initial_agent_order: list, target_category_pair: tuple[str]=('c1','c2')):
     """
         this is Algorithm 3 back and forth capped round-robin algorithm (2 categories,may have different capacities,may have different valuations)
         in which we simply
@@ -441,7 +441,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             :param item_categories: a dictionary of the categories  in which each category is paired with a list of items.
             :param agent_category_capacities:  a dictionary of dictionaru in which in the first dimension we have agents then
             paired with a dictionary of category-capacity.
-            :param initial_order: a list representing the order we start with in the algorithm
+            :param initial_agent_order: a list representing the order we start with in the algorithm
             :param target_category_pair: a pair of 2 categories since our algorithm deals with 2
 
             >>> # Example 1 (basic: 2 agents 3 items same capacities same valuations)
@@ -452,7 +452,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2}}
             >>> valuations = {'Agent1':{'m1':10,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':1}}
             >>> target_category_pair=('c1','c2')
-            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order,target_category_pair=target_category_pair)
+            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order=order,target_category_pair=target_category_pair)
             {'Agent1': ['m1'], 'Agent2': ['m2', 'm3']}
 
             >>> # Example 2 (case of single category so we deal with it as the normal CRR)
@@ -463,7 +463,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':0}, 'Agent2': {'c1':2,'c2':0},'Agent3': {'c1':0,'c2':0}}
             >>> valuations = {'Agent1':{'m1':10,'m2':3,'m3':3},'Agent2':{'m1':3,'m2':1,'m3':1},'Agent3':{'m1':10,'m2':10,'m3':10}}
             >>> target_category_pair=('c1','c2')
-            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order,target_category_pair=target_category_pair)
+            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order=order,target_category_pair=target_category_pair)
             {'Agent1': ['m1'], 'Agent2': ['m2', 'm3'], 'Agent3': []}
 
 
@@ -475,7 +475,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':1}, 'Agent2': {'c1':1,'c2':1},'Agent3': {'c1':1,'c2':1},'Agent4': {'c1':1,'c2':1}}
             >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1,'m4':10,'m5':1,'m6':1},'Agent2':{'m1':10,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1},'Agent3':{'m1':1,'m2':1,'m3':10,'m4':1,'m5':1,'m6':1},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':10,'m6':1}}
             >>> target_category_pair=('c1','c2')
-            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order,target_category_pair=target_category_pair)
+            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order=order,target_category_pair=target_category_pair)
             {'Agent1': ['m4'], 'Agent2': ['m1', 'm6'], 'Agent3': ['m3'], 'Agent4': ['m2', 'm5']}
 
 
@@ -487,11 +487,11 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> agent_category_capacities = {'Agent1': {'c1':3,'c2':1}, 'Agent2': {'c1':0,'c2':2},'Agent3': {'c1':0,'c2':5}}
             >>> valuations = {'Agent1':{'m1':1,'m2':2,'m3':3,'m4':4,'m5':5,'m6':6},'Agent2':{'m1':6,'m2':5,'m3':4,'m4':3,'m5':2,'m6':1},'Agent3':{'m1':5,'m2':3,'m3':1,'m4':2,'m5':4,'m6':6}}
             >>> target_category_pair=('c1','c2')
-            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_order=order,target_category_pair=target_category_pair)
+            >>> divide(algorithm=two_categories_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order=order,target_category_pair=target_category_pair)
             {'Agent1': ['m2', 'm3', 'm4'], 'Agent2': ['m5'], 'Agent3': ['m6']}
             >>> # m1 remains unallocated unfortunately :-(
             """
-    current_order = initial_order
+    current_order = initial_agent_order
     categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
                                              target_category=target_category_pair[0])  #calling CRR on first category
     current_order.reverse()  #reversing order
@@ -760,7 +760,7 @@ def create_agent_item_bipartite_graph(agents, items, valuation_func, current_age
     return agent_item_bipartite_graph
 
 
-# if __name__ == "__main__":
-#     import doctest
-#
-#     doctest.testmod()
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()

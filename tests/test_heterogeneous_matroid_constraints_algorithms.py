@@ -15,7 +15,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                             item_base_value_bounds: tuple[int, int],
                             item_subjective_ratio_bounds: tuple[float, float],
                             normalized_sum_of_values: int,
-                            agent_name_template="s{index}", item_name_template="c{index}",
+                            agent_name_template="Agent{index}", item_name_template="m{index}",
                             random_seed: int = None,
                             equal_capacities: bool = False
                             ,equal_valuations: bool = False
@@ -33,7 +33,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
     np.random.seed(random_seed)
     order = [agent for agent in result_instance.agents]
     random.shuffle(order)
-    category_string_template = "Category:{cat}"
+    category_string_template = "c{cat}"
     categories = {category_string_template.format(cat=cat): [] for cat in range(num_of_categories)}
     # check whether equal capacities or doesn't matter
     if not equal_capacities:
@@ -94,7 +94,7 @@ def random_instance(equal_capacities:bool=False, equal_valuations:bool=False,bin
         num_of_agents=random_num_of_agents, num_of_items=random_num_of_items,
         agent_capacity_bounds=(1, 20), item_capacity_bounds=(1, 50),
         item_base_value_bounds=item_base_value_bounds, item_subjective_ratio_bounds=(0.5, 1.5),
-        agent_name_template="agent{index}", item_name_template="item{index}",
+        agent_name_template="Agent{index}", item_name_template="m{index}",
         normalized_sum_of_values=1000, equal_capacities=equal_capacities, equal_valuations=equal_valuations
     )
     return random_instance
@@ -178,8 +178,9 @@ def alloc_random_filler(agent_category_capacities, alloc, item_ctegories):
 
 def test_algorithm_1():
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=True)
+    #print(f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_round_robin, instance=instance,
-                          item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
+                          item_categories=categories, agent_category_capacities=agent_capacities_2d,initial_agent_order=order),
                    instance=instance
                    , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
                    valuations_func=instance.agent_item_value) is True
@@ -188,7 +189,7 @@ def test_algorithm_1():
 def test_algorithm_2():
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False)
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.capped_round_robin, instance=instance,
-                          item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
+                          item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order),
                    instance=instance
                    , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
                    valuations_func=instance.agent_item_value) is True
@@ -197,7 +198,7 @@ def test_algorithm_2():
 def test_algorithm_3():
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False)
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin, instance=instance,
-                          item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
+                          item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order),
                    instance=instance
                    , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
                    valuations_func=instance.agent_item_value) is True
@@ -206,7 +207,7 @@ def test_algorithm_3():
 def test_algorithm_4(): # TODO equal_valuations=True
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False,equal_valuations=True)
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_capped_round_robin, instance=instance,
-                          item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
+                          item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order),
                    instance=instance
                    , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
                    valuations_func=instance.agent_item_value) is True
