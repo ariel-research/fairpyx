@@ -215,7 +215,7 @@ def test_algorithm_4(): # TODO equal_valuations=True
                    valuations_func=instance.agent_item_value) is True
 
 
-def test_algorithm_5():  # binary valuations
+def test_algorithm_5():  # binary valuations # TODO force it to create instance witn no cyclces in envy graph kind of weird since in binary vals no envy cycle can be imagined
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False,binary_valuations=True)
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
                           instance=instance,
