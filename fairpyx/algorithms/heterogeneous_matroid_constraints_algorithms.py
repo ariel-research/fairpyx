@@ -51,16 +51,16 @@ def categorization_friendly_picking_sequence(alloc: AllocationBuilder, agent_ord
                 remaining_category_items) == 0:  #replaces-> alloc.isdone():  isdone impl : return len(self.remaining_item_capacities) == 0 or len(self.remaining_agent_capacities) == 0
             break
         if not agent in remaining_category_agent_capacities:
-            continue
+            continue# skip to next agent
         potential_items_for_agent = set(remaining_category_items).difference(
             alloc.bundles[agent])  # we only deal with relevant items which are in target category
         if len(potential_items_for_agent) == 0:  # means you already have 1 of the same item and there is conflict # TODO we're dealing with situations like item capacities:  {'m1': 18}, RR is going to loop endlessly since in best case scenario you're going to take only k m1's in which k stands for the number of agents .
             logger.info("Agent %s cannot pick any more items: remaining=%s, bundle=%s", agent,
                         alloc.remaining_item_capacities, alloc.bundles[agent])
-            print(f"remaining_category_agent_capacities {remaining_category_agent_capacities}")
-            print(f"remaining_alloc_agent_capacities {alloc.remaining_agent_capacities}")
-            print(f"alloc_bundles {alloc.bundles[agent]}")
-            print(f"potential items {remaining_category_items}")
+            # print(f"remaining_category_agent_capacities {remaining_category_agent_capacities}")
+            # print(f"remaining_alloc_agent_capacities {alloc.remaining_agent_capacities}")
+            # print(f"alloc_bundles {alloc.bundles[agent]}")
+            # print(f"potential items {remaining_category_items}")
             #alloc.remove_agent_from_loop(agent) TODO this is not legal ! the fact agent already has the item doesnt give me the right to send him home ! there is even more categories on the way
             continue
         best_item_for_agent = max(potential_items_for_agent, key=lambda item: alloc.effective_value(agent, item))
