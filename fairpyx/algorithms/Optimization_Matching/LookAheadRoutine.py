@@ -2,6 +2,7 @@
     "OnAchieving Fairness and Stability in Many-to-One Matchings", by Shivika Narang, Arpita Biswas, and Y Narahari (2022)
 
     Programmer: Hadar Bitan, Yuval Ben-Simhon
+    Date: 19.5.2024
 """
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
@@ -37,7 +38,7 @@ def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list
         "s2" : ["c2","c3","c4","c1"], 
         "s3" : ["c3","c4","c1","c2"], 
         "s4" : ["c4","c1","c2","c3"], 
-        "s5" : ["c1","c3","c2","c4"]}        #the students valuations                       # 5 seats available
+        "s5" : ["c1","c3","c2","c4"]}        #the students valuations                      
     >>> I = (S, C, U ,V)
     >>> match = {
         "c1" : ["s1","s2"], 
@@ -51,6 +52,7 @@ def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list
     >>> LookAheadRoutine(I, match, down, LowerFix, UpperFix, SoftFix)
     ({'c1': ['s1', 's2'], 'c2': ['s5'], 'c3' : ['s3'], 'c4' : ['s4']}, ['c2'], [], [])
     """
+    return 0
 
 
 if __name__ == "__main__":

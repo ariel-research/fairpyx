@@ -2,7 +2,8 @@
 Test that Demote algorithm returns a feasible solution.
 
 Programmers: Hadar Bitan, Yuval Ben-Simhon
-
+Date: 19.5.2024
+We used chat-GPT and our friends from the university for ideas of cases.
 """
 
 import pytest
@@ -84,10 +85,18 @@ def test_demote_large_input():
     # Move the last student to the last college
     Demote(alloc, num_students - 1, num_colleges - 1, 0)
 
+    # Add assertions
     allocation = alloc.get_allocation()
     assert len(allocation) == num_students, "Demote algorithm large input failed"
     assert all(len(courses) <= 10 for courses in allocation.values()), "Demote algorithm large input capacity failed"
 
+def test_demote_empty_input():
+    """
+    Test the Demote algorithm with empty input.
+    """
+    alloc_empty = AllocationBuilder(agent_capacities={}, item_capacities={})
+    Demote(alloc_empty, 0, 0, 0)
+    assert alloc_empty.get_allocation() == {}, "Demote algorithm failed on empty input"
 
 if __name__ == "__main__":
     pytest.main(["-v", __file__])

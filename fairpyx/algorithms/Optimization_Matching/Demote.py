@@ -2,6 +2,7 @@
     "OnAchieving Fairness and Stability in Many-to-One Matchings", by Shivika Narang, Arpita Biswas, and Y Narahari (2022)
 
     Programmers: Hadar Bitan, Yuval Ben-Simhon
+    Date: 19.5.2024
 """
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
@@ -34,6 +35,8 @@ def Demote():
     >>> alloc.get_allocation()
     {'s1': ['c1'], 's2': ['c2'], 's3': ['c3'], 's4': ['c3'], 's5': ['c2']}
     """
+    return 0
+
 if __name__ == "__main__":
     import doctest, sys
     print(doctest.testmod())

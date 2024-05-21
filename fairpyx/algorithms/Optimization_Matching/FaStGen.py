@@ -2,6 +2,7 @@
     "OnAchieving Fairness and Stability in Many-to-One Matchings", by Shivika Narang, Arpita Biswas, and Y Narahari (2022)
 
     Programmer: Hadar Bitan, Yuval Ben-Simhon
+    Date: 19.5.2024
 """
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
@@ -35,6 +36,7 @@ def FaStGen(I:tuple)->dict:
     >>> FaStGen(I)
     {'c1' : ['s1','s2'], 'c2' : ['s3','s4','s5']. 'c3' : ['s6','s7']}
     """
+    return 0
 
 
 if __name__ == "__main__":
