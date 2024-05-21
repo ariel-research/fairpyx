@@ -92,7 +92,7 @@ def random_instance(equal_capacities:bool=False, equal_valuations:bool=False,bin
     random_instance = random_uniform_extended(
         num_of_categories=random_num_of_categories,
         num_of_agents=random_num_of_agents, num_of_items=random_num_of_items,
-        agent_capacity_bounds=(1, 20), item_capacity_bounds=(1, 50),
+        agent_capacity_bounds=(1, 20), item_capacity_bounds=random_num_of_agents, # changed to match number of agents in worst case ! no need to have extra items ...
         item_base_value_bounds=item_base_value_bounds, item_subjective_ratio_bounds=(0.5, 1.5),
         agent_name_template="Agent{index}", item_name_template="m{index}",
         normalized_sum_of_values=1000, equal_capacities=equal_capacities, equal_valuations=equal_valuations
