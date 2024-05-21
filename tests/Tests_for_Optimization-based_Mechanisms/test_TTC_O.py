@@ -26,9 +26,9 @@ def test_optimal_change_result():
 
 
 def test_student_get_k_courses():  # in ttc a student didn't get k cources
-    s1 = {"c1": 50, "c2": 10, "c3": 40}
-    s2 = {"c1": 45, "c2": 30, "c3": 25}
-    s3 = {"c1": 49, "c2": 15, "c3": 36}
+    s1 = {"c1": 50, "c2": 10, "c3": 40}   # rank: {"c1": 3, "c2": 1, "c3": 2}    his rank:11    our:13
+    s2 = {"c1": 45, "c2": 30, "c3": 25}   # rank: {"c1": 3, "c2": 2, "c3": 1}    his bids:184   our:210
+    s3 = {"c1": 49, "c2": 15, "c3": 36}   # rank: {"c1": 3, "c2": 1, "c3": 2}
     instance = fairpyx.Instance(
         agent_capacities={"s1": 2, "s2": 2, "s3": 2},
         item_capacities={"c1": 2, "c2": 2, "c3": 2},
@@ -39,8 +39,8 @@ def test_student_get_k_courses():  # in ttc a student didn't get k cources
 
 
 def test_optimal_improve_cardinal_and_ordinal_results():
-    s1 = {"c1": 50, "c2": 30, "c3": 20}  # rank: {"c1": 3, "c2": 2, "c3": 1}
-    s2 = {"c1": 40, "c2": 50, "c3": 10}  # rank: {"c1": 2, "c2": 3, "c3": 1}
+    s1 = {"c1": 50, "c2": 30, "c3": 20}  # rank: {"c1": 3, "c2": 2, "c3": 1}        round1: rank=9, bids=160
+    s2 = {"c1": 40, "c2": 50, "c3": 10}  # rank: {"c1": 2, "c2": 3, "c3": 1}        round2: rank=4, bids=60
     s3 = {"c1": 60, "c2": 10, "c3": 30}  # rank: {"c1": 3, "c2": 1, "c3": 2}
     instance = fairpyx.Instance(
         agent_capacities={"s1": 2, "s2": 2, "s3": 2},
@@ -48,20 +48,20 @@ def test_optimal_improve_cardinal_and_ordinal_results():
         valuations={"s1": s1, "s2": s2, "s3": s3}
     )
 
-    assert fairpyx.divide(fairpyx.algorithms.TTC_O_function, instance=instance) == {'s1': ['c1', 'c2'], 's2': ['c2', 'c3'],  's3': ['c1', 'c2']}, "ERROR"
+    assert fairpyx.divide(fairpyx.algorithms.TTC_O_function, instance=instance) == {'s1': ['c1', 'c2'], 's2': ['c2'],  's3': ['c1', 'c3']}, "ERROR"
 
 
 def test_sub_round_within_sub_round():
-    s1 = {"c1": 40, "c2": 10, "c3": 20, "c4": 30}
-    s2 = {"c1": 50, "c2": 10, "c3": 15, "c4": 25}
-    s3 = {"c1": 60, "c2": 30, "c3": 2, "c4": 8}
+    s1 = {"c1": 40, "c2": 10, "c3": 20, "c4": 30}   # rank: {"c1": 4, "c2": 1, "c3": 2, "c4: 3"}        round1: rank=10, bids=110
+    s2 = {"c1": 50, "c2": 10, "c3": 15, "c4": 25}   # rank: {"c1": 4, "c2": 1, "c3": 2, "c4: 3"}        round2: rank=4, bids=35
+    s3 = {"c1": 60, "c2": 30, "c3": 2, "c4": 8}     # rank: {"c1": 4, "c2": 3, "c3": 1, "c4: 2"}
     instance = fairpyx.Instance(
         agent_capacities={"s1": 2, "s2": 2, "s3": 2},
         item_capacities={"c1": 1, "c2": 2, "c3": 2, "c4": 1},
         valuations={"s1": s1, "s2": s2, "s3": s3}
     )
 
-    assert fairpyx.divide(fairpyx.algorithms.TTC_O_function, instance=instance) == {'s1': ['c3', 'c4'], 's2': ['c1', 'c2'], 's3': ['c2', 'c3']}, "ERROR"
+    assert fairpyx.divide(fairpyx.algorithms.TTC_O_function, instance=instance) == {'s1': ['c3', 'c4'], 's2': ['c1', 'c3'], 's3': ['c2']}, "ERROR"
 
 def test_optimal_cardinal_utility():
     s1 = {"c1": 30, "c2": 35, "c3": 35}

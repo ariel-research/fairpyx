@@ -36,20 +36,25 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
 
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
     for iteration in range(max_iterations):
-        x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)  # mat Xij
 
-        # objective = cp.Maximize(cp.sum(
-        #     cp.multiply(x, [[alloc.effective_value(student, course)
-        #                                                 for i, course in enumerate(alloc.remaining_items())]
-        #                                                 for j, student in enumerate(alloc.remaining_agents())
-        #                                                ])))
+        rank_mat = [[0 for _ in range(len(alloc.remaining_agents()))] for _ in range(len(alloc.remaining_items()))]
 
-        objective_Zt1 = cp.Maximize(cp.sum([alloc.effective_value(student, course) * x[i,j]
+        for j, student in enumerate(alloc.remaining_agents()):
+            map_courses_to_student = alloc.remaining_items_for_agent(student)
+            sorted_courses = sorted(map_courses_to_student, key=lambda course: alloc.effective_value(student, course), )
+
+            for i, course in enumerate(alloc.remaining_items()):
+                if course in sorted_courses:
+                    rank_mat[i][j] = sorted_courses.index(course) + 1
+                else:
+                    rank_mat[i][j] = len(sorted_courses) + 1
+
+        x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
+
+        objective_Zt1 = cp.Maximize(cp.sum([rank_mat[i][j] * x[i,j]
                                         for i, course in enumerate(alloc.remaining_items())
                                         for j, student in enumerate(alloc.remaining_agents())
-                                        if (student, course) not in alloc.remaining_conflicts
-                                        ]
-                                       ))
+                                        if (student, course) not in alloc.remaining_conflicts]))
 
         constraints_Zt1 = []
 
@@ -72,9 +77,40 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
         result_Zt1 = problem.solve()  # This is the optimal value of program (6)(7)(8)(9).
 
         # Write and solve new program for Zt2 (10)(11)(7)(8)
+        x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True) #Is there a func which zero all the matrix?
+
+        objective_Zt2 = cp.Maximize(cp.sum([alloc.effective_value(student, course) * x[i, j]
+                                        for i, course in enumerate(alloc.remaining_items())
+                                        for j, student in enumerate(alloc.remaining_agents())
+                                        if (student, course) not in alloc.remaining_conflicts]))
+
+        constraints_Zt2 = []
+
+        # condition number 7:
+        # check that the number of students who took course j does not exceed the capacity of the course
+        for i, course in enumerate(alloc.remaining_items()):
+            constraints_Zt2.append(cp.sum(x[i, :]) <= alloc.remaining_item_capacities[course])
+
+            for j, student in enumerate(alloc.remaining_agents()):
+                if (student, course) in alloc.remaining_conflicts:
+                    constraints_Zt2.append(x[i, j] == 0)
+
+        # condition number 8:
+        # check that each student receives only one course in each iteration
+        for j, student in enumerate(alloc.remaining_agents()):
+            constraints_Zt2.append(cp.sum(x[:, j]) <= 1)
+
+        constraints_Zt2.append(cp.sum([rank_mat[i][j] * x[i, j]
+                                        for i, course in enumerate(alloc.remaining_items())
+                                        for j, student in enumerate(alloc.remaining_agents())
+                                        if (student, course) not in alloc.remaining_conflicts
+                                        ]) == result_Zt1)
+
+        problem = cp.Problem(objective_Zt2, constraints=constraints_Zt2)
+        result_Zt2 = problem.solve()
 
         # Check if the optimization problem was successfully solved
-        if result_Zt1 is not None:
+        if result_Zt2 is not None:
             # Extract the optimized values of x
             x_values = x.value
 
