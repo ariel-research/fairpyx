@@ -3,7 +3,9 @@ An implementation of the algorithms in:
 "Maximin-Aware Allocations of Indivisible Goods" by H. Chan, J. Chen, B. Li, and X. Wu (2019)
 https://arxiv.org/abs/1905.09969
 Programmer: Sonya Rybakov
-Date: 2024-05.
+Since: 2024-05
+
+Disclaimer: all algorithms are on additive valuations
  """
 from fairpyx import Instance, AllocationBuilder, divide
 
@@ -11,6 +13,7 @@ from fairpyx import Instance, AllocationBuilder, divide
 def divide_and_choose_for_three(alloc: AllocationBuilder):
     """
     Algorithm 1: Finds an mma1 allocation for 3 agents using leximin-n-partition.
+    note: Only valuations are needed
 
     Examples:
     step 2 allocation ok:
@@ -64,6 +67,7 @@ def alloc_by_matching(alloc: AllocationBuilder):
     """
     Algorithm 2: Finds an 1/2mma or mmax allocation for any amount of agents and items,
     using graphs and weighted natchings.
+    note: Only valuations are needed
 
     Examples:
     >>> divide(alloc_by_matching, valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]})
