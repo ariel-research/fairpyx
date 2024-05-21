@@ -178,7 +178,7 @@ def alloc_random_filler(agent_category_capacities, alloc, item_ctegories):
 
 def test_algorithm_1():
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=True)
-    #print(f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
+    print(f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_round_robin, instance=instance,
                           item_categories=categories, agent_category_capacities=agent_capacities_2d,initial_agent_order=order),
                    instance=instance
