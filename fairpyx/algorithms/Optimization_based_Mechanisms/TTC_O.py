@@ -38,28 +38,43 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
     for iteration in range(max_iterations):
         x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)  # mat Xij
 
-        objective = cp.Maximize(cp.sum(cp.multiply(x, [[alloc.effective_value(student, course)
-                                                        for i, course in enumerate(alloc.remaining_items())]
-                                                       for j, student in enumerate(alloc.remaining_agents())])))
+        # objective = cp.Maximize(cp.sum(
+        #     cp.multiply(x, [[alloc.effective_value(student, course)
+        #                                                 for i, course in enumerate(alloc.remaining_items())]
+        #                                                 for j, student in enumerate(alloc.remaining_agents())
+        #                                                ])))
 
-        constraints = []
+        objective_Zt1 = cp.Maximize(cp.sum([alloc.effective_value(student, course) * x[i,j]
+                                        for i, course in enumerate(alloc.remaining_items())
+                                        for j, student in enumerate(alloc.remaining_agents())
+                                        if (student, course) not in alloc.remaining_conflicts
+                                        ]
+                                       ))
+
+        constraints_Zt1 = []
 
         # condition number 7:
         # check that the number of students who took course j does not exceed the capacity of the course
         for i, course in enumerate(alloc.remaining_items()):
-            constraints.append(cp.sum(x[i, :]) <= alloc.remaining_item_capacities[course])
+            constraints_Zt1.append(cp.sum(x[i, :]) <= alloc.remaining_item_capacities[course])
+
+            for j, student in enumerate(alloc.remaining_agents()):
+                if (student, course) in alloc.remaining_conflicts:
+                    constraints_Zt1.append(x[i, j] == 0)
 
 
         # condition number 8:
         # check that each student receives only one course in each iteration
         for j, student in enumerate(alloc.remaining_agents()):
-            constraints.append(cp.sum(x[:, j]) <= 1)
+            constraints_Zt1.append(cp.sum(x[:, j]) <= 1)
 
-        problem = cp.Problem(objective, constraints=constraints)
-        result = problem.solve()
+        problem = cp.Problem(objective_Zt1, constraints=constraints_Zt1)
+        result_Zt1 = problem.solve()  # This is the optimal value of program (6)(7)(8)(9).
+
+        # Write and solve new program for Zt2 (10)(11)(7)(8)
 
         # Check if the optimization problem was successfully solved
-        if result is not None:
+        if result_Zt1 is not None:
             # Extract the optimized values of x
             x_values = x.value
 

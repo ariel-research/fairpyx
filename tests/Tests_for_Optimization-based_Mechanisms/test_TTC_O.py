@@ -39,9 +39,9 @@ def test_student_get_k_courses():  # in ttc a student didn't get k cources
 
 
 def test_optimal_improve_cardinal_and_ordinal_results():
-    s1 = {"c1": 50, "c2": 30, "c3": 20}
-    s2 = {"c1": 40, "c2": 50, "c3": 10}
-    s3 = {"c1": 60, "c2": 10, "c3": 30}
+    s1 = {"c1": 50, "c2": 30, "c3": 20}  # rank: {"c1": 3, "c2": 2, "c3": 1}
+    s2 = {"c1": 40, "c2": 50, "c3": 10}  # rank: {"c1": 2, "c2": 3, "c3": 1}
+    s3 = {"c1": 60, "c2": 10, "c3": 30}  # rank: {"c1": 3, "c2": 1, "c3": 2}
     instance = fairpyx.Instance(
         agent_capacities={"s1": 2, "s2": 2, "s3": 2},
         item_capacities={"c1": 2, "c2": 3, "c3": 1},
