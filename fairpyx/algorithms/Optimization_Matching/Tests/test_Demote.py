@@ -2,6 +2,7 @@
 Test that Demote algorithm returns a feasible solution.
 
 Programmers: Hadar Bitan, Yuval Ben-Simhon
+
 """
 
 import pytest
