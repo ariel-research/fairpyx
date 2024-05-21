@@ -20,6 +20,28 @@ logger = logging.getLogger(__name__)  #TODO understand what the flip is this
 
 def envy(source: str, target: str, bundles: dict[str, set or list], val_func: callable, item_categories: dict,
          agent_category_capacities: dict):
+    """
+        Determine if the source agent envies the target agent's bundle.
+
+        Parameters:
+        source (str): The agent who might feel envy.
+        target (str): The agent whose bundle is being evaluated.
+        bundles (dict[str, set or list]): A dictionary where keys are agents and values are sets or lists of items allocated to each agent.
+        val_func (callable): A function that takes an agent and an item, returning the value of that item for the agent.
+        item_categories (dict): A dictionary mapping items to their categories.
+        agent_category_capacities (dict): A dictionary where keys are agents and values are dictionaries mapping categories to capacities.
+
+        Returns:
+        bool: True if the source agent envies the target agent's bundle, False otherwise.
+
+        Examples:
+        >>> bundles = {'agent1': {'m1', 'm2'}, 'agent2': {'m3', 'm4'}}
+        >>> item_categories = {'c1':['m1','m2','m3','m4']}
+        >>> agent_category_capacities = {'agent1': {'c1': 2}, 'agent2': {'c1': 2}}
+        >>> val_func = lambda agent, item: {'agent1': {'m1': 1, 'm2': 2, 'm3': 3, 'm4': 4},'agent2': {'m1': 4, 'm2': 3, 'm3': 2, 'm4': 1}}[agent][item]
+        >>> envy('agent1', 'agent2', bundles, val_func, item_categories, agent_category_capacities)
+        True
+        """
     val = val_func
     source_bundle_val = sum(list(val(source, current_item) for current_item in bundles[source]))
     #target_bundle_val = sum(list(val(source, current_item) for current_item in bundles[target])) #old non feasible method
@@ -37,6 +59,7 @@ def envy(source: str, target: str, bundles: dict[str, set or list], val_func: ca
 
 def categorization_friendly_picking_sequence(alloc: AllocationBuilder, agent_order: list, item_categories: dict,
                                              agent_category_capacities: dict, target_category: str='c1'):
+
     if agent_order is None: agent_order = list(alloc.remaining_agents())
     remaining_category_agent_capacities = {agent: agent_category_capacities[agent][target_category] for agent in
                                            agent_category_capacities if agent_category_capacities[agent][
@@ -76,6 +99,23 @@ def categorization_friendly_picking_sequence(alloc: AllocationBuilder, agent_ord
 
 def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph, item_categories: dict,
                       agent_category_capacities: dict):
+    """
+    simply a helper function to update the envy-graph based on given params
+    :param curr_bundles: the current allocation
+    :param valuation_func: simply a callable(agent,item)->value
+    :param envy_graph: the envy-graph: of course the graph we're going to modify
+    :param item_categories: a dictionary mapping items to categorize for the ease of checking:
+    :param agent_category_capacities: a dictionary where keys are agents and values are dictionaries mapping categories to capacities.
+
+    Example:
+    >>> graph=DiGraph()
+    >>> graph.add_edge('Agent1','Agent2')
+    >>> valuation_func= lambda  agent,item: {'Agent1':{'m1':100,'m2':0},'Agent2':{'m1':100,'m2':0}}[agent][item]
+    >>> bundle={'Agent1':['m1'],'Agent2':['m2']}
+    >>> item_categories={'c1':['m1','m2']}
+    >>> agent_category_capacities= {'Agent1':{'c1':1},'Agent2':{'c1':1}}
+    >>> update_envy_graph(envy_graph=graph, valuation_func=valuation_func, item_categories=item_categories, agent_category_capacities=agent_category_capacities, curr_bundles=bundle )
+    """
     envy_graph.clear_edges()
     for agent1, bundle1 in curr_bundles.items():
         for agent2, bundle_agent2 in curr_bundles.items():
