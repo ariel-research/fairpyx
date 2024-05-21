@@ -7,7 +7,8 @@ Programmers: Hadar Bitan, Yuval Ben-Simhon
 
 import pytest
 from fairpyx import AllocationBuilder
-from your_module import Demote
+import Demote
+
 
 def test_demote_simple():
     """
