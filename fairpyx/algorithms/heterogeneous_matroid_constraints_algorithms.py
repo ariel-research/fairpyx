@@ -1,7 +1,7 @@
 """
 An implementation of the algorithms in:
 "Fair Division under Heterogeneous Matroid Constraints", by Dror, Feldman, Segal-Halevi (2010), https://arxiv.org/abs/2010.07280v4
-Programmer: Abed ElKareem Massarwa.
+Programmer: Abed El-Kareem Massarwa.
 Date: 2024-03.
 """
 

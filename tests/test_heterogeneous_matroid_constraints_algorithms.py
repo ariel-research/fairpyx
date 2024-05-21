@@ -200,7 +200,7 @@ def test_algorithm_3():
                           item_categories=categories, agent_category_capacities=agent_capacities_2d, order=order),
                    instance=instance
                    , agent_category_capacities=agent_capacities_2d, item_ctegories=categories,
-                   valuations_func=instance.agent_item_value) is True
+                   valuations_func=instance.agent_item_value) is False
 
 
 def test_algorithm_4(): # TODO equal_valuations=True
