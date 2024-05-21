@@ -1,7 +1,7 @@
 """
     "OnAchieving Fairness and Stability in Many-to-One Matchings", by Shivika Narang, Arpita Biswas, and Y Narahari (2022)
 
-    Programmer: Hadar Bitan, Yuval Ben-Simhon
+    Programmers: Hadar Bitan, Yuval Ben-Simhon
 """
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
@@ -22,7 +22,7 @@ def Demote():
     :param up_index: Index of the upper bound college.
 
         # The test is the same as the running example we gave in Ex2.
-        
+
     >>> from fairpyx import AllocationBuilder
     >>> alloc = AllocationBuilder(agent_capacities={"s1": 1, "s2": 1, "s3": 1, "s4": 1, "s5": 1}, item_capacities={"c1": 1, "c2": 2, "c3": 2})
     >>> alloc.add_allocation(0, 0)  # s1 -> c1

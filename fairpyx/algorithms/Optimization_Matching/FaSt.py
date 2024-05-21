@@ -1,7 +1,7 @@
 """
 "On Achieving Fairness and Stability in Many-to-One Matchings", by Shivika Narang, Arpita Biswas, and Y Narahari (2022)
 
-Programmer: Hadar Bitan, Yuval Ben-Simhon
+Programmers: Hadar Bitan, Yuval Ben-Simhon
 """
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
