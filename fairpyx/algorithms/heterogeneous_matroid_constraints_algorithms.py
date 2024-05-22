@@ -488,7 +488,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             >>> items=['m1','m2','m3']
             >>> item_categories = {'c1': ['m1'],'c2':['m2','m3']}
             >>> agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
-            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':1}}
+            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}}
             >>> divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)
             {'Agent1': ['m1', 'm3'], 'Agent2': ['m2'], 'Agent3': []}
 
@@ -531,20 +531,20 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
                               item_categories=item_categories, agent_category_capacities=agent_category_capacities)# updating envy graph with respect to matchings (first iteration we get no envy, cause there is no matching)
             #topological sort (papers prove graph is always a-cyclic)
-            current_order = list(nx.topological_sort(
-                envy_graph))
+            sort = list(nx.topological_sort(envy_graph))
 
+            current_order = current_order if not sort else sort
             # Perform priority matching
             priority_matching(agent_item_bipartite_graph, current_order, alloc, remaining_category_agent_capacities)# deals with eliminating finished agents from agent_category_capacities
 
             current_item_list = update_item_list(alloc, category, item_categories)# important to update the item list after priority matching.
             current_agent_list = update_ordered_agent_list(current_order, remaining_category_agent_capacities)# important to update the item list after priority matching.
 
-        for item in current_item_list:  # Arbitrarily allocate remaining items to agents with remaining capacity (after iterating over Th(maximum capacity))
-            for agent, capacity in remaining_category_agent_capacities.items():
+        for item in current_item_list.copy():  # Arbitrarily allocate remaining items to agents with remaining capacity (after iterating over Th(maximum capacity))
+            for agent, capacity in remaining_category_agent_capacities.copy().items():
                 if capacity > 0:
                     alloc.give(agent, item)
-                    del current_item_list[item]# remove item from item list
+                    current_item_list.remove(item)# remove item from item list
                     remaining_category_agent_capacities[agent] -= 1  # Update the capacity
                     if remaining_category_agent_capacities[agent] <= 0:
                         del remaining_category_agent_capacities[agent]  # Remove agent if no capacity left
