@@ -15,7 +15,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import logging
 
-logger = logging.getLogger(__name__)  #TODO understand what the flip is this
+logger = logging.getLogger(__name__)
 
 
 def envy(source: str, target: str, bundles: dict[str, set or list], val_func: callable, item_categories: dict,
@@ -58,8 +58,7 @@ def envy(source: str, target: str, bundles: dict[str, set or list], val_func: ca
 
 
 def categorization_friendly_picking_sequence(alloc: AllocationBuilder, agent_order: list, item_categories: dict,
-                                             agent_category_capacities: dict, target_category: str='c1'):
-
+                                             agent_category_capacities: dict, target_category: str = 'c1'):
     if agent_order is None: agent_order = list(alloc.remaining_agents())
     remaining_category_agent_capacities = {agent: agent_category_capacities[agent][target_category] for agent in
                                            agent_category_capacities if agent_category_capacities[agent][
@@ -74,26 +73,22 @@ def categorization_friendly_picking_sequence(alloc: AllocationBuilder, agent_ord
                 remaining_category_items) == 0:  #replaces-> alloc.isdone():  isdone impl : return len(self.remaining_item_capacities) == 0 or len(self.remaining_agent_capacities) == 0
             break
         if not agent in remaining_category_agent_capacities:
-            continue# skip to next agent
+            continue  # skip to next agent
         potential_items_for_agent = set(remaining_category_items).difference(
             alloc.bundles[agent])  # we only deal with relevant items which are in target category
-        if len(potential_items_for_agent) == 0:  # means you already have 1 of the same item and there is conflict # TODO we're dealing with situations like item capacities:  {'m1': 18}, RR is going to loop endlessly since in best case scenario you're going to take only k m1's in which k stands for the number of agents .
+        if len(potential_items_for_agent) == 0:  # means you already have 1 of the same item and there is conflict
             logger.info("Agent %s cannot pick any more items: remaining=%s, bundle=%s", agent,
                         alloc.remaining_item_capacities, alloc.bundles[agent])
-            # print(f"remaining_category_agent_capacities {remaining_category_agent_capacities}")
-            # print(f"remaining_alloc_agent_capacities {alloc.remaining_agent_capacities}")
-            # print(f"alloc_bundles {alloc.bundles[agent]}")
-            # print(f"potential items {remaining_category_items}")
-            #alloc.remove_agent_from_loop(agent) TODO this is not legal ! the fact agent already has the item doesnt give me the right to send him home ! there is even more categories on the way
             continue
         best_item_for_agent = max(potential_items_for_agent, key=lambda item: alloc.effective_value(agent, item))
-        alloc.give(agent, best_item_for_agent, logger) # TODO understand this function deals with cases in which 1) agent reached max capacity , 2) item has no capacity ,((<=0) -> remove)
+        alloc.give(agent, best_item_for_agent,
+                   logger)
         remaining_category_agent_capacities[agent] -= 1
         if remaining_category_agent_capacities[agent] <= 0:
             del remaining_category_agent_capacities[
-                agent]  # TODO undestand that this is = remove from loop but since we're dealing with out category we make this to help us !
+                agent]
 
-        if best_item_for_agent not in alloc.remaining_item_capacities: # since alloc deals with this we synchronize with it
+        if best_item_for_agent not in alloc.remaining_item_capacities:  # since alloc deals with this we synchronize with it
             remaining_category_items.remove(best_item_for_agent)  # equivelant for removing the item in allocationbuiler
 
 
@@ -182,12 +177,13 @@ def remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_cate
             agents_in_cycle = [edge[0] for edge in cycle]
             #print(f'agents in cycle{agents_in_cycle}')
             # Perform bundle switching along the cycle
-            temp_val = alloc.bundles[agents_in_cycle[0]] # we begin with temp as the bundle of the first agent
+            temp_val = alloc.bundles[agents_in_cycle[0]]  # we begin with temp as the bundle of the first agent
             for i in range(len(agents_in_cycle)):
                 #print(f"bundle in iteration {i} is {alloc.bundles}")
                 current_agent = agents_in_cycle[i]
                 next_agent = agents_in_cycle[(i + 1) % len(agents_in_cycle)]
-                alloc.bundles[next_agent], temp_val = temp_val, alloc.bundles[next_agent] # instead of the boring swap which requires extra temp val
+                alloc.bundles[next_agent], temp_val = temp_val, alloc.bundles[
+                    next_agent]  # instead of the boring swap which requires extra temp val
                 #print(f"bundle in iteration {i} after modification {alloc.bundles}")
             # Update the envy graph
             update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
@@ -265,7 +261,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
 
 
 def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
-                       initial_agent_order: list,target_category:str='c1'):
+                       initial_agent_order: list, target_category: str = 'c1'):
     """
     this is Algorithm 2 CRR (capped round-robin) algorithm TLDR: single category , may have differnt capacities
     capped in CRR stands for capped capacity for each agent unlke RR , maye have different valuations -> F-EF1 (
@@ -330,10 +326,8 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
                                              target_category=target_category)  # this is RR without wrapper
 
 
-
-
 def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
-                                      initial_agent_order: list, target_category_pair: tuple[str]=('c1','c2')):
+                                      initial_agent_order: list, target_category_pair: tuple[str] = ('c1', 'c2')):
     """
         this is Algorithm 3 back and forth capped round-robin algorithm (2 categories,may have different capacities,may have different valuations)
         in which we simply
@@ -404,7 +398,6 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
                                              target_category=target_category_pair[1])  # calling CRR on first category
 
 
-
 def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
                                     initial_agent_order: list):
     """
@@ -455,7 +448,6 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
     for category in item_categories.keys():
-        #capped_round_robin(alloc=alloc,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_order=initial_order)# TODO its more appropriate to use this but i cant target specific category since it only deals with 'c1'
         categorization_friendly_picking_sequence(alloc=alloc, agent_order=current_order,
                                                  item_categories=item_categories,
                                                  agent_category_capacities=agent_category_capacities,
@@ -510,51 +502,56 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             {'Agent1': ['m1', 'm5', 'm6'], 'Agent2': ['m2', 'm4'], 'Agent3': []}
    """
     envy_graph = nx.DiGraph()
-    current_order = [agent for agent in alloc.remaining_agents()]
+    envy_graph.add_nodes_from(alloc.remaining_agents())# adding agent nodes (no edges involved yet)
+    current_order = [agent for agent in alloc.remaining_agents()] # in this algorithm no need for initial_agent_order
     valuation_func = alloc.instance.agent_item_value
 
     for category in item_categories.keys():
         maximum_capacity = max(
-            [agent_category_capacities[agent][category] for agent in agent_category_capacities.keys()])
+            [agent_category_capacities[agent][category] for agent in
+             agent_category_capacities.keys()])  # for the sake of inner iteration
         remaining_category_agent_capacities = {
             agent: agent_category_capacities[agent][category] for agent in agent_category_capacities if
             agent_category_capacities[agent][category] != 0
-        }
+        }  # dictionary of the agents paired with capacities with respect to the current category we're dealing with
 
-        current_item_list = update_item_list(alloc, category, item_categories)
-        current_agent_list = update_agent_list(current_order, remaining_category_agent_capacities)
+        current_item_list = update_item_list(alloc, category, item_categories)# items we're dealing with with respect to the category
+        current_agent_list = update_ordered_agent_list(current_order, remaining_category_agent_capacities) #  items we're dealing with with respect to the constraints
 
-        for i in range(maximum_capacity):
+        for i in range(maximum_capacity):# as in papers we run for the length of the maximum capacity out of all agents for the current category
             # Creation of agent-item graph
             agent_item_bipartite_graph = create_agent_item_bipartite_graph(
-                agents=remaining_category_agent_capacities.keys(),
-                items=[item for item in alloc.remaining_items() if item in item_categories[category]],
+                agents=remaining_category_agent_capacities.keys(), # remaining agents
+                items=[item for item in alloc.remaining_items() if item in item_categories[category]],# remaining items
                 valuation_func=valuation_func,
-                current_agent_list=current_agent_list
-            )
+                current_agent_list=current_agent_list# remaining agents with respect to the order
+            )# building the Bi-Partite graph
 
             # Creation of envy graph
             update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-                              item_categories=item_categories, agent_category_capacities=agent_category_capacities)
-            # Topological sort
-            sort = list(nx.topological_sort(envy_graph))
-            current_order = current_order if not sort else sort
+                              item_categories=item_categories, agent_category_capacities=agent_category_capacities)# updating envy graph with respect to matchings (first iteration we get no envy, cause there is no matching)
+            #topological sort (papers prove graph is always a-cyclic)
+            current_order = list(nx.topological_sort(
+                envy_graph))
 
             # Perform priority matching
-            priority_matching(agent_item_bipartite_graph, current_order, alloc, remaining_category_agent_capacities)
+            priority_matching(agent_item_bipartite_graph, current_order, alloc, remaining_category_agent_capacities)# deals with eliminating finished agents from agent_category_capacities
 
-            current_item_list = update_item_list(alloc, category, item_categories)
-            current_agent_list = update_agent_list(current_order, remaining_category_agent_capacities)
+            current_item_list = update_item_list(alloc, category, item_categories)# important to update the item list after priority matching.
+            current_agent_list = update_ordered_agent_list(current_order, remaining_category_agent_capacities)# important to update the item list after priority matching.
 
-        for item in current_item_list:  # Arbitrarily allocate remaining items to agents with remaining capacity
+        for item in current_item_list:  # Arbitrarily allocate remaining items to agents with remaining capacity (after iterating over Th(maximum capacity))
             for agent, capacity in remaining_category_agent_capacities.items():
                 if capacity > 0:
                     alloc.give(agent, item)
-                    current_item_list = update_item_list(alloc, category, item_categories)
-                    current_agent_list = update_agent_list(current_order, remaining_category_agent_capacities)
+                    del current_item_list[item]# remove item from item list
+                    remaining_category_agent_capacities[agent] -= 1  # Update the capacity
+                    if remaining_category_agent_capacities[agent] <= 0:
+                        del remaining_category_agent_capacities[agent]  # Remove agent if no capacity left
 
 
-def update_agent_list(current_order, remaining_category_agent_capacities):
+
+def update_ordered_agent_list(current_order, remaining_category_agent_capacities):
     current_agent_list = [agent for agent in current_order if agent in remaining_category_agent_capacities.keys()]
     return current_agent_list
 
@@ -595,20 +592,21 @@ def priority_matching(agent_item_bipartite_graph, current_order, alloc, remainin
             if remaining_category_agent_capacities[match[0]] <= 0:
                 del remaining_category_agent_capacities[match[0]]
         else:
+            print(alloc.instance.agent_item_value(match[1], match[0]))  # TODO oppa ! apparently problem is with the instance generator in pytest valuations are not in  (0,1)
             alloc.give(match[1], match[0])
             remaining_category_agent_capacities[match[1]] -= 1
             if remaining_category_agent_capacities[match[1]] <= 0:
                 del remaining_category_agent_capacities[match[1]]
 
 
-def create_agent_item_bipartite_graph(agents, items, valuation_func, current_agent_list):
+def create_agent_item_bipartite_graph(agents, items, valuation_func, current_agent_list):# TODO remove unnecessary argument (agents or current_agent_list)
     """
     Creates an agent-item bipartite graph with edges weighted based on agent preferences.
 
     :param agents: List of agents.
     :param items: List of items.
     :param valuation_func: Function to determine the value of an item for an agent.
-    :param current_agent_list: List of agents currently being considered for matching.
+    :param current_agent_list: List of agents currently being considered for matching.(ordered)
     :return: A bipartite graph with agents and items as nodes, and edges with weights representing preferences.
 
     >>> import networkx as nx
