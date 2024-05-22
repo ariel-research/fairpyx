@@ -1,18 +1,23 @@
 """
-High Multiplicity Fair Allocation Algorithm - Finds an allocation maximizing the sum of utilities for given instance 
-                                                with envy-freeness and Pareto-optimality constraints.
-"""
+Article Title: High-Multiplicity Fair Allocation Made More Practical
+Article URL: https://www.ifaamas.org/Proceedings/aamas2021/pdfs/p260.pdf
 
-from gurobipy import *
+Algorithm Name: High Multiplicity Fair Allocation
+Algorithm Description: This algorithm finds an allocation maximizing the sum of utilities
+                         for given instance with envy-freeness and Pareto-optimality constraints if exists.
+
+Programmers: Naor Ladani and Elor Israeli
+Since : 2024-05
+"""
+import cvxpy as cp
+import mip as mp
+
 
 from fairpyx.utils.graph_utils import many_to_many_matching_using_network_flow
 from fairpyx import Instance, AllocationBuilder
 
 import logging
 logger = logging.getLogger(__name__)
-
-# Suppress Gurobi output
-setParam('OutputFlag', 0)
 
 
 def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
@@ -24,50 +29,97 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
 
     Returns:
     - alloc (AllocationBuilder): The allocation of items to agents.
+
+
+    >>> instance = Instance(
+    ...     agent_capacities={"Ami": 2, "Tami": 2, "Rami": 2},
+    ...     item_capacities={"Fork": 2, "Knife": 2, "Pen": 2},
+    ...     valuations={
+    ...         "Ami": {"Fork": 2, "Knife": 0, "Pen": 0},
+    ...         "Rami": {"Fork": 0, "Knife": 1, "Pen": 1},
+    ...         "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}
+    ...     }
+    ... )
+    >>> initial_allocation = AllocationBuilder({
+    ...     "Ami": [],
+    ...     "Rami": [],
+    ...     "Tami": []
+    ... })
+    >>> result = high_multiplicity_fair_allocation(initial_allocation, instance)
+    >>> result.get_allocation() == {
+    ...     "Ami": ["Fork", "Fork"],
+    ...     "Rami": ["Pen", "Pen"],
+    ...     "Tami": ["Knife", "Knife"]
+    ... }
+    True
+
     """
+
+    ## Step 1: Find a envy-free allocation
+    ## Step 2: Check if there is a Pareto-dominate allocation
+    ## Step 3: If not, modify the ILP to disallow the current allocation
+    ## Step 4: Repeat steps 1-3 until a Pareto-optimal allocation is found or no allocation exists
+
 
     pass
 
 
-def initial_ILP(alloc: AllocationBuilder):
+def find_envy_free_allocation(alloc: AllocationBuilder, constraints: list) -> AllocationBuilder:
     """
-    Set up the initial Integer Linear Program (ILP) formulation to allocate items to agents and attempt to find a feasible solution.
-
+    Find an envy-free allocation of items to agents.
+    
     Parameters:
     - alloc (AllocationBuilder): The allocation of items to agents.
+    - constraints (list): List of constraints for the ILP.
 
     Returns:
     - alloc (AllocationBuilder): The allocation of items to agents.
+
+    >>> initial_allocation = AllocationBuilder({ "Ami": ["Pen", "Fork"], "Rami": ["Fork", "Pen"], "Tami": ["Knife", "Knife"] })
+    >>> constraints = []  # Provide relevant constraints here
+    >>> envy_free_allocation = find_envy_free_allocation(initial_allocation, constraints)
+    >>> envy_free_allocation  = AllocationBuilder({ "Ami": ["Fork", "Fork"], "Rami": ["Knife", "Pen"], "Tami": ["Knife", "Pen"] })
+    True
     """
 
+
+def find_pareto_optimal_allocation(alloc: AllocationBuilder) -> AllocationBuilder:
+    """
+    Find a Pareto-optimal allocation of items to agents.
+
+    Returns:
+    - alloc (AllocationBuilder): The allocation of items to agents.
+
+
+    >>> alloc_X = AllocationBuilder({"Ami": ["Pen", "Fork"], "Rami": ["Fork", "Pen"], "Tami": ["Knife", "Knife"]})
+    >>> pareto_optimal_allocation = find_pareto_optimal_allocation(alloc_X)
+    >>> pareto_optimal_allocation.get_allocation() == {"Ami": ["Fork", "Fork"], "Rami": ["Pen", "Pen"], "Tami": ["Knife", "Knife"]}
+    True
+    >>> alloc_X = AllocationBuilder({"Ami": ["Fork", "Fork"], "Rami": ["Pen", "Pen"], "Tami": ["Knife", "Knife"]})
+    >>> pareto_optimal_allocation = find_pareto_optimal_allocation(alloc_X)
+    >>> pareto_optimal_allocation.get_allocation() == None
+    True
+    """
     pass
 
-def check_validity(alloc: AllocationBuilder):
+
+def create_more_constraints_ILP(alloc_X: AllocationBuilder, alloc_Y: AllocationBuilder):
     """
-    Check the validity of an allocation by solving an ILP to ensure that it is Pareto-optimal.
+    Create more constraints for the ILP to disallow the current allocation.
 
     Parameters:
-    - alloc (AllocationBuilder): The allocation of items to agents.
+    - alloc_X (AllocationBuilder): The current allocation of items to agents.
+    - alloc_Y (AllocationBuilder): The desired allocation of items to agents.
 
     Returns:
-    - valid (bool): True if the allocation is valid (Pareto-optimal), False otherwise.
+    - constraints (list): List of additional constraints to disallow alloc_X and allow alloc_Y.
+
+    >>> alloc_X = AllocationBuilder({"Ami": ["Pen", "Fork"], "Rami": ["Fork", "Pen"], "Tami": ["Knife", "Knife"]})
+    >>> alloc_Y = AllocationBuilder({"Ami": ["Fork", "Fork"], "Rami": ["Pen", "Pen"], "Tami": ["Knife", "Knife"]})
+    >>> constraints = create_more_constraints_ILP(alloc_X, alloc_Y)
+    >>> len(constraints) == 19 # 3 agents * 3 agents * 2 items in each equation + the 9th constraint in the algorithm
+    True
     """
-
-    pass
-
-
-def modify_ILP(model, alloc: AllocationBuilder):
-    """
-    Modify the initial Integer Linear Program (ILP) formulation to disallow the current allocation.
-
-    Parameters:
-    - model (gurobipy.Model): The Gurobi model representing the ILP.
-    - alloc (AllocationBuilder): The current allocation of items to agents.
-
-    Returns:
-    - model (gurobipy.Model): The modified Gurobi model.
-    """
-
     pass
 
 
