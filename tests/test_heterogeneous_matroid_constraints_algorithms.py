@@ -172,7 +172,7 @@ def alloc_2d_converter(agent_categorized_allocation, alloc, item_ctegories):
                     agent_categorized_allocation[agent][cat].append(item)
 
 
-def alloc_random_filler(agent_category_capacities, alloc, item_ctegories):
+def alloc_random_filler(agent_category_capacities, alloc, item_ctegories)->dict:
     """
     a temporary function to fill the empty allocation , used till we implement the allocation algorithms in heterogeneous_matroid_constraints_algorithms.py
     """
