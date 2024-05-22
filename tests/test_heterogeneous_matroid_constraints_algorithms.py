@@ -25,7 +25,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                             random_seed: int = None,
                             equal_capacities: bool = False
                             ,equal_valuations: bool = False
-                            ):
+                            )->tuple[Instance,dict,dict,list]:
     result_instance = Instance.random_uniform(num_of_agents=
                                               num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=
                                               agent_capacity_bounds, item_capacity_bounds=item_capacity_bounds,
@@ -97,7 +97,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
     return modified_valuations_instance, agent_capacities_2d, categories, order
 
 
-def random_instance(equal_capacities:bool=False, equal_valuations:bool=False,binary_valuations:bool=False):  # todo add randomization for arguments .
+def random_instance(equal_capacities:bool=False, equal_valuations:bool=False,binary_valuations:bool=False)->tuple[Instance,dict,dict,list]:  # todo add randomization for arguments .
     random_num_of_agents = np.random.randint(1, 10 + 1)
     random_num_of_items = np.random.randint(1, 10 + 1)
     random_num_of_categories = np.random.randint(1, random_num_of_items + 1)
@@ -210,7 +210,7 @@ def test_algorithm_2():
 
 def test_algorithm_3():
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False)
-    print(f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
+    #print(f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin, instance=instance,
                           item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order),
                    instance=instance
@@ -220,8 +220,8 @@ def test_algorithm_3():
 
 def test_algorithm_4(): # TODO equal_valuations=True
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False,equal_valuations=True)
-    print(
-        f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
+    # print(
+    #     f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
 
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_capped_round_robin, instance=instance,
                           item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order),
@@ -233,8 +233,8 @@ def test_algorithm_4(): # TODO equal_valuations=True
 def test_algorithm_5():  # binary valuations # TODO force it to create instance witn no cyclces in envy graph kind of weird since in binary vals no envy cycle can be imagined
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False,binary_valuations=True)
     print(
-        f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
-
+        f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")# there is mismatch between agent capacities in instance and in 2d
+        # i recall finding a not bad solution by making the instance agent capacity= sum (agent_categorry_capacity(agent,category))
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
                           instance=instance,
                           item_categories=categories, agent_category_capacities=agent_capacities_2d),
