@@ -196,6 +196,15 @@ def test_divide_and_choose():
     assert alloc == {'Alice': [0, 1], 'Bob': [3], 'Claire': [2]}, f'mma1: step 4-II allocation incorrect'
     assert all(mma1_fairness_calc(inst, alloc)), f'mma1: step 4-II fairness failed'
 
+    inst = fairpyx.Instance(
+        valuations={"Alice": [8, 5, 1, 5, 5, 3, 6, 9, 3, 3, 7, 5, 8, 8, 4, 10, 3, 8, 10, 2],
+                    "Bob": [3, 5, 5, 3, 4, 9, 5, 5, 8, 1, 2, 6, 8, 6, 9, 1, 2, 8, 9, 7],
+                    "Claire": [7, 8, 2, 9, 3, 2, 3, 8, 8, 8, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
+    alloc = fairpyx.divide(maximin_aware.divide_and_choose_for_three, inst)
+    assert alloc == {'Alice': [0, 5, 7, 10, 14, 15, 17], 'Bob': [8, 11, 13, 16, 18, 19],
+                     'Claire': [1, 2, 3, 4, 6, 9, 12]}, f'mma1: large input allocation incorrect'
+    assert all(mma1_fairness_calc(inst, alloc)), f'mma1: large fairness failed'
+
 
 def test_alloc_by_matching():
     inst = fairpyx.Instance(valuations={"Alice": [10, 10, 6, 4], "Bob": [7, 5, 6, 6], "Claire": [2, 8, 8, 7]})
@@ -209,6 +218,14 @@ def test_alloc_by_matching():
     assert alloc == {'Alice': [0, 1], 'Bob': [4, 5, 6], 'Claire': [2, 3]}, f'mma by matching: allocation incorrect'
     assert all(mma_fairness_calc(inst, alloc)), f'mma by matching: fairness failed'
 
+    inst = fairpyx.Instance(
+        valuations={"Alice": [8, 5, 1, 5, 5, 3, 6, 9, 3, 3, 7, 5, 8, 8, 4, 10, 3, 8, 10, 2],
+                    "Bob": [3, 5, 5, 3, 4, 9, 5, 5, 8, 1, 2, 6, 8, 6, 9, 1, 2, 8, 9, 7],
+                    "Claire": [7, 8, 2, 9, 3, 2, 3, 8, 8, 8, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
+    alloc = fairpyx.divide(maximin_aware.divide_and_choose_for_three, inst)
+    assert alloc == {'Alice': [15, 18, 7, 0, 13, 10, 6], 'Bob': [5, 14, 8, 17, 19, 2, 4],
+                     'Claire': [11, 12, 3, 1, 9, 16, 2]}, f'mma by matching: large input allocation incorrect'
+    assert all(mma_fairness_calc(inst, alloc)), f'mma by matching: large input fairness failed'
 
-if __name__ == "__main__":
-    pytest.main(["-v", __file__])
+    if __name__ == "__main__":
+        pytest.main(["-v", __file__])
