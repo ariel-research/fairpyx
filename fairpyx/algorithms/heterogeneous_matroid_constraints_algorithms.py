@@ -550,12 +550,48 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
 
 
 
-def update_ordered_agent_list(current_order, remaining_category_agent_capacities):
+def update_ordered_agent_list(current_order:list, remaining_category_agent_capacities:dict)->list:
+    """
+       Update the ordered list of agents based on remaining category agent capacities.
+
+       Args:
+           current_order (list): Current order of agents.
+           remaining_category_agent_capacities (dict): A dictionary with category capacities for each agent.
+
+       Returns:
+           list: The updated list of agents ordered by remaining capacities.
+
+       Example:
+           >>> current_order = ['Alice', 'Bob']
+           >>> remaining_category_agent_capacities = {'Alice': 1, 'Bob': 2}
+           >>> update_ordered_agent_list(current_order, remaining_category_agent_capacities)
+           ['Alice', 'Bob']
+    """
     current_agent_list = [agent for agent in current_order if agent in remaining_category_agent_capacities.keys()]
     return current_agent_list
 
 
-def update_item_list(alloc, category, item_categories):
+def update_item_list(alloc:AllocationBuilder, category:str, item_categories:dict)-> list:
+    """
+        Update the item list for a given category and allocation.
+
+        Args:
+            alloc: Current allocationBuilder.
+            category: The category to update.
+            item_categories : A dictionary mapping categories to items .
+
+        Returns:
+            list: The updated allocation list with items for the specified category.
+
+        Example:
+            >>> instance =Instance = Instance(valuations={'Agent1': {'m1': 1, 'm2': 0}, 'Agent2': {'m1': 0, 'm2': 1}}, items=['m1', 'm2'])
+            >>> alloc= AllocationBuilder(instance=instance)
+            >>> alloc.give('Agent1','m1')
+            >>> category = 'c1'
+            >>> item_categories = {'c1':'m1', 'c2':'m2'}
+            >>> update_item_list(alloc, category, item_categories)
+            []
+        """
     current_item_list = [item for item in alloc.remaining_items() if item in item_categories[category]]
     return current_item_list
 
