@@ -592,7 +592,7 @@ def priority_matching(agent_item_bipartite_graph, current_order, alloc, remainin
             if remaining_category_agent_capacities[match[0]] <= 0:
                 del remaining_category_agent_capacities[match[0]]
         else:
-            print(alloc.instance.agent_item_value(match[1], match[0]))  # TODO oppa ! apparently problem is with the instance generator in pytest valuations are not in  (0,1)
+             # TODO oppa ! apparently problem is with the instance generator in pytest valuations are not in  (0,1)
             alloc.give(match[1], match[0])
             remaining_category_agent_capacities[match[1]] -= 1
             if remaining_category_agent_capacities[match[1]] <= 0:
