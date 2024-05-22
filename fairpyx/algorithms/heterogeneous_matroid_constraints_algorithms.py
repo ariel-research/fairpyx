@@ -488,7 +488,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             >>> items=['m1','m2','m3']
             >>> item_categories = {'c1': ['m1'],'c2':['m2','m3']}
             >>> agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
-            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}}
+            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}} # TODO change valuation in paper
             >>> divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)
             {'Agent1': ['m1', 'm3'], 'Agent2': ['m2'], 'Agent3': []}
 
@@ -532,7 +532,6 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
                               item_categories=item_categories, agent_category_capacities=agent_category_capacities)# updating envy graph with respect to matchings (first iteration we get no envy, cause there is no matching)
             #topological sort (papers prove graph is always a-cyclic)
             sort = list(nx.topological_sort(envy_graph))
-
             current_order = current_order if not sort else sort
             # Perform priority matching
             priority_matching(agent_item_bipartite_graph, current_order, alloc, remaining_category_agent_capacities)# deals with eliminating finished agents from agent_category_capacities
