@@ -65,15 +65,15 @@ def test_case_3():
 
 
 def test_case__3_mini():
-    for delta in np.linspace(0.1, 2, 20):
-        logger.info(f"----------DELTA = {delta}---------------")
-        utilities = {f"s{i}": {f"c{6 - j}": j for j in range(5, 0, -1)} for i in range(1, 6)}
-        instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
-        initial_budgets = {f"s{key}": (6 - key) for key in range(1, 6)}
-        allocation = divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
-                            delta=delta, epsilon=0.5, t=EFTBStatus.EF_TB)
-        for i in range(1, 6):
-            assert (f"c{i}" in allocation[f"s{i}"])
+    # for delta in np.linspace(0.1, 2, 20):
+    #     logger.info(f"----------DELTA = {delta}---------------")
+    utilities = {f"s{i}": {f"c{44 - j}": j for j in range(43, 0, -1)} for i in range(1, 44)}
+    instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
+    initial_budgets = {f"s{key}": (44 - key) for key in range(1, 44)}
+    allocation = divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
+                        delta=0.5, epsilon=0.5, t=EFTBStatus.EF_TB)
+    for i in range(1, 44):
+        assert (f"c{i}" in allocation[f"s{i}"])
 
 
 # Each student will get his 3 favorite courses

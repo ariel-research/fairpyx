@@ -126,7 +126,7 @@ def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict
     map_student_to_best_bundle_per_budget = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
     new_budgets, clearing_error, excess_demand_per_course = lp.optimize_model(map_student_to_best_bundle_per_budget,
                                                                               instance, prices, t, initial_budgets)
-    logger.info(f"new_budgets in find_budget_perturbation: {new_budgets}")
+    # logger.info(f"new_budgets in find_budget_perturbation: {new_budgets}")
     return new_budgets, clearing_error, map_student_to_best_bundle_per_budget, excess_demand_per_course
 
 
@@ -289,7 +289,7 @@ if __name__ == "__main__":
     #                 "eve-7": {"CS161": 0, "ECON101": 10, "IR": 1},
     #                 "eve-8": {"CS161": 0, "ECON101": 10, "IR": 1},
     #                 "eve-9": {"CS161": 0, "ECON101": 10, "IR": 1},
-    #                 "eve-10": {"CS161": 0, "ECON101": 10, "IR": 1}},  # TODO
+    #                 "eve-10": {"CS161": 0, "ECON101": 10, "IR": 1}},
     #     agent_capacities=2,
     #     item_capacities={"CS161": 1, "ECON101": 10, "IR": 100})
     # initial_budgets = {"alice": 4.7, "bob": 4.4, "eve-1": 6, "eve-2": 1, "eve-3": 1, "eve-4": 1, "eve-5": 1, "eve-6": 1,
@@ -313,12 +313,3 @@ if __name__ == "__main__":
     print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
                  t=t))
 
-    # instance = Instance(
-    #     valuations={"avi":{"x":2}, "beni":{"x":3}},
-    #     agent_capacities=1,
-    #     item_capacities = {"x":1})
-    # initial_budgets = {"avi":1.1, "beni":1}
-    # delta = 0.1
-    # epsilon = 0.2
-    # t = EFTBStatus.EF_TB
-    # print(divide(find_ACEEI_with_EFTB, instance=instance,initial_budgets=initial_budgets,delta=delta, epsilon=epsilon, t=t))

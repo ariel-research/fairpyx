@@ -9,7 +9,6 @@ from fairpyx.algorithms import ACEEI
 
 # from fairpyx.algorithms.ACEEI import EFTBStatus
 
-# TODO - delete this enum from here
 
 
 # Configure logging
@@ -189,8 +188,8 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
         ({'Alice': (3, ('x', 'z')), 'Bob': (2, ('y', 'z'))}, 0.0, {'x': 0.0, 'y': 0.0, 'z': 0.0})
     """
 
-    # logger.info(f"a {a}")
-    logger.info("START LINEAR_PROGRAM")
+    logger.info("\n----START LINEAR_PROGRAM")
+    logger.info("a = %s", a)
 
     model = Model("allocations")
     courses_names = list(instance.items)
@@ -203,14 +202,26 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
     z = {course: model.add_var(var_type=CONTINUOUS, lb=-instance.item_capacity(course)) for course in courses_names}
     y = {course: model.add_var(var_type=CONTINUOUS) for course in courses_names}
 
+    # Define binary variables δ
+    delta = {course: model.add_var(var_type=BINARY) for course in courses_names}
+    # Big-M value, should be large enough to cover the range of z
+    M = 1e6
+
     # Objective function
     objective_expr = xsum(y[course] for course in courses_names)
     model.objective = minimize(objective_expr)
 
-    # Add constraints for absolute value of excess demand
+    # # Add constraints for absolute value of excess demand
+    # for course in courses_names:
+    #     model += y[course] >= z[course]
+    #     model += y[course] >= -z[course]
     for course in courses_names:
+        # Add constraints to define y based on the value of z
+        model += y[course] <= z[course] + M * (1 - delta[course])
         model += y[course] >= z[course]
-        model += y[course] >= -z[course]
+        model += y[course] <= M * delta[course]
+        model += z[course] <= M * delta[course]
+        model += z[course] >= 0 - M * (1 - delta[course])
 
     # Course allocation constraints
     for course in courses_names:
@@ -266,10 +277,11 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
     # print("New budgets:", new_budgets)
     # print("Objective Value:", model.objective_value)
     # print("Excess Demand:", excess_demand)
-    logging.info("New budgets: %s\nObjective Value: %s\nExcess Demand: %s", new_budgets, model.objective_value,
+    logging.info("\nNew budgets: %s\nObjective Value: %s\nExcess Demand: %s", new_budgets, model.objective_value,
                  excess_demand_per_course)
+    logger.info("FINISH LINEAR_PROGRAM\n")
 
-    # # Process and print results todo: loogger
+    # # Process and print results
     # if model.num_solutions:
     #     print("Objective Value:", model.objective_value)
     #     for student in students_names:
