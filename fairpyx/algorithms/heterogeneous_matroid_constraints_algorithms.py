@@ -4,7 +4,7 @@ An implementation of the algorithms in:
 Programmer: Abed El-Kareem Massarwa.
 Date: 2024-03.
 """
-
+import random
 from itertools import cycle
 from networkx import DiGraph
 import fairpyx.algorithms
@@ -59,6 +59,7 @@ def envy(source: str, target: str, bundles: dict[str, set or list], val_func: ca
 
 def categorization_friendly_picking_sequence(alloc: AllocationBuilder, agent_order: list, item_categories: dict,
                                              agent_category_capacities: dict, target_category: str = 'c1'):
+    #print(agent_category_capacities)#TODO remove
     if agent_order is None: agent_order = list(alloc.remaining_agents())
     remaining_category_agent_capacities = {agent: agent_category_capacities[agent][target_category] for agent in
                                            agent_category_capacities if agent_category_capacities[agent][
@@ -457,7 +458,7 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
         current_order = list(nx.topological_sort(envy_graph))
 
 
-def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):
+def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):# TODO recheck algorithm around 10% of tests fall due to not satisfying f-ef1
     """
     this is Algorithm 5  deals with (partition Matroids with Binary Valuations, may have different capacities)
     loops as much as maximum capacity in per each category , each iteration we build :
@@ -502,8 +503,8 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             {'Agent1': ['m1', 'm5', 'm6'], 'Agent2': ['m2', 'm4'], 'Agent3': []}
    """
     envy_graph = nx.DiGraph()
-    envy_graph.add_nodes_from(alloc.remaining_agents())# adding agent nodes (no edges involved yet)
-    current_order = [agent for agent in alloc.remaining_agents()] # in this algorithm no need for initial_agent_order
+    envy_graph.add_nodes_from(alloc.remaining_agents())  # adding agent nodes (no edges involved yet)
+    current_order = [agent for agent in alloc.remaining_agents()]  # in this algorithm no need for initial_agent_order
     valuation_func = alloc.instance.agent_item_value
 
     for category in item_categories.keys():
@@ -515,42 +516,63 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             agent_category_capacities[agent][category] != 0
         }  # dictionary of the agents paired with capacities with respect to the current category we're dealing with
 
-        current_item_list = update_item_list(alloc, category, item_categories)# items we're dealing with with respect to the category
-        current_agent_list = update_ordered_agent_list(current_order, remaining_category_agent_capacities) #  items we're dealing with with respect to the constraints
-
-        for i in range(maximum_capacity):# as in papers we run for the length of the maximum capacity out of all agents for the current category
+        current_item_list = update_item_list(alloc, category,
+                                             item_categories)  # items we're dealing with with respect to the category
+        current_agent_list = update_ordered_agent_list(current_order,
+                                                       remaining_category_agent_capacities)  #  items we're dealing with with respect to the constraints
+        print(f'current item list: {current_item_list}\n current agent list: {current_agent_list} \n and allocationbuilder bundles{alloc.bundles}\n and allocationbuilder remaining capcities {alloc.remaining_agent_capacities} \nand remaining agent-capacity list: {remaining_category_agent_capacities} \n agent_category_capacities {agent_category_capacities} ')
+        print('*******************************************************')
+        for i in range(
+                maximum_capacity):  # as in papers we run for the length of the maximum capacity out of all agents for the current category
             # Creation of agent-item graph
             agent_item_bipartite_graph = create_agent_item_bipartite_graph(
-                agents=remaining_category_agent_capacities.keys(), # remaining agents
-                items=[item for item in alloc.remaining_items() if item in item_categories[category]],# remaining items
+                agents=remaining_category_agent_capacities.keys(),  # remaining agents
+                items=[item for item in alloc.remaining_items() if item in item_categories[category]],
+                # remaining items
                 valuation_func=valuation_func,
-                current_agent_list=current_agent_list# remaining agents with respect to the order
-            )# building the Bi-Partite graph
+                current_agent_list=current_agent_list  # remaining agents with respect to the order
+            )  # building the Bi-Partite graph
 
             # Creation of envy graph
             update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-                              item_categories=item_categories, agent_category_capacities=agent_category_capacities)# updating envy graph with respect to matchings (first iteration we get no envy, cause there is no matching)
+                              item_categories=item_categories,
+                              agent_category_capacities=agent_category_capacities)  # updating envy graph with respect to matchings (first iteration we get no envy, cause there is no matching)
             #topological sort (papers prove graph is always a-cyclic)
-            sort = list(nx.topological_sort(envy_graph))
+            try:
+                sort = list(nx.topological_sort(envy_graph))
+            except nx.NetworkXUnfeasible:
+                pass
+                #print("graph has cycle !")
+                #print(alloc.bundles)
+                #print({agent:{item:alloc.instance.agent_item_value(agent,item)} for agent in alloc.remaining_agents() for item in alloc.remaining_items()}) # TODO there is mismatch between this and the VALUATIONS (valuations binary this is 2112313)
             current_order = current_order if not sort else sort
             # Perform priority matching
-            priority_matching(agent_item_bipartite_graph, current_order, alloc, remaining_category_agent_capacities)# deals with eliminating finished agents from agent_category_capacities
+            priority_matching(agent_item_bipartite_graph, current_order, alloc,
+                              remaining_category_agent_capacities)  # deals with eliminating finished agents from agent_category_capacities
 
-            current_item_list = update_item_list(alloc, category, item_categories)# important to update the item list after priority matching.
-            current_agent_list = update_ordered_agent_list(current_order, remaining_category_agent_capacities)# important to update the item list after priority matching.
-
-        for item in current_item_list.copy():  # Arbitrarily allocate remaining items to agents with remaining capacity (after iterating over Th(maximum capacity))
-            for agent, capacity in remaining_category_agent_capacities.copy().items():
-                if capacity > 0:
-                    alloc.give(agent, item)
-                    current_item_list.remove(item)# remove item from item list
-                    remaining_category_agent_capacities[agent] -= 1  # Update the capacity
-                    if remaining_category_agent_capacities[agent] <= 0:
-                        del remaining_category_agent_capacities[agent]  # Remove agent if no capacity left
+            current_item_list = update_item_list(alloc, category,
+                                                 item_categories)  # important to update the item list after priority matching.
+            current_agent_list = update_ordered_agent_list(current_order,
+                                                           remaining_category_agent_capacities)  # important to update the item list after priority matching.
 
 
+        while len(remaining_category_agent_capacities) > 0 and len(current_item_list) > 0:# Note current_agent_list = f(remaining_category_agent_capacities,order)
+            arbitrary_agent = random.choice(list(remaining_category_agent_capacities.keys()))
+            arbitrary_item = random.choice(current_item_list)
+            if arbitrary_item not in alloc.instance.agent_conflicts(arbitrary_agent):
+                alloc.give(arbitrary_agent, arbitrary_item)  # give item
+                if arbitrary_item not in alloc.remaining_item_capacities.keys():
+                    current_item_list.remove(
+                        arbitrary_item)  #remove item from list
+                remaining_category_agent_capacities[
+                    arbitrary_agent] -= 1  # decrease capacity in out variable (the alloc capacity is handled in alloc.give(...))
+                if remaining_category_agent_capacities[arbitrary_agent] <= 0:  # eliminate if capacity reached 0
+                    del remaining_category_agent_capacities[arbitrary_agent]
+                    current_agent_list.remove(arbitrary_agent)
+            else: continue # agent has conflict so we go on to the next randomization option
 
-def update_ordered_agent_list(current_order:list, remaining_category_agent_capacities:dict)->list:
+
+def update_ordered_agent_list(current_order: list, remaining_category_agent_capacities: dict) -> list:
     """
        Update the ordered list of agents based on remaining category agent capacities.
 
@@ -571,7 +593,7 @@ def update_ordered_agent_list(current_order:list, remaining_category_agent_capac
     return current_agent_list
 
 
-def update_item_list(alloc:AllocationBuilder, category:str, item_categories:dict)-> list:
+def update_item_list(alloc: AllocationBuilder, category: str, item_categories: dict) -> list:
     """
         Update the item list for a given category and allocation.
 
@@ -620,21 +642,31 @@ def priority_matching(agent_item_bipartite_graph, current_order, alloc, remainin
     >>> alloc.bundles
     {'Agent1': {'Item1'}, 'Agent2': {'Item2'}}
     """
-    for match in nx.max_weight_matching(agent_item_bipartite_graph):
+    matching=nx.max_weight_matching(agent_item_bipartite_graph)
+    # print(f'matching is {matching}')
+    # print(f'capacity is {alloc.remaining_item_capacities}')
+    # print(f'alloc bundle is {alloc.bundles}')
+    # print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
+    for match in matching:
+        # TODO check if agent doesnt heve conflict with the item (already has 1 )
         if match[0].startswith('A'):
-            alloc.give(match[0], match[1])
-            remaining_category_agent_capacities[match[0]] -= 1
-            if remaining_category_agent_capacities[match[0]] <= 0:
-                del remaining_category_agent_capacities[match[0]]
+            if ((match[0], match[1]) not in alloc.remaining_conflicts) and match[0] in remaining_category_agent_capacities.keys():
+                alloc.give(match[0], match[1])
+                remaining_category_agent_capacities[match[0]] -= 1
+                if remaining_category_agent_capacities[match[0]] <= 0:
+                    del remaining_category_agent_capacities[match[0]]
+            #else do nothing ....
         else:
-             # TODO oppa ! apparently problem is with the instance generator in pytest valuations are not in  (0,1)
-            alloc.give(match[1], match[0])
-            remaining_category_agent_capacities[match[1]] -= 1
-            if remaining_category_agent_capacities[match[1]] <= 0:
-                del remaining_category_agent_capacities[match[1]]
+            # TODO oppa ! apparently problem is with the instance generator in pytest valuations are not in  (0,1)
+            if  ((match[1], match[0]) not in alloc.remaining_conflicts) and match[1] in remaining_category_agent_capacities.keys():
+                alloc.give(match[1], match[0])
+                remaining_category_agent_capacities[match[1]] -= 1
+                if remaining_category_agent_capacities[match[1]] <= 0:
+                    del remaining_category_agent_capacities[match[1]]
 
 
-def create_agent_item_bipartite_graph(agents, items, valuation_func, current_agent_list):# TODO remove unnecessary argument (agents or current_agent_list)
+def create_agent_item_bipartite_graph(agents, items, valuation_func,
+                                      current_agent_list):  # TODO remove unnecessary argument (agents or current_agent_list)
     """
     Creates an agent-item bipartite graph with edges weighted based on agent preferences.
 
