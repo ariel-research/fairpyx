@@ -11,6 +11,7 @@ Since : 2024-05
 """
 import cvxpy as cp
 import mip as mp
+import numpy as np
 
 
 from fairpyx.utils.graph_utils import many_to_many_matching_using_network_flow
@@ -20,7 +21,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
+def high_multiplicity_fair_allocation(instance: Instance) -> dict:
     """
     Finds an allocation maximizing the sum of utilities for given instance with envy-freeness and Pareto-optimality constraints.
 
@@ -31,27 +32,13 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
     - alloc (AllocationBuilder): The allocation of items to agents.
 
 
-    >>> instance = Instance(
-    ...     agent_capacities={"Ami": 2, "Tami": 2, "Rami": 2},
-    ...     item_capacities={"Fork": 2, "Knife": 2, "Pen": 2},
-    ...     valuations={
-    ...         "Ami": {"Fork": 2, "Knife": 0, "Pen": 0},
-    ...         "Rami": {"Fork": 0, "Knife": 1, "Pen": 1},
-    ...         "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}
-    ...     }
-    ... )
-    >>> initial_allocation = AllocationBuilder({
-    ...     "Ami": [],
-    ...     "Rami": [],
-    ...     "Tami": []
-    ... })
-    >>> result = high_multiplicity_fair_allocation(initial_allocation, instance)
-    >>> result.get_allocation() == {
-    ...     "Ami": ["Fork", "Fork"],
-    ...     "Rami": ["Pen", "Pen"],
-    ...     "Tami": ["Knife", "Knife"]
-    ... }
-    True
+    >>> from fairpyx.adaptors import divide
+    >>> agent_capacities = {"Ami": 2, "Tami": 2, "Rami": 2}
+    >>> item_capacities = {"Fork": 2, "Knife": 2, "Pen": 2}
+    >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1} }
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+    >>> divide(high_multiplicity_fair_allocation, instance=instance)
+    { "Ami": ["Fork", "Fork"], "Rami": ["Pen", "Pen"], "Tami": ["Knife", "Knife"] }
 
     """
 
@@ -63,62 +50,64 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
 
     pass
 
-
-def find_envy_free_allocation(alloc: AllocationBuilder, constraints: list) -> AllocationBuilder:
+def find_envy_free_allocation(constraints: list, instance: Instance) -> np.ndarray:
     """
-    Find an envy-free allocation of items to agents.
+    Find an envy-free allocation of items to agents. 
     
     Parameters:
-    - alloc (AllocationBuilder): The allocation of items to agents.
     - constraints (list): List of constraints for the ILP.
+    - instance (Instance): The instance of the problem.
 
     Returns:
-    - alloc (AllocationBuilder): The allocation of items to agents.
-
-    >>> initial_allocation = AllocationBuilder({ "Ami": ["Pen", "Fork"], "Rami": ["Fork", "Pen"], "Tami": ["Knife", "Knife"] })
-    >>> constraints = []  # Provide relevant constraints here
-    >>> envy_free_allocation = find_envy_free_allocation(initial_allocation, constraints)
-    >>> envy_free_allocation  = AllocationBuilder({ "Ami": ["Fork", "Fork"], "Rami": ["Knife", "Pen"], "Tami": ["Knife", "Pen"] })
-    True
-    """
-
-
-def find_pareto_optimal_allocation(alloc: AllocationBuilder) -> AllocationBuilder:
-    """
-    Find a Pareto-optimal allocation of items to agents.
-
-    Returns:
-    - alloc (AllocationBuilder): The allocation of items to agents.
-
-
-    >>> alloc_X = AllocationBuilder({"Ami": ["Pen", "Fork"], "Rami": ["Fork", "Pen"], "Tami": ["Knife", "Knife"]})
-    >>> pareto_optimal_allocation = find_pareto_optimal_allocation(alloc_X)
-    >>> pareto_optimal_allocation.get_allocation() == {"Ami": ["Fork", "Fork"], "Rami": ["Pen", "Pen"], "Tami": ["Knife", "Knife"]}
-    True
-    >>> alloc_X = AllocationBuilder({"Ami": ["Fork", "Fork"], "Rami": ["Pen", "Pen"], "Tami": ["Knife", "Knife"]})
-    >>> pareto_optimal_allocation = find_pareto_optimal_allocation(alloc_X)
-    >>> pareto_optimal_allocation.get_allocation() == None
-    True
+    - allocation_matrix (np.ndarray): The allocation of items to agents as a matrix.
+                                        maxtrix[i][j] = x -> times agent i gets item j.
+    
+    >>> from fairpyx.adaptors import divide
+    >>> agent_capacities = {"Ami": 2, "Tami": 2, "Rami": 2}
+    >>> item_capacities = {"Fork": 2, "Knife": 2, "Pen": 2}
+    >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1} }
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+    >>> divide(find_envy_free_allocation, instance=instance)
+    np.array([[2, 0, 0], [0, 1, 1], [0, 1, 1]])         ##  -> { "Ami": ["Fork", "Fork"], "Rami": ["Knife", "Pen"], "Tami": ["Knife", "Pen"] }
     """
     pass
 
 
-def create_more_constraints_ILP(alloc_X: AllocationBuilder, alloc_Y: AllocationBuilder):
+def find_pareto_dominates_allocation(alloc_matrix: np.ndarray, instance: Instance) -> np.ndarray:
+    """
+    Find a Pareto-dominates allocation of items to agents.
+
+    Returns:
+    - allocation_matrix (np.ndarray): The allocation of items to agents as a matrix.
+                                        maxtrix[i][j] = x -> times agent i gets item j.
+
+
+    >>> agent_capacities = {"Ami": 2, "Tami": 2, "Rami": 2}
+    >>> item_capacities = {"Fork": 2, "Knife": 2, "Pen": 2}
+    >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1} }
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+    >>> alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"] }
+    >>> pareto_optimal_allocation = find_pareto_optimal_allocation(alloc_X, instance)
+    np.ndarray([[2, 0, 0], [0, 0, 2], [0, 2, 0]]) # -> {"Ami": ["Fork", "Fork"], "Rami": ["Pen", "Pen"], "Tami": ["Knife", "Knife"]} || None
+    """
+    pass
+
+
+def create_more_constraints_ILP(alloc_X: np.ndarray, alloc_Y: np.ndarray) -> list:
     """
     Create more constraints for the ILP to disallow the current allocation.
 
     Parameters:
-    - alloc_X (AllocationBuilder): The current allocation of items to agents.
-    - alloc_Y (AllocationBuilder): The desired allocation of items to agents.
+    - alloc_X (np.ndarray): The current allocation of items to agents.
+    - alloc_Y (np.ndarray): The new allocation of items to agents.
 
     Returns:
     - constraints (list): List of additional constraints to disallow alloc_X and allow alloc_Y.
 
-    >>> alloc_X = AllocationBuilder({"Ami": ["Pen", "Fork"], "Rami": ["Fork", "Pen"], "Tami": ["Knife", "Knife"]})
-    >>> alloc_Y = AllocationBuilder({"Ami": ["Fork", "Fork"], "Rami": ["Pen", "Pen"], "Tami": ["Knife", "Knife"]})
+    >>> alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
+    >>> alloc_Y = np.array([[2, 0, 0], [0, 2, 0], [0, 0, 2]]) # -> {"Ami": ["Fork", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Pen", "Pen"]}
     >>> constraints = create_more_constraints_ILP(alloc_X, alloc_Y)
-    >>> len(constraints) == 19 # 3 agents * 3 agents * 2 items in each equation + the 9th constraint in the algorithm
-    True
+    len(constraints) == 13      # 3 agents * 2 * 2 items in each equation + the 9th constraint in the algorithm
     """
     pass
 
@@ -132,8 +121,9 @@ if __name__ == "__main__":
     logger.addHandler(logging.StreamHandler(sys.stdout))
     logger.setLevel(logging.INFO)
 
-    from fairpyx.adaptors import divide_random_instance
-    divide_random_instance(algorithm=high_multiplicity_fair_allocation, 
-                           num_of_agents=10, num_of_items=4, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12], 
-                           item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
-                           random_seed=1)
+    alloc = find_envy_free_allocation
+    # from fairpyx.adaptors import divide_random_instance
+    # divide_random_instance(algorithm=high_multiplicity_fair_allocation, 
+    #                        num_of_agents=10, num_of_items=4, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12], 
+    #                        item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
+    #                        random_seed=1)
