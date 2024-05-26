@@ -291,7 +291,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
 
     initial_budgets = random_initial_budgets(instance, beta)
 
-    while current_best_manipulation != utility:
+    while True:
         # (2) Try to  increase or decrease the weight 𝑤𝑗 for each course 𝑗 in 𝑣0 to obtain new misreports
         #      𝑉 = {𝑣𝑗,±1}𝑗∈[𝑚]}
         misreports = create_misreports(current_best_manipulation, neu)
@@ -307,6 +307,10 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
             current_best_manipulation = criteria_randomness(mechanism, student, utility, instance, delta, epsilon, t,
                                                             initial_budgets,
                                                             misreports)  # todo: implement
+        if current_best_manipulation == utility:
+            break
+        else:
+            utility = current_best_manipulation
 
     # (4) If 𝑣∗ = 𝑣0, terminate with 𝑣0 as the best manipulation found when 𝑣0 ≠ 𝑢, otherwise return failed.
     return current_best_manipulation
