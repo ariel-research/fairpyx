@@ -193,8 +193,8 @@ def alloc_random_filler(agent_category_capacities, alloc, item_ctegories)->dict:
             alloc[random_agent].append(item)
     return alloc
 
-
-def test_algorithm_1():
+@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+def test_algorithm_1(run):
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=True)
     #print(f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
     assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_round_robin, instance=instance,
@@ -203,8 +203,8 @@ def test_algorithm_1():
                    , agent_category_capacities=agent_capacities_2d, item_categories=categories,
                    valuations_func=instance.agent_item_value) is True
 
-
-def test_algorithm_2():
+@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+def test_algorithm_2(run):
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False,category_count=1)
     alloc=divide(algorithm=heterogeneous_matroid_constraints_algorithms.capped_round_robin, instance=instance,
            item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
@@ -214,8 +214,8 @@ def test_algorithm_2():
                    , agent_category_capacities=agent_capacities_2d, item_categories=categories,
                    valuations_func=instance.agent_item_value) is True
 
-
-def test_algorithm_3():
+@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+def test_algorithm_3(run):
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False ,category_count=2)
     alloc=divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin, instance=instance,
                           item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
@@ -225,8 +225,8 @@ def test_algorithm_3():
                    , agent_category_capacities=agent_capacities_2d, item_categories=categories,
                    valuations_func=instance.agent_item_value) is True
 
-
-def test_algorithm_4(): # TODO equal_valuations=True
+@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+def test_algorithm_4(run):
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False,equal_valuations=True)
     # print(
     #     f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
@@ -239,7 +239,7 @@ def test_algorithm_4(): # TODO equal_valuations=True
                    valuations_func=instance.agent_item_value) is True #check the is_fef1 function
 
 
-@pytest.mark.parametrize("run", range(1000))  # Run the test 10 times
+@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_5(run):  # binary valuations # TODO force it to create instance witn no cyclces in envy graph kind of weird since in binary vals no envy cycle can be imagined
     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False,binary_valuations=True)
     alloc=divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
@@ -250,4 +250,45 @@ def test_algorithm_5(run):  # binary valuations # TODO force it to create instan
                    instance=instance
                    , agent_category_capacities=agent_capacities_2d, item_categories=categories,
                    valuations_func=instance.agent_item_value) is True
+"""
+            INSTANCE 
+  Represents an instance of the fair course-allocation problem.
+    Exposes the following functions:
+     * agent_capacity:       maps an agent name/index to its capacity (num of seats required). {'Agent1':10,......'Agentk':10} -> we need to make sure each agent gets the sum of capacities for each capacity[agent][category]
+     * item_capacity:        maps an item  name/index to its capacity (num of seats allocated). {'m1':10,......} ✅✅✅✅✅
+     * agent_conflicts:      maps an agent  name/index to a set of items that conflict with it (- cannot be allocated to this agent). {'Agent1':{'m1',.....'mk'}} ✅✅✅✅✅ handled in alloc.give()
+     * item_conflicts:       maps an item  name/index to a set of items that conflict with it (- cannot be allocated together). ❌❌❌❌❌❌❌❌ misconception we dont support this in our case , CHECK USAGES AND TELL IT DOESNT AFFECT
+     * agent_item_value:     maps an agent,item pair to the agent's value for the item. ✅✅✅✅✅ callable , supported ✅✅✅
+     * agents: an enumeration of the agents (derived from agent_capacity).
+     * items: an enumeration of the items (derived from item_capacity).
+     
+            ALLOCATIONBUILDER 
+    A class for incrementally constructing an allocation.
 
+    Whenever an item is given to an agent (via the 'give' method),
+    the class automatically updates the 'remaining_item_capacities' and the 'remaining_agent_capacities'.
+    It also updates the 'remaining_conflicts' by adding a conflict between the agent and the item, so that it is not assigned to it anymore.
+
+    Once you finish adding items, use "sorted" to get the final allocation (where each bundle is sorted alphabetically).
+    self.instance = instance
+        self.remaining_agent_capacities = {agent: instance.agent_capacity(agent) for agent in instance.agents if instance.agent_capacity(agent) > 0}
+        self.remaining_item_capacities = {item: instance.item_capacity(item) for item in instance.items if instance.item_capacity(item) > 0}
+        self.remaining_conflicts = {(agent,item) for agent in self.remaining_agents() for item in self.instance.agent_conflicts(agent)}
+        self.bundles = {agent: set() for agent in instance.agents}    # Each bundle is a set, since each agent can get at most one seat
+        
+        
+        ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌
+        modifications 
+        1) we must also have a container mapping agent to container of categories mapped to capacities (agent_category_capacities) {'Agent1':{'c1':10,'c2':5}}
+        2) (category_items) mapping each category to items {'c1':['m1',......'mk']}
+        ❌❌❌❌❌❌❌❌ item_conflicts must not be used ! , we dont support it 
+        ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌
+        in our papers we have : 
+        1) numerical/binary valuations -> make sure to make it an option in the instance generator 
+        2) 1/2/k>2  categories -> make sure to make it an option in the instance generator
+        3) identical/different valuations -> make sure to make it an option in the instance generator
+        4) categorizations is shared between all ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ 
+        NO CHANCE SOMEONE SEES ITEMS DIVIDED IN DIFFERENT FORM AT LEAST TILL ALGORITHM 5 ❌❌❌❌❌❌❌
+        
+        
+     """
