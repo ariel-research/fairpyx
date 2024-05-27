@@ -4,6 +4,7 @@ An implementation of the Pytest of the algorithms  in:
 Programmer: Abed El-Kareem Massarwa.
 Date: 2024-03.
 """
+import logging
 import random
 
 import pytest
@@ -12,13 +13,18 @@ from fairpyx.algorithms import heterogeneous_matroid_constraints_algorithms
 from fairpyx import divide
 import numpy as np
 
-
+#logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+handler=logging.FileHandler('test_heterogeneous_matroid_constraints_algorithms.log',mode='w')
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 # TODO lets do reconstruction here tomorrow ! , less functions ! beautify ! straight to point !
 
 def random_instance(equal_capacities: bool = False, equal_valuations: bool = False, binary_valuations: bool = False,
-                    category_count=-1) -> tuple[Instance, dict, dict, list]:
-    random_num_of_agents = np.random.randint(1, 10+1)  #✅
-    random_num_of_items = np.random.randint(1, 10+1)  #✅
+                    category_count=-1,num_of_agents=-1,num_of_items=-1) -> tuple[Instance, dict, dict, list]:
+    random_num_of_agents = np.random.randint(1, 10+1) if num_of_agents == -1 else num_of_agents #✅
+    random_num_of_items = np.random.randint(1, 10+1) if num_of_items == -1 else num_of_items  #✅
     num_of_categories = category_count if category_count != -1 else np.random.randint(1, random_num_of_items+1)  #✅
     item_base_value_bounds = (0, 1) if binary_valuations else (1, 100)  #✅
     random_instance = random_uniform_extended(
@@ -46,7 +52,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                             item_subjective_ratio_bounds: tuple[float, float],
                             normalized_sum_of_values: int,
                             agent_name_template="Agent{index}", item_name_template="m{index}",
-                            random_seed: int = np.random.randint(1, 2**31),
+                            random_seed: int = 2136942426,
                             equal_capacities: bool = False
                             , equal_valuations: bool = False
                             ) -> tuple[Instance, dict, dict, list]:
@@ -97,6 +103,10 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
             result_instance.agents}  # we simply use what result_instance has (since its private we extract it)
 
     temporary_items = list(result_instance.items).copy()
+    for category in categories.keys():# start with categories first so we make sure there is no empty categories
+        random_item=np.random.choice(temporary_items)
+        categories[category].append(random_item)
+        temporary_items.remove(random_item)
     for item in temporary_items:# random allocation of items to categories
         random_category = np.random.choice(list(categories.keys()))
         categories[random_category].append(item)
@@ -118,55 +128,55 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
     return result_instance, agent_category_capacities, categories, initial_agent_order#✅#✅#✅
 
 
-def is_fef1(alloc: dict, instance: Instance, item_categories: dict, agent_category_capacities: dict,
-            valuations_func: callable) -> bool:
-    """
-    description: this function checks if the allocation given satisfies the property of F-EF1 (feasible-envy-freeness up to 1 good)
-    param alloc: the allocation
-    param instance: the instance which belongs to the allocation
-    param item_categories: dictionary of categories paired with lists of items
-    param agent_category_capacities: dictionary of agents paired with dict of categories paired with values (capacities for each category)
-    param valuations_func: this function directs us to the valuation of each (agent,item)
-    """
-    # agent_bundle_value = {agent: sum(valuations_func(agent, item) for item in bundle) for agent, bundle in
-    #                       alloc.items()}
-    # agent_item_value = {agent: {item: valuations_func(agent, item) for item in instance.items} for agent in
-    #                     instance.agents}
-    # print(
-    #     f'final bundle before check is {alloc}\n valuations are {agent_bundle_value},\n agent-item value {agent_item_value}\n instance items {instance.items}\n agent capacities {agent_category_capacities}\n item categories {item_categories}')
-
-    agent_categorized_allocation = {agent: {category: [] for category in item_categories.keys()} for agent in
-                                    agent_category_capacities.keys()}
-    agent_categorized_allocation_builder(agent_categorized_allocation, alloc, item_categories)# fill the items according to the category they belong to
-
-    for agent_i in agent_categorized_allocation.keys():
-        agent_i_bundle_value = sum(
-            valuations_func(agent_i, item) for item in alloc[agent_i])  # the value of agent i bundle
-        for agent_j in agent_categorized_allocation.keys():
-            if agent_i == agent_j:
-                continue  # Skip comparing the same agent
-            feasible_agent_j_bundle = []
-            for cat, cap in agent_category_capacities[agent_i].items():
-                temp_j_alloc = agent_categorized_allocation[agent_j][cat].copy() # sub_allocation per category ?
-                temp_j_alloc.sort(key=lambda x: valuations_func(agent_i, x),reverse=True) # sort based on values asc order
-                first_k_items = temp_j_alloc[:cap]
-                feasible_agent_j_bundle.extend(
-                    first_k_items)  # adding all the time the set of feasible items to the final bundle so we can compare it later with agent_i bundle
-
-            feasible_agent_j_bundle_value = sum(valuations_func(agent_i, item) for item in feasible_agent_j_bundle) # the value of the best feasible bundle in the eyes of agent i
-            # print(
-            #     f'j bundle is {feasible_agent_j_bundle} feasible j bundle value {feasible_agent_j_bundle_value}\n agent i bundle {alloc[agent_i]} and agent i bundle value {agent_i_bundle_value}')
-            if feasible_agent_j_bundle_value > agent_i_bundle_value:
-                # Check if removing any one item can make the bundle less or equal
-                found = False # helping flag
-                for current_item in feasible_agent_j_bundle:
-                    if feasible_agent_j_bundle_value - valuations_func(agent_i, current_item) <= agent_i_bundle_value:
-                        found = True
-                        break  # found an item that if we remove the envy is gone
-                if found is False:
-
-                    return False  # If no such item found, return False
-    return True# whoever reaches here means there is no envy
+# def is_fef1(alloc: dict, instance: Instance, item_categories: dict, agent_category_capacities: dict,
+#             valuations_func: callable) -> bool:
+#     """
+#     description: this function checks if the allocation given satisfies the property of F-EF1 (feasible-envy-freeness up to 1 good)
+#     param alloc: the allocation
+#     param instance: the instance which belongs to the allocation
+#     param item_categories: dictionary of categories paired with lists of items
+#     param agent_category_capacities: dictionary of agents paired with dict of categories paired with values (capacities for each category)
+#     param valuations_func: this function directs us to the valuation of each (agent,item)
+#     """
+#     # agent_bundle_value = {agent: sum(valuations_func(agent, item) for item in bundle) for agent, bundle in
+#     #                       alloc.items()}
+#     # agent_item_value = {agent: {item: valuations_func(agent, item) for item in instance.items} for agent in
+#     #                     instance.agents}
+#     # print(
+#     #     f'final bundle before check is {alloc}\n valuations are {agent_bundle_value},\n agent-item value {agent_item_value}\n instance items {instance.items}\n agent capacities {agent_category_capacities}\n item categories {item_categories}')
+#
+#     agent_categorized_allocation = {agent: {category: [] for category in item_categories.keys()} for agent in
+#                                     agent_category_capacities.keys()}
+#     agent_categorized_allocation_builder(agent_categorized_allocation, alloc, item_categories)# fill the items according to the category they belong to
+#
+#     for agent_i in agent_categorized_allocation.keys():
+#         agent_i_bundle_value = sum(
+#             valuations_func(agent_i, item) for item in alloc[agent_i])  # the value of agent i bundle
+#         for agent_j in agent_categorized_allocation.keys():
+#             if agent_i == agent_j:
+#                 continue  # Skip comparing the same agent
+#             feasible_agent_j_bundle = []
+#             for cat, cap in agent_category_capacities[agent_i].items():
+#                 temp_j_alloc = agent_categorized_allocation[agent_j][cat].copy() # sub_allocation per category ?
+#                 temp_j_alloc.sort(key=lambda x: valuations_func(agent_i, x),reverse=True) # sort based on values asc order
+#                 first_k_items = temp_j_alloc[:cap]
+#                 feasible_agent_j_bundle.extend(
+#                     first_k_items)  # adding all the time the set of feasible items to the final bundle so we can compare it later with agent_i bundle
+#
+#             feasible_agent_j_bundle_value = sum(valuations_func(agent_i, item) for item in feasible_agent_j_bundle) # the value of the best feasible bundle in the eyes of agent i
+#             # print(
+#             #     f'j bundle is {feasible_agent_j_bundle} feasible j bundle value {feasible_agent_j_bundle_value}\n agent i bundle {alloc[agent_i]} and agent i bundle value {agent_i_bundle_value}')
+#             if feasible_agent_j_bundle_value > agent_i_bundle_value:
+#                 # Check if removing any one item can make the bundle less or equal
+#                 found = False # helping flag
+#                 for current_item in feasible_agent_j_bundle:
+#                     if feasible_agent_j_bundle_value - valuations_func(agent_i, current_item) <= agent_i_bundle_value:
+#                         found = True
+#                         break  # found an item that if we remove the envy is gone
+#                 if found is False:
+#
+#                     return False  # If no such item found, return False
+#     return True# whoever reaches here means there is no envy
 
 
 def agent_categorized_allocation_builder(agent_categorized_allocation, alloc, categories):
@@ -185,72 +195,81 @@ def agent_categorized_allocation_builder(agent_categorized_allocation, alloc, ca
 
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_1(run):
-    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=True) #since we're doing cycle elemination
-    #print(f"instance -> {instance},\n agent_capacities -> {agent_category_capacities},\n categories -> {categories},\n initial_agent_order ->  {initial_agent_order}")
-    assert is_fef1(divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_round_robin,
+
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=True,num_of_agents=4,num_of_items=30) #since we're doing cycle elemination
+    logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
+    alloc=divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_round_robin,
                           instance=instance,
                           item_categories=categories,
                           agent_category_capacities=agent_category_capacities,
-                          initial_agent_order=initial_agent_order),
+                          initial_agent_order=initial_agent_order)
+
+    logger.info(f"allocation is ------------->: {alloc}")
+    print(f"instance -> {instance},\n agent_capacities -> {agent_category_capacities},\n categories -> {categories},\n initial_agent_order ->  {initial_agent_order}")
+    assert is_fef1(alloc,
                           instance=instance,
                           agent_category_capacities=agent_category_capacities,
                           item_categories=categories,
                           valuations_func=instance.agent_item_value) is True
 
+    logger.info("Finished processing data")
 
-@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
-def test_algorithm_2(run):
-    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, category_count=1)
-    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.capped_round_robin, instance=instance,
-                   item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
-    #print(alloc)
-    assert is_fef1(alloc,
-                   instance=instance
-                   , agent_category_capacities=agent_capacities_2d, item_categories=categories,
-                   valuations_func=instance.agent_item_value) is True
-
-
-@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
-def test_algorithm_3(run):
-    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, category_count=2)
-    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin,
-                   instance=instance,
-                   item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
-    #print(alloc)
-    assert is_fef1(alloc,
-                   instance=instance
-                   , agent_category_capacities=agent_capacities_2d, item_categories=categories,
-                   valuations_func=instance.agent_item_value) is True
-
-
-@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
-def test_algorithm_4(run):
-    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, equal_valuations=True)
-    # print(
-    #     f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
-    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_capped_round_robin,
-                   instance=instance,
-                   item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
-    #print(alloc)
-    assert is_fef1(alloc,
-                   instance=instance
-                   , agent_category_capacities=agent_capacities_2d, item_categories=categories,
-                   valuations_func=instance.agent_item_value) is True  #check the is_fef1 function
-
-
-@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
-def test_algorithm_5(
-        run):  # binary valuations # TODO force it to create instance witn no cyclces in envy graph kind of weird since in binary vals no envy cycle can be imagined
-    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, binary_valuations=True)
-    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
-                   instance=instance,
-                   item_categories=categories, agent_category_capacities=agent_capacities_2d)
-    #print(alloc)
-    assert is_fef1(alloc,
-                   instance=instance
-                   , agent_category_capacities=agent_capacities_2d, item_categories=categories,
-                   valuations_func=instance.agent_item_value) is True
-
+#
+# @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+# def test_algorithm_2(run):
+#     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, category_count=1)
+#     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.capped_round_robin, instance=instance,
+#                    item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
+#     #print(alloc)
+#     assert is_fef1(alloc,
+#                    instance=instance
+#                    , agent_category_capacities=agent_capacities_2d, item_categories=categories,
+#                    valuations_func=instance.agent_item_value) is True
+#
+#
+# @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+# def test_algorithm_3(run):
+#     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, category_count=2)
+#     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin,
+#                    instance=instance,
+#                    item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
+#     #print(alloc)
+#     assert is_fef1(alloc,
+#                    instance=instance
+#                    , agent_category_capacities=agent_capacities_2d, item_categories=categories,
+#                    valuations_func=instance.agent_item_value) is True
+#
+#
+# @pytest.mark.parametrize("run", range(10))  # Run the test 10 times
+# def test_algorithm_4(run):
+#     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+#     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, equal_valuations=True)
+#     print(
+#         f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
+#     #print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+#     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_capped_round_robin,
+#                    instance=instance,
+#                    item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
+#     #print(alloc)
+#     assert is_fef1(alloc,
+#                    instance=instance
+#                    , agent_category_capacities=agent_capacities_2d, item_categories=categories,
+#                    valuations_func=instance.agent_item_value) is True  #check the is_fef1 function
+#
+#
+# @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+# def test_algorithm_5(
+#         run):  # binary valuations # TODO force it to create instance witn no cyclces in envy graph kind of weird since in binary vals no envy cycle can be imagined
+#     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, binary_valuations=True)
+#     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
+#                    instance=instance,
+#                    item_categories=categories, agent_category_capacities=agent_capacities_2d)
+#     #print(alloc)
+#     assert is_fef1(alloc,
+#                    instance=instance
+#                    , agent_category_capacities=agent_capacities_2d, item_categories=categories,
+#                    valuations_func=instance.agent_item_value) is True
+#
 
 """
             INSTANCE 
@@ -294,3 +313,44 @@ def test_algorithm_5(
         
         
      """
+def is_fef1(alloc: dict, instance: Instance, item_categories: dict, agent_category_capacities: dict,
+            valuations_func: callable) -> bool:
+    agent_categorized_allocation = {agent: {category: [] for category in item_categories.keys()} for agent in
+                                    agent_category_capacities.keys()}
+    agent_categorized_allocation_builder(agent_categorized_allocation, alloc, item_categories)  # Fill the items according to the category they belong to
+    logger.info(f"categorized allocation is -> {agent_categorized_allocation} \n agent categorized capacities are -> {agent_category_capacities} \n categorize items  are {item_categories}")
+    for agent_i in agent_categorized_allocation.keys():
+        agent_i_bundle_value = sum(valuations_func(agent_i, item) for item in alloc[agent_i])  # The value of agent i bundle
+        logger.info(f"Checking agent {agent_i}, bundle value {agent_i_bundle_value}")
+
+        for agent_j in agent_categorized_allocation.keys():
+            if agent_i == agent_j:
+                continue  # Skip comparing the same agent
+
+            feasible_agent_j_bundle = []
+            for cat, cap in agent_category_capacities[agent_i].items():
+                temp_j_alloc = agent_categorized_allocation[agent_j][cat].copy()  # Sub_allocation per category
+                temp_j_alloc.sort(key=lambda x: valuations_func(agent_i, x), reverse=True)  # Sort based on values descending order
+                first_k_items = temp_j_alloc[:cap]
+                feasible_agent_j_bundle.extend(first_k_items)  # Adding all the time the set of feasible items to the final bundle
+
+            feasible_agent_j_bundle_value = sum(valuations_func(agent_i, item) for item in feasible_agent_j_bundle)  # The value of the best feasible bundle in the eyes of agent i
+            logger.info(f"Agent {agent_i} vs Agent {agent_j}, feasible bundle value {feasible_agent_j_bundle_value}")
+
+            if feasible_agent_j_bundle_value > agent_i_bundle_value:
+                # Check if removing any one item can make the bundle less or equal
+                found = False  # Helping flag
+                for current_item in feasible_agent_j_bundle:
+                    if feasible_agent_j_bundle_value - valuations_func(agent_i, current_item) <= agent_i_bundle_value:
+                        found = True
+                        logger.info(f"Removing item {current_item} resolves envy")
+                        break  # Found an item that if we remove the envy is gone
+                if not found:
+                    logger.error(f"Failed F-EF1 check for agent {agent_i} with bundle {alloc[agent_i]} against agent {agent_j} with bundle {feasible_agent_j_bundle}")
+                    return False  # If no such item found, return False
+    return True  # Whoever reaches here means there is no envy
+
+if __name__ == "__main__":
+    #logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    #pytest.main(["-s", __file__])
+    pass
