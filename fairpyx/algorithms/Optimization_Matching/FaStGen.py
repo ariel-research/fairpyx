@@ -9,12 +9,15 @@ from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import logging
 logger = logging.getLogger(__name__)
 
-def FaStGen(alloc: AllocationBuilder)->dict:
+def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:dict)->dict:
     """
     Algorithem 3-FaSt-Gen: finding a match for the general ranked valuations setting.
     
 
-        :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents.
+    :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents.
+    :param agents_valuations: a dictionary represents how agents valuates the items
+    :param items_valuations: a dictionary represents how items valuates the agents
+    
     >>> from fairpyx.adaptors import divide
     >>> S = {"s1", "s2", "s3", "s4", "s5", "s6", "s7"}
     >>> C = {"c1", "c2", "c3"}
@@ -30,8 +33,8 @@ def FaStGen(alloc: AllocationBuilder)->dict:
         "s5" : ["c2","c3","c1"], 
         "s6" :["c3","c1","c2"], 
         "s7" : ["c1","c2","c3"]}        #the students valuations                 
-    >>> instance = (S, C, U ,V)
-    >>> divide(FaStGen, instance=instance)
+    >>> instance = Instance(agents=S, items=C)
+    >>> divide(FaStGen, instance=instance, agents_valuations=U, items_valuations=V)
     {'c1' : ['s1','s2'], 'c2' : ['s3','s4','s5']. 'c3' : ['s6','s7']}
     """
     return 0
