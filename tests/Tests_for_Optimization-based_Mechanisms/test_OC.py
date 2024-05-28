@@ -13,8 +13,8 @@ import numpy as np
 NUM_OF_RANDOM_INSTANCES=10
 
 def test_optimal_number_of_courses():
-    s1 = {"c1": 25, "c2": 25, "c3": 25, "c4": 25}
-    s2 = {"c1": 20, "c2": 20, "c3": 40, "c4": 20}
+    s1 = {"c1": 27, "c2": 26, "c3": 24, "c4": 23}  #c2  c3  c4  -> 6, 73         c1 c2 c3 -> 9, 77
+    s2 = {"c1": 21, "c2": 20, "c3": 40, "c4": 19}  #c3 c1 c2    -> 9, 81         c3 c2 c4 -> 6, 79
     instance = fairpyx.Instance(
         agent_capacities={"s1": 3, "s2": 3},
         item_capacities={"c1": 1, "c2": 2, "c3": 2, "c4": 1},
