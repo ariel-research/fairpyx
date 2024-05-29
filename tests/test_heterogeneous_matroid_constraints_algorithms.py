@@ -103,6 +103,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
             result_instance.agents}  # we simply use what result_instance has (since its private we extract it)
 
     temporary_items = list(result_instance.items).copy()
+    logger.info(f"categories are -> {categories} and items are -> {temporary_items}")
     for category in categories.keys():# start with categories first so we make sure there is no empty categories
         random_item=np.random.choice(temporary_items)
         categories[category].append(random_item)
@@ -214,62 +215,66 @@ def test_algorithm_1(run):
 
     logger.info("Finished processing data")
 
-#
-# @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
-# def test_algorithm_2(run):
-#     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, category_count=1)
-#     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.capped_round_robin, instance=instance,
-#                    item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
-#     #print(alloc)
-#     assert is_fef1(alloc,
-#                    instance=instance
-#                    , agent_category_capacities=agent_capacities_2d, item_categories=categories,
-#                    valuations_func=instance.agent_item_value) is True
-#
-#
-# @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
-# def test_algorithm_3(run):
-#     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, category_count=2)
-#     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin,
-#                    instance=instance,
-#                    item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
-#     #print(alloc)
-#     assert is_fef1(alloc,
-#                    instance=instance
-#                    , agent_category_capacities=agent_capacities_2d, item_categories=categories,
-#                    valuations_func=instance.agent_item_value) is True
-#
-#
-# @pytest.mark.parametrize("run", range(10))  # Run the test 10 times
-# def test_algorithm_4(run):
-#     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-#     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, equal_valuations=True)
-#     print(
-#         f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
-#     #print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-#     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_capped_round_robin,
-#                    instance=instance,
-#                    item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
-#     #print(alloc)
-#     assert is_fef1(alloc,
-#                    instance=instance
-#                    , agent_category_capacities=agent_capacities_2d, item_categories=categories,
-#                    valuations_func=instance.agent_item_value) is True  #check the is_fef1 function
-#
-#
-# @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
-# def test_algorithm_5(
-#         run):  # binary valuations # TODO force it to create instance witn no cyclces in envy graph kind of weird since in binary vals no envy cycle can be imagined
-#     instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, binary_valuations=True)
-#     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
-#                    instance=instance,
-#                    item_categories=categories, agent_category_capacities=agent_capacities_2d)
-#     #print(alloc)
-#     assert is_fef1(alloc,
-#                    instance=instance
-#                    , agent_category_capacities=agent_capacities_2d, item_categories=categories,
-#                    valuations_func=instance.agent_item_value) is True
-#
+
+@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+def test_algorithm_2(run):# TODO show Erel the video of the problem (the item caps affecting fairness) (no wonder each algorithm using RR is gonna be failing in some instances where item capacity affects the situation)
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, category_count=1)
+    # logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
+    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.capped_round_robin, instance=instance,
+                   item_categories=categories, agent_category_capacities=agent_category_capacities, initial_agent_order=initial_agent_order)
+    logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
+    logger.info(f"allocation is ------------->: {alloc}")
+    assert is_fef1(alloc,
+                   instance=instance
+                   , agent_category_capacities=agent_category_capacities, item_categories=categories,
+                   valuations_func=instance.agent_item_value) is True
+
+
+@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+def test_algorithm_3(run):
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, category_count=2,num_of_items=1) # TODO somehow it runs stupid with only 1 item !!! WHYYYYYYY
+    logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
+
+    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin,
+                   instance=instance,
+                   item_categories=categories, agent_category_capacities=agent_category_capacities, initial_agent_order=initial_agent_order)
+    #print(alloc)
+    assert is_fef1(alloc,
+                   instance=instance
+                   , agent_category_capacities=agent_category_capacities, item_categories=categories,
+                   valuations_func=instance.agent_item_value) is True
+
+
+@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+def test_algorithm_4(run):
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, equal_valuations=True)
+    print(
+        f"instance -> {instance},\n agent_capacities -> {agent_capacities_2d},\n categories -> {categories},\n order ->  {order}")
+    #print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_capped_round_robin,
+                   instance=instance,
+                   item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
+    #print(alloc)
+    assert is_fef1(alloc,
+                   instance=instance
+                   , agent_category_capacities=agent_capacities_2d, item_categories=categories,
+                   valuations_func=instance.agent_item_value) is True  #check the is_fef1 function
+
+
+@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+def test_algorithm_5(
+        run):  # binary valuations # TODO force it to create instance witn no cyclces in envy graph kind of weird since in binary vals no envy cycle can be imagined
+    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, binary_valuations=True)
+    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
+                   instance=instance,
+                   item_categories=categories, agent_category_capacities=agent_capacities_2d)
+    #print(alloc)
+    assert is_fef1(alloc,
+                   instance=instance
+                   , agent_category_capacities=agent_capacities_2d, item_categories=categories,
+                   valuations_func=instance.agent_item_value) is True
+
 
 """
             INSTANCE 

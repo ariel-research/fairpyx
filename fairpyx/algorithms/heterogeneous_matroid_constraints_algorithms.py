@@ -144,7 +144,7 @@ def update_category_items(alloc, item_categories, target_category):
     return remaining_category_items
 
 
-def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph, item_categories: dict,
+def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph, item_categories: dict, # TODO serious problem , we get bundles with 4 agents we end up with 3 agent nodes !! HOW !!
                       agent_category_capacities: dict):
     """
     simply a helper function to update the envy-graph based on given params
@@ -163,7 +163,9 @@ def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: 
     >>> agent_category_capacities= {'Agent1':{'c1':1},'Agent2':{'c1':1}}
     >>> update_envy_graph(envy_graph=graph, valuation_func=valuation_func, item_categories=item_categories, agent_category_capacities=agent_category_capacities, curr_bundles=bundle )
     """
+    logger.info(f"bundles in UPDATE GRAPH {curr_bundles}")
     envy_graph.clear_edges()
+    envy_graph.add_nodes_from(curr_bundles.keys())
     for agent1, bundle1 in curr_bundles.items():
         for agent2, bundle_agent2 in curr_bundles.items():
             if agent1 is not agent2:  # make sure w're not comparing same agent to himself
@@ -308,11 +310,13 @@ def per_category_round_robin(alloc, item_categories, agent_category_capacities, 
     valuation_func = alloc.instance.agent_item_value
 
     for category in item_categories.keys():
-        logger.info(f"item_categories.keys() -> {item_categories.keys()}")
+        logger.info(f"item_categories.keys() -> {item_categories.keys()}\n bundles before RR -> {alloc.bundles}")
+        logger.info(f"ENVY GRAPH BEFORE RR -> {envy_graph.nodes} -> in {envy_graph}  category -> {category}")
         categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities, category)
-        logger.info(f"done with RR in {category}")
+        logger.info(f"ENVY GRAPH AFTER RR -> {envy_graph.nodes} -> in {envy_graph}  category -> {category}")
+        logger.info(f"done with RR in {category}\n bundles after  RR -> {alloc.bundles}")
         update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
-        logger.info(f"done with envy_graph in {category}")
+        logger.info(f"done with envy_graph -> {envy_graph.nodes} -> in {envy_graph}  category -> {category}")
         if not nx.is_directed_acyclic_graph(envy_graph):
             logger.info(
                 f"CYCLE REMOVAL STARTED ")
@@ -321,7 +325,7 @@ def per_category_round_robin(alloc, item_categories, agent_category_capacities, 
             logger.info(
                 f"CYCLE REMOVAL ENDED ")
         current_order = list(nx.topological_sort(envy_graph))
-        logger.info("TOPOLOGICAL SORT DONE ")
+        logger.info(f"TOPOLOGICAL SORT DONE -> {current_order} ")
 
 
 # def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
