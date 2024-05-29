@@ -24,10 +24,10 @@ def leximin_partition(valuation, n: int = 3):
     >>> leximin_partition([2,8,8,7])
     [[1], [2], [0, 3]]
 
-    # leximin_partition([2,8,8,7,5,2,3]) # TODO: my partition could be wrong
+    >>> leximin_partition([2,8,8,7,5,2,3]) # TODO: my partition could be wrong got: [[1, 6], [0, 2, 5], [3, 4]]
     [[0, 5, 6], [1, 2], [3, 4]]
 
-    >>> leximin_partition([2,2,2,2])
+    >>> leximin_partition([2,2,2,2]) # got: [[0, 3], [1], [2]]
     [[0, 1], [2], [3]]
     """
     # Pair values with their indices
@@ -165,26 +165,30 @@ def create_envy_graph(instance: Instance, allocation: dict):
     """
     abvm = AgentBundleValueMatrix(instance, allocation, normalized=False)
     abvm.make_envy_matrix()
-    mat: dict = abvm.envy_matrix  # mat example {'Alice': {'Alice': 0, 'Bob': 11}, 'Bob': {'Alice': -11, 'Bob': 0}}
-    envy_edges = []
-    for agent in instance.agents:
-        agent_status = mat[agent]
-        for other, envy in agent_status.items():
-            if envy > 0:
-                envy_edges.append((agent, other))
+    mat: dict[str, dict[str, int]] = abvm.envy_matrix  # mat example {'Alice': {'Alice': 0, 'Bob': 11}, 'Bob': {'Alice': -11, 'Bob': 0}}
+    envy_edges = [
+        (agent, other)
+        for agent, agent_status in mat.items()
+        for other, envy in agent_status.items()
+        if envy > 0
+    ]
     # envy_edges = [(agent, other) for agent in instance.agents for other, envy in mat[agent] if envy > 0]
     if not envy_edges:
-        return None
-    return nx.DiGraph(envy_edges)
+        return nx.DiGraph()
+    graph = nx.DiGraph()
+    graph.add_nodes_from(instance.agents)
+    graph.add_edges_from(envy_edges)
+    return graph
 
 
-def envy_reduction_procedure(alloc: AllocationBuilder,
-                             explanation_logger: ExplanationLogger = ExplanationLogger()) -> AllocationBuilder:
+def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
+                             explanation_logger: ExplanationLogger = ExplanationLogger()):
     """
     Procedure P for algo. 2: builds an envy graph from a given allocation, finds and reduces envy cycles.
     i.e. allocations with envy-cycles should and would be fixed here.
 
     :param alloc: the current allocation
+    :param instance: the current instance
     :param explanation_logger: a logger
     :return: updated allocation with no envy cycles
 
@@ -193,13 +197,12 @@ def envy_reduction_procedure(alloc: AllocationBuilder,
 
     Example:
     >>> instance = Instance(valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]})
-    >>> allocator = AllocationBuilder(instance)
+    >>> allocator = {"Alice": [2],  # Alice envies both Claire and Bob
+    ... "Bob": [1],                 # Bob envies both Alice and Claire
+    ... "Claire":[0]}               # Claire envies both Alice and Bob
 
-    >>> allocator.give('Alice', 2) # Alice envies both Claire and Bob
-    >>> allocator.give('Bob', 1) # Bob envies both Alice and Claire
-    >>> allocator.give('Claire', 0) # Claire envies both Alice and Bob
-    >>> reduced = envy_reduction_procedure(allocator).sorted()
-    >>> reduced
+    >>> envy_reduction_procedure(allocator, instance)
+    >>> allocator
     {'Alice': [0], 'Bob': [2], 'Claire': [1]}
 
     given an allocation a, we define its corresponding envy-graph g as follows.
@@ -249,21 +252,18 @@ def envy_reduction_procedure(alloc: AllocationBuilder,
         return TEXTS[code][explanation_logger.language]
 
     explanation_logger.info("\n" + _("procedure_starts") + "\n")
-    instance = alloc.instance
-    curr_alloc = alloc.sorted()
-    envy_graph = create_envy_graph(instance,curr_alloc)
-    if envy_graph is None:
-        return alloc
-    cycles = sorted(nx.simple_cycles(envy_graph))
-    envy_cycle = cycles
-    if all(isinstance(item, list) for item in cycles):
-        envy_cycle = max(cycles, key=len)  # the largest cycle
-    relation = [(envy_cycle[i], envy_cycle[(i + 1) % len(envy_cycle)]) for i in range(len(envy_cycle))]
-    new_alloc = AllocationBuilder(instance)
-    for envious, envied in relation:
-        new_alloc.give_bundle(envious, curr_alloc[envied])
-
-    return new_alloc
+    envy_graph = create_envy_graph(instance, alloc)
+    while not nx.is_directed_acyclic_graph(envy_graph):
+        envy_cycle = nx.find_cycle(envy_graph)
+        if len(envy_cycle) == 2: # only two agents involved
+            envious, envied = envy_cycle[0]
+            alloc.update({envious: alloc[envied]})
+        else:
+            for envious, envied in envy_cycle:
+            # if (envied, envious) not in seen:
+                alloc.update({envious: alloc[envied]})
+                # seen.add((envious, envied))
+        envy_graph = create_envy_graph(instance, alloc)
 
 
 def alloc_by_matching(alloc: AllocationBuilder):
