@@ -198,30 +198,30 @@ def test_algorithm_3(run):
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_4(run):
 
-    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, equal_valuations=True)
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, equal_valuations=True)
     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_capped_round_robin,
                    instance=instance,
-                   item_categories=categories, agent_category_capacities=agent_capacities_2d, initial_agent_order=order)
+                   item_categories=categories, agent_category_capacities=agent_category_capacities, initial_agent_order=initial_agent_order)
     logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
     logger.info(f"allocation is ------------->: {alloc}")
     assert is_fef1(alloc,
                    instance=instance
-                   , agent_category_capacities=agent_capacities_2d, item_categories=categories,
+                   , agent_category_capacities=agent_category_capacities, item_categories=categories,
                    valuations_func=instance.agent_item_value) is True  #check the is_fef1 function
 
 
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_5(
         run):  # binary valuations # TODO force it to create instance witn no cyclces in envy graph kind of weird since in binary vals no envy cycle can be imagined
-    instance, agent_capacities_2d, categories, order = random_instance(equal_capacities=False, binary_valuations=True,item_capacity_bounds=(1,1))
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, binary_valuations=True,item_capacity_bounds=(1,1))
     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
                    instance=instance,
-                   item_categories=categories, agent_category_capacities=agent_capacities_2d)
+                   item_categories=categories, agent_category_capacities=agent_category_capacities)
     logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
     logger.info(f"allocation is ------------->: {alloc}")
     assert is_fef1(alloc,
                    instance=instance
-                   , agent_category_capacities=agent_capacities_2d, item_categories=categories,
+                   , agent_category_capacities=agent_category_capacities, item_categories=categories,
                    valuations_func=instance.agent_item_value) is True
 
 
