@@ -682,7 +682,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             # Perform priority matching
             priority_matching(agent_item_bipartite_graph, current_order, alloc,
                               remaining_category_agent_capacities)  # deals with eliminating finished agents from agent_category_capacities
-            logger.info(f'allocation after priority matching in category:{category} & i:{i} -> {topological_sort}')
+            logger.info(f'allocation after priority matching in category:{category} & i:{i} -> {alloc.bundles}')
             current_item_list = update_item_list(alloc, category,
                                                  item_categories)  # important to update the item list after priority matching.
             current_agent_list = update_ordered_agent_list(current_order,
@@ -692,7 +692,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
 
         logger.info(f'remaining_category_agent_capacities of agents capable of carrying arbitrary item ->{remaining_category_agent_capacities}')
         logger.info(f'current_item_list that were not allocated in the priority matching ->{current_item_list}')
-        while len(remaining_category_agent_capacities) > 0 and len(current_item_list) > 0:# Note current_agent_list = f(remaining_category_agent_capacities,order)
+        while len(remaining_category_agent_capacities) > 0 and len(current_item_list) > 0:# Note current_agent_list = f(remaining_category_agent_capacities,order)# TODO replace all of this with RR
             arbitrary_agent = random.choice(list(remaining_category_agent_capacities.keys()))
             arbitrary_item = random.choice(current_item_list)
             if arbitrary_item not in alloc.instance.agent_conflicts(arbitrary_agent):
@@ -823,13 +823,14 @@ def create_agent_item_bipartite_graph(agents, items, valuation_func,
     agent_item_bipartite_graph = nx.Graph()
     agent_item_bipartite_graph.add_nodes_from(agents, bipartite=0)
     agent_item_bipartite_graph.add_nodes_from(items, bipartite=1)
-
-    weight = len(current_agent_list)
+    n=len(current_agent_list)
+    weight = 2**n
     for agent in current_agent_list:
         for item in items:
             if valuation_func(agent, item) != 0:
                 agent_item_bipartite_graph.add_edge(agent, item, weight=weight)
-        weight -= 1
+        n -= 1
+        weight = 2**n
 
     return agent_item_bipartite_graph
 

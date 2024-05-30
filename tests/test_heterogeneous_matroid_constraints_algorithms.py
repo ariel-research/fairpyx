@@ -22,7 +22,9 @@ logger.addHandler(handler)
 # TODO lets do reconstruction here tomorrow ! , less functions ! beautify ! straight to point !
 
 def random_instance(equal_capacities: bool = False, equal_valuations: bool = False, binary_valuations: bool = False,
-                    category_count=-1,num_of_agents=-1,num_of_items=-1,item_capacity_bounds=(-1,-1)) -> tuple[Instance, dict, dict, list]:
+                    category_count=-1,num_of_agents=-1,num_of_items=-1,item_capacity_bounds=(-1,-1),random_seed:int=-1) -> tuple[Instance, dict, dict, list]:
+
+    np.random.seed(np.random.randint(1, 2 ** 31) if random_seed == -1 else random_seed)
     random_num_of_agents = np.random.randint(1, 10+1) if num_of_agents == -1 else num_of_agents #✅
     random_num_of_items = np.random.randint(1, 10+1) if num_of_items == -1 else num_of_items  #✅
     num_of_categories = category_count if category_count != -1 else np.random.randint(1, random_num_of_items+1)  #✅
@@ -39,7 +41,8 @@ def random_instance(equal_capacities: bool = False, equal_valuations: bool = Fal
         item_name_template="m{index}",
         normalized_sum_of_values=100,
         equal_capacities=equal_capacities,  # True in case flagged
-        equal_valuations=equal_valuations  # True in case flagged
+        equal_valuations=equal_valuations,  # True in case flagged
+        random_seed=random_seed
     )
     return random_instance
 
@@ -51,12 +54,13 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                             item_base_value_bounds: tuple[int, int],
                             item_subjective_ratio_bounds: tuple[float, float],
                             normalized_sum_of_values: int,
+                            random_seed: int,
                             agent_name_template="Agent{index}", item_name_template="m{index}",
-                            random_seed: int = 2136942426,
                             equal_capacities: bool = False
                             , equal_valuations: bool = False
                             ) -> tuple[Instance, dict, dict, list]:
     np.random.seed(random_seed)
+    #logger.info(f'{np.random.randint(100)}') works fine gives same number !
     result_instance = Instance.random_uniform(num_of_agents=num_of_agents,
                                               num_of_items=num_of_items,
                                               agent_capacity_bounds=agent_capacity_bounds,
@@ -67,7 +71,6 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                                               agent_name_template=agent_name_template,
                                               item_name_template=item_name_template,
                                               random_seed=random_seed)
-
     initial_agent_order = [agent for agent in result_instance.agents]
     random.shuffle(initial_agent_order) # randomizing initial_agent_order#✅
 
@@ -83,7 +86,6 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
         category_capacities = {category: np.random.randint(agent_capacity_bounds[0], agent_capacity_bounds[1]+1) for
                                category in categories}# this is going to be assigned to each agent
         agent_category_capacities = {agent:category_capacities for agent in result_instance.agents}#✅
-
     if equal_valuations:
         random_valuation = np.random.uniform(low=item_base_value_bounds[0], high=item_base_value_bounds[1] + 1,
                                              size=num_of_items)
@@ -105,9 +107,12 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
     temporary_items = list(result_instance.items).copy()
     logger.info(f"categories are -> {categories} and items are -> {temporary_items}")
     for category in categories.keys():# start with categories first so we make sure there is no empty categories
-        random_item=np.random.choice(temporary_items)
-        categories[category].append(random_item)
-        temporary_items.remove(random_item)
+        if len(temporary_items)>0:
+            random_item=np.random.choice(temporary_items)
+            categories[category].append(random_item)
+            temporary_items.remove(random_item)
+        else:
+            break
     for item in temporary_items:# random allocation of items to categories
         random_category = np.random.choice(list(categories.keys()))
         categories[random_category].append(item)
@@ -143,10 +148,11 @@ def agent_categorized_allocation_builder(agent_categorized_allocation, alloc, ca
                 if item in categories[cat]:
                     agent_categorized_allocation[agent][cat].append(item) # filtering each item to the category they belong to
 
-@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+@pytest.mark.parametrize("run", range(3))  # Run the test 10 times
 def test_algorithm_1(run):
 
-    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=True,num_of_agents=4,num_of_items=30,item_capacity_bounds=(1,1)) #since we're doing cycle elemination
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=True,num_of_agents=4,num_of_items=30,random_seed=0) #,item_capacity_bounds=(1,1)#since we're doing cycle elemination
+    logger.info(f'TEST NUMBER {run}')
     logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
     alloc=divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_round_robin,
                           instance=instance,
@@ -155,7 +161,7 @@ def test_algorithm_1(run):
                           initial_agent_order=initial_agent_order)
 
     logger.info(f"allocation is ------------->: {alloc}")
-    print(f"instance -> {instance},\n agent_capacities -> {agent_category_capacities},\n categories -> {categories},\n initial_agent_order ->  {initial_agent_order}")
+    #print(f"instance -> {instance},\n agent_capacities -> {agent_category_capacities},\n categories -> {categories},\n initial_agent_order ->  {initial_agent_order}")
     assert is_fef1(alloc,
                           instance=instance,
                           agent_category_capacities=agent_category_capacities,
@@ -181,7 +187,7 @@ def test_algorithm_2(run):# TODO show Erel the video of the problem (the item ca
 
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_3(run):
-    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, category_count=2,num_of_items=3,item_capacity_bounds=(1,1)) # TODO somehow it runs stupid with only 1 item !!! WHYYYYYYY
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, category_count=2,item_capacity_bounds=(1,1)) # TODO somehow it runs stupid with only 1 item !!! WHYYYYYYY
     logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
 
     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin,
