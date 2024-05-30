@@ -151,7 +151,7 @@ def agent_categorized_allocation_builder(agent_categorized_allocation, alloc, ca
 @pytest.mark.parametrize("run", range(3))  # Run the test 10 times
 def test_algorithm_1(run):
 
-    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=True,num_of_agents=4,num_of_items=30,random_seed=0) #,item_capacity_bounds=(1,1)#since we're doing cycle elemination
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=True,num_of_agents=4,num_of_items=30) #,item_capacity_bounds=(1,1)#since we're doing cycle elemination
     logger.info(f'TEST NUMBER {run}')
     logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
     alloc=divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_round_robin,
