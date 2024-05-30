@@ -23,9 +23,6 @@ logger = logging.getLogger(__name__)
 NUMBER_OF_ITERATIONS = 10
 
 
-# TODO: ask erel how to change the instance for the criteria population - how to change moti values to the correct
-
-
 def random_initial_budgets(instance: Instance, beta: float):
 
     """
@@ -119,22 +116,13 @@ def expected_value_of_specific_report_for_population(random_utilities: list[dict
 
     sum_utilities = 0
     for utility, iteration in zip(random_utilities, range(NUMBER_OF_ITERATIONS)):
-        # todo: ask erel how to update the instance for the misreports
-        # todo: change the agent to something else
         # todo: ask erel how to test it
-        # print(f"random utilities:{random_utilities}")
-        # print(f"random_utilities[iteration].items():{random_utilities[iteration].items()}")
         utilities = {agent: (report if agent == student else utility) for agent, utility in random_utilities[iteration].items()}
-        # print(f"in E: utilities = {utilities}")
-        # print("random_budgets[iteration]: %s", random_budgets[iteration], f"type {type(random_budgets[iteration])}")
 
         new_instance = Instance(valuations=utilities, agent_capacities=instance.agent_capacity, item_capacities=instance.item_capacity)
         allocation = divide(mechanism, instance=new_instance, initial_budgets=random_budgets[iteration], delta=delta,
                             epsilon=epsilon,
                             t=t)
-        # logger.info("random_budgets[iteration]: %s", random_budgets[iteration], f"type {type(random_budgets[iteration])}")
-        # print("random_budgets[iteration]: %s", random_budgets[iteration], f"type {type(random_budgets[iteration])}")
-        # print(f"allocation: {allocation}")
         current_utility_found = instance.agent_bundle_value(student, allocation[student])
         sum_utilities += current_utility_found
     return sum_utilities / NUMBER_OF_ITERATIONS
@@ -164,21 +152,13 @@ def expected_value_of_specific_report_for_randomness(random_utilities: dict, ran
 
     sum_utilities = 0
     for utility, iteration in zip(random_utilities, range(NUMBER_OF_ITERATIONS)):
-        # todo: ask erel how to update the instance for the misreports
-        # todo: change the agent to something else
         # todo: ask erel how to test it
-        # print(f"random utilities:{random_utilities}")
         utilities = {agent: (report if agent == student else utility) for agent, utility in random_utilities.items()}
-        # print(f"in E: utilities = {utilities}")
-        # print("random_budgets[iteration]: %s", random_budgets[iteration], f"type {type(random_budgets[iteration])}")
 
         new_instance = Instance(valuations=utilities, agent_capacities=instance.agent_capacity, item_capacities=instance.item_capacity)
         allocation = divide(mechanism, instance=new_instance, initial_budgets=random_budgets[iteration], delta=delta,
                             epsilon=epsilon,
                             t=t)
-        # logger.info("random_budgets[iteration]: %s", random_budgets[iteration], f"type {type(random_budgets[iteration])}")
-        # print("random_budgets[iteration]: %s", random_budgets[iteration], f"type {type(random_budgets[iteration])}")
-        # print(f"allocation: {allocation}")
         current_utility_found = instance.agent_bundle_value(student, allocation[student])
         sum_utilities += current_utility_found
     return sum_utilities / NUMBER_OF_ITERATIONS
@@ -203,11 +183,9 @@ def criteria_population(mechanism: callable, student: str, utility: dict, instan
 
     :return best manipulation that found for our student - the report that gives him the most benefit
     """
-    # print("start population")
     best_manipulation_found = utility
 
     random_utilities = [{agent: get_random_utilities(instance) for agent in instance.agents} for _ in range(NUMBER_OF_ITERATIONS)]
-    # random_budgets = [{agent: random_initial_budgets(instance, beta) for agent in instance.agents} for _ in range(NUMBER_OF_ITERATIONS)]
     random_budgets = [random_initial_budgets(instance, beta) for _ in range(NUMBER_OF_ITERATIONS)]
 
     # run for original utility
@@ -244,17 +222,12 @@ def criteria_randomness(mechanism: callable, student: str, utility: dict, instan
 
     :return best manipulation that found for our student - the report that gives him the most benefit
     """
-    #todo ask erel if to pass the initial budget
-    # todo: ask erel how to update the instance
     #todo: ask erel how to get the _valuations
 
 
-    # print("start raddomnes")
     best_manipulation_found = utility
 
-    # random_budgets = [{agent: random_initial_budgets(instance, beta) for agent in instance.agents} for _ in range(NUMBER_OF_ITERATIONS)]
     random_budgets = [random_initial_budgets(instance, beta) for _ in range(NUMBER_OF_ITERATIONS)]
-    # print(f"random_budgets: {random_budgets} ")
 
     # run for original utility
     max_expected_value = expected_value_of_specific_report_for_randomness(instance._valuations, random_budgets, mechanism,
@@ -377,7 +350,6 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     {'x': 1, 'y': 2, 'z': 5}
 
    """
-    # print("start algo2")
     # (1) Let 𝑣0 ←𝑢( or the best manipulation found in previous iterations with different 𝜂).
     current_best_manipulation = {}
 
@@ -387,7 +359,6 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
         # (2) Try to  increase or decrease the weight 𝑤𝑗 for each course 𝑗 in 𝑣0 to obtain new misreports
         #      𝑉 = {𝑣𝑗,±1}𝑗∈[𝑚]}
         misreports = create_misreports(current_best_manipulation, neu)
-        # print("create misreports")
 
         # (3) Let 𝑣∗ = argmax𝑣∈𝑉∪{𝑣0} E𝒓∼R[𝑢𝑖(𝑴𝑖([𝑣𝑗, 𝒖−𝑖], 𝒄, 𝒓))] resampled randomness,
         #              argmax𝑣∈𝑉∪{𝑣0} E𝒖−𝑖∼U−𝑖, 𝒓∼R[𝑢𝑖(𝑴𝑖([𝑣𝑗, 𝒖−𝑖], 𝒄, 𝒓))] resampled population.
