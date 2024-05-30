@@ -692,20 +692,21 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
 
         logger.info(f'remaining_category_agent_capacities of agents capable of carrying arbitrary item ->{remaining_category_agent_capacities}')
         logger.info(f'current_item_list that were not allocated in the priority matching ->{current_item_list}')
-        while len(remaining_category_agent_capacities) > 0 and len(current_item_list) > 0:# Note current_agent_list = f(remaining_category_agent_capacities,order)# TODO replace all of this with RR
-            arbitrary_agent = random.choice(list(remaining_category_agent_capacities.keys()))
-            arbitrary_item = random.choice(current_item_list)
-            if arbitrary_item not in alloc.instance.agent_conflicts(arbitrary_agent):
-                alloc.give(arbitrary_agent, arbitrary_item)  # give item
-                if arbitrary_item not in alloc.remaining_item_capacities.keys():
-                    current_item_list.remove(
-                        arbitrary_item)  #remove item from list
-                remaining_category_agent_capacities[
-                    arbitrary_agent] -= 1  # decrease capacity in out variable (the alloc capacity is handled in alloc.give(...))
-                if remaining_category_agent_capacities[arbitrary_agent] <= 0:  # eliminate if capacity reached 0
-                    del remaining_category_agent_capacities[arbitrary_agent]
-                    current_agent_list.remove(arbitrary_agent)
-            else: continue # agent has conflict so we go on to the next randomization option
+        categorization_friendly_picking_sequence(alloc, current_order,item_categories,remaining_category_agent_capacities,target_category=category)
+        # while len(remaining_category_agent_capacities) > 0 and len(current_item_list) > 0:# Note current_agent_list = f(remaining_category_agent_capacities,order)# TODO replace all of this with RR
+        #     arbitrary_agent = random.choice(list(remaining_category_agent_capacities.keys()))
+        #     arbitrary_item = random.choice(current_item_list)
+        #     if arbitrary_item not in alloc.instance.agent_conflicts(arbitrary_agent):
+        #         alloc.give(arbitrary_agent, arbitrary_item)  # give item
+        #         if arbitrary_item not in alloc.remaining_item_capacities.keys():
+        #             current_item_list.remove(
+        #                 arbitrary_item)  #remove item from list
+        #         remaining_category_agent_capacities[
+        #             arbitrary_agent] -= 1  # decrease capacity in out variable (the alloc capacity is handled in alloc.give(...))
+        #         if remaining_category_agent_capacities[arbitrary_agent] <= 0:  # eliminate if capacity reached 0
+        #             del remaining_category_agent_capacities[arbitrary_agent]
+        #             current_agent_list.remove(arbitrary_agent)
+        #     else: continue # agent has conflict so we go on to the next randomization option
     logger.info(f'FINAL ALLOCATION IS -> {alloc.bundles}')
 
 def update_ordered_agent_list(current_order: list, remaining_category_agent_capacities: dict) -> list:
