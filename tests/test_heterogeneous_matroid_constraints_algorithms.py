@@ -148,10 +148,10 @@ def agent_categorized_allocation_builder(agent_categorized_allocation, alloc, ca
                 if item in categories[cat]:
                     agent_categorized_allocation[agent][cat].append(item) # filtering each item to the category they belong to
 
-@pytest.mark.parametrize("run", range(3))  # Run the test 10 times
+@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_1(run):
 
-    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=True,num_of_agents=4,num_of_items=30) #,item_capacity_bounds=(1,1)#since we're doing cycle elemination
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=True,num_of_agents=4,num_of_items=30,random_seed=0) #,item_capacity_bounds=(1,1)#since we're doing cycle elemination
     logger.info(f'TEST NUMBER {run}')
     logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
     alloc=divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_round_robin,
@@ -173,7 +173,7 @@ def test_algorithm_1(run):
 
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_2(run):# TODO show Erel the video of the problem (the item caps affecting fairness) (no wonder each algorithm using RR is gonna be failing in some instances where item capacity affects the situation)
-    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, category_count=1,item_capacity_bounds=(1,1))
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, category_count=1,item_capacity_bounds=(1,1),random_seed=0)
     # logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.capped_round_robin, instance=instance,
                    item_categories=categories, agent_category_capacities=agent_category_capacities, initial_agent_order=initial_agent_order)
@@ -187,7 +187,7 @@ def test_algorithm_2(run):# TODO show Erel the video of the problem (the item ca
 
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_3(run):
-    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, category_count=2,item_capacity_bounds=(1,1)) # TODO somehow it runs stupid with only 1 item !!! WHYYYYYYY
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, category_count=2,item_capacity_bounds=(1,1),random_seed=0) # TODO somehow it runs stupid with only 1 item !!! WHYYYYYYY
     logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
 
     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin,
@@ -219,7 +219,7 @@ def test_algorithm_4(run):
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_5(
         run):  # binary valuations # TODO force it to create instance witn no cyclces in envy graph kind of weird since in binary vals no envy cycle can be imagined
-    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, binary_valuations=True,item_capacity_bounds=(1,1))
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, binary_valuations=True,item_capacity_bounds=(1,1),random_seed=0)
     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
                    instance=instance,
                    item_categories=categories, agent_category_capacities=agent_category_capacities)
