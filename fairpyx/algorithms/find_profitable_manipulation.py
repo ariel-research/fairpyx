@@ -95,15 +95,20 @@ def expected_value_of_specific_report(random_utilities: list[dict], random_budge
     """
 
     sum_utilities = 0
-    for utility, budget, iteration in zip(random_utilities, random_budgets, range(NUMBER_OF_ITERATIONS)):
+    for utility, iteration in zip(random_utilities, range(NUMBER_OF_ITERATIONS)):
         # todo: ask erel how to update the instance for the misreports
         # todo: change the agent to something else
         # todo: ask erel how to test it
         utilities = {agent: (report if agent == student else utility) for agent, utility in random_utilities[iteration].items()}
+        print(f"in E: utilities = {utilities}")
+        print("random_budgets[iteration]: %s", random_budgets[iteration], f"type {type(random_budgets[iteration])}")
+
         new_instance = Instance(valuations=utilities, agent_capacities=instance.agent_capacity, item_capacities=instance.item_capacity)
-        allocation = divide(mechanism, instance=new_instance, initial_budgets=budget, delta=delta,
+        allocation = divide(mechanism, instance=new_instance, initial_budgets=random_budgets[iteration], delta=delta,
                             epsilon=epsilon,
                             t=t)
+        # logger.info("random_budgets[iteration]: %s", random_budgets[iteration], f"type {type(random_budgets[iteration])}")
+        print("random_budgets[iteration]: %s", random_budgets[iteration], f"type {type(random_budgets[iteration])}")
         current_utility_found = instance.agent_bundle_value(student, allocation[student])
         sum_utilities += current_utility_found
     return sum_utilities / NUMBER_OF_ITERATIONS
@@ -129,10 +134,12 @@ def criteria_population(mechanism: callable, student: str, utility: dict, instan
 
     :return best manipulation that found for our student - the report that gives him the most benefit
     """
+    print("start population")
     best_manipulation_found = utility
 
     random_utilities = [{agent: get_random_utilities(instance) for agent in instance.agents} for _ in range(NUMBER_OF_ITERATIONS)]
-    random_budgets = [{agent: random_initial_budgets(instance, beta) for agent in instance.agents} for _ in range(NUMBER_OF_ITERATIONS)]
+    # random_budgets = [{agent: random_initial_budgets(instance, beta) for agent in instance.agents} for _ in range(NUMBER_OF_ITERATIONS)]
+    random_budgets = [random_initial_budgets(instance, beta) for _ in range(NUMBER_OF_ITERATIONS)]
 
     # run for original utility
     max_expected_value = expected_value_of_specific_report(random_utilities, random_budgets, mechanism,
@@ -299,6 +306,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     {"x":1, "y":2, "z":5}
 
    """
+    print("start algo2")
     # (1) Let 𝑣0 ←𝑢( or the best manipulation found in previous iterations with different 𝜂).
     current_best_manipulation = {}
 
@@ -308,6 +316,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
         # (2) Try to  increase or decrease the weight 𝑤𝑗 for each course 𝑗 in 𝑣0 to obtain new misreports
         #      𝑉 = {𝑣𝑗,±1}𝑗∈[𝑚]}
         misreports = create_misreports(current_best_manipulation, neu)
+        print("create misreports")
 
         # (3) Let 𝑣∗ = argmax𝑣∈𝑉∪{𝑣0} E𝒓∼R[𝑢𝑖(𝑴𝑖([𝑣𝑗, 𝒖−𝑖], 𝒄, 𝒓))] resampled randomness,
         #              argmax𝑣∈𝑉∪{𝑣0} E𝒖−𝑖∼U−𝑖, 𝒓∼R[𝑢𝑖(𝑴𝑖([𝑣𝑗, 𝒖−𝑖], 𝒄, 𝒓))] resampled population.
@@ -326,3 +335,22 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
 
     # (4) If 𝑣∗ = 𝑣0, terminate with 𝑣0 as the best manipulation found when 𝑣0 ≠ 𝑢, otherwise return failed.
     return current_best_manipulation
+
+if __name__ == '__main__':
+    from fairpyx.algorithms import ACEEI
+
+    mechanism = find_ACEEI_with_EFTB
+    student = "moti"
+    utility = {"x": 1, "y": 2, "z": 4}
+    criteria = criteria_for_profitable_manipulation.population
+    neu = 2
+    instance = Instance(valuations = {"avi": {"x": 3, "y": 5, "z": 1}, "beni": {"x": 2, "y": 3, "z": 1}, "moti": {"x": 1, "y": 2, "z": 4}},
+    agent_capacities = 2,
+    item_capacities = {"x": 1, "y": 2, "z": 3})
+    beta = 2
+    initial_budgets = random_initial_budgets(instance, beta)
+    delta = 0.5
+    epsilon = 0.5
+    t = ACEEI.EFTBStatus.NO_EF_TB
+    find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t,
+                                      initial_budgets, beta)
