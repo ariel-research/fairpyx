@@ -646,7 +646,8 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
     for category in item_categories.keys():
         maximum_capacity = max(
             [agent_category_capacities[agent][category] for agent in
-             agent_category_capacities.keys()])  # for the sake of inner iteration
+             agent_category_capacities.keys()])# for the sake of inner iteration
+        logger.info(f'Th=max(kih) is -> {maximum_capacity}')
         remaining_category_agent_capacities = {
             agent: agent_category_capacities[agent][category] for agent in agent_category_capacities if
             agent_category_capacities[agent][category] != 0
@@ -656,8 +657,8 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
                                              item_categories)  # items we're dealing with with respect to the category
         current_agent_list = update_ordered_agent_list(current_order,
                                                        remaining_category_agent_capacities)  #  items we're dealing with with respect to the constraints
-        print(f'current item list: {current_item_list}\n current agent list: {current_agent_list} \n and allocationbuilder bundles{alloc.bundles}\n and allocationbuilder remaining capcities {alloc.remaining_agent_capacities} \nand remaining agent-capacity list: {remaining_category_agent_capacities} \n agent_category_capacities {agent_category_capacities} ')
-        print('*******************************************************')
+        logger.info(f'current_item_list before priority matching in category:{category}-> {current_item_list}')
+        logger.info(f'current_agent_list before priority matching in category:{category} -> {current_agent_list}')
         for i in range(
                 maximum_capacity):  # as in papers we run for the length of the maximum capacity out of all agents for the current category
             # Creation of agent-item graph
@@ -674,24 +675,22 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
                               item_categories=item_categories,
                               agent_category_capacities=agent_category_capacities)  # updating envy graph with respect to matchings (first iteration we get no envy, cause there is no matching)
             #topological sort (papers prove graph is always a-cyclic)
-            try:
-                sort = list(nx.topological_sort(envy_graph))
-            except nx.NetworkXUnfeasible:
-                pass
-                #print("graph has cycle !")
-                #print(alloc.bundles)
-                #print({agent:{item:alloc.instance.agent_item_value(agent,item)} for agent in alloc.remaining_agents() for item in alloc.remaining_items()}) # TODO there is mismatch between this and the VALUATIONS (valuations binary this is 2112313)
-            current_order = current_order if not sort else sort
+            topological_sort = list(nx.topological_sort(envy_graph))
+            logger.info(f'topological sort is -> {topological_sort}')
+            current_order = current_order if not topological_sort else topological_sort
             # Perform priority matching
             priority_matching(agent_item_bipartite_graph, current_order, alloc,
                               remaining_category_agent_capacities)  # deals with eliminating finished agents from agent_category_capacities
-
+            logger.info(f'allocation after priority matching in category:{category} & i:{i} -> {topological_sort}')
             current_item_list = update_item_list(alloc, category,
                                                  item_categories)  # important to update the item list after priority matching.
             current_agent_list = update_ordered_agent_list(current_order,
                                                            remaining_category_agent_capacities)  # important to update the item list after priority matching.
+            logger.info(f'current_item_list after priority matching in category:{category} & i:{i} -> {current_item_list}')
+            logger.info(f'current_agent_list after priority matching in category:{category} & i:{i} -> {current_agent_list}')
 
-
+        logger.info(f'remaining_category_agent_capacities of agents capable of carrying arbitrary item ->{remaining_category_agent_capacities}')
+        logger.info(f'current_item_list that were not allocated in the priority matching ->{current_item_list}')
         while len(remaining_category_agent_capacities) > 0 and len(current_item_list) > 0:# Note current_agent_list = f(remaining_category_agent_capacities,order)
             arbitrary_agent = random.choice(list(remaining_category_agent_capacities.keys()))
             arbitrary_item = random.choice(current_item_list)
@@ -706,7 +705,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
                     del remaining_category_agent_capacities[arbitrary_agent]
                     current_agent_list.remove(arbitrary_agent)
             else: continue # agent has conflict so we go on to the next randomization option
-
+    logger.info(f'FINAL ALLOCATION IS -> {alloc.bundles}')
 
 def update_ordered_agent_list(current_order: list, remaining_category_agent_capacities: dict) -> list:
     """
@@ -779,10 +778,8 @@ def priority_matching(agent_item_bipartite_graph, current_order, alloc, remainin
     {'Agent1': {'Item1'}, 'Agent2': {'Item2'}}
     """
     matching=nx.max_weight_matching(agent_item_bipartite_graph)
-    # print(f'matching is {matching}')
-    # print(f'capacity is {alloc.remaining_item_capacities}')
-    # print(f'alloc bundle is {alloc.bundles}')
-    # print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
+    # we used max weight matching in which (agents are getting high weights in desc order)
+    logger.info(f'matching is -> {matching}')
     for match in matching:
         # TODO check if agent doesnt heve conflict with the item (already has 1 )
         if match[0].startswith('A'):
