@@ -232,7 +232,7 @@ def test_algorithm_2(run):# TODO show Erel the video of the problem (the item ca
 
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_3(run):
-    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, category_count=2,num_of_items=1,item_capacity_bounds=(1,1)) # TODO somehow it runs stupid with only 1 item !!! WHYYYYYYY
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, category_count=2,num_of_items=3,item_capacity_bounds=(1,1)) # TODO somehow it runs stupid with only 1 item !!! WHYYYYYYY
     logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
 
     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin,
