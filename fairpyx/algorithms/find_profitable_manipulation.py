@@ -27,9 +27,22 @@ NUMBER_OF_ITERATIONS = 10
 
 
 def random_initial_budgets(instance: Instance, beta: float):
+
     """
-        Create random initial budgets for each student
-       :param instance: a fair-course-allocation instance
+    Create random initial budgets for each student
+    :param instance: a fair-course-allocation instance
+    :param beta: a parameter that determines the distribution of the initial budgets
+
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":1, "z":2})
+    >>> beta = 0.5
+    >>> budgets = random_initial_budgets(instance, beta)
+    >>> isinstance(budgets, dict)
+    True
+    >>> all(agent in budgets.keys() for agent in instance.agents)
+    True
     """
     return {agent: np.random.uniform(1 + (beta / 4), 1 + ((3 * beta) / 4)) for agent in instance.agents}
 
@@ -70,6 +83,16 @@ def get_random_utilities(instance: Instance):
     """
     Create random utilities for each student
     :param instance: a fair-course-allocation instance
+
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":1, "z":2})
+    >>> utilities = get_random_utilities(instance)
+    >>> isinstance(utilities, dict)
+    True
+    >>> all(course in utilities.keys() for course in instance.items)
+    True
     """
     return {course: np.random.uniform(1, 100) for course in instance.items}
 
