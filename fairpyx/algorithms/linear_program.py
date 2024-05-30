@@ -215,6 +215,7 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
     # for course in courses_names:
     #     model += y[course] >= z[course]
     #     model += y[course] >= -z[course]
+    # TODO: tell erel that we solved the bug in algo 1 like this
     for course in courses_names:
         # Add constraints to define y based on the value of z
         model += y[course] <= z[course] + M * (1 - delta[course])
@@ -222,6 +223,9 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
         model += y[course] <= M * delta[course]
         model += z[course] <= M * delta[course]
         model += z[course] >= 0 - M * (1 - delta[course])
+
+
+
 
     # Course allocation constraints
     for course in courses_names:

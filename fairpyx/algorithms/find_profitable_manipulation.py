@@ -62,15 +62,15 @@ def create_misreports(original, neu):
     """
     transformed_dicts = []
 
-    for key in original:
+    for course in original:
         # Create a copy of the original dictionary for division
         divided_dict = original.copy()
-        divided_dict[key] = original[key] / neu
+        divided_dict[course] = original[course] / neu
         transformed_dicts.append(divided_dict)
 
         # Create a copy of the original dictionary for multiplication
         multiplied_dict = original.copy()
-        multiplied_dict[key] = original[key] * neu
+        multiplied_dict[course] = original[course] * neu
         transformed_dicts.append(multiplied_dict)
 
     return transformed_dicts
@@ -115,14 +115,14 @@ def expected_value_of_specific_report_for_population(random_utilities: list[dict
     """
 
     sum_utilities = 0
-    for utility, iteration in zip(random_utilities, range(NUMBER_OF_ITERATIONS)):
+    for budgets, valuations in zip(random_budgets, random_utilities):
         # todo: ask erel how to test it
-        utilities = {agent: (report if agent == student else utility) for agent, utility in random_utilities[iteration].items()}
+        utilities = {agent: (report if agent == student else utility) for agent,utility in valuations.items()}
 
         new_instance = Instance(valuations=utilities, agent_capacities=instance.agent_capacity, item_capacities=instance.item_capacity)
-        allocation = divide(mechanism, instance=new_instance, initial_budgets=random_budgets[iteration], delta=delta,
+        allocation = divide(mechanism, instance=new_instance, initial_budgets=budgets, delta=delta,
                             epsilon=epsilon,
-                            t=t)
+                            t=t)  # todo: change to kwargs
         current_utility_found = instance.agent_bundle_value(student, allocation[student])
         sum_utilities += current_utility_found
     return sum_utilities / NUMBER_OF_ITERATIONS
@@ -152,7 +152,7 @@ def expected_value_of_specific_report_for_randomness(random_utilities: dict, ran
 
     sum_utilities = 0
     for utility, iteration in zip(random_utilities, range(NUMBER_OF_ITERATIONS)):
-        # todo: ask erel how to test it
+        # todo: ask erel how to test it - the student utility is same for all courses, or 2 -3 for all courses
         utilities = {agent: (report if agent == student else utility) for agent, utility in random_utilities.items()}
 
         new_instance = Instance(valuations=utilities, agent_capacities=instance.agent_capacity, item_capacities=instance.item_capacity)
@@ -163,14 +163,14 @@ def expected_value_of_specific_report_for_randomness(random_utilities: dict, ran
         sum_utilities += current_utility_found
     return sum_utilities / NUMBER_OF_ITERATIONS
 
-def criteria_population(mechanism: callable, student: str, utility: dict, instance: Instance, delta: float,
-                        epsilon: float, beta: float, t: Enum,  misreports: list):
+def criteria_population(mechanism: callable, student: str, current_best_manipulation: dict, instance: Instance, delta: float,
+                        epsilon: float, beta: float, t: Enum, misreports: list):
     """
     Run algorithm 1 when initial budgets and other students utilities are Unknown.
 
     :param mechanism: A randomized mechanism M for course-allocation
     :param student: The student who is being tested to see if he can manipulate
-    :param utility: The student's utility
+    :param current_best_manipulation: The student's utility
     :param instance: a fair-course-allocation instance
     :param initial_budgets: Students' initial budgets
     :param delta: The step size
@@ -183,14 +183,14 @@ def criteria_population(mechanism: callable, student: str, utility: dict, instan
 
     :return best manipulation that found for our student - the report that gives him the most benefit
     """
-    best_manipulation_found = utility
+    best_manipulation_found = current_best_manipulation
 
     random_utilities = [{agent: get_random_utilities(instance) for agent in instance.agents} for _ in range(NUMBER_OF_ITERATIONS)]
     random_budgets = [random_initial_budgets(instance, beta) for _ in range(NUMBER_OF_ITERATIONS)]
 
     # run for original utility
     max_expected_value = expected_value_of_specific_report_for_population(random_utilities, random_budgets, mechanism,
-                                                           instance, student, delta, epsilon, t, utility)
+                                                                          instance, student, delta, epsilon, t, current_best_manipulation)
 
     for misreport in misreports:
         current_expected_value = expected_value_of_specific_report_for_population(random_utilities, random_budgets, mechanism,
@@ -198,6 +198,7 @@ def criteria_population(mechanism: callable, student: str, utility: dict, instan
         if current_expected_value > max_expected_value:
             max_expected_value = current_expected_value
             best_manipulation_found = misreport
+            #todo:  change to arg max
 
     return best_manipulation_found
 
@@ -244,7 +245,7 @@ def criteria_randomness(mechanism: callable, student: str, utility: dict, instan
     return best_manipulation_found
 
 
-def find_profitable_manipulation(mechanism: callable, student: str, utility: dict,
+def find_profitable_manipulation(mechanism: callable, student: str, true_student_utility: dict,
                                  criteria: Enum, neu: float, instance: Instance, delta: float, epsilon: float, t: Enum,
                                  initial_budgets: dict,
                                  beta: float):
@@ -255,7 +256,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
 
     :param mechanism: A randomized mechanism M for course-allocation
     :param student: The student who is being tested to see if he can manipulate
-    :param utility: The student's utility
+    :param true_student_utility: The student's utility
     :param criteria: The type of criteria for profitable manipulation
                                                  0 for resampled randomness
                                                  1 for population
@@ -280,7 +281,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     Example run 1
     >>> mechanism = find_ACEEI_with_EFTB
     >>> student = "moti"
-    >>> utility = {"x":1, "y":2, "z":4}
+    >>> true_student_utility = {"x":1, "y":2, "z":4}
     >>> criteria = criteria_for_profitable_manipulation.randomness
     >>> neu = 2
     >>> instance = Instance(
@@ -292,13 +293,13 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
     {'x': 1, 'y': 2, 'z': 4}
 
     Example run 2
     >>> mechanism = find_ACEEI_with_EFTB
     >>> student = "moti"
-    >>> utility = {"x":1, "y":2, "z":4}
+    >>> true_student_utility = {"x":1, "y":2, "z":4}
     >>> criteria = criteria_for_profitable_manipulation.randomness
     >>> neu = 2
     >>> instance = Instance(
@@ -310,14 +311,14 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.EF_TB
-    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
     {'x': 1, 'y': 2, 'z': 4}
 
 
     Example run 4
     >>> mechanism = find_ACEEI_with_EFTB
     >>> student = "moti"
-    >>> utility = {"x":6, "y":2}
+    >>> true_student_utility = {"x":6, "y":2}
     >>> criteria = criteria_for_profitable_manipulation.randomness
     >>> neu = 2
     >>> instance = Instance(
@@ -329,13 +330,13 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
     {'x': 6, 'y': 2}
 
     # Example run 5
     >>> mechanism = find_ACEEI_with_EFTB
     >>> student = "moti"
-    >>> utility = {"x":1, "y":2, "z":5}
+    >>> true_student_utility = {"x":1, "y":2, "z":5}
     >>> criteria = criteria_for_profitable_manipulation.population
     >>> neu = 2
     >>> instance = Instance(valuations={"avi":{"x":5, "y":4, "z":1}, "beni":{"x":4, "y":6, "z":3}, "moti":{"x":1, "y":2, "z":5}},
@@ -346,12 +347,12 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
     {'x': 1, 'y': 2, 'z': 5}
 
    """
     # (1) Let 𝑣0 ←𝑢( or the best manipulation found in previous iterations with different 𝜂).
-    current_best_manipulation = {}
+    current_best_manipulation = true_student_utility # v_0 <- u
 
     initial_budgets = random_initial_budgets(instance, beta)
 
@@ -364,16 +365,16 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
         #              argmax𝑣∈𝑉∪{𝑣0} E𝒖−𝑖∼U−𝑖, 𝒓∼R[𝑢𝑖(𝑴𝑖([𝑣𝑗, 𝒖−𝑖], 𝒄, 𝒓))] resampled population.
 
         if criteria == criteria_for_profitable_manipulation.population:
-            current_best_manipulation = criteria_population(mechanism, student, utility, instance, delta, epsilon, beta,
-                                                            t,misreports)
+            new_best_manipulation = criteria_population(mechanism, student, true_student_utility, instance, delta, epsilon, beta,
+                                                            t, misreports)
         else:  # criteria == criteria_for_profitable_manipulation.randomness
-            current_best_manipulation = criteria_randomness(mechanism, student, utility, instance, delta, epsilon, t,
+            new_best_manipulation = criteria_randomness(mechanism, student, true_student_utility, instance, delta, epsilon, t,
                                                             initial_budgets,
                                                             misreports, beta)
-        if current_best_manipulation == utility:
+        if current_best_manipulation == new_best_manipulation:
             break
         else:
-            utility = current_best_manipulation
+            current_best_manipulation = new_best_manipulation
 
     # (4) If 𝑣∗ = 𝑣0, terminate with 𝑣0 as the best manipulation found when 𝑣0 ≠ 𝑢, otherwise return failed.
     return current_best_manipulation

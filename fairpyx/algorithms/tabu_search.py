@@ -179,7 +179,7 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, histor
 
 
     """
-    # todo: ask erel about that the alloc get good answer but in diffrent order
+    # TODO: ask erel about that the alloc get good answer but in diffrent order
 
     # The constraints that the bundles they get in allocation meet their budgets
     for agent in allocation.keys():
@@ -370,22 +370,23 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
     [{'x': 2, 'y': 4, 'z': 0}, {'x': 3, 'y': 4, 'z': 0}]
     """
 
-    for course, demand in excess_demand_vector.items():
-        if demand == 0:
+    for course, excess_demand in excess_demand_vector.items():
+        if excess_demand == 0:
             continue
         updated_prices = prices.copy()
-        if demand > 0:
+        if excess_demand > 0:
             for _ in range(35):  # TODO: ask erel if here we need to do this
                 updated_prices[course] += 1
+                if updated_prices in history:
+                    continue
                 # get the new demand of the course
                 new_allocation = student_best_bundle(updated_prices, instance, initial_budgets)
-                if (differ_in_one_value(new_allocation, allocation , course)
-                        and updated_prices not in history and updated_prices not in neighbors):
+                if (differ_in_one_value(new_allocation, allocation , course) and updated_prices not in neighbors):
                     logger.info(f"Found new allocation for {allocation}")
                     neighbors.append(updated_prices.copy())
 
 
-        elif demand < 0:
+        elif excess_demand < 0:
             updated_prices[course] = 0
             if updated_prices not in history and updated_prices not in neighbors:
                 neighbors.append(updated_prices)
@@ -395,7 +396,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
 
 def find_all_neighbors(instance: Instance, neighbors: list, history: list, prices: dict, delta: float,
                        excess_demand_vector: dict, initial_budgets: dict, allocation: dict):
-    # todo: ask erel about delta
+    # TODO: ask erel about delta
     """
     Update neighbors N (𝒑) - list of Gradient neighbors and Individual price adjustment neighbors.
 
@@ -520,7 +521,7 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
     """
     # 1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅.
     prices = {course: random.uniform(1, 1 + beta) for course in instance.items}
-    history = []
+    history = {}
 
     # 2)  If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.
     norma2 = 1
