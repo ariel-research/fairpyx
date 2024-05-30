@@ -78,11 +78,42 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
 
         # condition number 12:
         D = cvxpy.Variable()
+        p = cvxpy.Variable(len(alloc.remaining_items()))
+        v = cvxpy.Variable(len(alloc.remaining_agents()))
         objective_Wt1 = cp.Minimize(result_Zt1*D
-                                    + cp.sum(alloc.remaining_item_capacities[course]*p[course] for course in alloc.remaining_items())
-                                    + cp.sum(v[student] for student in alloc.remaining_agents()))
+                                   + cp.sum(alloc.remaining_item_capacities[course]*p[j] for j, course in enumerate(alloc.remaining_items()))
+                                   + cp.sum(v[i] for i, student in enumerate(alloc.remaining_agents())))
 
         constraints_Wt1 = []
+
+        # condition number 13 + 14:
+        for j, course in enumerate(alloc.remaining_items()):
+            for i, student in enumerate(alloc.remaining_agents()):
+                constraints_Wt1.append(p[j]+v[i]+rank_mat[i][j]*D >= alloc.effective_value(student,course))
+                constraints_Wt1.append(p[j] >= 0)
+                constraints_Wt1.append(v[i] >= 0)
+
+        problem = cp.Problem(objective_Wt1, constraints=constraints_Wt1)
+        result_Wt1 = problem.solve()  # This is the optimal value of program (12)(13)(14).
+
+        objective_Wt2 = cp.Minimize(cp.sum(alloc.remaining_item_capacities[course]* p[j]
+                                           for j, course in enumerate(alloc.remaining_items())))
+
+        constraints_Wt2 = []
+
+
+        constraints_Wt2.append(result_Zt1*D
+                               + cp.sum(alloc.remaining_item_capacities[course]* p[j]
+                                   for j, course in enumerate(alloc.remaining_items()))
+                               +cp.sum(v[i] for i, student in enumerate(alloc.remaining_agents())) == result_Wt1)
+
+        for j in range(len(alloc.remaining_items())):
+            for i in range(len(alloc.remaining_agents())):
+                constraints_Wt2.append(p[j] >= 0)
+                constraints_Wt2.append(v[i] >= 0)
+
+        problem = cp.Problem(objective_Wt2, constraints=constraints_Wt2)
+        result_Wt2 = problem.solve()  # This is the optimal price
 
         # Check if the optimization problem was successfully solved
         if result_Zt1 is not None:

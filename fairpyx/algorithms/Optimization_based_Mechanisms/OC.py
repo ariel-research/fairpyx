@@ -41,13 +41,11 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
     for j, student in enumerate(alloc.remaining_agents()):
         map_courses_to_student = alloc.remaining_items_for_agent(student)
-        sorted_courses = sorted(map_courses_to_student, key=lambda course: alloc.effective_value(student, course), )
+        sorted_courses = sorted(map_courses_to_student, key=lambda course: alloc.effective_value(student, course))
 
         for i, course in enumerate(alloc.remaining_items()):
             if course in sorted_courses:
                 rank_mat[i][j] = sorted_courses.index(course) + 1
-            else:
-                rank_mat[i][j] = len(sorted_courses) + 1
 
     objective_Z1 = cp.Maximize(cp.sum([rank_mat[i][j] * x[i, j]
                                         for i, course in enumerate(alloc.remaining_items())
@@ -60,7 +58,6 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     for i, course in enumerate(alloc.remaining_items()):
         constraints_Z1.append(cp.sum(x[i, :]) <= alloc.remaining_item_capacities[course])
 
-        # TODO: check if necessary
         # if the course have conflict
         for j, student in enumerate(alloc.remaining_agents()):
             if (student, course) in alloc.remaining_conflicts:
@@ -70,9 +67,6 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     # Each student can take at most k courses
     for j, student in enumerate(alloc.remaining_agents()):
         constraints_Z1.append(cp.sum(x[:, j]) <= alloc.remaining_agent_capacities[student])
-
-    # condition number 4:
-    # TODO: if necessary because alloc check it
 
     problem = cp.Problem(objective_Z1, constraints=constraints_Z1)
     result_Z1 = problem.solve()
@@ -97,7 +91,6 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     for i, course in enumerate(alloc.remaining_items()):
         constraints_Z2.append(cp.sum(x[i, :]) <= alloc.remaining_item_capacities[course])
 
-        # TODO: check if necessary
         # if the course have conflict
         for j, student in enumerate(alloc.remaining_agents()):
             if (student, course) in alloc.remaining_conflicts:

@@ -46,8 +46,6 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
             for i, course in enumerate(alloc.remaining_items()):
                 if course in sorted_courses:
                     rank_mat[i][j] = sorted_courses.index(course) + 1
-                else:
-                    rank_mat[i][j] = len(sorted_courses) + 1
 
         x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
 
