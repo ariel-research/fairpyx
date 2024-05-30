@@ -4,6 +4,7 @@ An implementation of the algorithms in:
 Programmer: Abed El-Kareem Massarwa.
 Date: 2024-03.
 """
+import math
 import random
 from itertools import cycle
 from networkx import DiGraph
@@ -187,7 +188,7 @@ def visualize_graph(envy_graph):
 
 def remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities):
     attempt = 0
-    max_attempts = 10000  # Set a maximum number of attempts to prevent infinite loops
+    max_attempts = math.inf  # Set a maximum number of attempts to prevent infinite loops
     while not nx.is_directed_acyclic_graph(envy_graph) and attempt < max_attempts:
         attempt += 1
         logger.info(f"Cycle removal attempt {attempt}")
