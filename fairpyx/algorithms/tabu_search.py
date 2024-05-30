@@ -10,7 +10,7 @@ from itertools import combinations
 
 import numpy as np
 
-from fairpyx import Instance
+from fairpyx import Instance, AllocationBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +139,7 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
     return best_bundle
 
 
-def find_all_equivalent_prices(instance: Instance, history: list, prices: dict):
+def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, history: list, allocation: dict):
     """
     Update history - list of all equivalent prices of 𝒑
 
@@ -147,10 +147,62 @@ def find_all_equivalent_prices(instance: Instance, history: list, prices: dict):
     :param history: all equivalent prices of 𝒑
     :param prices: dictionary with courses prices
 
-    :return: None
-    """
+    Example run 1
+    >>> instance = Instance(valuations={"A":{"x":3, "y":4, "z":2},
+    ...    "B":{"x":4, "y":3, "z":2}, "C":{"x":2, "y":4, "z":3}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":2, "y":1, "z":3})
+    >>> initial_budgets = {"A": 5, "B":4, "C":3}
+    >>> allocation = {"A": {'x', 'y'}, "B":{'x', 'y'}, "C":{'y', 'z'}}
+    >>> find_all_equivalent_prices(instance, initial_budgets, [], allocation)
+    [(['x', 'y'], '<=', 5), (['x', 'y'], '<=', 4), (['y', 'z'], '<=', 3)]
 
-    pass
+    Example run 1
+    >>> instance = Instance(valuations={"A":{"x":3, "y":4, "z":2},
+    ...    "B":{"x":4, "y":3, "z":2}, "C":{"x":2, "y":4, "z":3}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":2, "y":1, "z":3})
+    >>> initial_budgets = {"A": 5, "B":4, "C":3}
+    >>> allocation = {"A": {'x', 'y'}, "B":{'x', 'z'}, "C":{'x', 'z'}}
+    >>> find_all_equivalent_prices(instance, initial_budgets, [], allocation)
+    [(['x', 'y'], '<=', 5), (['x', 'z'], '<=', 4), (['x', 'z'], '<=', 3), (['x', 'y'], '>=', 4), (['x', 'y'], '>=', 3), (['y', 'z'], '>=', 3)]
+
+
+    Example run 2
+    >>> instance = Instance(valuations={"A":{"x":5, "y":4, "z":3, "w":2},"B":{"x":5, "y":2, "z":4, "w":3}},
+    ...     agent_capacities=3,
+    ...     item_capacities={"x":1, "y":2, "z":1, "w":2})
+    >>> initial_budgets = {"A": 8, "B":6}
+    >>> allocation = {"A": {'x', 'y','z'}, "B":{'x','y' ,'z'}}
+    >>> find_all_equivalent_prices(instance, initial_budgets, [], allocation)
+    [(['x', 'y', 'z'], '<=', 8), (['x', 'y', 'z'], '<=', 6), (['w', 'x', 'z'], '>=', 6)]
+
+
+    """
+    # todo: ask erel about that the alloc get good answer but in diffrent order
+
+    # The constraints that the bundles they get in allocation meet their budgets
+    for agent in allocation.keys():
+        history.append((sorted(allocation[agent]), "<=", initial_budgets[agent]))
+
+
+    # Constraints that will ensure that this is the allocation that will be accepted
+    for student in instance.agents:
+        # Creating a list of combinations of courses up to the size of the student's capacity
+        combinations_courses_list = []
+        capacity = instance.agent_capacity(student)
+        for r in range(1, capacity + 1):
+            combinations_courses_list.extend(combinations(instance.items, r))
+
+        utility = instance.agent_bundle_value(student, allocation[student])
+        for combination in combinations_courses_list:
+            current_utility = instance.agent_bundle_value(student, combination)
+            if sorted(combination) != sorted(allocation[student]) and current_utility >= utility:
+                history.append((sorted(combination), ">=", initial_budgets[student]))
+
+
+    print(history)
+
 
 
 def find_gradient_neighbors(neighbors: list, history: list, prices: dict, delta: float, excess_demand_vector: dict):
@@ -485,7 +537,7 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
 
         # 3) Otherwise,
         # • include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑},
-        find_all_equivalent_prices(instance, history, prices)  # TODO - implement
+        find_all_equivalent_prices(instance,initial_budgets, history, allocation)  # TODO - implement
         delta = 1  # TODO- ask erel how to get delta
         find_all_neighbors(instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
                            allocation)
