@@ -109,6 +109,7 @@ def expected_value_of_specific_report(random_utilities: list[dict], random_budge
                             t=t)
         # logger.info("random_budgets[iteration]: %s", random_budgets[iteration], f"type {type(random_budgets[iteration])}")
         print("random_budgets[iteration]: %s", random_budgets[iteration], f"type {type(random_budgets[iteration])}")
+        print(f"allocation: {allocation}")
         current_utility_found = instance.agent_bundle_value(student, allocation[student])
         sum_utilities += current_utility_found
     return sum_utilities / NUMBER_OF_ITERATIONS
@@ -176,24 +177,27 @@ def criteria_randomness(mechanism: callable, student: str, utility: dict, instan
     :return best manipulation that found for our student - the report that gives him the most benefit
     """
     #todo ask erel if to pass the initial budget
+    # todo: ask erel how to update the instance
+    #todo: ask erel how to get the _valuations
 
-    random_budgets = [{agent: random_initial_budgets(instance, beta) for agent in instance.agents} for _ in range(NUMBER_OF_ITERATIONS)]
-    # run for the original utility
-    allocation = divide(mechanism, instance=instance, initial_budgets=random_budgets, delta=delta, epsilon=epsilon,
-                        t=t)
 
-    best_utility_found_for_our_student = instance.agent_bundle_value(student, allocation[student])
+
     best_manipulation_found = utility
 
-    for misreport in misreports:
-        # todo: ask erel how to update the instance
-        utilities = {agent: (misreport if agent == student else utility) for agent, utility in instance._valuations.items()}
-        new_instance = Instance(valuations=utilities, agent_capacities=instance.agent_capacity, item_capacities=instance.item_capacity)
-        allocation = divide(mechanism, instance=new_instance, initial_budgets=random_budgets, delta=delta, epsilon=epsilon, t=t)
-        current_utility_found = instance.agent_bundle_value(student, allocation[student])
+    # random_budgets = [{agent: random_initial_budgets(instance, beta) for agent in instance.agents} for _ in range(NUMBER_OF_ITERATIONS)]
+    random_budgets = [random_initial_budgets(instance, beta) for _ in range(NUMBER_OF_ITERATIONS)]
+    print(f"random_budgets: {random_budgets} ")
 
-        if current_utility_found > best_utility_found_for_our_student:
-            best_utility_found_for_our_student = current_utility_found
+    # run for original utility
+    max_expected_value = expected_value_of_specific_report(instance._valuations, random_budgets, mechanism,
+                                                           instance, student, delta, epsilon, t, utility)
+
+
+    for misreport in misreports:
+        current_expected_value = expected_value_of_specific_report(instance._valuations, random_budgets, mechanism,
+                                                                   instance, student, delta, epsilon, t, misreport)
+        if current_expected_value > max_expected_value:
+            max_expected_value = current_expected_value
             best_manipulation_found = misreport
 
     return best_manipulation_found
@@ -232,60 +236,60 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     >>> logger.addHandler(logging.StreamHandler())
     >>> logger.setLevel(logging.INFO)
 
-    Example run 1
-    >>> mechanism = find_ACEEI_with_EFTB
-    >>> student = "moti"
-    >>> utility = {"x":1, "y":2, "z":4}
-    >>> criteria = criteria_for_profitable_manipulation.randomness
-    >>> neu = 2
-    >>> instance = Instance(
-    ...     valuations={"avi":{"x":3, "y":5, "z":1}, "beni":{"x":2, "y":3, "z":1}, "moti": {"x":1, "y":2, "z":4}},
-    ...     agent_capacities=2,
-    ...     item_capacities={"x":1, "y":2, "z":3})
-    >>> beta = 2
-    >>> initial_budgets = random_initial_budgets(instance, beta)
-    >>> delta = 0.5
-    >>> epsilon = 0.5
-    >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
-    {"x":1, "y":2, "z":4}
-
-    Example run 2
-    >>> mechanism = find_ACEEI_with_EFTB
-    >>> student = "moti"
-    >>> utility = {"x":1, "y":2, "z":4}
-    >>> criteria = criteria_for_profitable_manipulation.randomness
-    >>> neu = 2
-    >>> instance = Instance(
-    ...     valuations={"avi":{"x":3, "y":5, "z":1}, "beni":{"x":2, "y":3, "z":1}, "moti": {"x":1, "y":2, "z":4}},
-    ...     agent_capacities=2,
-    ...     item_capacities={"x":1, "y":2, "z":3})
-    >>> beta = 2
-    >>> initial_budgets = random_initial_budgets(instance, beta)
-    >>> delta = 0.5
-    >>> epsilon = 0.5
-    >>> t = ACEEI.EFTBStatus.EF_TB
-    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
-    {"x":1, "y":2, "z":4}
-
-
-    Example run 4
-    >>> mechanism = find_ACEEI_with_EFTB
-    >>> student = "moti"
-    >>> utility = {"x":6, "y":2}
-    >>> criteria = criteria_for_profitable_manipulation.randomness
-    >>> neu = 2
-    >>> instance = Instance(
-    ...     valuations={"avi":{"x":5, "y":3}, "moti": {"x":6, "y":2}},
-    ...     agent_capacities=2,
-    ...     item_capacities={"x":1, "y":2})
-    >>> beta = 2
-    >>> initial_budgets = random_initial_budgets(instance, beta)
-    >>> delta = 0.5
-    >>> epsilon = 0.5
-    >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
-    {"x":6, "y":2}
+    # Example run 1
+    # >>> mechanism = find_ACEEI_with_EFTB
+    # >>> student = "moti"
+    # >>> utility = {"x":1, "y":2, "z":4}
+    # >>> criteria = criteria_for_profitable_manipulation.randomness
+    # >>> neu = 2
+    # >>> instance = Instance(
+    # ...     valuations={"avi":{"x":3, "y":5, "z":1}, "beni":{"x":2, "y":3, "z":1}, "moti": {"x":1, "y":2, "z":4}},
+    # ...     agent_capacities=2,
+    # ...     item_capacities={"x":1, "y":2, "z":3})
+    # >>> beta = 2
+    # >>> initial_budgets = random_initial_budgets(instance, beta)
+    # >>> delta = 0.5
+    # >>> epsilon = 0.5
+    # >>> t = ACEEI.EFTBStatus.NO_EF_TB
+    # >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    # {"x":1, "y":2, "z":4}
+    #
+    # Example run 2
+    # >>> mechanism = find_ACEEI_with_EFTB
+    # >>> student = "moti"
+    # >>> utility = {"x":1, "y":2, "z":4}
+    # >>> criteria = criteria_for_profitable_manipulation.randomness
+    # >>> neu = 2
+    # >>> instance = Instance(
+    # ...     valuations={"avi":{"x":3, "y":5, "z":1}, "beni":{"x":2, "y":3, "z":1}, "moti": {"x":1, "y":2, "z":4}},
+    # ...     agent_capacities=2,
+    # ...     item_capacities={"x":1, "y":2, "z":3})
+    # >>> beta = 2
+    # >>> initial_budgets = random_initial_budgets(instance, beta)
+    # >>> delta = 0.5
+    # >>> epsilon = 0.5
+    # >>> t = ACEEI.EFTBStatus.EF_TB
+    # >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    # {"x":1, "y":2, "z":4}
+    #
+    #
+    # Example run 4
+    # >>> mechanism = find_ACEEI_with_EFTB
+    # >>> student = "moti"
+    # >>> utility = {"x":6, "y":2}
+    # >>> criteria = criteria_for_profitable_manipulation.randomness
+    # >>> neu = 2
+    # >>> instance = Instance(
+    # ...     valuations={"avi":{"x":5, "y":3}, "moti": {"x":6, "y":2}},
+    # ...     agent_capacities=2,
+    # ...     item_capacities={"x":1, "y":2})
+    # >>> beta = 2
+    # >>> initial_budgets = random_initial_budgets(instance, beta)
+    # >>> delta = 0.5
+    # >>> epsilon = 0.5
+    # >>> t = ACEEI.EFTBStatus.NO_EF_TB
+    # >>> find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    # {"x":6, "y":2}
 
     Example run 5
     >>> mechanism = find_ACEEI_with_EFTB
@@ -293,10 +297,9 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
     >>> utility = {"x":1, "y":2, "z":5}
     >>> criteria = criteria_for_profitable_manipulation.population
     >>> neu = 2
-    >>> instance = Instance.random_uniform(num_of_agents=3, num_of_items=3, agent_capacity_bounds=(2,2),
-    ... item_capacity_bounds=(1,3), item_base_value_bounds=(1, 5),
-    ... item_subjective_ratio_bounds=(1, 1.5),
-    ... normalized_sum_of_values=1000)
+    >>> instance = Instance(valuations={"avi":{"x":5, "y":4, "z":1}, "beni":{"x":4, "y":6, "z":3}, "moti":{"x":1, "y":2, "z":5}},
+    ...            agent_capacities=2,
+    ...            item_capacities={"x":1, "y":2, "z":3})
     >>> beta = 2
     >>> initial_budgets = random_initial_budgets(instance, beta)
     >>> delta = 0.5
@@ -339,18 +342,34 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
 if __name__ == '__main__':
     from fairpyx.algorithms import ACEEI
 
+    # mechanism = find_ACEEI_with_EFTB
+    # student = "moti"
+    # utility = {"x": 1, "y": 2, "z": 4}
+    # criteria = criteria_for_profitable_manipulation.randomness
+    # neu = 2
+    # instance = Instance(valuations = {"avi": {"x": 3, "y": 5, "z": 1}, "beni": {"x": 2, "y": 3, "z": 1}, "moti": {"x": 1, "y": 2, "z": 4}},
+    # agent_capacities = 2,
+    # item_capacities = {"x": 1, "y": 2, "z": 3})
+    # beta = 2
+    # initial_budgets = random_initial_budgets(instance, beta)
+    # delta = 0.5
+    # epsilon = 0.5
+    # t = ACEEI.EFTBStatus.NO_EF_TB
+    # find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t,
+    #                                   initial_budgets, beta)
+
+
     mechanism = find_ACEEI_with_EFTB
     student = "moti"
-    utility = {"x": 1, "y": 2, "z": 4}
+    utility = {"x":1, "y":2, "z":5}
     criteria = criteria_for_profitable_manipulation.population
     neu = 2
-    instance = Instance(valuations = {"avi": {"x": 3, "y": 5, "z": 1}, "beni": {"x": 2, "y": 3, "z": 1}, "moti": {"x": 1, "y": 2, "z": 4}},
-    agent_capacities = 2,
-    item_capacities = {"x": 1, "y": 2, "z": 3})
+    instance = Instance(valuations={"avi":{"x":5, "y":4, "z":1}, "beni":{"x":4, "y":6, "z":3}, "moti":{"x":1, "y":2, "z":5}},
+                        agent_capacities=2,
+                        item_capacities={"x":1, "y":2, "z":3})
     beta = 2
     initial_budgets = random_initial_budgets(instance, beta)
     delta = 0.5
     epsilon = 0.5
     t = ACEEI.EFTBStatus.NO_EF_TB
-    find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t,
-                                      initial_budgets, beta)
+    find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
