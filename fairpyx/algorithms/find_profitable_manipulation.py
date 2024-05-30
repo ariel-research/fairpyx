@@ -74,10 +74,12 @@ def get_random_utilities(instance: Instance):
     return {course: np.random.uniform(1, 100) for course in instance.items}
 
 
-def expected_value_of_specific_report(random_utilities: dict, random_budgets: dict, mechanism: callable,
+def expected_value_of_specific_report(random_utilities: list[dict], random_budgets: list[dict], mechanism: callable,
                                       instance: Instance, student: str, delta: float, epsilon: float, t: Enum,
                                       report: dict):
     """
+    Calculate the expected value of a student given a random utilities.
+
     :param random_utilities: a dictionary of random utilities
     :param random_budgets: a dictionary of random budgets
     :param mechanism: A randomized mechanism M for course-allocation
@@ -93,9 +95,13 @@ def expected_value_of_specific_report(random_utilities: dict, random_budgets: di
     """
 
     sum_utilities = 0
-    for utility, budget in zip(random_utilities, random_budgets):
+    for utility, budget, iteration in zip(random_utilities, random_budgets, range(NUMBER_OF_ITERATIONS)):
         # todo: ask erel how to update the instance for the misreports
-        allocation = divide(mechanism, instance=instance, initial_budgets=budget, delta=delta,
+        # todo: change the agent to something else
+        # todo: ask erel how to test it
+        utilities = {agent: (report if agent == student else utility) for agent, utility in random_utilities[iteration].items()}
+        new_instance = Instance(valuations=utilities, agent_capacities=instance.agent_capacity, item_capacities=instance.item_capacity)
+        allocation = divide(mechanism, instance=new_instance, initial_budgets=budget, delta=delta,
                             epsilon=epsilon,
                             t=t)
         current_utility_found = instance.agent_bundle_value(student, allocation[student])
@@ -104,7 +110,7 @@ def expected_value_of_specific_report(random_utilities: dict, random_budgets: di
 
 
 def criteria_population(mechanism: callable, student: str, utility: dict, instance: Instance, delta: float,
-                        epsilon: float, beta: float, t: Enum, initial_budgets: dict, misreports: list):
+                        epsilon: float, beta: float, t: Enum,  misreports: list):
     """
     Run algorithm 1 when initial budgets and other students utilities are Unknown.
 
@@ -125,8 +131,8 @@ def criteria_population(mechanism: callable, student: str, utility: dict, instan
     """
     best_manipulation_found = utility
 
-    random_utilities = [get_random_utilities(instance) for _ in range(NUMBER_OF_ITERATIONS)]
-    random_budgets = [random_initial_budgets(instance, beta) for _ in range(NUMBER_OF_ITERATIONS)]
+    random_utilities = [{agent: get_random_utilities(instance) for agent in instance.agents} for _ in range(NUMBER_OF_ITERATIONS)]
+    random_budgets = [{agent: random_initial_budgets(instance, beta) for agent in instance.agents} for _ in range(NUMBER_OF_ITERATIONS)]
 
     # run for original utility
     max_expected_value = expected_value_of_specific_report(random_utilities, random_budgets, mechanism,
@@ -143,7 +149,7 @@ def criteria_population(mechanism: callable, student: str, utility: dict, instan
 
 
 def criteria_randomness(mechanism: callable, student: str, utility: dict, instance: Instance, delta: float,
-                        epsilon: float, t: Enum, initial_budgets: dict, misreports: list):
+                        epsilon: float, t: Enum, initial_budgets: dict, misreports: list, beta: float):
     """
     Run algorithm 1 when initial budgets are Unknown.
 
@@ -162,16 +168,23 @@ def criteria_randomness(mechanism: callable, student: str, utility: dict, instan
 
     :return best manipulation that found for our student - the report that gives him the most benefit
     """
+    #todo ask erel if to pass the initial budget
+
+    random_budgets = [{agent: random_initial_budgets(instance, beta) for agent in instance.agents} for _ in range(NUMBER_OF_ITERATIONS)]
     # run for the original utility
-    allocation = divide(mechanism, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
+    allocation = divide(mechanism, instance=instance, initial_budgets=random_budgets, delta=delta, epsilon=epsilon,
                         t=t)
+
     best_utility_found_for_our_student = instance.agent_bundle_value(student, allocation[student])
     best_manipulation_found = utility
+
     for misreport in misreports:
         # todo: ask erel how to update the instance
-        allocation = divide(mechanism, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
-                            t=t)
+        utilities = {agent: (misreport if agent == student else utility) for agent, utility in instance._valuations.items()}
+        new_instance = Instance(valuations=utilities, agent_capacities=instance.agent_capacity, item_capacities=instance.item_capacity)
+        allocation = divide(mechanism, instance=new_instance, initial_budgets=random_budgets, delta=delta, epsilon=epsilon, t=t)
         current_utility_found = instance.agent_bundle_value(student, allocation[student])
+
         if current_utility_found > best_utility_found_for_our_student:
             best_utility_found_for_our_student = current_utility_found
             best_manipulation_found = misreport
@@ -301,12 +314,11 @@ def find_profitable_manipulation(mechanism: callable, student: str, utility: dic
 
         if criteria == criteria_for_profitable_manipulation.population:
             current_best_manipulation = criteria_population(mechanism, student, utility, instance, delta, epsilon, beta,
-                                                            t, initial_budgets,
-                                                            misreports)  # todo: implement
+                                                            t,misreports)
         else:  # criteria == criteria_for_profitable_manipulation.randomness
             current_best_manipulation = criteria_randomness(mechanism, student, utility, instance, delta, epsilon, t,
                                                             initial_budgets,
-                                                            misreports)  # todo: implement
+                                                            misreports, beta)
         if current_best_manipulation == utility:
             break
         else:
