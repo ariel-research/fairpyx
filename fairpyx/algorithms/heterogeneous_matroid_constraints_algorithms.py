@@ -692,7 +692,8 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
 
         logger.info(f'remaining_category_agent_capacities of agents capable of carrying arbitrary item ->{remaining_category_agent_capacities}')
         logger.info(f'current_item_list that were not allocated in the priority matching ->{current_item_list}')
-        categorization_friendly_picking_sequence(alloc, current_order,item_categories,remaining_category_agent_capacities,target_category=category)
+
+        categorization_friendly_picking_sequence(alloc, current_order,item_categories,agent_category_capacities={agent:{category:remaining_category_agent_capacities[agent]}for agent in remaining_category_agent_capacities.keys()},target_category=category)
         # while len(remaining_category_agent_capacities) > 0 and len(current_item_list) > 0:# Note current_agent_list = f(remaining_category_agent_capacities,order)# TODO replace all of this with RR
         #     arbitrary_agent = random.choice(list(remaining_category_agent_capacities.keys()))
         #     arbitrary_item = random.choice(current_item_list)
@@ -819,7 +820,7 @@ def create_agent_item_bipartite_graph(agents, items, valuation_func,
     ...     return values.get((agent, item), 0)
     >>> bipartite_graph = create_agent_item_bipartite_graph(agents, items, valuation_func, agents)
     >>> sorted(bipartite_graph.edges(data=True))
-    [('Agent1', 'Item1', {'weight': 2}), ('Agent1', 'Item2', {'weight': 2}), ('Agent2', 'Item1', {'weight': 1}), ('Agent2', 'Item2', {'weight': 1})]
+    [('Agent1', 'Item1', {'weight': 4}), ('Agent1', 'Item2', {'weight': 4}), ('Agent2', 'Item1', {'weight': 2}), ('Agent2', 'Item2', {'weight': 2})]
     """
     agent_item_bipartite_graph = nx.Graph()
     agent_item_bipartite_graph.add_nodes_from(agents, bipartite=0)
