@@ -12,10 +12,11 @@ import time
 import numpy as np
 from fairpyx.instances import Instance
 
+
 """
 Algorithm 1: Approximate Competitive Equilibrium from Equal Incomes (A-CEEI), finds the best price vector that matches student preferences and course capacities.
 """
-def alpha(demands):
+def alpha(demands: np.array):
     """    
     Calculate the alpha value given the error vector demands.
     
@@ -58,7 +59,7 @@ def alpha(demands):
     86.60254037844386  
     """
 
-def d(price_vector,instance: Instance):
+def d(price_vector: list ,instance: Instance):
     """
     Calculate the clearing error vector given the price vector, enrollment matrix, and target capacities.
 
@@ -160,7 +161,7 @@ def d(price_vector,instance: Instance):
     """
    
 
-def N(price_vector,instance: Instance):
+def N(price_vector: list,instance: Instance):
     """
     Generate the neighbors of the price vector p sorted by increasing alpha^2 values.
 
@@ -185,7 +186,7 @@ def N(price_vector,instance: Instance):
    """
     pass
 
-def generate_individual_adjustment_neighbors(price_vector, demands):
+def generate_individual_adjustment_neighbors(price_vector: list, demands: np.array):
     """
     Generate neighbors by adjusting the price of each course individually.
 
@@ -221,7 +222,7 @@ def generate_individual_adjustment_neighbors(price_vector, demands):
     """
     pass
     
-def generate_gradient_neighbors(price_vector, demands, item_capacities):
+def generate_gradient_neighbors(price_vector: list, demands: list , item_capacities: list):
     """
     Generate neighbors by adjusting the price of the most over and under subscribed courses.
 
@@ -272,7 +273,7 @@ def generate_gradient_neighbors(price_vector, demands, item_capacities):
     pass
 
 
-def A_CEEI(instance: Instance, beta = 100, time = 10):
+def A_CEEI(instance: Instance, beta : tuple , time : int = 60):
     """
     Perform heuristic search to find the best price vector that matches student preferences and course capacities.
 
