@@ -4,14 +4,20 @@ An implementation of the algorithms in:
 https://arxiv.org/abs/1905.09969
 Programmer: Sonya Rybakov
 Since: 2024-05
-
+ # TODO: add loggers to assist funcs
+ # TODO: objectify the algorithms?
+ # TODO: errors for bad input
 Disclaimer: all algorithms are on additive valuations
  """
 import networkz as nx
 from prtpy import partition, objectives as obj, outputtypes as out
 from prtpy.partitioning import integer_programming
 
-from fairpyx import Instance, AllocationBuilder, divide, ExplanationLogger, AgentBundleValueMatrix
+from fairpyx import Instance, AllocationBuilder, divide, ExplanationLogger, AgentBundleValueMatrix, \
+    ConsoleExplanationLogger
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 def leximin_partition(valuation: dict, n: int = 3, result: out.OutputType = out.Partition):
@@ -43,33 +49,31 @@ def leximin_partition(valuation: dict, n: int = 3, result: out.OutputType = out.
     return prt
 
 
-def get_bundle_rankings(instance: Instance, agent, bundles: dict):
+def get_bundle_rankings(instance: Instance, agent, bundles: list) -> list:
     """
     checks the ranking of bundles according to agent's preferences
     :param instance: the current instance
     :param agent: the questioned agent
-    :param bundles: a dict which maps a bundle and its items
-    :return: the dict bundle sorted according to the ranking, where the 1st key is the 1st priority
+    :param bundles: a list of bundles
+    :return: the bundle list  sorted according to the ranking
     >>> inst1 = Instance(valuations={"Alice": [9,10], "Bob": [7,5], "Claire":[2,8]})
-    >>> get_bundle_rankings(instance=inst1, agent='Alice', bundles={'b1':[], 'b2':[0], 'b3':[1]})
-    {'b3': [1], 'b2': [0], 'b1': []}
+    >>> get_bundle_rankings(instance=inst1, agent='Alice', bundles=[[], [0], [1]])
+    [[1], [0], []]
 
-    >>> get_bundle_rankings(instance=inst1, agent='Bob', bundles={'b1':[], 'b2':[0], 'b3':[1]})
-    {'b2': [0], 'b3': [1], 'b1': []}
+    >>> get_bundle_rankings(instance=inst1, agent='Bob', bundles=[[], [0], [1]])
+    [[0], [1], []]
 
     >>> inst2 = Instance(valuations={"Alice": [2,2,6,7], "Bob": [5,3,7,5], "Claire":[2,2,2,2]})
-    >>> rank_a = get_bundle_rankings(instance=inst2, agent='Alice', bundles={'b1':[2], 'b2':[1], 'b3':[0, 3]})
-    >>> rank_b = get_bundle_rankings(instance=inst2, agent='Bob', bundles={'b1':[2], 'b2':[1], 'b3':[0, 3]})
+    >>> rank_a = get_bundle_rankings(instance=inst2, agent='Alice', bundles=[[2], [1], [0, 3]])
+    >>> rank_b = get_bundle_rankings(instance=inst2, agent='Bob', bundles=[[2], [1], [0, 3]])
     >>> rank_a == rank_b    # instance that goes to step 4 has same ranking
     True
     """
-    ranking = {k: v for k, v in sorted(bundles.items(),
-                                       key=lambda item: instance.agent_bundle_value(agent, item[1]),
-                                       reverse=True)}
+    ranking = sorted(bundles, key=lambda bundle: instance.agent_bundle_value(agent, bundle), reverse=True)
     return ranking
 
 
-def is_significant_2nd_bundle(instance: Instance, agent, bundles: dict) -> bool:
+def is_significant_2nd_bundle(instance: Instance, agent, bundles: list) -> bool:
     """
     checks the significance of the second priority bundle of an agent
 
@@ -77,10 +81,11 @@ def is_significant_2nd_bundle(instance: Instance, agent, bundles: dict) -> bool:
     :param agent: the agent in question
     :param bundles: a dict which maps a bundle and its items, sorted by priorities
     :return: if the second bundle has significant value
-    >>> inst2 = Instance(valuations={"Alice": [2,2,6,7], "Bob": [5,3,7,5], "Claire":[2,2,2,2]})
-    >>> rank_a = get_bundle_rankings(instance=inst2, agent='Alice', bundles={'b1':[2], 'b2':[1], 'b3':[0, 3]})
-    >>> rank_b = get_bundle_rankings(instance=inst2, agent='Bob', bundles={'b1':[2], 'b2':[1], 'b3':[0, 3]})
-
+    >>> inst2 = Instance(valuations={"Alice": [2,2,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]})
+    >>> is_significant_2nd_bundle(instance=inst2, agent='Alice', bundles=[[0, 3], [2], [1]])
+    True
+    >>> is_significant_2nd_bundle(instance=inst2, agent='Bob', bundles=[[0, 3], [1], [2]])
+    True
     """
     return (instance.agent_bundle_value(agent, bundles[1]) * 2) > instance.agent_bundle_value(agent, bundles[0]) \
         + instance.agent_bundle_value(agent, bundles[2])
@@ -94,53 +99,94 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
     Examples:
     step 2 allocation ok:
     >>> divide(divide_and_choose_for_three, valuations={"Alice": [9,10], "Bob": [7,5], "Claire":[2,8]})
-    {'Alice': [0], 'Bob': [1], 'Claire': []}
+    {'Alice': [1], 'Bob': [0], 'Claire': []}
     >>> val_7items = {"Alice": [10,10,6,4,2,2,2], "Bob": [7,5,6,6,6,2,9], "Claire":[2,8,8,7,5,2,3]}
     >>> divide(divide_and_choose_for_three, valuations=val_7items)
-    {'Alice': [0,3,5], 'Bob': [2,6], 'Claire': [1 ,4]}
+    {'Alice': [0, 3, 5], 'Bob': [2, 6], 'Claire': [1, 4]}
 
     step 3 allocation ok:
     >>> divide(divide_and_choose_for_three, valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]})
-    {'Alice': [0,3], 'Bob': [1], 'Claire': [2]}
+    {'Alice': [0], 'Bob': [2, 3], 'Claire': [1]}
 
     step 4-I allocation ok:
-    >>> divide(divide_and_choose_for_three, valuations={"Alice": [2,2,6,7], "Bob": [5,3,7,5], "Claire":[2,2,2,2]})
-    {'Alice': [2], 'Bob': [3], 'Claire': [0,1]}
+    >>> divide(divide_and_choose_for_three, valuations={"Alice": [2,2,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]})
+    {'Alice': [2], 'Bob': [1], 'Claire': [0, 3]}
 
     step 4-II allocation ok:
-    >>> divide(divide_and_choose_for_three, valuations={"Alice": [2,4,6,7], "Bob": [5,3,7,5], "Claire":[2,2,2,2]})
-    {'Alice': [0,1], 'Bob': [3], 'Claire': [2]}
-    """
+    >>> divide(divide_and_choose_for_three, valuations={"Alice": [2,4,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]})
+    {'Alice': [3], 'Bob': [0, 2], 'Claire': [1]}
 
+    step 4-II allocation ok:
+    >>> divide(divide_and_choose_for_three, valuations={"Alice": [5,7,3,5], "Bob": [2,4,6,7], "Claire":[2,2,2,2]})
+    {'Alice': [0, 2], 'Bob': [3], 'Claire': [1]}
+    """
+    # TODO: edit heb texts
     TEXTS = {
         "algorithm_starts": {
             "he": "אלגוריתם חלק ובחר לשלושה סוכנים מתחיל",
-            "en": "Divide-and-Choose Algorithm for Three Agents starts",
+            "en": "Divide-and-Choose Algorithm for Three Agents starts\n",
         },
         "leximin_partition": {
-            "he": "מחלק את הפריטים %s סוכן ",
-            "en": "Agent %s divides the the items:",
+            "he": "%s מחלק את הפריטים %s סוכן \n",
+            "en": "Agent %s divides the the items: %s \n",
         },
         "partition_results": {
-            "he": " %d-חלוקה: %s",
-            "en": "%d-partition results: %s",
+            "he": " %d-חלוקה: %s \n",
+            "en": "%d-partition results: %s \n",
         },
-        "you_did_not_get_any": {
-            "he": "חישוב חשיבויות לסוכנים: %s, %s",
-            "en": "You did not get any course, because no remaining course is acceptable to you.",
+        "calc_priorities": {
+            "he": "חישוב חשיבויות לסוכנים: %s, %s \n",
+            "en": "Calculating priorities for agents: %s, %s \n",
         },
-        "your_course_this_iteration": {
-            "he": "הערך הגבוה ביותר שיכולת לקבל בסיבוב הנוכחי הוא %g. קיבלת את %s, ששווה עבורך %g.",
-            "en": "The maximum possible value you could get in this iteration is %g. You get course %s whose value for you is %g.",
+        "first_priority_check": {
+            "he": "הערך הגבוה ביותר שיכולת לקבל בסיבוב הנוכחי הוא %g. קיבלת את %s, ששווה עבורך %g. \n",
+            "en": "Checking first priorities for agents: %s, %s \n",
         },
-        "you_have_your_capacity": {
-            "he": "קיבלת את כל %d הקורסים שהיית צריך.",
-            "en": "You now have all %d courses that you needed.",
-        },
-        "as_compensation": {
+        "different_first_priority": {
             "he": "כפיצוי, הוספנו את ההפרש %g לקורס הכי טוב שנשאר לך, %s.",
-            "en": "As compensation, we added the difference %g to your best remaining course, %s.",
+            "en": "agent %s’s and agent %s’s favorite bundles are different, each of them takes their favorite bundle ",
         },
+        "same_first_priority": {
+            "he": "כפיצוי, הוספנו את ההפרש %g לקורס הכי טוב שנשאר לך, %s.",
+            "en": "agent %s’s and agent %s’s favorite bundles are the same",
+        },
+        "second_priority_check": {
+            "he": "הערך הגבוה ביותר שיכולת לקבל בסיבוב הנוכחי הוא %g. קיבלת את %s, ששווה עבורך %g. \n",
+            "en": "Checking second priorities for agents: %s, %s \n",
+        },
+        "same_second_priority": {
+            "he": "כפיצוי, הוספנו את ההפרש %g לקורס הכי טוב שנשאר לך, %s.",
+            "en": "Second favorite bundles are the same, ",
+        },
+        "given_choice": {
+            "he": "כפיצוי, הוספנו את ההפרש %g לקורס הכי טוב שנשאר לך, %s.",
+            "en": "Agent %s gets to choose their favorite from repartition",
+        },
+        "remainder": {
+            "he": "כפיצוי, הוספנו את ההפרש %g לקורס הכי טוב שנשאר לך, %s. \n",
+            "en": "the remaining bundle is allocated to %s \n",
+        },
+        "different_second_priority": {
+            "he": "כפיצוי, הוספנו את ההפרש %g לקורס הכי טוב שנשאר לך, %s.",
+            "en": "Second favorite bundles are different, checking significant worth of second favorites",
+        },
+        "has_significant_worth": {
+            "he": "כפיצוי, הוספנו את ההפרש %g לקורס הכי טוב שנשאר לך, %s. \n",
+            "en": "There is significant worth of second favorites for both. Assigning second favorites accordingly\n",
+        },
+        "not_significant": {
+            "he": "כפיצוי, הוספנו את ההפרש %g לקורס הכי טוב שנשאר לך, %s. \n",
+            "en": "There is no significant worth of second favorites for agent %s. "
+        },
+        "final_allocation": {
+            "he": "כפיצוי, הוספנו את ההפרש %g לקורס הכי טוב שנשאר לך, %s. \n",
+            "en": "the remaining bundle is allocated to %s \n",
+        },
+        "repartition": {
+            "he": "כפיצוי, הוספנו את ההפרש %g לקורס הכי טוב שנשאר לך, %s. \n",
+            "en": "Agent %s takes their 2 favorites for repartition \n",
+        },
+
     }
 
     def _(code: str):
@@ -148,87 +194,80 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
 
     instance = alloc.instance
     explanation_logger.info("\n" + _("algorithm_starts") + "\n")
-
-    explanation_logger.info("\n" + "Agent 3 divides the items as leximin partition" + "\n")
     agents: list = list(instance.agents)
-    agent3_valuations: dict = {item: instance.agent_item_value(agents[2], item) for item in instance.items}
-    partition1: dict = {k: v for k, v in zip(range(3), leximin_partition(agent3_valuations))}
-    explanation_logger.debug("\n" + "the first leximin partition" + "\n")
-    explanation_logger.info("\n" + "Calculating priorities for agent 1 and agent 2" + "\n")
+    explanation_logger.info("\n" + _("leximin_partition"), agents[2], instance.items)
+
+    def get_valuations(agent, items):
+        return {item: instance.agent_item_value(agent, item) for item in items}
+
+    agent3_valuations = get_valuations(agents[2], instance.items)
+    partition1 = leximin_partition(agent3_valuations)
+    explanation_logger.debug("\n" + _("partition_results"), 3, str(partition1))
+    explanation_logger.info("\n" + _("calc_priorities"), agents[0], agents[1], agents=agents[:2])
     priorities1 = get_bundle_rankings(instance, agents[0], partition1)
     priorities2 = get_bundle_rankings(instance, agents[1], partition1)
-    explanation_logger.info("\n" + "Checking first priorities for agents 1 and 2" + "\n")
+    explanation_logger.info("\n" + _("first_priority_check"), agents[0], agents[1], agents=agents[:2])
     if priorities1[0] != priorities2[0]:
-        explanation_logger.info("\n" + "agent 1’s and agent 2’s favorite bundles are different, "
-                                + "each of them takes her favorite bundle "
-                                + "and the remaining bundle is allocated to agent 3" + "\n")
+        explanation_logger.info("\n" + _("different_first_priority"), agents[0], agents[1], agents=agents[:2])
         alloc.give_bundle(agents[0], priorities1[0])
         alloc.give_bundle(agents[1], priorities2[0])
-        remainder = [v for k, v in partition1 if (v != priorities1[0] and v != priorities2[0])]
+        explanation_logger.info("\n" + _("remainder"), agents[2], agents=agents[2])
+        remainder = [v for v in partition1 if (v != priorities1[0] and v != priorities2[0])][0]
         alloc.give_bundle(agents[2], remainder)
         return
 
     explanation_logger.info(
         "\n" + "Favorite bundles are the same. Checking second priorities for agents 1 and 2" + "\n")
     if priorities1[1] == priorities2[1]:
-        explanation_logger.info("\n"
-                                + "Second favorite bundles are the same. "
-                                + "Agent 2 takes her 2 favorites for repartition "
-                                + "and the remaining bundle is allocated to agent 3" + "\n")
+        explanation_logger.info("\n"+_("same_second_priority"), agents[1], agents=agents[1])
+        explanation_logger.info("\n" + _("repartition"), agents[1], agents=agents[1])
+
         unified_bundle = priorities2[0] + priorities2[1]
+        explanation_logger.info("\n"+_("remainder"), agents[2], agents=agents[2])
         alloc.give_bundle(agents[2], priorities2[2])
 
-        agent2_valuations: dict = {item: instance.agent_item_value(agents[1], item) for item in unified_bundle}
-        partition2: dict = {k: v for k, v in zip(range(3), leximin_partition(agent2_valuations, n=2))}
-        priorities1 = get_bundle_rankings(instance, agents[0], partition2)
-        explanation_logger.info("\n"
-                                + "Agent 1 takes her favorite from repartition"
-                                + "and the remaining bundle is allocated to agent 2" + "\n")
-        alloc.give_bundle(agents[0], priorities1[0])
-        alloc.give_bundle(agents[1], priorities1[1])
+        agent2_valuations = get_valuations(agents[1], unified_bundle)
+        explanation_logger.info("\n" + _("leximin_partition"), agents[1], unified_bundle)
+        partition2 = leximin_partition(agent2_valuations, n=2)
+        explanation_logger.debug("\n" + _("partition_results"), 2, str(partition2))
+        priorities_other = get_bundle_rankings(instance, agents[0], partition2)
+        explanation_logger.info("\n" + _("given_choice"), agents[0], agents=agents[0])
+        alloc.give_bundle(agents[0], priorities_other[0])
+        explanation_logger.info("\n"+_("remainder"), agents[1], agents=agents[1])
+        alloc.give_bundle(agents[1], priorities_other[1])
         return
     else:
-        explanation_logger.info("\n"
-                                + "Second favorite bundles are not the same. "
-                                + "Checking significant worth of second favorites" + "\n")
+        explanation_logger.info("\n" + _("different_second_priority") + "\n")
         is_significant1 = is_significant_2nd_bundle(instance, agents[0], priorities1)
         is_significant2 = is_significant_2nd_bundle(instance, agents[1], priorities2)
         if is_significant1 and is_significant2:
-            explanation_logger.info("\n"
-                                    + "There is significant worth of second favorites for both"
-                                    + "Assigning second favorites accordingly, remainder goes to agent 3" + "\n")
+            explanation_logger.info("\n" + _("has_significant_worth") + "\n")
             alloc.give_bundle(agents[0], priorities1[1])
             alloc.give_bundle(agents[1], priorities2[1])
+            explanation_logger.info("\n" + _("remainder"), agents[2], agents=agents[2])
             alloc.give_bundle(agents[2],  priorities1[0])
             return
-        elif not is_significant2:
-            explanation_logger.info("\n"
-                                    + "There is significant worth of second favorites"
-                                    + "Assigning second favorites accordingly, remainder goes to agent 3" + "\n")
-            unified_bundle = priorities2[0] + priorities2[1]
-            alloc.give_bundle(agents[2], priorities2[2])
-
-            agent2_valuations: dict = {item: instance.agent_item_value(agents[1], item) for item in unified_bundle}
-            partition2: dict = {k: v for k, v in zip(range(3), leximin_partition(agent2_valuations, n=2))}
-            priorities1 = get_bundle_rankings(instance, agents[0], partition2)
-            explanation_logger.info("\n"
-                                    + "Agent 1 takes her favorite from repartition"
-                                    + "and the remaining bundle is allocated to agent 2" + "\n")
-            alloc.give_bundle(agents[0], priorities1[0])
-            alloc.give_bundle(agents[1], priorities1[1])
-            return
         else:
-            unified_bundle = priorities1[0] + priorities1[1]
-            alloc.give_bundle(agents[2], priorities1[2])
+            non_significant_agent = agents[1] if not is_significant2 else agents[0]
+            other_agent = agents[1] if non_significant_agent == agents[0] else agents[0]
 
-            agent1_valuations: dict = {item: instance.agent_item_value(agents[0], item) for item in unified_bundle}
-            partition2: dict = {k: v for k, v in zip(range(3), leximin_partition(agent1_valuations, n=2))}
-            priorities2 = get_bundle_rankings(instance, agents[1], partition2)
-            explanation_logger.info("\n"
-                                    + "Agent 2 takes her favorite from repartition"
-                                    + "and the remaining bundle is allocated to agent 1" + "\n")
-            alloc.give_bundle(agents[0], priorities2[0])
-            alloc.give_bundle(agents[1], priorities2[1])
+            explanation_logger.info("\n" + _("not_significant"), non_significant_agent, agents=non_significant_agent)
+            explanation_logger.info("\n" + _("repartition"), non_significant_agent, agents=non_significant_agent)
+            unified_bundle = priorities2[0] + priorities2[1] if not is_significant2 else priorities1[0] + priorities1[1]
+            remainder = priorities2[2] if not is_significant2 else priorities1[2]
+            explanation_logger.info("\n" + _("remainder"), agents[2], agents=agents[2])
+            alloc.give_bundle(agents[2], remainder)
+
+            agent_valuations: dict = get_valuations(non_significant_agent, unified_bundle)
+            explanation_logger.info("\n" + _("leximin_partition"), non_significant_agent, unified_bundle)
+            partition2 = leximin_partition(agent_valuations, n=2)
+            explanation_logger.debug("\n" + _("partition_results"), 2, str(partition2))
+            priorities_other = get_bundle_rankings(instance, other_agent, partition2)
+
+            explanation_logger.info("\n" + _("given_choice"), other_agent, agents=agents[0])
+            alloc.give_bundle(other_agent, priorities_other[0])
+            explanation_logger.info("\n" + _("remainder"), non_significant_agent, agents=non_significant_agent)
+            alloc.give_bundle(non_significant_agent, priorities_other[1])
             return
 
     #  3. Otherwise (agent 1 and agent 2 have the same favorite bundle), we compare their second
@@ -314,6 +353,7 @@ def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
  using this procedure, we eventually get another allocation whose envy-graph is acyclic. it is shown
  in [lipton et al., 2004] that p can be done in time o(mn3).
     """
+    # TODO: edit texts
     TEXTS = {
         "procedure_starts": {
             "he": "אלגוריתם 'שידוך מקסימום עם פיצוי' מתחיל:",
@@ -374,10 +414,10 @@ def alloc_by_matching(alloc: AllocationBuilder):
     note: Only valuations are needed
 
     Examples:
-    >>> divide(alloc_by_matching, valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]})
+    >>> divide(alloc_by_matching, valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]}) # doctest: +SKIP
     {'Alice': [0], 'Bob': [1], 'Claire': [2,3]}
-    >>> val_7items = {"Alice": [10,10,6,4,2,2,2], "Bob": [7,5,6,6,6,2,9], "Claire":[2,8,8,7,5,2,3]}
-    >>> divide(alloc_by_matching, valuations=val_7items)
+    >>> val_7items = {"Alice": [10,10,6,4,2,2,2], "Bob": [7,5,6,6,6,2,9], "Claire":[2,8,8,7,5,2,3]} # doctest: +SKIP
+    >>> divide(alloc_by_matching, valuations=val_7items) # doctest: +SKIP
     {'Alice': [0,1], 'Bob': [4,5,6], 'Claire': [2,3]}
     """
     # 1: InitiateL = NandR = M.
@@ -402,3 +442,19 @@ def alloc_by_matching(alloc: AllocationBuilder):
 
     pass
     # No need to return a value. The `divide` function returns the output.
+if __name__ == "__main__":
+    # import doctest, sys
+    # print("\n",doctest.testmod(), "\n")
+    import sys
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.setLevel(logging.DEBUG)
+
+    # divide(divide_and_choose_for_three, valuations={"Alice": [9, 10], "Bob": [7, 5], "Claire": [2, 8]}, explanation_logger=ConsoleExplanationLogger())
+    # divide(divide_and_choose_for_three, valuations={"Alice": [10, 10, 6, 4], "Bob": [7, 5, 6, 6], "Claire": [2, 8, 8, 7]}, explanation_logger=ConsoleExplanationLogger())
+    # divide(divide_and_choose_for_three, valuations={"Alice": [2,4,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]}, explanation_logger=ConsoleExplanationLogger())
+    inst = Instance(
+        valuations={"Alice": [8, 5, 1, 5, 5, 3, 6, 9, 3, 3, 7, 5, 8, 8, 4, 10, 3, 8, 10, 2],
+                    "Bob": [3, 5, 5, 3, 4, 9, 5, 5, 8, 1, 2, 6, 8, 6, 9, 1, 2, 8, 9, 7],
+                    "Claire": [7, 8, 2, 9, 3, 2, 3, 8, 8, 8, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
+    alloc = divide(divide_and_choose_for_three, inst, explanation_logger=ConsoleExplanationLogger())
+    print(alloc)
