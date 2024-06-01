@@ -12,7 +12,7 @@ from fairpyx.instances import Instance
 Algorithm 2 : The algorithm makes sure that there are no courses that have more students registered than their capacity.
 """
 
-def remove_oversubscription(price_vector, student_budgets, instance, epsilon, demand_function):
+def remove_oversubscription(price_vector: tuple, student_budgets: tuple, instance: Instance, epsilon: float, demand_function: callable):
     """
     Perform oversubscription elimination to adjust course prices.
 
@@ -90,7 +90,7 @@ def remove_oversubscription(price_vector, student_budgets, instance, epsilon, de
     """
     pass
 
-def demand_function(p,instance, student_budgets):
+def demand_function(p: list,instance: Instance, student_budgets: list):
     """
     :param p (list): Price vector
     :param instance (Instance)

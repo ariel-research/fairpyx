@@ -13,7 +13,7 @@ from fairpyx.instances import Instance
 Algorithm 3: The algorithm is designed to refill all the courses that, following Algorithm 2, have space in them.
 """
 
-def reduce_undersubscription(current_allocations, price_vector, instance, student_list, restricted_demand_function):
+def reduce_undersubscription(current_allocations: dict, price_vector: tuple, instance: Instance, student_list: list, restricted_demand_function: callable):
     """
     Perform automated aftermarket allocations with increased budget and restricted allocations.
 
@@ -95,7 +95,7 @@ def reduce_undersubscription(current_allocations, price_vector, instance, studen
     """
     pass
 
-def restricted_demand_function(student_allocation, price_vector, available_courses, student_budget, instance):
+def restricted_demand_function(student_allocation: tuple, price_vector: tuple, available_courses: tuple, student_budget: float, instance: Instance):   
     """
     function to reoptimize student's schedule.
 
