@@ -209,22 +209,22 @@ def test_divide_and_choose():
 def test_alloc_by_matching():
     inst = fairpyx.Instance(valuations={"Alice": [10, 10, 6, 4], "Bob": [7, 5, 6, 6], "Claire": [2, 8, 8, 7]})
     alloc = fairpyx.divide(maximin_aware.alloc_by_matching, inst)
-    assert alloc == {'Alice': [0], 'Bob': [1], 'Claire': [2, 3]}, f'mma by matching: allocation incorrect'
+    assert alloc == {'Alice': [1], 'Bob': [0], 'Claire': [2, 3]}, f'mma by matching: allocation incorrect'
     assert all(mma_fairness_calc(inst, alloc)), f'mma by matching: fairness failed'
 
     inst = fairpyx.Instance(
         valuations={"Alice": [10, 10, 6, 4, 2, 2, 2], "Bob": [7, 5, 6, 6, 6, 2, 9], "Claire": [2, 8, 8, 7, 5, 2, 3]})
     alloc = fairpyx.divide(maximin_aware.alloc_by_matching, inst)
-    assert alloc == {'Alice': [0, 1], 'Bob': [4, 5, 6], 'Claire': [2, 3]}, f'mma by matching: allocation incorrect'
+    assert alloc == {'Alice': [0, 2, 5], 'Bob': [4, 6], 'Claire': [1, 3]}, f'mma by matching: allocation incorrect'
     assert all(mma_fairness_calc(inst, alloc)), f'mma by matching: fairness failed'
 
     inst = fairpyx.Instance(
         valuations={"Alice": [8, 5, 1, 5, 5, 3, 6, 9, 3, 3, 7, 5, 8, 8, 4, 10, 3, 8, 10, 2],
                     "Bob": [3, 5, 5, 3, 4, 9, 5, 5, 8, 1, 2, 6, 8, 6, 9, 1, 2, 8, 9, 7],
                     "Claire": [7, 8, 2, 9, 3, 2, 3, 8, 8, 8, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
-    alloc = fairpyx.divide(maximin_aware.divide_and_choose_for_three, inst)
-    assert alloc == {'Alice': [15, 18, 7, 0, 13, 10, 6], 'Bob': [5, 14, 8, 17, 19, 2, 4],
-                     'Claire': [11, 12, 3, 1, 9, 16, 2]}, f'mma by matching: large input allocation incorrect'
+    alloc = fairpyx.divide(maximin_aware.alloc_by_matching, inst)
+    assert alloc == {'Alice': [0, 4, 7, 10, 13, 15, 18], 'Bob': [2, 5, 6, 8, 14, 17, 19],
+                     'Claire': [1, 3, 9, 11, 12, 16]}, f'mma by matching: large input allocation incorrect'
     assert all(mma_fairness_calc(inst, alloc)), f'mma by matching: large input fairness failed'
 
     if __name__ == "__main__":
