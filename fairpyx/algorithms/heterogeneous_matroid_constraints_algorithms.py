@@ -110,16 +110,22 @@ def envy(source: str, target: str, bundles: dict[str, set or list], val_func: ca
         """
     val = val_func
     source_bundle_val = sum(list(val(source, current_item) for current_item in bundles[source]))
-    #target_bundle_val = sum(list(val(source, current_item) for current_item in bundles[target])) #old non feasible method
+    logger.info(f'source agent bundle value -> {source_bundle_val}')
     copy = bundles[target].copy()
     target_bundle_val = 0
-    sorted(copy, key=lambda x: val(source, x), reverse=True)  # sort target items  in the perspective of the envier
-    for category in item_categories.keys():
+    target_bundle=[]
+    sorted(copy, key=lambda x: val(source, x), reverse=True)  # sort target items  in the perspective of the envier in desc order
+    for category in item_categories.keys():# for each category
         candidates = [item for item in copy if
-                      item in item_categories[category]]  # assumes sorted in reverse (maximum comes first)
-        target_bundle_val += sum(val(source, x) for x in candidates[:agent_category_capacities[source][category]])
+                      item in item_categories[category]]  # assumes items sorted in reverse based on source agent's valuation (maximum comes first)
+        curr_best_subset=candidates[:agent_category_capacities[source][category]]
+        target_bundle.append(curr_best_subset)
+        target_bundle_val += sum(val(source, x) for x in curr_best_subset)# take as much as source agent cant carry (Kih)
+        logger.info(f'best feasible sub_bundle in category {category} is -> {candidates[:agent_category_capacities[source][category]]} and its value is -> {target_bundle_val}')
 
-    #print(source_bundle_val, target_bundle_val)
+
+    logger.info(f'source{source} bundle is -> {bundles[source]} and its value is -> {source_bundle_val}\n target {target} best feasible bundle in the perspective of {source} is -> {target_bundle} and its value is -> {target_bundle_val}')
+    logger.info(f'does {source} envy {target} ? -> {target_bundle_val > source_bundle_val}')
     return target_bundle_val > source_bundle_val
 
 def categorization_friendly_picking_sequence(alloc:AllocationBuilder, agent_order:list, item_categories:dict, agent_category_capacities:dict,
@@ -262,6 +268,7 @@ def update_category_items(alloc:AllocationBuilder, item_categories:dict, target_
         ['m4']
     """
     remaining_category_items = [x for x in alloc.remaining_items() if x in item_categories[target_category]]
+    logger.info(f'remaining_category_items -> {remaining_category_items}')
     return remaining_category_items
 
 
@@ -317,7 +324,7 @@ def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: 
     >>> graph.has_edge('Agent1','Agent2')
     False
     """
-    logger.info(f"bundles in UPDATE GRAPH {curr_bundles}")
+    logger.info(f"curr_bundles -> {curr_bundles}")
     envy_graph.clear_edges()
     envy_graph.add_nodes_from(curr_bundles.keys())
     for agent1, bundle1 in curr_bundles.items():
@@ -330,7 +337,7 @@ def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: 
                     #print(f"{agent1} envies {agent2}")  # works great .
                     # we need to add edge from the envier to the envyee
                     envy_graph.add_edge(agent1, agent2)
-
+    logger.info(f"envy_graph.edges after update -> {envy_graph.edges}")
 
 # def visualize_graph(envy_graph):
 #     plt.figure(figsize=(8, 6))
@@ -437,25 +444,25 @@ def remove_cycles(envy_graph, alloc:AllocationBuilder, valuation_func, item_cate
 
             # Copy the bundle of the first agent in the cycle
             temp_val = alloc.bundles[agents_in_cycle[0]].copy()
-            logger.debug(f"Initial temp_val (copy of first agent's bundle): {temp_val}")
+            logger.info(f"Initial temp_val (copy of first agent's bundle): {temp_val}")
 
             # Perform the swapping
             for i in range(len(agents_in_cycle)):
                 current_agent = agents_in_cycle[i]
                 next_agent = agents_in_cycle[(i + 1) % len(agents_in_cycle)]
-                logger.debug(
+                logger.info(
                     f"Before swapping: {current_agent} -> {alloc.bundles[current_agent]}, {next_agent} -> {alloc.bundles[next_agent]}")
 
                 # Swap the bundles
                 alloc.bundles[next_agent], temp_val = temp_val, alloc.bundles[next_agent].copy()
 
-                logger.debug(
+                logger.info(
                     f"After swapping: {current_agent} -> {alloc.bundles[current_agent]}, {next_agent} -> {alloc.bundles[next_agent]}")
-                logger.debug(f"Updated temp_val: {temp_val}")
+                logger.info(f"Updated temp_val: {temp_val}")
 
             # Update the envy graph after swapping
             update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
-            logger.info(f"Updated envy graph. Graph is acyclic: {nx.is_directed_acyclic_graph(envy_graph)}")
+            logger.info(f"Updated envy graph. is Graph acyclic ?? {nx.is_directed_acyclic_graph(envy_graph)}")
 
         except nx.NetworkXNoCycle:
             logger.info("No more cycles detected")
@@ -518,29 +525,27 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order=order)
     {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3'], 'Agent4': ['m4']}
     """
-    logger.info(f"allocationbuilder : {alloc} \n item_categories -> {item_categories} \n agent_category_capacities -> {agent_category_capacities} \n -> initial_agent_order are -> {initial_agent_order}\n ")
+    logger.info(f"alloc -> {alloc} \n item_categories -> {item_categories} \n agent_category_capacities -> {agent_category_capacities} \n -> initial_agent_order are -> {initial_agent_order}\n ")
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
 
     for category in item_categories.keys():
-        logger.info(f"item_categories.keys() -> {item_categories.keys()}\n bundles before RR -> {alloc.bundles}")
-        logger.info(f"ENVY GRAPH BEFORE RR -> {envy_graph.nodes} -> in {envy_graph}  category -> {category}")
+        logger.info(f'current category -> {category}')
+        logger.info(f'Envy graph before  RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
         categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities, category)
-        logger.info(f"ENVY GRAPH AFTER RR -> {envy_graph.nodes} -> in {envy_graph}  category -> {category}")
-        logger.info(f"done with RR in {category}\n bundles after  RR -> {alloc.bundles}")
         update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
-        logger.info(f"done with envy_graph -> {envy_graph.nodes} -> in {envy_graph}  category -> {category}")
+        logger.info(f'Envy graph after  RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
         if not nx.is_directed_acyclic_graph(envy_graph):
             logger.info(
-                f"CYCLE REMOVAL STARTED ")
+                f"Cycle removal started ")
 
             remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
             logger.info(
-                f"CYCLE REMOVAL ENDED ")
+                f'cycle removal ended successfully ')
         current_order = list(nx.topological_sort(envy_graph))
-        logger.info(f"TOPOLOGICAL SORT DONE -> {current_order} ")
-
+        logger.info(f"Topological sort -> {current_order} \n***************************** ")
+    logger.info(f'alloc after termination of algorithm ->{alloc}')
 
 
 def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
@@ -605,9 +610,10 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
 
     # no need for envy graphs whatsoever
     current_order = initial_agent_order
+    logger.info(f'initial_agent_order -> {initial_agent_order}')
     categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
                                              target_category=target_category)  # this is RR without wrapper
-
+    logger.info(f'alloc after CRR -> {alloc}')
 
 def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
                                       initial_agent_order: list, target_category_pair: tuple[str] = ('c1', 'c2')):
@@ -674,11 +680,15 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> # m1 remains unallocated unfortunately :-(
             """
     current_order = initial_agent_order
+    logger.info(f'initial_agent_order -> {current_order}')
     categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
                                              target_category=target_category_pair[0])  #calling CRR on first category
+    logger.info(f'alloc after CRR#{target_category_pair[0]} ->{alloc}')
     current_order.reverse()  #reversing order
+    logger.info(f'reversed initial_agent_order -> {current_order}')
     categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
-                                             target_category=target_category_pair[1])  # calling CRR on first category
+                                             target_category=target_category_pair[1])  # calling CRR on second category
+    logger.info(f'alloc after CRR#{target_category_pair[1]} ->{alloc}')
 
 
 def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
@@ -730,6 +740,7 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
+    logger.info(f'initial_agent_order->{initial_agent_order}')
     for category in item_categories.keys():
         categorization_friendly_picking_sequence(alloc=alloc, agent_order=current_order,
                                                  item_categories=item_categories,
@@ -738,6 +749,8 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
         update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
                           item_categories=item_categories, agent_category_capacities=agent_category_capacities)
         current_order = list(nx.topological_sort(envy_graph))
+        logger.info(f'alloc after RR in category ->{category} is ->{alloc}.\n Envy graph nodes->{envy_graph.nodes} edges->{envy_graph.edges}.\ntopological sort->{current_order}')
+    logger.info(f'allocation after termination of algorithm4 -> {alloc}')
 
 
 def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):# TODO recheck algorithm around 10% of tests fall due to not satisfying f-ef1
@@ -870,6 +883,7 @@ def update_ordered_agent_list(current_order: list, remaining_category_agent_capa
     ['Abed', 'Noor']
     """
     current_agent_list = [agent for agent in current_order if agent in remaining_category_agent_capacities.keys()]
+    logger.info(f'current_agent_list->{current_agent_list}')
     return current_agent_list
 
 
@@ -921,6 +935,7 @@ def update_item_list(alloc: AllocationBuilder, category: str, item_categories: d
             []
         """
     current_item_list = [item for item in alloc.remaining_items() if item in item_categories[category]]
+    logger.info(f'current_item_list->{current_item_list}')
     return current_item_list
 
 
@@ -977,10 +992,9 @@ def priority_matching(agent_item_bipartite_graph:nx.Graph, current_order:list, a
     True
     """
     matching=nx.max_weight_matching(agent_item_bipartite_graph)
-    # we used max weight matching in which (agents are getting high weights in desc order)
+    # we used max weight matching in which (agents are getting high weights in desc order 2^n,2^n-1.......1)
     logger.info(f'matching is -> {matching}')
     for match in matching:
-        # TODO check if agent doesnt heve conflict with the item (already has 1 )
         if match[0].startswith('A'):
             if ((match[0], match[1]) not in alloc.remaining_conflicts) and match[0] in remaining_category_agent_capacities.keys():
                 alloc.give(match[0], match[1])
@@ -989,7 +1003,6 @@ def priority_matching(agent_item_bipartite_graph:nx.Graph, current_order:list, a
                     del remaining_category_agent_capacities[match[0]]
             #else do nothing ....
         else:
-            # TODO oppa ! apparently problem is with the instance generator in pytest valuations are not in  (0,1)
             if  ((match[1], match[0]) not in alloc.remaining_conflicts) and match[1] in remaining_category_agent_capacities.keys():
                 alloc.give(match[1], match[0])
                 remaining_category_agent_capacities[match[1]] -= 1
@@ -1038,14 +1051,16 @@ def create_agent_item_bipartite_graph(agents, items, valuation_func,
     agent_item_bipartite_graph.add_nodes_from(agents, bipartite=0)
     agent_item_bipartite_graph.add_nodes_from(items, bipartite=1)
     n=len(agents)
+    logger.info(f'ordered agent list ->{agents}')
     weight = 2**n
     for agent in agents:
+        logger.info(f'{agent} weight is ->{weight}')
         for item in items:
             if valuation_func(agent, item) != 0:
                 agent_item_bipartite_graph.add_edge(agent, item, weight=weight)
         n -= 1
         weight = 2**n
-
+    logger.info(f'bipartite graph ->{agent_item_bipartite_graph}')
     return agent_item_bipartite_graph
 
 
