@@ -31,28 +31,34 @@ def check_value(instance: Instance, algo_prefix: str):
             raise ValueError(algo_prefix + "agent capacity should be as many as the items")
 
 
-def leximin_partition(valuation: dict, n: int = 3, result: out.OutputType = out.Partition):
+def approx_leximin_partition(valuation: dict, n: int = 3, result: out.OutputType = out.Partition):
     """
+    Provides approximate leximin partition
+
+    **Info:**
     A leximin n-partition is a partition which divides the items into n subsets and
     maximizes the lexicographical order when the values of the partitions are sorted in non-decreasing
     order. In other words, it maximizes the minimum value over all possible n partitions,
-    and if there is a tie it selects the one maximizing the second minimum value, and so on
+    and if there is a tie it selects the one maximizing the second minimum value, and so on.
+
+    Since such partition is NP-Hard, a partition where it maximises the smallest sum is used instead.
 
     :param valuation: a dictionary to represent the items and their valuations
-    :param n: the the number of subsets
-    :param result: the desired result, default is a partition represented by item keys,
-    anything else is for testing and debugging purposes
+    :param n: the number of subsets required
+    :param result: the desired result, default is a partition represented by item keys, anything else is for testing and
+     debugging purposes
 
-    >>> print(leximin_partition({0:9,1:10}))
+
+    >>> print(approx_leximin_partition({0:9,1:10}))
     [[], [0], [1]]
 
-    >>> leximin_partition({0:2,1:8,2:8,3:7} ,result=out.PartitionAndSumsTuple)
+    >>> approx_leximin_partition({0:2,1:8,2:8,3:7},result=out.PartitionAndSumsTuple)
     (array([8., 8., 9.]), [[1], [2], [0, 3]])
 
-    >>> leximin_partition({0:2,1:8,2:8,3:7,4:5,5:2,6:3}, result=out.PartitionAndSumsTuple)
+    >>> approx_leximin_partition({0:2,1:8,2:8,3:7,4:5,5:2,6:3},result=out.PartitionAndSumsTuple)
     (array([11., 11., 13.]), [[2, 6], [0, 3, 5], [1, 4]])
 
-    >>> leximin_partition({0:2,1:2,2:2,3:2}, result=out.PartitionAndSumsTuple)
+    >>> approx_leximin_partition({0:2,1:2,2:2,3:2},result=out.PartitionAndSumsTuple)
     (array([2., 2., 4.]), [[2], [1], [0, 3]])
     """
     prt = partition(algorithm=integer_programming.optimal, numbins=n, items=valuation, outputtype=result,
@@ -92,6 +98,7 @@ def is_significant_2nd_bundle(instance: Instance, agent, bundles: list) -> bool:
     :param agent: the agent in question
     :param bundles: a dict which maps a bundle and its items, sorted by priorities
     :return: if the second bundle has significant value
+
     >>> inst2 = Instance(valuations={"Alice": [2,2,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]})
     >>> is_significant_2nd_bundle(instance=inst2, agent='Alice', bundles=[[0, 3], [2], [1]])
     True
@@ -204,7 +211,6 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
 
     instance = alloc.instance
     check_value(instance, algo_prefix="divide and choose: ")
-    explanation_logger.info("\n" + _("algorithm_starts") + "\n")
     agents: list = list(instance.agents)
     if len(agents) != 3:
         raise ValueError("divide and choose is for 3 agents")
@@ -221,28 +227,34 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
         # Helper function for repartition for 2 agents
         agent_valuations: dict = get_valuations(agent2, items)
         explanation_logger.info("\n" + _("leximin_partition"), agent2, items)
-        partition2 = leximin_partition(agent_valuations, n=2)
+        # agent 2 re-partitions items by their leximin 2-partitions
+        partition2 = approx_leximin_partition(agent_valuations, n=2)
         explanation_logger.debug("\n" + _("partition_results"), 2, str(partition2))
         priorities_other = get_bundle_rankings(instance, agent1, partition2)
-
+        # Agent 1 chooses her favorite one in the new partition,
         explanation_logger.info("\n" + _("given_choice"), agent1)
         give_bundle(agent1, priorities_other[0])
-
+        # and the other one is allocated to agent 2
         explanation_logger.info("\n" + _("remainder"), agent2)
         give_bundle(agent2, priorities_other[1])
         pass
 
+    explanation_logger.info("\n" + _("algorithm_starts") + "\n")
+    # Step 1: Leximin partition based on the third agent's valuations
     explanation_logger.info("1: " + _("leximin_partition"), agents[2], instance.items)
     agent3_valuations = get_valuations(agents[2], instance.items)
-    partition1 = leximin_partition(agent3_valuations)
+    partition1 = approx_leximin_partition(agent3_valuations)
     explanation_logger.debug("\n" + _("partition_results"), 3, str(partition1))
 
-    explanation_logger.info("\n" + _("calc_priorities"), agents[0], agents[1], agents=agents[:2])
+    # Step 2: Calculate priorities for the first two agents
+    explanation_logger.info("2: " + _("calc_priorities"), agents[0], agents[1], agents=agents[:2])
     priorities1 = get_bundle_rankings(instance, agents[0], partition1)
     priorities2 = get_bundle_rankings(instance, agents[1], partition1)
 
+    # Check if the first priorities are different
     explanation_logger.info("\n" + _("first_priority_check"), agents[0], agents[1], agents=agents[:2])
     if priorities1[0] != priorities2[0]:
+        # Each agent among the first two take their favorite bundle, the remaining bundle goes to third agent
         explanation_logger.info("\n" + _("different_first_priority"), agents[0], agents[1], agents=agents[:2])
         give_bundle(agents[0], priorities1[0])
         give_bundle(agents[1], priorities2[0])
@@ -251,22 +263,28 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
         give_bundle(agents[2], remainder)
         return
 
+    # Step 3: Favorite bundles are the same. Checking second priorities equivalence for agents 1 and 2
     explanation_logger.info(
-        "\n" + "Favorite bundles are the same. Checking second priorities for agents 1 and 2" + "\n")
+        "\n" + "3: Favorite bundles are the same. Checking second priorities for agents 1 and 2" + "\n")
     if priorities1[1] == priorities2[1]:
+        # agent 2 takes their favorite two bundles for re-partition,
         explanation_logger.info("\n" + _("same_second_priority"), agents[1])
         explanation_logger.info("\n" + _("repartition"), agents[1])
         unified_bundle = priorities2[0] + priorities2[1]
+        # and leaves the remainder to third agent
         explanation_logger.info("\n" + _("remainder"), agents[2])
         give_bundle(agents[2], priorities2[2])
 
         repartition(agent1=agents[0], agent2=agents[1], items=unified_bundle)
         return
-
+    # Step 4: Second favorite bundles are different
+    # checking significant worth of second bundle: 2 * #2-bundle > #1-bundle + #3-bundle
     explanation_logger.info("\n" + _("different_second_priority") + "\n")
     is_significant1 = is_significant_2nd_bundle(instance, agents[0], priorities1)
     is_significant2 = is_significant_2nd_bundle(instance, agents[1], priorities2)
     if is_significant1 and is_significant2:
+        # Step 4-a: Second favorite bundles have significant worth for both
+        #  Each agent among the first two take their second favorite bundle, the remaining bundle goes to third agent
         explanation_logger.info("\n" + _("has_significant_worth") + "\n")
         give_bundle(agents[0], priorities1[1])
         give_bundle(agents[1], priorities2[1])
@@ -274,22 +292,33 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
         give_bundle(agents[2], priorities1[0])
         return
 
+    # Step 4-b: At least one of the agents doesn't have a significant worth
+    # non significant agent - the agent whose #2-bundle isn't significantly worthy
     non_significant_agent = agents[1] if not is_significant2 else agents[0]
     other_agent = agents[1] if non_significant_agent == agents[0] else agents[0]
-
     explanation_logger.info("\n" + _("not_significant"), non_significant_agent)
     explanation_logger.info("\n" + _("repartition"), non_significant_agent)
+    # non significant agent takes their favorite two bundles for re-partition
     unified_bundle = priorities2[0] + priorities2[1] if not is_significant2 else priorities1[0] + priorities1[1]
+    # and leaves the remainder to the third agent
     remainder = priorities2[2] if not is_significant2 else priorities1[2]
     explanation_logger.info("\n" + _("remainder"), agents[2])
     give_bundle(agents[2], remainder)
 
     repartition(agent1=other_agent, agent2=non_significant_agent, items=unified_bundle)
-    # No need to return a value. The `divide` function returns the output.
 
 
 def create_envy_graph(instance: Instance, allocation: dict):
     """
+    Creates an envy-graph G
+
+    **Info:**
+    Every agent is represented by a node in G and there is a directed edge from node i to node j iff i envies j.
+
+    :param instance: the current instance
+    :param allocation: the current allocation which G is based on
+    :return: Envy-Graph G
+
     >>> inst = Instance(valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]})
     >>> alloc = {"Alice": [2], "Bob": [1], "Claire":[0]}
     >>> eg = create_envy_graph(inst, alloc)
@@ -301,9 +330,15 @@ def create_envy_graph(instance: Instance, allocation: dict):
     True
     """
     abvm = AgentBundleValueMatrix(instance, allocation, normalized=False)
+    # abvm valuation example:
+    # valuations = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}}
+    # allocation = {"Alice": ["c1"], "Bob": ["c2"]}
+    # {'Alice': {'Alice': 11, 'Bob': 22}, 'Bob': {'Alice': 33, 'Bob': 44}}
+    # abvm valuation example: {'Alice': {'Alice': 11, 'Bob': 22}, 'Bob': {'Alice': 33, 'Bob': 44}}
     abvm.make_envy_matrix()
-    mat: dict[str, dict[
-        str, int]] = abvm.envy_matrix  # mat example {'Alice': {'Alice': 0, 'Bob': 11}, 'Bob': {'Alice': -11, 'Bob': 0}}
+    mat: dict[str, dict[str, int]] = abvm.envy_matrix
+    # mat example: {'Alice': {'Alice': 0, 'Bob': 11}, 'Bob': {'Alice': -11, 'Bob': 0}}
+    # Alice envies Bob
     envy_edges = [
         (agent, other)
         for agent, agent_status in mat.items()
@@ -323,6 +358,15 @@ def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
     Procedure P for algo. 2: builds an envy graph from a given allocation, finds and reduces envy cycles.
     i.e. allocations with envy-cycles should and would be fixed here.
 
+    **Info:**
+    Given an allocation A, we define its corresponding envy-graph G as follows.
+    Every agent is represented by a node in g and there is a directed edge from node i to node j iff i is envies j.
+    A directed cycle in g is called an envy-cycle.
+    let c = i_1 → i_2 → ··· → i_t → i_1 be such a cycle.
+    if we reallocate A_i_k+1 to agent i_k for all k ∈ [t − 1], and reallocate ai1 to agent i_t,
+    the number of edges of G will be strictly decreased.
+    Thus, by repeatedly using this procedure, we eventually get another allocation whose envy-graph is acyclic.
+
     :param alloc: the current allocation - updated within the procedure
     :param instance: the current instance
     :param explanation_logger: a logger
@@ -331,7 +375,7 @@ def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
     Note: the example wouldn't provide envy cycle neccessarly,
     but it is easier to create envy than find an example with such.
 
-    Example:
+    **Example:**
     >>> instance = Instance(valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]})
     >>> allocator = {"Alice": [2],  # Alice envies both Claire and Bob
     ... "Bob": [1],                 # Bob envies both Alice and Claire
@@ -341,48 +385,35 @@ def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
     ['Alice', 'Bob', 'Claire']
     >>> allocator
     {'Alice': [1], 'Bob': [0], 'Claire': [2]}
-
-    given an allocation a, we define its corresponding envy-graph g as follows.
- every agent is represented by a node in g and there is a directed edge from node i to node j iff
- vi(ai) < vi(aj), i.e., i is envies j. a directed cycle in g is called an envy-cycle. let c = i1 →
- i2 → ··· → it → i1 be such a cycle. if we reallocate aik+1 to agent ik for all k ∈ [t − 1], and
- reallocate ai1 to agent it, the number of edges of g will be strictly decreased. thus, by repeatedly
- using this procedure, we eventually get another allocation whose envy-graph is acyclic. it is shown
- in [lipton et al., 2004] that p can be done in time o(mn3).
     """
-    # TODO: edit texts
     TEXTS = {
         "procedure_starts": {
-            "he": "אלגוריתם 'שידוך מקסימום עם פיצוי' מתחיל:",
+            "he": "הליך צמצום קנאה מתחיל",
             "en": "envy reduction process starts",
         },
         "current_alloc": {
-            "he": "סיבוב %d:",
+            "he": "הקצאה נוכחית %s",
             "en": "current allocation %s",
         },
         "define_envy_graph": {
-            "he": "מספר המקומות הפנויים בכל קורס: %s",
+            "he": "מגדיר גרף קנאה",
             "en": "Defining envy graph",
         },
-        "no_envy_edges": {
-            "he": "לא קיבלת אף קורס, כי לא נשארו קורסים שסימנת שאת/ה מוכן/ה לקבל.",
-            "en": "There is no envy among the agents\n procedure ends",
-        },
         "no_envy_cycle": {
-            "he": "הערך הגבוה ביותר שיכולת לקבל בסיבוב הנוכחי הוא %g. קיבלת את %s, ששווה עבורך %g.",
+            "he": "אין מעגל קנאה בדרף הקנאה, ההליך מסתיים",
             "en": "There is no envy cycle within the envy-graph\n procedure ends",
         },
         "envy_cycle": {
-            "he": "קיבלת את כל %d הקורסים שהיית צריך.",
-            "en": "There is an envy cycle",
+            "he": "יש מעגל קנאה, מקצה מחדש חבילות",
+            "en": "There is an envy cycle - Reassigning bundles",
         },
-        "reassignment": {
-            "he": "קיבלת את כל %d הקורסים שהיית צריך.",
-            "en": "Reassigning bundles for %s",
+        "reassignment_for": {
+            "he": "הקצאה מחדש עבור %s",
+            "en": "Reassignment for %s.\n",
         },
-        "final_alloc": {
-            "he": "כפיצוי, הוספנו את ההפרש %g לקורס הכי טוב שנשאר לך, %s.",
-            "en": "final allocation: %s.",
+        "new_alloc": {
+            "he": "הקצאה החדשה",
+            "en": "new allocation: %s.\n",
         },
     }
 
@@ -390,13 +421,15 @@ def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
         return TEXTS[code][explanation_logger.language]
 
     explanation_logger.info("\n" + _("procedure_starts"))
+    explanation_logger.debug("\t" + _("current_alloc"))
     explanation_logger.info("\n" + _("define_envy_graph"))
     envy_graph = create_envy_graph(instance, alloc)
     while not nx.is_directed_acyclic_graph(envy_graph):
-        explanation_logger.info("\n" + _("envy_cycle"))
         envy_cycle = nx.find_cycle(envy_graph)
-        explanation_logger.debug("envy cycle: %s", envy_cycle)
+        explanation_logger.info("\n" + _("envy_cycle"))
+        explanation_logger.debug("\t" + _("reassignment_for"), envy_cycle)
         new_alloc = {envious: alloc[envied] for envious, envied in envy_cycle}
+        explanation_logger.debug("\t" + _("new_alloc"), new_alloc)
         alloc.update(new_alloc)
         envy_graph = create_envy_graph(instance, alloc)
     explanation_logger.info("\n" + _("no_envy_cycle"))
@@ -428,7 +461,7 @@ def maximum_matching(instance, agents, items):
     return matching
 
 
-def alloc_by_matching(alloc: AllocationBuilder):
+def alloc_by_matching(alloc: AllocationBuilder, explanation_logger=ExplanationLogger()):
     """
     Algorithm 2: Finds an 1/2mma or mmax allocation for any amount of agents and items,
     using graphs and weighted natchings.
@@ -441,14 +474,49 @@ def alloc_by_matching(alloc: AllocationBuilder):
     >>> divide(alloc_by_matching, valuations=val_7items)
     {'Alice': [0, 2, 5], 'Bob': [4, 6], 'Claire': [1, 3]}
     """
-    # 1: Initiate L = N and R = M.
+    TEXTS = {
+        "procedure_starts": {
+            "he": "הליך צמצום קנאה מתחיל",
+            "en": "envy reduction process starts",
+        },
+        "current_alloc": {
+            "he": "הקצאה נוכחית %s",
+            "en": "current allocation %s",
+        },
+        "define_envy_graph": {
+            "he": "מגדיר גרף קנאה",
+            "en": "Defining envy graph",
+        },
+        "no_envy_cycle": {
+            "he": "אין מעגל קנאה בדרף הקנאה, ההליך מסתיים",
+            "en": "There is no envy cycle within the envy-graph\n procedure ends",
+        },
+        "envy_cycle": {
+            "he": "יש מעגל קנאה, מקצה מחדש חבילות",
+            "en": "There is an envy cycle - Reassigning bundles",
+        },
+        "reassignment_for": {
+            "he": "הקצאה מחדש עבור %s",
+            "en": "Reassignment for %s.\n",
+        },
+        "new_alloc": {
+            "he": "הקצאה החדשה",
+            "en": "new allocation: %s.\n",
+        },
+    }
+    def _(code: str):
+        return TEXTS[code][explanation_logger.language]
+
     instance = alloc.instance
     check_value(instance, algo_prefix="alloc by matching: ")
-    agents = list(instance.agents)
-    items = list(instance.items)
+    # 1: Initiate L = N and R = M.
+    explanation_logger.info()
+    agents = list(instance.agents)  # L = N := group of agents
+    items = list(instance.items)  # R = M := list of items to allocate
+    # 2: Initiate A_i =∅ for all i ∈ N.
     alloc_dict = {agent: [] for agent in agents}
     # print("alloc_dict init %s", alloc_dict)
-    # 2: Initiate Ai =∅ for all i∈N.
+
     # 3: while R =∅ do
     while items:
         # 4: Compute a maximum weight matching M between L and R, where the weight of edge
@@ -479,10 +547,10 @@ if __name__ == "__main__":
     # print("\n", doctest.testmod(), "\n")
     # val_7items = {"Alice": [10, 10, 6, 4, 2, 2, 2], "Bob": [7, 5, 6, 6, 6, 2, 9], "Claire": [2, 8, 8, 7, 5, 2, 3]}
     # divide(alloc_by_matching, valuations=val_7items)
-    import sys
-
-    logger.addHandler(logging.StreamHandler(sys.stdout))
-    logger.setLevel(logging.DEBUG)
+    # import sys
+    #
+    # logger.addHandler(logging.StreamHandler(sys.stdout))
+    # logger.setLevel(logging.DEBUG)
 
     # instance = Instance(valuations={"Alice": [10, 10, 6, 4], "Bob": [7, 5, 6, 6], "Claire": [2, 8, 8, 7]})
     # allocator = {"Alice": [2],  # Alice envies both Claire and Bob
@@ -490,15 +558,15 @@ if __name__ == "__main__":
     #             "Claire": [0]}  # Claire envies both Alice and Bob
     # envy_reduction_procedure(allocator, instance, explanation_logger=ConsoleExplanationLogger())
     # print(allocator)
-    divide(divide_and_choose_for_three, valuations={"Alice": [9, 10], "Bob": [7, 5], "Claire": [2, 8]},
-           explanation_logger=ConsoleExplanationLogger())
     # divide(divide_and_choose_for_three, valuations={"Alice": [10, 10, 6, 4], "Bob": [7, 5, 6, 6], "Claire": [2, 8, 8, 7]}, explanation_logger=ConsoleExplanationLogger())
     # divide(divide_and_choose_for_three, valuations={"Alice": [2,4,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]}, explanation_logger=ConsoleExplanationLogger())
-    # my_log = ConsoleExplanationLogger(language="he")
-    # print(my_log.language)
-    # inst = Instance(
-    #     valuations={"Alice": [8, 5, 1, 5, 5, 3, 6, 9, 3, 3, 7, 5, 8, 8, 4, 10, 3, 8, 10, 2],
-    #                 "Bob": [3, 5, 5, 3, 4, 9, 5, 5, 8, 1, 2, 6, 8, 6, 9, 1, 2, 8, 9, 7],
-    #                 "Claire": [7, 8, 2, 9, 3, 2, 3, 8, 8, 8, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
-    # alloc = divide(divide_and_choose_for_three, inst, explanation_logger=my_log)
+
+    my_log = ConsoleExplanationLogger()
+    inst = Instance(
+        valuations={"Alice": [8, 5, 1, 5, 5, 3, 6, 9, 3, 3, 7, 5, 8, 8, 4, 10, 3, 8, 10, 2],
+                    "Bob": [3, 5, 5, 3, 4, 9, 5, 5, 8, 1, 2, 6, 8, 6, 9, 1, 2, 8, 9, 7],
+                    "Claire": [7, 8, 2, 9, 3, 2, 3, 8, 8, 8, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
+    divide(divide_and_choose_for_three, inst, explanation_logger=my_log)
+
+    divide(alloc_by_matching, inst, explanation_logger=my_log)
     # print(alloc)
