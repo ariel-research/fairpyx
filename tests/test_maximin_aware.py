@@ -149,7 +149,7 @@ def test_errors_divide_and_choose():
 
 
 def test_errors_alloc_by_matching():
-    with pytest.raises(ValueError, match='divide and choose: item capacity restricted to only one'):
+    with pytest.raises(ValueError, match='alloc by matching: item capacity restricted to only one'):
         instance = fairpyx.Instance(agent_capacities={"Alice": 3, "Bob": 3, "Claire": 3},
                                     item_capacities={"c1": 4, "c2": 5, "c3": 4},
                                     valuations={"Alice": {"c1": 11, "c2": 22, "c3": 11},
@@ -157,7 +157,7 @@ def test_errors_alloc_by_matching():
                                                 "Claire": {"c1": 33, "c2": 44, "c3": 11}})
         allocation = fairpyx.divide(fairpyx.algorithms.maximin_aware.alloc_by_matching, instance=instance)
 
-    with pytest.raises(ValueError, match='divide and choose: agent capacity should be as many as the items'):
+    with pytest.raises(ValueError, match='alloc by matching: agent capacity should be as many as the items'):
         instance = fairpyx.Instance(agent_capacities={"Alice": 3, "Bob": 2, "Claire": 3},
                                     item_capacities={"c1": 1, "c2": 1, "c3": 1},
                                     valuations={"Alice": {"c1": 11, "c2": 22, "c3": 11},
