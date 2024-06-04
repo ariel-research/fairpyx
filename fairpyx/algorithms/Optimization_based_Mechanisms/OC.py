@@ -133,7 +133,7 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
     # Check if the optimization problem was successfully solved
     if result_Z2 is not None:
-        alloctions(alloc, var, logger)
+        alloctions(alloc, x, logger)
 
         optimal_value = problem.value
         explanation_logger.info("Optimal Objective Value:", optimal_value)
