@@ -133,22 +133,7 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
     # Check if the optimization problem was successfully solved
     if result_Z2 is not None:
-        # Extract the optimized values of x
-        x_values = x.value
-
-        # Initialize a dictionary where each student will have an empty list
-        assign_map_courses_to_student = {student: [] for student in alloc.remaining_agents()}
-
-        # Iterate over students and courses to populate the lists
-        for j, student in enumerate(alloc.remaining_agents()):
-            for i, course in enumerate(alloc.remaining_items()):
-                if x_values[i, j] == 1:
-                    assign_map_courses_to_student[student].append(course)
-
-        # Assign the courses to students based on the dictionary
-        for student, courses in assign_map_courses_to_student.items():
-            for course in courses:
-                alloc.give(student, course)
+        alloctions(alloc, var, logger)
 
         optimal_value = problem.value
         explanation_logger.info("Optimal Objective Value:", optimal_value)
