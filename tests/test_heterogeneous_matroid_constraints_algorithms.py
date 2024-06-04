@@ -148,6 +148,43 @@ def agent_categorized_allocation_builder(agent_categorized_allocation, alloc, ca
                 if item in categories[cat]:
                     agent_categorized_allocation[agent][cat].append(item) # filtering each item to the category they belong to
 
+def is_fef1(alloc: dict, instance: Instance, item_categories: dict, agent_category_capacities: dict,
+            valuations_func: callable) -> bool:
+    agent_categorized_allocation = {agent: {category: [] for category in item_categories.keys()} for agent in
+                                    agent_category_capacities.keys()}
+    agent_categorized_allocation_builder(agent_categorized_allocation, alloc, item_categories)  # Fill the items according to the category they belong to
+    logger.info(f"categorized allocation is -> {agent_categorized_allocation} \n agent categorized capacities are -> {agent_category_capacities} \n categorize items  are {item_categories}")
+    for agent_i in agent_categorized_allocation.keys():
+        agent_i_bundle_value = sum(valuations_func(agent_i, item) for item in alloc[agent_i])  # The value of agent i bundle
+        logger.info(f"Checking agent {agent_i}, bundle value {agent_i_bundle_value}")
+
+        for agent_j in agent_categorized_allocation.keys():
+            if agent_i == agent_j:
+                continue  # Skip comparing the same agent
+
+            feasible_agent_j_bundle = []
+            for cat, cap in agent_category_capacities[agent_i].items():
+                temp_j_alloc = agent_categorized_allocation[agent_j][cat].copy()  # Sub_allocation per category
+                temp_j_alloc.sort(key=lambda x: valuations_func(agent_i, x), reverse=True)  # Sort based on values descending order
+                first_k_items = temp_j_alloc[:cap]
+                feasible_agent_j_bundle.extend(first_k_items)  # Adding all the time the set of feasible items to the final bundle
+
+            feasible_agent_j_bundle_value = sum(valuations_func(agent_i, item) for item in feasible_agent_j_bundle)  # The value of the best feasible bundle in the eyes of agent i
+            logger.info(f"Agent {agent_i} vs Agent {agent_j}, feasible bundle value {feasible_agent_j_bundle_value}")
+
+            if feasible_agent_j_bundle_value > agent_i_bundle_value:
+                # Check if removing any one item can make the bundle less or equal
+                found = False  # Helping flag
+                for current_item in feasible_agent_j_bundle:
+                    if feasible_agent_j_bundle_value - valuations_func(agent_i, current_item) <= agent_i_bundle_value:
+                        found = True
+                        logger.info(f"Removing item {current_item} resolves envy")
+                        break  # Found an item that if we remove the envy is gone
+                if not found:
+                    logger.error(f"Failed F-EF1 check for agent {agent_i} with bundle {alloc[agent_i]} against agent {agent_j} with bundle {feasible_agent_j_bundle}")
+                    return False  # If no such item found, return False
+    return True  # Whoever reaches here means there is no envy
+
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_1(run):
 
@@ -234,88 +271,3 @@ def test_algorithm_5(
                    instance=instance
                    , agent_category_capacities=agent_category_capacities, item_categories=categories,
                    valuations_func=instance.agent_item_value) is True
-
-
-"""
-            INSTANCE 
-  Represents an instance of the fair course-allocation problem.
-    Exposes the following functions:
-     * agent_capacity:       maps an agent name/index to its capacity (num of seats required). {'Agent1':10,......'Agentk':10} -> we need to make sure each agent gets the sum of capacities for each capacity[agent][category]
-     * item_capacity:        maps an item  name/index to its capacity (num of seats allocated). {'m1':10,......} ✅✅✅✅✅
-     * agent_conflicts:      maps an agent  name/index to a set of items that conflict with it (- cannot be allocated to this agent). {'Agent1':{'m1',.....'mk'}} ✅✅✅✅✅ handled in alloc.give()
-     * item_conflicts:       maps an item  name/index to a set of items that conflict with it (- cannot be allocated together). ❌❌❌❌❌❌❌❌ misconception we dont support this in our case , CHECK USAGES AND TELL IT DOESNT AFFECT
-     * agent_item_value:     maps an agent,item pair to the agent's value for the item. ✅✅✅✅✅ callable , supported ✅✅✅
-     * agents: an enumeration of the agents (derived from agent_capacity).
-     * items: an enumeration of the items (derived from item_capacity).
-     
-            ALLOCATIONBUILDER 
-    A class for incrementally constructing an allocation.
-
-    Whenever an item is given to an agent (via the 'give' method),
-    the class automatically updates the 'remaining_item_capacities' and the 'remaining_agent_capacities'.
-    It also updates the 'remaining_conflicts' by adding a conflict between the agent and the item, so that it is not assigned to it anymore.
-
-    Once you finish adding items, use "sorted" to get the final allocation (where each bundle is sorted alphabetically).
-    self.instance = instance
-        self.remaining_agent_capacities = {agent: instance.agent_capacity(agent) for agent in instance.agents if instance.agent_capacity(agent) > 0}
-        self.remaining_item_capacities = {item: instance.item_capacity(item) for item in instance.items if instance.item_capacity(item) > 0}
-        self.remaining_conflicts = {(agent,item) for agent in self.remaining_agents() for item in self.instance.agent_conflicts(agent)}
-        self.bundles = {agent: set() for agent in instance.agents}    # Each bundle is a set, since each agent can get at most one seat
-        
-        
-        ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌
-        modifications 
-        1) we must also have a container mapping agent to container of categories mapped to capacities (agent_category_capacities) {'Agent1':{'c1':10,'c2':5}}
-        2) (category_items) mapping each category to items {'c1':['m1',......'mk']}
-        ❌❌❌❌❌❌❌❌ item_conflicts must not be used ! , we dont support it 
-        ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌
-        in our papers we have : 
-        1) numerical/binary valuations -> make sure to make it an option in the instance generator 
-        2) 1/2/k>2  categories -> make sure to make it an option in the instance generator
-        3) identical/different valuations -> make sure to make it an option in the instance generator
-        4) categorizations is shared between all ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ 
-        NO CHANCE SOMEONE SEES ITEMS DIVIDED IN DIFFERENT FORM AT LEAST TILL ALGORITHM 5 ❌❌❌❌❌❌❌
-        
-        
-     """
-def is_fef1(alloc: dict, instance: Instance, item_categories: dict, agent_category_capacities: dict,
-            valuations_func: callable) -> bool:
-    agent_categorized_allocation = {agent: {category: [] for category in item_categories.keys()} for agent in
-                                    agent_category_capacities.keys()}
-    agent_categorized_allocation_builder(agent_categorized_allocation, alloc, item_categories)  # Fill the items according to the category they belong to
-    logger.info(f"categorized allocation is -> {agent_categorized_allocation} \n agent categorized capacities are -> {agent_category_capacities} \n categorize items  are {item_categories}")
-    for agent_i in agent_categorized_allocation.keys():
-        agent_i_bundle_value = sum(valuations_func(agent_i, item) for item in alloc[agent_i])  # The value of agent i bundle
-        logger.info(f"Checking agent {agent_i}, bundle value {agent_i_bundle_value}")
-
-        for agent_j in agent_categorized_allocation.keys():
-            if agent_i == agent_j:
-                continue  # Skip comparing the same agent
-
-            feasible_agent_j_bundle = []
-            for cat, cap in agent_category_capacities[agent_i].items():
-                temp_j_alloc = agent_categorized_allocation[agent_j][cat].copy()  # Sub_allocation per category
-                temp_j_alloc.sort(key=lambda x: valuations_func(agent_i, x), reverse=True)  # Sort based on values descending order
-                first_k_items = temp_j_alloc[:cap]
-                feasible_agent_j_bundle.extend(first_k_items)  # Adding all the time the set of feasible items to the final bundle
-
-            feasible_agent_j_bundle_value = sum(valuations_func(agent_i, item) for item in feasible_agent_j_bundle)  # The value of the best feasible bundle in the eyes of agent i
-            logger.info(f"Agent {agent_i} vs Agent {agent_j}, feasible bundle value {feasible_agent_j_bundle_value}")
-
-            if feasible_agent_j_bundle_value > agent_i_bundle_value:
-                # Check if removing any one item can make the bundle less or equal
-                found = False  # Helping flag
-                for current_item in feasible_agent_j_bundle:
-                    if feasible_agent_j_bundle_value - valuations_func(agent_i, current_item) <= agent_i_bundle_value:
-                        found = True
-                        logger.info(f"Removing item {current_item} resolves envy")
-                        break  # Found an item that if we remove the envy is gone
-                if not found:
-                    logger.error(f"Failed F-EF1 check for agent {agent_i} with bundle {alloc[agent_i]} against agent {agent_j} with bundle {feasible_agent_j_bundle}")
-                    return False  # If no such item found, return False
-    return True  # Whoever reaches here means there is no envy
-
-if __name__ == "__main__":
-    #logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    #pytest.main(["-s", __file__])
-    pass
