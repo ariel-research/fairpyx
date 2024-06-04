@@ -11,8 +11,6 @@ from itertools import cycle
 import logging
 logger = logging.getLogger(__name__)
 
-def map_agent_to_best_item(alloc:AllocationBuilder):
-    pass
 
 def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger()):
     """
@@ -21,7 +19,6 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
     TTC (top trading-cycle) assigns one course in each round to each student, the winning students are defined based on the students’ bid values.
 
     :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents of the fair course allocation problem(CAP).
-
     >>> from fairpyx.adaptors import divide
     >>> s1 = {"c1": 50, "c2": 49, "c3": 1}
     >>> s2 = {"c1": 48, "c2": 46, "c3": 6}
@@ -36,8 +33,11 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
 
     map_agent_to_best_item = {}               # dict of the max bids for each agent in specific iteration (from the article: max{i, b})
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
+    logger.info("Max iterations: %d", max_iterations)
     for iteration in range(max_iterations):   # External loop of algorithm: in each iteration, each student gets 1 seat (if possible).
+        logger.info("Iteration number: %d", iteration+1)
         if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more courses with seats
+            logger.info("There are no more agents (%d) or items(%d) ",len(alloc.remaining_agent_capacities), len(alloc.remaining_item_capacities))
             break
         agents_who_need_an_item_in_current_iteration = set(alloc.remaining_agents())  # only the agents that still need courses
         while agents_who_need_an_item_in_current_iteration:     # round i
@@ -72,7 +72,19 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
 
 if __name__ == "__main__":
     import doctest
-
     print("\n", doctest.testmod(), "\n")
+
+    #logger.addHandler(logging.StreamHandler())
+    #logger.setLevel(logging.INFO)
+
+    #from fairpyx.adaptors import divide
+    #s1 = {"c1": 50, "c2": 49, "c3": 1}
+    #s2 = {"c1": 48, "c2": 46, "c3": 6}
+    #agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
+    #course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
+    #valuations = {"s1": s1, "s2": s2}
+    #instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    #divide(TTC_function, instance=instance)
+
 
 
