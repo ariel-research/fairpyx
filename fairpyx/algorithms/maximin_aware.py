@@ -4,9 +4,7 @@ An implementation of the algorithms in:
 https://arxiv.org/abs/1905.09969
 Programmer: Sonya Rybakov
 Since: 2024-05
- # TODO: add loggers to assist funcs
- # TODO: objectify the algorithms?
- # TODO: errors for bad input
+
 Disclaimer: all algorithms are on additive valuations
  """
 import logging
