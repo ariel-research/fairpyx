@@ -192,26 +192,19 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     >>> initial_budgets = {"A": 8, "B":6}
     >>> allocation = {"A": {'x', 'y','z'}, "B":{'x','y' ,'z'}}
     >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
-    >>> p = {"x":1, "y":3, "z":2, "w":4}
-    >>> any([f(p) for f in equivalent_prices])
-    True
     >>> p = {"x":2, "y":2, "z":4, "w":2}
     >>> any([f(p) for f in equivalent_prices])
     True
-    >>> p = {"x":2, "y":2, "z":4, "w":2}
+
+    >>> p =  {"x":2, "y":4, "z":3,"w":0}
     >>> any([f(p) for f in equivalent_prices])
     False
-
-    # [(['x', 'y', 'z'], '<=', 8), (['x', 'y', 'z'], '<=', 6), (['w', 'x', 'z'], '>=', 6)]
-
-
     """
-    # TODO: ask erel about that the alloc get good answer but in diffrent order
     equivalent_prices = []
     # The constraints that the bundles they get in allocation meet their budgets
     for agent in allocation.keys():
-        sorted_allocation = sorted(allocation[agent])  # Sort the allocation for the agent
-        equivalent_prices.append(lambda p: sum(p[key] for key in sorted_allocation) <= initial_budgets[agent])
+        # sorted_allocation = sorted(allocation[agent])  # Sort the allocation for the agent
+        equivalent_prices.append(lambda p: sum(p[key] for key in allocation[agent]) <= initial_budgets[agent])
 
     # Constraints that will ensure that this is the allocation that will be accepted
     for student in instance.agents:
@@ -222,14 +215,17 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
             combinations_courses_list.extend(combinations(instance.items, r))
 
         utility = instance.agent_bundle_value(student, allocation[student])
+
         for combination in combinations_courses_list:
             current_utility = instance.agent_bundle_value(student, combination)
-            sorted_combination = sorted(combination)
+            sorted_combination = sorted(combination)  # Sort the combination
             if sorted_combination != sorted(allocation[student]) and current_utility >= utility:
-                equivalent_prices.append(
-                    lambda p: sum(p[key] for key in sorted_combination) >= initial_budgets[student])
+                # Create a copy of sorted_combination for the lambda function
+                combination_copy = sorted_combination.copy()
 
-    # print(equivalent_prices)
+                equivalent_prices.append(
+                    lambda p: (sum(p[key] for key in combination_copy) >= initial_budgets[student]))
+
     return equivalent_prices
 
 
