@@ -13,8 +13,7 @@ import networkz as nx
 from prtpy import partition, objectives as obj, outputtypes as out
 from prtpy.partitioning import integer_programming
 
-from fairpyx import Instance, AllocationBuilder, divide, ExplanationLogger, AgentBundleValueMatrix, \
-    ConsoleExplanationLogger
+from fairpyx import Instance, AllocationBuilder, divide, ExplanationLogger, AgentBundleValueMatrix
 
 logger = logging.getLogger(__name__)
 
@@ -297,7 +296,7 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
     unified_bundle = priorities2[0] + priorities2[1] if not is_significant2 else priorities1[0] + priorities1[1]
     # and leaves the remainder to the third agent
     remainder = priorities2[2] if not is_significant2 else priorities1[2]
-    explanation_logger.info("\t" +_("remainder"), agents[2])
+    explanation_logger.info("\t" + _("remainder"), agents[2])
     give_bundle(agents[2], remainder)
 
     repartition(agent1=other_agent, agent2=non_significant_agent, items=unified_bundle)
@@ -340,7 +339,6 @@ def create_envy_graph(instance: Instance, allocation: dict,
     # valuations = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}}
     # allocation = {"Alice": ["c1"], "Bob": ["c2"]}
     # {'Alice': {'Alice': 11, 'Bob': 22}, 'Bob': {'Alice': 33, 'Bob': 44}}
-    # abvm valuation example: {'Alice': {'Alice': 11, 'Bob': 22}, 'Bob': {'Alice': 33, 'Bob': 44}}
     abvm.make_envy_matrix()
     mat: dict[str, dict[str, int]] = abvm.envy_matrix
     # mat example: {'Alice': {'Alice': 0, 'Bob': 11}, 'Bob': {'Alice': -11, 'Bob': 0}}
@@ -440,7 +438,7 @@ def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
         alloc.update(new_alloc)
         envy_graph = create_envy_graph(instance, alloc, explanation_logger)
     explanation_logger.info("\n" + _("no_envy_cycle"))
-
+    # return non envied agents, i.e. those who have no inward edges
     no_envy_agents = [node for node in envy_graph.nodes if envy_graph.in_degree(node) == 0]
     return no_envy_agents
 
@@ -579,6 +577,7 @@ def alloc_by_matching(alloc: AllocationBuilder, explanation_logger=ExplanationLo
 
 if __name__ == "__main__":
     import doctest
+
     print("\n", doctest.testmod(), "\n")
 
     # my_log = ConsoleExplanationLogger()
