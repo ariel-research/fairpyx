@@ -464,7 +464,7 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     return prices_vector
 
 
-def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
+def tabu_search(instance: Instance, initial_budgets: dict, beta: float, delta: float):
     """
    "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
     by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
@@ -486,7 +486,7 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
     ... item_capacities={"x":2, "y":1, "z":3})
     >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
     >>> beta = 4
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta))
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
     "{ami:['y','z'], tami:['x', 'z'], tzumi:['x', 'z'] }"
 
     >>> instance = Instance(
@@ -495,7 +495,7 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
     ... item_capacities={"x":1, "y":2, "z":1, "w":2})
     >>> initial_budgets={"ami":8, "tami":6}
     >>> beta = 9
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta))
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
     "{ami:['x','y','z'], tami:['x', 'z', 'w']}"
 
     >>> instance = Instance(
@@ -504,7 +504,7 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
     ... item_capacities={"x":1, "y":2, "z":2, "w":1})
     >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
     >>> beta = 5
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta))
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
     "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
 
     >>> instance = Instance(
@@ -513,7 +513,7 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
     ... item_capacities={"x":1, "y":2, "z":3})
     >>> initial_budgets={"ami":6, "tami":4}
     >>> beta = 6
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta))
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
     "{ami:['x','y'], tami:['y', 'z']}"
 
     >>> instance = Instance(
@@ -522,7 +522,7 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
     ... item_capacities={"x":1, "y":1, "z":1})
     >>> initial_budgets={"ami":5, "tami":3}
     >>> beta = 6
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta))
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
     "{ami:['y','z'], tami:['x']}"
     """
     # 1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅.
@@ -546,7 +546,6 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
         # • include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑},
         equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
         history.add(equivalent_prices)
-        delta = 1  # TODO- ask erel how to get delta
         find_all_neighbors(instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
                            allocation)
 
