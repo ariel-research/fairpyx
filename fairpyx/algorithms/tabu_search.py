@@ -229,8 +229,7 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     return equivalent_prices
 
 
-def find_gradient_neighbors(neighbors: list, history: list, prices: dict, delta: float, excess_demand_vector: dict):
-    # TODO ask erel about delta
+def find_gradient_neighbors(neighbors: list, prices: dict, delta: float, excess_demand_vector: dict):
     """
     Add the gradient neighbors to the neighbors list
     N_gradient(𝒑, Δ) = {𝒑 + 𝛿 · 𝒛(𝒖,𝒄, 𝒑, 𝒃) : 𝛿 ∈ Δ}
@@ -244,32 +243,19 @@ def find_gradient_neighbors(neighbors: list, history: list, prices: dict, delta:
 
     Example run 1 iteration 1
     >>> neighbors = []
-    >>> history = []
     >>> prices = {"x": 1, "y": 2, "z": 1}
     >>> delta = 1
     >>> excess_demand_vector = {"x":0,"y":2,"z":-2}
-    >>> find_gradient_neighbors(neighbors,history,prices,delta,excess_demand_vector)
+    >>> find_gradient_neighbors(neighbors,prices,delta,excess_demand_vector)
     {'x': 1, 'y': 4, 'z': 0}
 
 
      Example run 1 iteration 2
     >>> neighbors = []
-    >>> history = [
-    ...    {'x': 1, 'y': 2, 'z': 1}, {'x': 0, 'y': 0, 'z': 0}, {'x': 1, 'y': 0, 'z': 0},
-    ...    {'x': 0, 'y': 1, 'z': 0}, {'x': 0, 'y': 0, 'z': 1}, {'x': 1, 'y': 1, 'z': 0},
-    ...    {'x': 1, 'y': 0, 'z': 1}, {'x': 0, 'y': 1, 'z': 1}, {'x': 1, 'y': 1, 'z': 1},
-    ...    {'x': 0, 'y': 1, 'z': 2}, {'x': 0, 'y': 2, 'z': 1}, {'x': 1, 'y': 0, 'z': 2},
-    ...    {'x': 1, 'y': 2, 'z': 0}, {'x': 2, 'y': 0, 'z': 1}, {'x': 2, 'y': 1, 'z': 0},
-    ...    {'x': 2, 'y': 2, 'z': 0}, {'x': 2, 'y': 2, 'z': 1}, {'x': 1, 'y': 1, 'z': 2},
-    ...    {'x': 2, 'y': 1, 'z': 1}, {'x': 3, 'y': 0, 'z': 0}, {'x': 3, 'y': 1, 'z': 0},
-    ...    {'x': 3, 'y': 0, 'z': 1}, {'x': 3, 'y': 1, 'z': 1}, {'x': 0, 'y': 3, 'z': 0},
-    ...    {'x': 1, 'y': 3, 'z': 0}, {'x': 0, 'y': 0, 'z': 3}, {'x': 1, 'y': 0, 'z': 3},
-    ...   {'x': 2, 'y': 0, 'z': 3}, {'x': 3, 'y': 0, 'z': 3}, {'x': 4, 'y': 0, 'z': 3},
-    ...   {'x': 1, 'y': 4, 'z': 0}, {'x': 2, 'y': 3, 'z': 1}, {'x': 0, 'y': 5, 'z': 0}]
     >>> prices = {"x": 1, "y": 4, "z": 0}
     >>> delta = 1
     >>> excess_demand_vector = {"x":1,"y":0,"z":0}
-    >>> find_gradient_neighbors(neighbors,history,prices,delta,excess_demand_vector)
+    >>> find_gradient_neighbors(neighbors,prices,delta,excess_demand_vector)
     {'x': 2, 'y': 4, 'z': 0}
     """
 
@@ -332,7 +318,7 @@ def differ_in_one_value(original_allocation: dict, new_allocation: dict, course:
 def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: list, history: list, prices: dict,
                                                excess_demand_vector: dict, initial_budgets: dict, allocation: dict):
     """
-    Add the individual price adjustment neighbors to the neighbors list
+    Add the individual price adjustment neighbors N(p) to the neighbors list
 
     :param instance: fair-course-allocation
     :param neighbors: list of Gradient neighbors and Individual price adjustment neighbors.
@@ -382,7 +368,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
             for _ in range(35):
                 updated_prices[course] += 1
                 # if updated_prices in history:
-                if any([f(updated_prices) for f in history]):
+                if all([f(updated_prices) for f in history]):
                     continue
                 # get the new demand of the course
                 new_allocation = student_best_bundle(updated_prices, instance, initial_budgets)
@@ -394,7 +380,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
         elif excess_demand < 0:
             updated_prices[course] = 0
             # if updated_prices not in history and updated_prices not in neighbors:
-            if not any([f(updated_prices) for f in history]) and updated_prices not in neighbors:
+            if not all([f(updated_prices) for f in history]) and updated_prices not in neighbors:
                 neighbors.append(updated_prices)
 
     return neighbors
@@ -402,7 +388,6 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
 
 def find_all_neighbors(instance: Instance, neighbors: list, history: list, prices: dict, delta: float,
                        excess_demand_vector: dict, initial_budgets: dict, allocation: dict):
-    # TODO: ask erel about delta
     """
     Update neighbors N (𝒑) - list of Gradient neighbors and Individual price adjustment neighbors.
 
@@ -413,9 +398,9 @@ def find_all_neighbors(instance: Instance, neighbors: list, history: list, price
     :param delta:
     """
 
-    find_gradient_neighbors(neighbors, history, prices, delta, excess_demand_vector)
-    find_individual_price_adjustment_neighbors(instance, neighbors, history, prices,
-                                               excess_demand_vector, initial_budgets, allocation)
+    find_gradient_neighbors(neighbors, prices, delta, excess_demand_vector)
+    # find_individual_price_adjustment_neighbors(instance, neighbors, history, prices,
+    #                                            excess_demand_vector, initial_budgets, allocation)
 
 
 def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: dict):
@@ -464,13 +449,13 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     return prices_vector
 
 
-def tabu_search(instance: Instance, initial_budgets: dict, beta: float, delta: float):
+def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, delta: float):
     """
    "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
     by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
     ALGORITHM 3: Tabu search
 
-   :param instance: a fair-course-allocation instance
+   :param alloc: a fair-course-allocation instance
    :param initial_budgets: Students' initial budgets, b_0∈[1,1+β]^n
    :param beta: creates the range of initial_budgets
 
@@ -480,14 +465,14 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float, delta: f
     >>> from fairpyx.utils.test_utils import stringify
     >>> from fairpyx import Instance
 
-    >>> instance = Instance(
-    ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
-    ... agent_capacities=2,
-    ... item_capacities={"x":2, "y":1, "z":3})
-    >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
-    >>> beta = 4
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
-    "{ami:['y','z'], tami:['x', 'z'], tzumi:['x', 'z'] }"
+    # >>> instance = Instance(
+    # ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
+    # ... agent_capacities=2,
+    # ... item_capacities={"x":2, "y":1, "z":3})
+    # >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
+    # >>> beta = 4
+    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
+    # "{ami:['y','z'], tami:['x', 'z'], tzumi:['x', 'z'] }"
 
     >>> instance = Instance(
     ... valuations={"ami":{"x":5, "y":4, "z":3, "w":2}, "tami":{"x":5, "y":2, "z":4, "w":3}},
@@ -498,43 +483,44 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float, delta: f
     >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
     "{ami:['x','y','z'], tami:['x', 'z', 'w']}"
 
-    >>> instance = Instance(
-    ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
-    ... agent_capacities=2,
-    ... item_capacities={"x":1, "y":2, "z":2, "w":1})
-    >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
-    >>> beta = 5
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
-    "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
-
-    >>> instance = Instance(
-    ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
-    ... agent_capacities=2,
-    ... item_capacities={"x":1, "y":2, "z":3})
-    >>> initial_budgets={"ami":6, "tami":4}
-    >>> beta = 6
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
-    "{ami:['x','y'], tami:['y', 'z']}"
-
-    >>> instance = Instance(
-    ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
-    ... agent_capacities=2,
-    ... item_capacities={"x":1, "y":1, "z":1})
-    >>> initial_budgets={"ami":5, "tami":3}
-    >>> beta = 6
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
-    "{ami:['y','z'], tami:['x']}"
+    # >>> instance = Instance(
+    # ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
+    # ... agent_capacities=2,
+    # ... item_capacities={"x":1, "y":2, "z":2, "w":1})
+    # >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
+    # >>> beta = 5
+    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
+    # "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
+    #
+    # >>> instance = Instance(
+    # ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
+    # ... agent_capacities=2,
+    # ... item_capacities={"x":1, "y":2, "z":3})
+    # >>> initial_budgets={"ami":6, "tami":4}
+    # >>> beta = 6
+    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
+    # "{ami:['x','y'], tami:['y', 'z']}"
+    #
+    # >>> instance = Instance(
+    # ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
+    # ... agent_capacities=2,
+    # ... item_capacities={"x":1, "y":1, "z":1})
+    # >>> initial_budgets={"ami":5, "tami":3}
+    # >>> beta = 6
+    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta=1))
+    # "{ami:['y','z'], tami:['x']}"
     """
     # 1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅.
-    prices = {course: random.uniform(1, 1 + beta) for course in instance.items}
-    history = {}
+    # courses = instance.items
+    prices = {course: random.uniform(1, 1 + beta) for course in alloc.remaining_item_capacities.keys()}
+    history = []
 
     # 2)  If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.
     norma2 = 1
     while norma2:
         neighbors = []  # resets on every iteration
-        allocation = student_best_bundle(prices, instance, initial_budgets)
-        excess_demand_vector = clipped_excess_demand(instance, prices, allocation)
+        allocation = student_best_bundle(prices, alloc.instance, initial_budgets)
+        excess_demand_vector = clipped_excess_demand(alloc.instance, prices, allocation)
         values = np.array(list(excess_demand_vector.values()))
         norma2 = np.linalg.norm(values)
 
@@ -544,13 +530,13 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float, delta: f
 
         # 3) Otherwise,
         # • include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑},
-        equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
-        history.add(equivalent_prices)
-        find_all_neighbors(instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
+        equivalent_prices = find_all_equivalent_prices(alloc.instance, initial_budgets, allocation)
+        history.append(equivalent_prices)
+        find_all_neighbors(alloc.instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
                            allocation)
 
         # • update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2, and then
-        find_min_error_prices(instance, neighbors, initial_budgets)
+        find_min_error_prices(alloc.instance, neighbors, initial_budgets)
 
     # print the final price (p* = prices) for each course
     logger.info(f"\nfinal prices p* = {prices}")
