@@ -141,35 +141,31 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
     DnC = {
         "algorithm_starts": {
             "he": "אלגוריתם חלק ובחר לשלושה סוכנים מתחיל",
-            "en": "Divide-and-Choose Algorithm for Three Agents starts\n",
+            "en": "Divide-and-Choose Algorithm for Three Agents starts",
         },
         "leximin_partition": {
-            "he": "%s מחלק את הפריטים %s סוכן \n",
-            "en": "Agent %s divides the the items: %s \n",
+            "he": "%s מחלק את הפריטים %s סוכן",
+            "en": "Agent %s divides the items: %s",
         },
         "partition_results": {
-            "he": " %d-חלוקה: %s \n",
-            "en": "%d-partition results: %s \n",
+            "he": "\t %d-חלוקה: %s",
+            "en": "\t%d-partition results: %s",
         },
         "calc_priorities": {
-            "he": "חישוב חשיבויות לסוכנים: %s, %s \n",
-            "en": "Calculate priorities for the first two agents: %s, %s \n",
+            "he": "חישוב חשיבויות לסוכנים: %s, %s",
+            "en": "Calculate priorities for the first two agents: %s, %s",
         },
-        "first_priority_check": {
-            "he": "בדיקת חשיבות ראשונה לסוכנים: %s, %s. \n",
-            "en": "Checking first priorities for agents: %s, %s \n",
+        "priority": {
+            "he": "חשיבות עבור סוכן %s: %s.",
+            "en": "priorities for agent %s: %s",
         },
         "different_first_priority": {
             "he": " עדיפות ראשונה שונה בין הסוכנים: %s, %s, כל אחד מקבל את העדיפות הראשונה שלו",
             "en": "agent %s’s and agent %s’s favorite bundles are different, each of them takes their favorite bundle ",
         },
         "same_first_priority": {
-            "he": " עדיפות ראשונה שווה בין הסוכנים: %s, %s",
-            "en": "agent %s’s and agent %s’s favorite bundles are the same",
-        },
-        "second_priority_check": {
-            "he": "בדיקת חשיבות שנייה לסוכנים: %s, %s \n",
-            "en": "Checking second priorities for agents: %s, %s \n",
+            "he": " עדיפות ראשונה שווה, בדיקת חשיבות שנייה לסוכנים: %s, %s",
+            "en": "agent %s’s and agent %s’s favorite bundles are the same, checking second priorities",
         },
         "same_second_priority": {
             "he": " עדיפות שנייה שווה בין הסוכנים, ",
@@ -180,28 +176,28 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
             "en": "Agent %s gets to choose their favorite from repartition",
         },
         "remainder": {
-            "he": "החבילה הנותרת הולכת לסוכן %s \n",
-            "en": "the remaining bundle is allocated to %s \n",
+            "he": "החבילה הנותרת הולכת לסוכן %s",
+            "en": "the remaining bundle is allocated to %s",
         },
         "different_second_priority": {
             "he": " עדיפות שנייה שווה בין הסוכנים, בדיקת ערך משמעותי עבור עדיפות שנייה",
             "en": "Second favorite bundles are different, checking significant worth of second favorites",
         },
         "has_significant_worth": {
-            "he": "יש ערך משמעותי לעדיפות השנייה עבור שני הסוכנים, העדיפות השנייה מוקצית בהתאם \n",
-            "en": "There is significant worth of second favorites for both. Assigning second favorites accordingly\n",
+            "he": "יש ערך משמעותי לעדיפות השנייה עבור שני הסוכנים, העדיפות השנייה מוקצית בהתאם",
+            "en": "There is significant worth of second favorites for both. Assigning second favorites accordingly",
         },
         "not_significant": {
-            "he": "אין ערך משמעותי עבור הסוכן %s. \n",
+            "he": "אין ערך משמעותי עבור הסוכן %s.",
             "en": "There is no significant worth of second favorites for agent %s. "
         },
         "final_allocation": {
-            "he": "החבילה הנותרת מוקצית לסוכן %s. \n",
-            "en": "the remaining bundle is allocated to %s \n",
+            "he": "החבילה הנותרת מוקצית לסוכן %s.",
+            "en": "the remaining bundle is allocated to %s ",
         },
         "repartition": {
             "he": "הסוכן %s לוקח את 2 החבילות בעדיפות עליונה לחלוקה מחדש.",
-            "en": "Agent %s takes their 2 favorites for repartition \n",
+            "en": "Agent %s takes their 2 favorites for repartition",
         },
 
     }
@@ -226,13 +222,13 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
     def repartition(agent1, agent2, items):
         # Helper function for repartition for 2 agents
         agent_valuations: dict = get_valuations(agent2, items)
-        explanation_logger.info("\n" + _("leximin_partition"), agent2, items)
+        explanation_logger.info("\t" + _("leximin_partition"), agent2, items)
         # agent 2 re-partitions items by their leximin 2-partitions
         partition2 = approx_leximin_partition(agent_valuations, n=2)
-        explanation_logger.debug("\n" + _("partition_results"), 2, str(partition2))
+        explanation_logger.debug("\t" + _("partition_results"), 2, str(partition2))
         priorities_other = get_bundle_rankings(instance, agent1, partition2)
         # Agent 1 chooses her favorite one in the new partition,
-        explanation_logger.info("\n" + _("given_choice"), agent1)
+        explanation_logger.info("\t" + _("given_choice"), agent1)
         give_bundle(agent1, priorities_other[0])
         # and the other one is allocated to agent 2
         explanation_logger.info("\n" + _("remainder"), agent2)
@@ -241,54 +237,55 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
 
     explanation_logger.info("\n" + _("algorithm_starts") + "\n")
     # Step 1: Leximin partition based on the third agent's valuations
-    explanation_logger.info("1: " + _("leximin_partition"), agents[2], instance.items)
+    explanation_logger.info("\n1: " + _("leximin_partition"), agents[2], instance.items)
     agent3_valuations = get_valuations(agents[2], instance.items)
     partition1 = approx_leximin_partition(agent3_valuations)
     explanation_logger.debug("\n" + _("partition_results"), 3, str(partition1))
 
     # Step 2: Calculate priorities for the first two agents
-    explanation_logger.info("2: " + _("calc_priorities"), agents[0], agents[1], agents=agents[:2])
+    explanation_logger.info("\n2: " + _("calc_priorities"), agents[0], agents[1], agents=agents[:2])
     priorities1 = get_bundle_rankings(instance, agents[0], partition1)
     priorities2 = get_bundle_rankings(instance, agents[1], partition1)
 
     # Check if the first priorities are different
-    explanation_logger.info("\n" + _("first_priority_check"), agents[0], agents[1], agents=agents[:2])
+    explanation_logger.debug(_("priority"), agents[0], priorities1, agents=agents[0])
+    explanation_logger.debug(_("priority"), agents[1], priorities2, agents=agents[1])
+
     if priorities1[0] != priorities2[0]:
         # Each agent among the first two take their favorite bundle, the remaining bundle goes to third agent
-        explanation_logger.info("\n" + _("different_first_priority"), agents[0], agents[1], agents=agents[:2])
+        explanation_logger.info(_("different_first_priority"), agents[0], agents[1], agents=agents[:2])
         give_bundle(agents[0], priorities1[0])
         give_bundle(agents[1], priorities2[0])
-        explanation_logger.info("\n" + _("remainder"), agents[2], agents=agents[2])
+        explanation_logger.info(_("remainder"), agents[2], agents=agents[2])
         remainder = next(v for v in partition1 if v not in [priorities1[0], priorities2[0]])
         give_bundle(agents[2], remainder)
         return
 
     # Step 3: Favorite bundles are the same. Checking second priorities equivalence for agents 1 and 2
-    explanation_logger.info(
-        "\n" + "3: Favorite bundles are the same. Checking second priorities for agents 1 and 2" + "\n")
+    explanation_logger.info("\n3: " + _("same_first_priority"), agents[0], agents[1])
     if priorities1[1] == priorities2[1]:
         # agent 2 takes their favorite two bundles for re-partition,
-        explanation_logger.info("\n" + _("same_second_priority"), agents[1])
-        explanation_logger.info("\n" + _("repartition"), agents[1])
+        explanation_logger.info(_("same_second_priority"), agents[1])
+        explanation_logger.info(_("repartition"), agents[1])
         unified_bundle = priorities2[0] + priorities2[1]
         # and leaves the remainder to third agent
-        explanation_logger.info("\n" + _("remainder"), agents[2])
+        explanation_logger.info(_("remainder"), agents[2])
         give_bundle(agents[2], priorities2[2])
 
         repartition(agent1=agents[0], agent2=agents[1], items=unified_bundle)
         return
     # Step 4: Second favorite bundles are different
     # checking significant worth of second bundle: 2 * #2-bundle > #1-bundle + #3-bundle
-    explanation_logger.info("\n" + _("different_second_priority") + "\n")
+    explanation_logger.info("\n4: " + _("different_second_priority"))
     is_significant1 = is_significant_2nd_bundle(instance, agents[0], priorities1)
     is_significant2 = is_significant_2nd_bundle(instance, agents[1], priorities2)
     if is_significant1 and is_significant2:
         # Step 4-a: Second favorite bundles have significant worth for both
         #  Each agent among the first two take their second favorite bundle, the remaining bundle goes to third agent
-        explanation_logger.info("\n" + _("has_significant_worth") + "\n")
+        explanation_logger.info("\t a)" + _("has_significant_worth"))
         give_bundle(agents[0], priorities1[1])
         give_bundle(agents[1], priorities2[1])
-        explanation_logger.info("\n" + _("remainder"), agents[2])
+        explanation_logger.info("\t" + _("remainder"), agents[2])
         give_bundle(agents[2], priorities1[0])
         return
 
@@ -296,19 +293,20 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
     # non significant agent - the agent whose #2-bundle isn't significantly worthy
     non_significant_agent = agents[1] if not is_significant2 else agents[0]
     other_agent = agents[1] if non_significant_agent == agents[0] else agents[0]
-    explanation_logger.info("\n" + _("not_significant"), non_significant_agent)
-    explanation_logger.info("\n" + _("repartition"), non_significant_agent)
+    explanation_logger.info("\t b) " + _("not_significant"), non_significant_agent)
+    explanation_logger.info("\t" + _("repartition"), non_significant_agent)
     # non significant agent takes their favorite two bundles for re-partition
     unified_bundle = priorities2[0] + priorities2[1] if not is_significant2 else priorities1[0] + priorities1[1]
     # and leaves the remainder to the third agent
     remainder = priorities2[2] if not is_significant2 else priorities1[2]
-    explanation_logger.info("\n" + _("remainder"), agents[2])
+    explanation_logger.info("\t" +_("remainder"), agents[2])
     give_bundle(agents[2], remainder)
 
     repartition(agent1=other_agent, agent2=non_significant_agent, items=unified_bundle)
 
 
-def create_envy_graph(instance: Instance, allocation: dict):
+def create_envy_graph(instance: Instance, allocation: dict,
+                      explanation_logger: ExplanationLogger = ExplanationLogger()):
     """
     Creates an envy-graph G
 
@@ -329,6 +327,16 @@ def create_envy_graph(instance: Instance, allocation: dict):
     >>> nx.is_isomorphic(eg, expected)          # Equality check
     True
     """
+    TEXTS = {
+        "envy_edges": {
+            "he": "צלעות קנאה %s",
+            "en": "envy edges %s",
+        },
+    }
+
+    def _(code: str):
+        return TEXTS[code][explanation_logger.language]
+
     abvm = AgentBundleValueMatrix(instance, allocation, normalized=False)
     # abvm valuation example:
     # valuations = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}}
@@ -345,6 +353,7 @@ def create_envy_graph(instance: Instance, allocation: dict):
         for other, envy in agent_status.items()
         if envy > 0
     ]
+    explanation_logger.debug("\t" + _("envy_edges"), envy_edges)
     graph = nx.DiGraph()
     graph.add_nodes_from(instance.agents)
     if envy_edges:
@@ -421,9 +430,9 @@ def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
         return TEXTS[code][explanation_logger.language]
 
     explanation_logger.info("\n" + _("procedure_starts"))
-    explanation_logger.debug("\t" + _("current_alloc"))
+    explanation_logger.debug("\t" + _("current_alloc"), alloc)
     explanation_logger.info("\n" + _("define_envy_graph"))
-    envy_graph = create_envy_graph(instance, alloc)
+    envy_graph = create_envy_graph(instance, alloc, explanation_logger)
     while not nx.is_directed_acyclic_graph(envy_graph):
         envy_cycle = nx.find_cycle(envy_graph)
         explanation_logger.info("\n" + _("envy_cycle"))
@@ -431,17 +440,24 @@ def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
         new_alloc = {envious: alloc[envied] for envious, envied in envy_cycle}
         explanation_logger.debug("\t" + _("new_alloc"), new_alloc)
         alloc.update(new_alloc)
-        envy_graph = create_envy_graph(instance, alloc)
+        envy_graph = create_envy_graph(instance, alloc, explanation_logger)
     explanation_logger.info("\n" + _("no_envy_cycle"))
 
     no_envy_agents = [node for node in envy_graph.nodes if envy_graph.in_degree(node) == 0]
     return no_envy_agents
 
 
-def maximum_matching(instance, agents, items):
+def maximum_matching(instance: Instance, agents: list, items: list):
     """
-    Computes a maximum weight matching M between agents and items, where the weight of edge
-    between a ∈ agents and i ∈ items is given by the value of i according to a
+    Computes an assignment between agents and items.
+
+    **Info:**
+    A matching between agents and items where the weight of edge between
+    i ∈ agents and j ∈ items is given by the value of item j according to agent i
+
+    :param instance: the current instance - for agent item value
+    :param agents: list of agents - which we attempt to fully match
+    :param items: list of items
 
     >>> inst = Instance(valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]})
     >>> maximum_matching(inst, list(inst.agents), list(inst.items))
@@ -451,7 +467,7 @@ def maximum_matching(instance, agents, items):
     """
 
     mat = [[instance.agent_item_value(agent, item) for item in items] for agent in agents]
-    # mat = np.array([[10, 10, 6, 4, 2, 2, 2], [7, 5, 6, 6, 6, 2, 9], [2, 8, 8, 7, 5, 2, 3]])
+
     from scipy.optimize import linear_sum_assignment
     row_ind, col_ind = linear_sum_assignment(mat, maximize=True)
     agent_ind = [agents[i] for i in row_ind]
@@ -475,98 +491,106 @@ def alloc_by_matching(alloc: AllocationBuilder, explanation_logger=ExplanationLo
     {'Alice': [0, 2, 5], 'Bob': [4, 6], 'Claire': [1, 3]}
     """
     TEXTS = {
-        "procedure_starts": {
+        "algorithm_starts": {
             "he": "הליך צמצום קנאה מתחיל",
-            "en": "envy reduction process starts",
+            "en": "Algorithm allocation by matching starts.",
         },
-        "current_alloc": {
-            "he": "הקצאה נוכחית %s",
-            "en": "current allocation %s",
+        "initialization": {
+            "he": "איתחול R:= רשימת פריטים, L:=רשימת סוכנים, A:=מיפוי הקצאות לכל סוכן (ריק)",
+            "en": "initializing R:=items L:=agents A:=allocation (empty for each agent)",
         },
-        "define_envy_graph": {
-            "he": "מגדיר גרף קנאה",
-            "en": "Defining envy graph",
+        "curr_agents": {
+            "he": "רשימת הסוכנים כרגע: %s",
+            "en": "\tCurrent agents: %s",
         },
-        "no_envy_cycle": {
-            "he": "אין מעגל קנאה בדרף הקנאה, ההליך מסתיים",
-            "en": "There is no envy cycle within the envy-graph\n procedure ends",
+        "curr_items": {
+            "he": "רשימת הפריטים כרגע: %s",
+            "en": "\tCurrent items: %s",
         },
-        "envy_cycle": {
-            "he": "יש מעגל קנאה, מקצה מחדש חבילות",
-            "en": "There is an envy cycle - Reassigning bundles",
+        "compute_matching": {
+            "he": "חשב שידוך מקסימלי בין סוכנים לפריטים, כאשר כל צלע בין סוכן לפריט משקלו כערך הפריט לפי הסוכן",
+            "en": "Compute a maximum weight matching M between items and agents, "
+                  + "where the weight of edge between i∈agents and j∈items is given by valuation of agent i on item j"
         },
-        "reassignment_for": {
-            "he": "הקצאה מחדש עבור %s",
-            "en": "Reassignment for %s.\n",
+        "alloc_by_matching": {
+            "he": "עבור כל צלע (פריט, סוכן) בשידוך, הקצה את הפריט לסוכן",
+            "en": "For every edge (i, j) ∈ M, add item j to agent i's bundle, ",
+        },
+        "exclude_items": {
+            "he": "והוצא את הפריט מרשימת הפריטים",
+            "en": "and remove j from items.",
         },
         "new_alloc": {
-            "he": "הקצאה החדשה",
-            "en": "new allocation: %s.\n",
+            "he": "הקצאה החדשה %s",
+            "en": "\tnew allocation: %s.\n",
         },
+        "updated_alloc": {
+            "he": "הקצאה מעודכנת %s",
+            "en": "\tupdated allocation: %s.\n",
+        },
+        "matching": {
+            "he": "תוצאת השידוך %s\n",
+            "en": "matching: %s.\n",
+        },
+
     }
+
     def _(code: str):
         return TEXTS[code][explanation_logger.language]
 
     instance = alloc.instance
     check_value(instance, algo_prefix="alloc by matching: ")
     # 1: Initiate L = N and R = M.
-    explanation_logger.info()
-    agents = list(instance.agents)  # L = N := group of agents
-    items = list(instance.items)  # R = M := list of items to allocate
+    explanation_logger.info(_("algorithm_starts"))
+    explanation_logger.info("\n" + _("initialization"))
+    agents: list = list(instance.agents)  # L = N := group of agents
+    items: list = list(instance.items)  # R = M := list of items to allocate
     # 2: Initiate A_i =∅ for all i ∈ N.
     alloc_dict = {agent: [] for agent in agents}
     # print("alloc_dict init %s", alloc_dict)
 
     # 3: while R =∅ do
+    explanation_logger.debug("\t" + _("curr_agents"), agents)
+    explanation_logger.debug("\t" + _("curr_items"), items)
     while items:
         # 4: Compute a maximum weight matching M between L and R, where the weight of edge
         # between i∈L and j∈R is given by vi(Ai∪{j})−vi(Ai).
         # If all edges have weight 0,then we compute a maximum cardinality matching M instead.
+        explanation_logger.info("\n" + _("compute_matching"))
         matching = maximum_matching(instance, agents, items)
+        explanation_logger.debug("\t" + _("matching"), str(matching))
         # 5: For every edge(i, j)∈M, allocate j to i: Ai = Ai∪{j}
-        # print("matching %s", matching)
+        explanation_logger.info(_("alloc_by_matching"))
         new_alloc = {a: bundle + [item]
                      for agent, bundle in alloc_dict.items()
                      for a, item in matching if a == agent}
-        # print("new_alloc init %s", new_alloc)
+        explanation_logger.debug(_("new_alloc"), new_alloc)
         alloc_dict.update(new_alloc)
-        # print("alloc_dict update %s", alloc_dict)
+        explanation_logger.debug(_("updated_alloc"), alloc_dict)
         # and exclude j from R: R = R\{j}.
-        for _, item in matching:
-            items.remove(item)
+        explanation_logger.info(_("exclude_items"))
+        to_remove = [item for _, item in matching]
+        items = [item for item in items if item not in to_remove]
+        explanation_logger.debug(_("curr_items"), items)
+        agents = envy_reduction_procedure(alloc_dict, instance, explanation_logger=explanation_logger)
+        explanation_logger.debug(_("curr_agents"), agents)
 
-        agents = envy_reduction_procedure(alloc_dict, instance)
-    # No need to return a value. The `divide` function returns the output.
     for agent, bundle in alloc_dict.items():
-        alloc.give_bundle(agent, bundle)
+        alloc.give_bundle(agent, bundle, logger=explanation_logger)
 
 
 if __name__ == "__main__":
-    # import doctest
+    import doctest
+    print("\n", doctest.testmod(), "\n")
+
+    # my_log = ConsoleExplanationLogger()
+    # inst = Instance(
+    #     valuations={"Alice": [8, 5, 1, 5, 5, 3, 6, 9, 3, 3, 7, 5, 8, 8, 4, 10, 3, 8, 10, 2],
+    #                 "Bob": [3, 5, 5, 3, 4, 9, 5, 5, 8, 1, 2, 6, 8, 6, 9, 1, 2, 8, 9, 7],
+    #                 "Claire": [7, 8, 2, 9, 3, 2, 3, 8, 8, 8, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
+    # alloc = divide(divide_and_choose_for_three, inst, explanation_logger=my_log)
+    # print(alloc)
     #
-    # print("\n", doctest.testmod(), "\n")
-    # val_7items = {"Alice": [10, 10, 6, 4, 2, 2, 2], "Bob": [7, 5, 6, 6, 6, 2, 9], "Claire": [2, 8, 8, 7, 5, 2, 3]}
-    # divide(alloc_by_matching, valuations=val_7items)
-    # import sys
-    #
-    # logger.addHandler(logging.StreamHandler(sys.stdout))
-    # logger.setLevel(logging.DEBUG)
-
-    # instance = Instance(valuations={"Alice": [10, 10, 6, 4], "Bob": [7, 5, 6, 6], "Claire": [2, 8, 8, 7]})
-    # allocator = {"Alice": [2],  # Alice envies both Claire and Bob
-    #             "Bob": [1],  # Bob envies both Alice and Claire
-    #             "Claire": [0]}  # Claire envies both Alice and Bob
-    # envy_reduction_procedure(allocator, instance, explanation_logger=ConsoleExplanationLogger())
-    # print(allocator)
-    # divide(divide_and_choose_for_three, valuations={"Alice": [10, 10, 6, 4], "Bob": [7, 5, 6, 6], "Claire": [2, 8, 8, 7]}, explanation_logger=ConsoleExplanationLogger())
-    # divide(divide_and_choose_for_three, valuations={"Alice": [2,4,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]}, explanation_logger=ConsoleExplanationLogger())
-
-    my_log = ConsoleExplanationLogger()
-    inst = Instance(
-        valuations={"Alice": [8, 5, 1, 5, 5, 3, 6, 9, 3, 3, 7, 5, 8, 8, 4, 10, 3, 8, 10, 2],
-                    "Bob": [3, 5, 5, 3, 4, 9, 5, 5, 8, 1, 2, 6, 8, 6, 9, 1, 2, 8, 9, 7],
-                    "Claire": [7, 8, 2, 9, 3, 2, 3, 8, 8, 8, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
-    divide(divide_and_choose_for_three, inst, explanation_logger=my_log)
-
-    divide(alloc_by_matching, inst, explanation_logger=my_log)
+    # inst = Instance(valuations={"Alice": [10, 10, 6, 4], "Bob": [7, 5, 6, 6], "Claire": [2, 8, 8, 7]})
+    # alloc = divide(alloc_by_matching, inst, explanation_logger=my_log)
     # print(alloc)
