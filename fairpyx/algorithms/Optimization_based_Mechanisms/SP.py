@@ -21,14 +21,14 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
      the fair course allocation problem(CAP).
 
 
-    #>>> from fairpyx.adaptors import divide
-    #>>> s1 = {"c1": 50, "c2": 49, "c3": 1}
-    #>>> s2 = {"c1": 48, "c2": 46, "c3": 6}
-    #>>> agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
-    #>>> course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
-    #>>> valuations = {"s1": s1, "s2": s2}
-    #>>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
-    #>>> divide(SP_function, instance=instance)
+    >>> from fairpyx.adaptors import divide
+    >>> s1 = {"c1": 50, "c2": 49, "c3": 1}
+    >>> s2 = {"c1": 48, "c2": 46, "c3": 6}
+    >>> agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
+    >>> course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
+    >>> valuations = {"s1": s1, "s2": s2}
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    >>> divide(SP_function, instance=instance)
     {'s1': ['c1'], 's2': ['c2']}
     """
 
@@ -114,8 +114,8 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
                             if student in sorted_students_pointing_to_course[remaining_capacity:]:
                                 continue
                             map_student_to_course_with_no_seats_and_the_bids[student][conflict_course] = alloc.effective_value(student, conflict_course) # save the bids for each student for the courses that have conflict
-                        logger.info(f'map_student_to_his_sum_bids{map_student_to_his_sum_bids}')
-                        logger.info("Student %s suggest %d bids for course %s", student,map_student_to_his_sum_bids[student], course)
+                        #logger.info(f'map_student_to_his_sum_bids{map_student_to_his_sum_bids}')
+                        #logger.info("Student %s suggest %d bids for course %s", student,map_student_to_his_sum_bids[student], course)
                         alloc.give(student, course, logger)
                         agents_who_need_an_item_in_current_iteration.remove(student)  # removing the agent from the set (dont worry he will come back in the next round)
                         map_agent_to_best_item.pop(student, None)  # Delete student if exists in the dict
@@ -125,22 +125,22 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
 
 if __name__ == "__main__":
-    #import doctest, sys
-    #print(doctest.testmod())
+    import doctest, sys
+    print(doctest.testmod())
 
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
+    #logger.addHandler(logging.StreamHandler())
+    #logger.setLevel(logging.INFO)
 
-    from fairpyx.adaptors import divide
-    for i in range(10):
-        np.random.seed(i)
-        instance = Instance.random_uniform(
-            num_of_agents=10, num_of_items=5, normalized_sum_of_values=100,
-            agent_capacity_bounds=[2,4],
-            item_capacity_bounds=[2,5],
-            item_base_value_bounds=[1,1000],
-            item_subjective_ratio_bounds=[0.5, 1.5]
-            )
-        allocation = divide(SP_function, instance=instance)
-        fairpyx.validate_allocation(instance, allocation, title=f"Seed {i}, SP_function")
-    divide(SP_function, instance=instance)
+    #from fairpyx.adaptors import divide
+    #for i in range(10):
+    #    np.random.seed(i)
+    #    instance = Instance.random_uniform(
+    #        num_of_agents=10, num_of_items=5, normalized_sum_of_values=100,
+    #        agent_capacity_bounds=[2,4],
+    #        item_capacity_bounds=[2,5],
+    #        item_base_value_bounds=[1,1000],
+    #        item_subjective_ratio_bounds=[0.5, 1.5]
+    #        )
+    #    allocation = divide(SP_function, instance=instance)
+    #    fairpyx.validate_allocation(instance, allocation, title=f"Seed {i}, SP_function")
+    #divide(SP_function, instance=instance)
