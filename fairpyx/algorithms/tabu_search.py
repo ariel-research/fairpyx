@@ -139,13 +139,13 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
     return best_bundle
 
 
-def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, history: list, allocation: dict):
+def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, allocation: dict):
     """
-    Update history - list of all equivalent prices of 𝒑
+    find all equivalent prices- list of all equivalent prices of 𝒑
 
     :param instance: fair-course-allocation
-    :param history: all equivalent prices of 𝒑
-    :param prices: dictionary with courses prices
+    :param initial_budgets: students' initial budgets
+    :param allocation: a dictionary that maps each student to his bundle
 
     Example run 1
     >>> instance = Instance(valuations={"A":{"x":3, "y":4, "z":2},
@@ -154,8 +154,15 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, histor
     ...     item_capacities={"x":2, "y":1, "z":3})
     >>> initial_budgets = {"A": 5, "B":4, "C":3}
     >>> allocation = {"A": {'x', 'y'}, "B":{'x', 'y'}, "C":{'y', 'z'}}
-    >>> find_all_equivalent_prices(instance, initial_budgets, [], allocation)
-    [(['x', 'y'], '<=', 5), (['x', 'y'], '<=', 4), (['y', 'z'], '<=', 3)]
+    >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, [], allocation)
+    >>> p = {"x":1, "y":2, "z":1}
+    >>> any([f(p) for f in equivalent_prices])
+    True
+    >>> p = {"x":5, "y":5, "z":5}
+    >>> any([f(p) for f in equivalent_prices])
+    False
+
+    # [(['x', 'y'], '<=', 5), (['x', 'y'], '<=', 4), (['y', 'z'], '<=', 3)]
 
     Example run 1
     >>> instance = Instance(valuations={"A":{"x":3, "y":4, "z":2},
@@ -164,8 +171,18 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, histor
     ...     item_capacities={"x":2, "y":1, "z":3})
     >>> initial_budgets = {"A": 5, "B":4, "C":3}
     >>> allocation = {"A": {'x', 'y'}, "B":{'x', 'z'}, "C":{'x', 'z'}}
-    >>> find_all_equivalent_prices(instance, initial_budgets, [], allocation)
-    [(['x', 'y'], '<=', 5), (['x', 'z'], '<=', 4), (['x', 'z'], '<=', 3), (['x', 'y'], '>=', 4), (['x', 'y'], '>=', 3), (['y', 'z'], '>=', 3)]
+    >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, [], allocation)
+    >>> p = {"x":0, "y":0, "z":0}
+    >>> any([f(p) for f in equivalent_prices])
+    True
+    >>> p = {"x":1, "y":5, "z":1}
+    >>> any([f(p) for f in equivalent_prices])
+    True
+    >>> p = {"x":1, "y":3, "z":1}
+    >>> any([f(p) for f in equivalent_prices])
+    True
+
+    # [(['x', 'y'], '<=', 5), (['x', 'z'], '<=', 4), (['x', 'z'], '<=', 3), (['x', 'y'], '>=', 4), (['x', 'y'], '>=', 3), (['y', 'z'], '>=', 3)]
 
 
     Example run 2
@@ -174,17 +191,24 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, histor
     ...     item_capacities={"x":1, "y":2, "z":1, "w":2})
     >>> initial_budgets = {"A": 8, "B":6}
     >>> allocation = {"A": {'x', 'y','z'}, "B":{'x','y' ,'z'}}
-    >>> find_all_equivalent_prices(instance, initial_budgets, [], allocation)
-    [(['x', 'y', 'z'], '<=', 8), (['x', 'y', 'z'], '<=', 6), (['w', 'x', 'z'], '>=', 6)]
+    >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, [], allocation)
+    >>> p = {"x":1, "y":3, "z":2, "w":4}
+    >>> any([f(p) for f in equivalent_prices])
+    True
+    >>> p = {"x":2, "y":2, "z":4, "w":2}
+    >>> any([f(p) for f in equivalent_prices])
+    True
+
+    # [(['x', 'y', 'z'], '<=', 8), (['x', 'y', 'z'], '<=', 6), (['w', 'x', 'z'], '>=', 6)]
 
 
     """
     # TODO: ask erel about that the alloc get good answer but in diffrent order
-
+    equivalent_prices = []
     # The constraints that the bundles they get in allocation meet their budgets
     for agent in allocation.keys():
-        history.append((sorted(allocation[agent]), "<=", initial_budgets[agent]))
-
+        sorted_allocation = sorted(allocation[agent])  # Sort the allocation for the agent
+        equivalent_prices.append(lambda p: sum(p[key] for key in sorted_allocation) <= initial_budgets[agent])
 
     # Constraints that will ensure that this is the allocation that will be accepted
     for student in instance.agents:
@@ -197,12 +221,13 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, histor
         utility = instance.agent_bundle_value(student, allocation[student])
         for combination in combinations_courses_list:
             current_utility = instance.agent_bundle_value(student, combination)
-            if sorted(combination) != sorted(allocation[student]) and current_utility >= utility:
-                history.append((sorted(combination), ">=", initial_budgets[student]))
+            sorted_combination = sorted(combination)
+            if sorted_combination != sorted(allocation[student]) and current_utility >= utility:
+                equivalent_prices.append(
+                    lambda p: sum(p[key] for key in sorted_combination) >= initial_budgets[student])
 
-
-    print(history)
-
+    # print(equivalent_prices)
+    return equivalent_prices
 
 
 def find_gradient_neighbors(neighbors: list, history: list, prices: dict, delta: float, excess_demand_vector: dict):
@@ -253,13 +278,13 @@ def find_gradient_neighbors(neighbors: list, history: list, prices: dict, delta:
     for item, price in prices.items():
         updated_prices[item] = max(0, price + delta * excess_demand_vector.get(item, 0))
 
-    if updated_prices not in history:
-        neighbors.append(updated_prices)
+    # if updated_prices not in history:
+    neighbors.append(updated_prices)
 
     return updated_prices
 
 
-def differ_in_one_value(original_allocation:dict, new_allocation:dict, course:str) -> bool:
+def differ_in_one_value(original_allocation: dict, new_allocation: dict, course: str) -> bool:
     """
     Check if two dictionaries differ with each other in exactly one value.
 
@@ -325,17 +350,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
     ... agent_capacities=2,
     ... item_capacities={"x":2, "y":1, "z":3})
     >>> neighbors = []
-    >>> history = [
-    ...    {'x': 1, 'y': 2, 'z': 1}, {'x': 0, 'y': 0, 'z': 0}, {'x': 1, 'y': 0, 'z': 0},
-    ...    {'x': 0, 'y': 1, 'z': 0}, {'x': 0, 'y': 0, 'z': 1}, {'x': 1, 'y': 1, 'z': 0},
-    ...    {'x': 1, 'y': 0, 'z': 1}, {'x': 0, 'y': 1, 'z': 1}, {'x': 1, 'y': 1, 'z': 1},
-    ...    {'x': 0, 'y': 1, 'z': 2}, {'x': 0, 'y': 2, 'z': 1}, {'x': 1, 'y': 0, 'z': 2},
-    ...    {'x': 1, 'y': 2, 'z': 0}, {'x': 2, 'y': 0, 'z': 1}, {'x': 2, 'y': 1, 'z': 0},
-    ...    {'x': 2, 'y': 2, 'z': 0}, {'x': 2, 'y': 2, 'z': 1}, {'x': 1, 'y': 1, 'z': 2},
-    ...    {'x': 2, 'y': 1, 'z': 1}, {'x': 3, 'y': 0, 'z': 0}, {'x': 3, 'y': 1, 'z': 0},
-    ...    {'x': 3, 'y': 0, 'z': 1}, {'x': 3, 'y': 1, 'z': 1}, {'x': 0, 'y': 3, 'z': 0},
-    ...    {'x': 1, 'y': 3, 'z': 0}, {'x': 0, 'y': 0, 'z': 3}, {'x': 1, 'y': 0, 'z': 3},
-    ...   {'x': 2, 'y': 0, 'z': 3}, {'x': 3, 'y': 0, 'z': 3}, {'x': 4, 'y': 0, 'z': 3}]
+    >>> history = [lambda p: p['x']+p['y']<=5, lambda p: p['x']+p['y']<=4, lambda p: p['y']+p['z']<=3]
     >>> prices = {"x": 1, "y": 2, "z": 1}
     >>> excess_demand_vector = {"x":0,"y":2,"z":-2}
     >>> initial_budgets = {"ami":5,"tami":4,"tzumi":3}
@@ -350,18 +365,8 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
     ... agent_capacities=2,
     ... item_capacities={"x":2, "y":1, "z":3})
     >>> neighbors = []
-    >>> history = [
-    ...    {'x': 1, 'y': 2, 'z': 1}, {'x': 0, 'y': 0, 'z': 0}, {'x': 1, 'y': 0, 'z': 0},
-    ...    {'x': 0, 'y': 1, 'z': 0}, {'x': 0, 'y': 0, 'z': 1}, {'x': 1, 'y': 1, 'z': 0},
-    ...    {'x': 1, 'y': 0, 'z': 1}, {'x': 0, 'y': 1, 'z': 1}, {'x': 1, 'y': 1, 'z': 1},
-    ...    {'x': 0, 'y': 1, 'z': 2}, {'x': 0, 'y': 2, 'z': 1}, {'x': 1, 'y': 0, 'z': 2},
-    ...    {'x': 1, 'y': 2, 'z': 0}, {'x': 2, 'y': 0, 'z': 1}, {'x': 2, 'y': 1, 'z': 0},
-    ...    {'x': 2, 'y': 2, 'z': 0}, {'x': 2, 'y': 2, 'z': 1}, {'x': 1, 'y': 1, 'z': 2},
-    ...    {'x': 2, 'y': 1, 'z': 1}, {'x': 3, 'y': 0, 'z': 0}, {'x': 3, 'y': 1, 'z': 0},
-    ...    {'x': 3, 'y': 0, 'z': 1}, {'x': 3, 'y': 1, 'z': 1}, {'x': 0, 'y': 3, 'z': 0},
-    ...    {'x': 1, 'y': 3, 'z': 0}, {'x': 0, 'y': 0, 'z': 3}, {'x': 1, 'y': 0, 'z': 3},
-    ...    {'x': 2, 'y': 0, 'z': 3}, {'x': 3, 'y': 0, 'z': 3}, {'x': 4, 'y': 0, 'z': 3},
-    ...    {'x': 1, 'y': 4, 'z': 0}, {'x': 2, 'y': 3, 'z': 1}, {'x': 0, 'y': 5, 'z': 0}]
+    >>> history = [lambda p: p['x']+p['y']<=5, lambda p: p['x']+p['y']<=4, lambda p: p['y']+p['z']<=3,
+    ...           lambda p: p['x']+p['z']<=4, lambda p: p['x']+p['z']<=3, lambda p: p['y']+p['z']>=3, lambda p: p['x']+p['y']>=4]
     >>> prices = {"x": 1, "y": 4, "z": 0}
     >>> excess_demand_vector = {"x":1,"y":0,"z":0}
     >>> initial_budgets = {"ami":5,"tami":4,"tzumi":3}
@@ -375,20 +380,22 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
             continue
         updated_prices = prices.copy()
         if excess_demand > 0:
-            for _ in range(35):  # TODO: ask erel if here we need to do this
+            for _ in range(35):
                 updated_prices[course] += 1
-                if updated_prices in history:
+                # if updated_prices in history:
+                if any([f(updated_prices) for f in history]):
                     continue
                 # get the new demand of the course
                 new_allocation = student_best_bundle(updated_prices, instance, initial_budgets)
-                if (differ_in_one_value(new_allocation, allocation , course) and updated_prices not in neighbors):
+                if (differ_in_one_value(new_allocation, allocation, course) and updated_prices not in neighbors):
                     logger.info(f"Found new allocation for {allocation}")
                     neighbors.append(updated_prices.copy())
 
 
         elif excess_demand < 0:
             updated_prices[course] = 0
-            if updated_prices not in history and updated_prices not in neighbors:
+            # if updated_prices not in history and updated_prices not in neighbors:
+            if not any([f(updated_prices) for f in history]) and updated_prices not in neighbors:
                 neighbors.append(updated_prices)
 
     return neighbors
@@ -538,7 +545,8 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
 
         # 3) Otherwise,
         # • include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑},
-        find_all_equivalent_prices(instance,initial_budgets, history, allocation)  # TODO - implement
+        equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
+        history.add(equivalent_prices)
         delta = 1  # TODO- ask erel how to get delta
         find_all_neighbors(instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
                            allocation)
@@ -552,8 +560,8 @@ def tabu_search(instance: Instance, initial_budgets: dict, beta: float):
 
 
 if __name__ == "__main__":
-    # logger.addHandler(logging.StreamHandler())
-    # logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
 
     # import doctest
     #
@@ -574,32 +582,52 @@ if __name__ == "__main__":
     #
     # print(clipped_excess_demand(instance,prices,allocation))
 
-    instance = Instance(valuations={"ami": {"x": 3, "y": 4, "z": 2}, "tami": {"x": 4, "y": 3, "z": 2},
-                                    "tzumi": {"x": 2, "y": 4, "z": 3}},
-                        agent_capacities=2,
-                        item_capacities={"x": 2, "y": 1, "z": 3})
-    neighbors = []
-    history = [
-        {'x': 1, 'y': 2, 'z': 1}, {'x': 0, 'y': 0, 'z': 0}, {'x': 1, 'y': 0, 'z': 0},
-        {'x': 0, 'y': 1, 'z': 0}, {'x': 0, 'y': 0, 'z': 1}, {'x': 1, 'y': 1, 'z': 0},
-        {'x': 1, 'y': 0, 'z': 1}, {'x': 0, 'y': 1, 'z': 1}, {'x': 1, 'y': 1, 'z': 1},
-        {'x': 0, 'y': 1, 'z': 2}, {'x': 0, 'y': 2, 'z': 1}, {'x': 1, 'y': 0, 'z': 2},
-        {'x': 1, 'y': 2, 'z': 0}, {'x': 2, 'y': 0, 'z': 1}, {'x': 2, 'y': 1, 'z': 0},
-        {'x': 2, 'y': 2, 'z': 0}, {'x': 2, 'y': 2, 'z': 1}, {'x': 1, 'y': 1, 'z': 2},
-        {'x': 2, 'y': 1, 'z': 1}, {'x': 3, 'y': 0, 'z': 0}, {'x': 3, 'y': 1, 'z': 0},
-        {'x': 3, 'y': 0, 'z': 1}, {'x': 3, 'y': 1, 'z': 1}, {'x': 0, 'y': 3, 'z': 0},
-        {'x': 1, 'y': 3, 'z': 0}, {'x': 0, 'y': 0, 'z': 3}, {'x': 1, 'y': 0, 'z': 3},
-        {'x': 2, 'y': 0, 'z': 3}, {'x': 3, 'y': 0, 'z': 3}, {'x': 4, 'y': 0, 'z': 3},
-        {'x': 1, 'y': 4, 'z': 0}, {'x': 2, 'y': 3, 'z': 1}, {'x': 0, 'y': 5, 'z': 0}
-    ]
-    prices = {"x": 1, "y": 4, "z": 0}
-    excess_demand_vector = {"x": 1, "y": 0, "z": 0}
-    initial_budgets = {"ami": 5, "tami": 4, "tzumi": 3}
-    allocation = {"ami": ('x', 'y'), "tami": ('x', 'z'), "tzumi": ('x', 'z')}
-    # find_individual_price_adjustment_neighbors(instance, neighbors, history, prices, excess_demand_vector,
-    #                                            initial_budgets, allocation)
+    # instance = Instance(valuations={"ami": {"x": 3, "y": 4, "z": 2}, "tami": {"x": 4, "y": 3, "z": 2},
+    #                                 "tzumi": {"x": 2, "y": 4, "z": 3}},
+    #                     agent_capacities=2,
+    #                     item_capacities={"x": 2, "y": 1, "z": 3})
+    # neighbors = []
+    # history = [
+    #     {'x': 1, 'y': 2, 'z': 1}, {'x': 0, 'y': 0, 'z': 0}, {'x': 1, 'y': 0, 'z': 0},
+    #     {'x': 0, 'y': 1, 'z': 0}, {'x': 0, 'y': 0, 'z': 1}, {'x': 1, 'y': 1, 'z': 0},
+    #     {'x': 1, 'y': 0, 'z': 1}, {'x': 0, 'y': 1, 'z': 1}, {'x': 1, 'y': 1, 'z': 1},
+    #     {'x': 0, 'y': 1, 'z': 2}, {'x': 0, 'y': 2, 'z': 1}, {'x': 1, 'y': 0, 'z': 2},
+    #     {'x': 1, 'y': 2, 'z': 0}, {'x': 2, 'y': 0, 'z': 1}, {'x': 2, 'y': 1, 'z': 0},
+    #     {'x': 2, 'y': 2, 'z': 0}, {'x': 2, 'y': 2, 'z': 1}, {'x': 1, 'y': 1, 'z': 2},
+    #     {'x': 2, 'y': 1, 'z': 1}, {'x': 3, 'y': 0, 'z': 0}, {'x': 3, 'y': 1, 'z': 0},
+    #     {'x': 3, 'y': 0, 'z': 1}, {'x': 3, 'y': 1, 'z': 1}, {'x': 0, 'y': 3, 'z': 0},
+    #     {'x': 1, 'y': 3, 'z': 0}, {'x': 0, 'y': 0, 'z': 3}, {'x': 1, 'y': 0, 'z': 3},
+    #     {'x': 2, 'y': 0, 'z': 3}, {'x': 3, 'y': 0, 'z': 3}, {'x': 4, 'y': 0, 'z': 3},
+    #     {'x': 1, 'y': 4, 'z': 0}, {'x': 2, 'y': 3, 'z': 1}, {'x': 0, 'y': 5, 'z': 0}
+    # ]
+    # prices = {"x": 1, "y": 4, "z": 0}
+    # excess_demand_vector = {"x": 1, "y": 0, "z": 0}
+    # initial_budgets = {"ami": 5, "tami": 4, "tzumi": 3}
+    # allocation = {"ami": ('x', 'y'), "tami": ('x', 'z'), "tzumi": ('x', 'z')}
+    # # find_individual_price_adjustment_neighbors(instance, neighbors, history, prices, excess_demand_vector,
+    # #                                            initial_budgets, allocation)
+    #
+    # allocation1 = {"ami": ('x', 'y'), "tami": ('x', 'z'), "tzumi": ('x', 'z')}
+    # allocation2 = {"ami": ('x', 'y'), "tami": ('x', 'z'), "tzumi": ('x', 't')}
+    # course = "z"
+    # differ_in_one_value(allocation1, allocation2, course)
 
-    allocation1 = {"ami": ('x', 'y'), "tami": ('x', 'z'), "tzumi": ('x', 'z')}
-    allocation2 = {"ami": ('x', 'y'), "tami": ('x', 'z'), "tzumi": ('x', 't')}
-    course = "z"
-    differ_in_one_value(allocation1, allocation2, course)
+    # instance = Instance(valuations={"A":{"x":5, "y":4, "z":3, "w":2},"B":{"x":5, "y":2, "z":4, "w":3}},
+    #      agent_capacities=3,
+    #      item_capacities={"x":1, "y":2, "z":1, "w":2})
+    # initial_budgets = {"A": 8, "B":6}
+    # allocation = {"A": {'x', 'y','z'}, "B":{'x','y' ,'z'}}
+    # equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, [], allocation)
+    # p = {"x":2, "y":4, "z":3, "w":0}
+    # print(any([f(p) for f in equivalent_prices]))
+    #
+    # s1 = ['x', 'y', 'z']
+    # s2 = ['x', 'y', 'z']
+    # s3 = ['w', 'x', 'z']
+    # h = []
+    # h.append(lambda p: sum(p[key] for key in s1) <= 8)
+    # h.append(lambda p: sum(p[key] for key in s2) <= 6)
+    # h.append(lambda p: sum(p[key] for key in s3) >= 6)
+    #
+    # p = {"x":2, "y":4, "z":3, "w":0}
+    # print(any([f(p) for f in h]))
