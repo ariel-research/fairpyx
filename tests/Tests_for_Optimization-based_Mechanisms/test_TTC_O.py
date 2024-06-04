@@ -82,7 +82,7 @@ def test_random():
     for i in range(NUM_OF_RANDOM_INSTANCES):
         np.random.seed(i)
         instance = fairpyx.Instance.random_uniform(
-            num_of_agents=70, num_of_items=10, normalized_sum_of_values=1000,
+            num_of_agents=70, num_of_items=10, normalized_sum_of_values=100,
             agent_capacity_bounds=[2, 6],
             item_capacity_bounds=[20, 40],
             item_base_value_bounds=[1, 1000],
