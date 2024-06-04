@@ -154,7 +154,7 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     ...     item_capacities={"x":2, "y":1, "z":3})
     >>> initial_budgets = {"A": 5, "B":4, "C":3}
     >>> allocation = {"A": {'x', 'y'}, "B":{'x', 'y'}, "C":{'y', 'z'}}
-    >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, [], allocation)
+    >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
     >>> p = {"x":1, "y":2, "z":1}
     >>> any([f(p) for f in equivalent_prices])
     True
@@ -171,7 +171,7 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     ...     item_capacities={"x":2, "y":1, "z":3})
     >>> initial_budgets = {"A": 5, "B":4, "C":3}
     >>> allocation = {"A": {'x', 'y'}, "B":{'x', 'z'}, "C":{'x', 'z'}}
-    >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, [], allocation)
+    >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
     >>> p = {"x":0, "y":0, "z":0}
     >>> any([f(p) for f in equivalent_prices])
     True
@@ -191,13 +191,16 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     ...     item_capacities={"x":1, "y":2, "z":1, "w":2})
     >>> initial_budgets = {"A": 8, "B":6}
     >>> allocation = {"A": {'x', 'y','z'}, "B":{'x','y' ,'z'}}
-    >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, [], allocation)
+    >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
     >>> p = {"x":1, "y":3, "z":2, "w":4}
     >>> any([f(p) for f in equivalent_prices])
     True
     >>> p = {"x":2, "y":2, "z":4, "w":2}
     >>> any([f(p) for f in equivalent_prices])
     True
+    >>> p = {"x":2, "y":2, "z":4, "w":2}
+    >>> any([f(p) for f in equivalent_prices])
+    False
 
     # [(['x', 'y', 'z'], '<=', 8), (['x', 'y', 'z'], '<=', 6), (['w', 'x', 'z'], '>=', 6)]
 
