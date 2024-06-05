@@ -219,13 +219,7 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     equivalent_prices = []
     # The constraints that the bundles they get in allocation meet their budgets
     for student in instance.agents:
-        # sorted_allocation = sorted(allocation[agent])  # Sort the allocation for the agent
-        copy_alloc = allocation[student].copy()
-        # print("alloc")
-        # print(copy_alloc)
-        # equivalent_prices.append(lambda p: sum(p[key] for key in copy_alloc) <= initial_budgets[student])
-        # equivalent_prices.append(lambda p: print(f"sum is {sum(p[key] for key in copy_alloc)}"))
-        equivalent_prices.append(lambda p, agent=student, keys=copy_alloc: (sum(p[key] for key in keys) <= initial_budgets[agent]))
+        equivalent_prices.append(lambda p, agent=student, keys=allocation[student]: (sum(p[key] for key in keys) <= initial_budgets[agent]))
 
     # Constraints that will ensure that this is the allocation that will be accepted
     for student in instance.agents:
@@ -268,7 +262,7 @@ def find_gradient_neighbors(neighbors: list, prices: dict, delta: set, excess_de
     >>> delta = {1}
     >>> excess_demand_vector = {"x":0,"y":2,"z":-2}
     >>> find_gradient_neighbors(neighbors,prices,delta,excess_demand_vector)
-    {'x': 1, 'y': 4, 'z': 0}
+    [{'x': 1, 'y': 4, 'z': 0}]
 
 
      Example run 1 iteration 2
@@ -277,17 +271,24 @@ def find_gradient_neighbors(neighbors: list, prices: dict, delta: set, excess_de
     >>> delta = {1}
     >>> excess_demand_vector = {"x":1,"y":0,"z":0}
     >>> find_gradient_neighbors(neighbors,prices,delta,excess_demand_vector)
-    {'x': 2, 'y': 4, 'z': 0}
+    [{'x': 2, 'y': 4, 'z': 0}]
+
+    >>> neighbors = []
+    >>> prices = {"x": 1, "y": 4, "z": 0}
+    >>> delta = {0.5, 1}
+    >>> excess_demand_vector = {"x":1,"y":0,"z":2}
+    >>> find_gradient_neighbors(neighbors,prices,delta,excess_demand_vector)
+    [{'x': 1.5, 'y': 4.0, 'z': 1.0}, {'x': 2, 'y': 4, 'z': 2}]
     """
-
+    new_neighbors = []
     updated_prices = {}
-    for item, price in prices.items():
-        for d in delta:
-            updated_prices[item] = max(0, price + d * excess_demand_vector.get(item, 0))
+    for d in delta:
+        for course, price in prices.items():
+            updated_prices[course] = max(0, price + d * excess_demand_vector.get(course, 0))
             # if updated_prices not in history:
-            neighbors.append(updated_prices.copy())  # Using copy() to append a new dictionary to the list
+        new_neighbors.append(updated_prices.copy())  # Using copy() to append a new dictionary to the list
 
-    return updated_prices
+    return new_neighbors
 
 
 def differ_in_one_value(original_allocation: dict, new_allocation: dict, course: str) -> bool:
@@ -380,7 +381,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
     >>> find_individual_price_adjustment_neighbors(instance,neighbors, history, prices, excess_demand_vector, initial_budgets, allocation)
     [{'x': 2, 'y': 4, 'z': 0}, {'x': 3, 'y': 4, 'z': 0}]
     """
-
+    new_neighbors = []
     for course, excess_demand in excess_demand_vector.items():
         if excess_demand == 0:
             continue
@@ -395,16 +396,16 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
                 new_allocation = student_best_bundle(updated_prices, instance, initial_budgets)
                 if (differ_in_one_value(new_allocation, allocation, course) and updated_prices not in neighbors):
                     logger.info(f"Found new allocation for {allocation}")
-                    neighbors.append(updated_prices.copy())
+                    new_neighbors.append(updated_prices.copy())
 
 
         elif excess_demand < 0:
             updated_prices[course] = 0
             # if updated_prices not in history and updated_prices not in neighbors:
             if not all([f(updated_prices) for f in history]) and updated_prices not in neighbors:
-                neighbors.append(updated_prices)
+                new_neighbors.append(updated_prices)
 
-    return neighbors
+    return new_neighbors
 
 
 def find_all_neighbors(instance: Instance, neighbors: list, history: list, prices: dict, delta: set,
@@ -419,9 +420,11 @@ def find_all_neighbors(instance: Instance, neighbors: list, history: list, price
     :param delta: The step size
     """
 
-    find_gradient_neighbors(neighbors, prices, delta, excess_demand_vector)
-    # find_individual_price_adjustment_neighbors(instance, neighbors, history, prices,
-    #                                            excess_demand_vector, initial_budgets, allocation)
+    gradient_neighbors = find_gradient_neighbors(neighbors, prices, delta, excess_demand_vector)
+    individual_price_adjustment_neighbors = find_individual_price_adjustment_neighbors(instance, neighbors, history, prices,
+                                               excess_demand_vector, initial_budgets, allocation)
+
+    return gradient_neighbors.extend(individual_price_adjustment_neighbors)
 
 
 def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: dict):
@@ -456,18 +459,15 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     {'x': 2, 'y': 4, 'z': 0}
 
     """
-    min_error = float('inf')
-    prices_vector = None
+    errors = []
     for neighbor in neighbors:
         allocation = student_best_bundle(neighbor, instance, initial_budgets)
         error = clipped_excess_demand(instance, neighbor, allocation)
         norma2 = np.linalg.norm(np.array(list(error.values())))
+        errors.append(norma2)
 
-        if norma2 < min_error:
-            min_error = norma2
-            prices_vector = neighbor
-
-    return prices_vector
+    min_error_index = np.argmin(errors)
+    return neighbors[min_error_index]
 
 
 def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, delta: set):
@@ -553,8 +553,9 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
         # • include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑},
         equivalent_prices = find_all_equivalent_prices(alloc.instance, initial_budgets, allocation)
         history.append(equivalent_prices)
-        find_all_neighbors(alloc.instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
+        new_neighbors = find_all_neighbors(alloc.instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
                            allocation)
+        neighbors.append(new_neighbors)
 
         # • update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2, and then
         find_min_error_prices(alloc.instance, neighbors, initial_budgets)
