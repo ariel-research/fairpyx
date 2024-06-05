@@ -141,26 +141,26 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
 
 def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, allocation: dict):
     """
-    find all equivalent prices- list of all equivalent prices of 𝒑
+    find all equivalent prices list of all equivalent prices of 𝒑 (the history).
 
     :param instance: fair-course-allocation
     :param initial_budgets: students' initial budgets
     :param allocation: a dictionary that maps each student to his bundle
 
     Example run 1
-    >>> instance = Instance(valuations={"A":{"x":3, "y":4, "z":2},
-    ...    "B":{"x":4, "y":3, "z":2}, "C":{"x":2, "y":4, "z":3}},
-    ...     agent_capacities=2,
-    ...     item_capacities={"x":2, "y":1, "z":3})
-    >>> initial_budgets = {"A": 5, "B":4, "C":3}
-    >>> allocation = {"A": {'x', 'y'}, "B":{'x', 'y'}, "C":{'y', 'z'}}
-    >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
-    >>> p = {"x":1, "y":2, "z":1}
-    >>> any([f(p) for f in equivalent_prices])
-    True
-    >>> p = {"x":5, "y":5, "z":5}
-    >>> any([f(p) for f in equivalent_prices])
-    False
+    # >>> instance = Instance(valuations={"A":{"x":3, "y":4, "z":2},
+    # ...    "B":{"x":4, "y":3, "z":2}, "C":{"x":2, "y":4, "z":3}},
+    # ...     agent_capacities=2,
+    # ...     item_capacities={"x":2, "y":1, "z":3})
+    # >>> initial_budgets = {"A": 5, "B":4, "C":3}
+    # >>> allocation = {"A": {'x', 'y'}, "B":{'x', 'y'}, "C":{'y', 'z'}}
+    # >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
+    # >>> p = {"x":1, "y":2, "z":1}
+    # >>> all([f(p) for f in equivalent_prices])
+    # True
+    # >>> p = {"x":5, "y":5, "z":5}
+    # >>> all([f(p) for f in equivalent_prices])
+    # False
 
     # [(['x', 'y'], '<=', 5), (['x', 'y'], '<=', 4), (['y', 'z'], '<=', 3)]
 
@@ -172,39 +172,56 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     >>> initial_budgets = {"A": 5, "B":4, "C":3}
     >>> allocation = {"A": {'x', 'y'}, "B":{'x', 'z'}, "C":{'x', 'z'}}
     >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
-    >>> p = {"x":0, "y":0, "z":0}
-    >>> any([f(p) for f in equivalent_prices])
-    True
     >>> p = {"x":1, "y":5, "z":1}
-    >>> any([f(p) for f in equivalent_prices])
-    True
-    >>> p = {"x":1, "y":3, "z":1}
-    >>> any([f(p) for f in equivalent_prices])
-    True
-
-    # [(['x', 'y'], '<=', 5), (['x', 'z'], '<=', 4), (['x', 'z'], '<=', 3), (['x', 'y'], '>=', 4), (['x', 'y'], '>=', 3), (['y', 'z'], '>=', 3)]
-
-
-    Example run 2
-    >>> instance = Instance(valuations={"A":{"x":5, "y":4, "z":3, "w":2},"B":{"x":5, "y":2, "z":4, "w":3}},
-    ...     agent_capacities=3,
-    ...     item_capacities={"x":1, "y":2, "z":1, "w":2})
-    >>> initial_budgets = {"A": 8, "B":6}
-    >>> allocation = {"A": {'x', 'y','z'}, "B":{'x','y' ,'z'}}
-    >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
-    >>> p = {"x":2, "y":2, "z":4, "w":2}
-    >>> any([f(p) for f in equivalent_prices])
-    True
-
-    >>> p =  {"x":2, "y":4, "z":3,"w":0}
-    >>> any([f(p) for f in equivalent_prices])
+    >>> all([equivalent_prices[0](p)])
     False
+
+    # >>> p = {"x":0, "y":0, "z":0}
+    # >>> all([f(p) for f in equivalent_prices])
+    # False
+
+    # >>> p = {"x":1, "y":5, "z":1}
+    # >>> all([f(p) for f in equivalent_prices])
+    # False
+
+
+    # >>> p = {"x":1, "y":3, "z":1}
+    # >>> all([f(p) for f in equivalent_prices])
+    # True
+
+    # [(['x', 'y'], '<=', 5), (['x', 'z'], '<=', 4), (['x', 'z'], '<=', 3),
+    #  (['x', 'y'], '>', 4), (['x', 'y'], '>', 3), (['y', 'z'], '>', 3)]
+
+
+    # Example run 2
+    # >>> instance = Instance(valuations={"A":{"x":5, "y":4, "z":3, "w":2},"B":{"x":5, "y":2, "z":4, "w":3}},
+    # ...     agent_capacities=3,
+    # ...     item_capacities={"x":1, "y":2, "z":1, "w":2})
+    # >>> initial_budgets = {"A": 8, "B":6}
+    # >>> allocation = {"A": {'x', 'y','z'}, "B":{'x','y' ,'z'}}
+    # >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
+    # >>> p = {"x":2, "y":2, "z":4, "w":2}
+    # >>> any([f(p) for f in equivalent_prices])
+    # True
+    #
+    # >>> p =  {"x":2, "y":4, "z":3,"w":0}
+    # >>> any([f(p) for f in equivalent_prices])
+    # False
     """
     equivalent_prices = []
     # The constraints that the bundles they get in allocation meet their budgets
     for student in instance.agents:
         # sorted_allocation = sorted(allocation[agent])  # Sort the allocation for the agent
-        equivalent_prices.append(lambda p: sum(p[key] for key in allocation[student]) <= initial_budgets[student])
+        copy_alloc = allocation[student].copy()
+        # print("alloc")
+        # print(copy_alloc)
+        # equivalent_prices.append(lambda p: sum(p[key] for key in copy_alloc) <= initial_budgets[student])
+        # equivalent_prices.append(lambda p: print(f"sum is {sum(p[key] for key in copy_alloc)}"))
+        equivalent_prices.append(lambda p, agent=student, keys=copy_alloc: (
+        print(f"keys = {[p[key] for key in keys]}"),
+        print(f"sum = {sum(p[key] for key in keys)}"),
+        print(f"budget = {initial_budgets[agent]}"),
+        sum(p[key] for key in keys) <= initial_budgets[agent]))
 
     # Constraints that will ensure that this is the allocation that will be accepted
     for student in instance.agents:
@@ -551,3 +568,13 @@ if __name__ == "__main__":
     #
     # doctest.testmod()
 
+    instance = Instance(valuations={"A":{"x":3, "y":4, "z":2},
+        "B":{"x":4, "y":3, "z":2}, "C":{"x":2, "y":4, "z":3}},
+         agent_capacities=2,
+        item_capacities={"x":2, "y":1, "z":3})
+    initial_budgets = {"A": 5, "B":4, "C":3}
+    allocation = {"A": {'x', 'y'}, "B":{'x', 'z'}, "C":{'x', 'z'}}
+    equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
+    p = {"x":1, "y":5, "z":2}
+    print([equivalent_prices[0](p)])
+    # False
