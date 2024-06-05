@@ -390,11 +390,12 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
             for _ in range(35):
                 updated_prices[course] += 1
                 # if updated_prices in history:
+                # if any(all(f(p) for f in sublist) for sublist in history): # todo
                 if all([f(updated_prices) for f in history]):
                     continue
                 # get the new demand of the course
                 new_allocation = student_best_bundle(updated_prices, instance, initial_budgets)
-                if (differ_in_one_value(new_allocation, allocation, course) and updated_prices not in neighbors):
+                if (differ_in_one_value(allocation, new_allocation, course) and updated_prices not in neighbors):
                     logger.info(f"Found new allocation for {allocation}")
                     new_neighbors.append(updated_prices.copy())
 
