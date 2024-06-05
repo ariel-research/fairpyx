@@ -202,9 +202,9 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     """
     equivalent_prices = []
     # The constraints that the bundles they get in allocation meet their budgets
-    for agent in allocation.keys():
+    for student in instance.agents:
         # sorted_allocation = sorted(allocation[agent])  # Sort the allocation for the agent
-        equivalent_prices.append(lambda p: sum(p[key] for key in allocation[agent]) <= initial_budgets[agent])
+        equivalent_prices.append(lambda p: sum(p[key] for key in allocation[student]) <= initial_budgets[student])
 
     # Constraints that will ensure that this is the allocation that will be accepted
     for student in instance.agents:
@@ -214,17 +214,17 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
         for r in range(1, capacity + 1):
             combinations_courses_list.extend(combinations(instance.items, r))
 
-        utility = instance.agent_bundle_value(student, allocation[student])
+        original_utility = instance.agent_bundle_value(student, allocation[student])
 
         for combination in combinations_courses_list:
             current_utility = instance.agent_bundle_value(student, combination)
             sorted_combination = sorted(combination)  # Sort the combination
-            if sorted_combination != sorted(allocation[student]) and current_utility >= utility:
+            if sorted_combination != sorted(allocation[student]) and current_utility > original_utility:
                 # Create a copy of sorted_combination for the lambda function
                 combination_copy = sorted_combination.copy()
 
                 equivalent_prices.append(
-                    lambda p: (sum(p[key] for key in combination_copy) >= initial_budgets[student]))
+                    lambda p: (sum(p[key] for key in combination_copy) > initial_budgets[student]))
 
     return equivalent_prices
 
@@ -512,7 +512,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     """
     # 1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅.
     # courses = instance.items
-    prices = {course: random.uniform(1, 1 + beta) for course in alloc.remaining_item_capacities.keys()}
+    prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
     history = []
 
     # 2)  If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.
