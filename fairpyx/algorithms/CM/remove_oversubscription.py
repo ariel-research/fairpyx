@@ -8,11 +8,12 @@ Naama Shiponi and Ben Dabush
 1/6/2024
 """
 from fairpyx.instances import Instance
+from A_CEEI import course_demands
 """
 Algorithm 2 : The algorithm makes sure that there are no courses that have more students registered than their capacity.
 """
 
-def remove_oversubscription(price_vector: tuple, student_budgets: tuple, instance: Instance, epsilon: float, demand_function: callable):
+def remove_oversubscription(price_vector: tuple, student_budgets: tuple, instance: Instance, epsilon: float, course_demands: callable):
     """
     Perform oversubscription elimination to adjust course prices.
 
@@ -52,99 +53,41 @@ def remove_oversubscription(price_vector: tuple, student_budgets: tuple, instanc
     >>> instance = Instance(
     ...   agent_capacities = {"Alice": 2, "Bob": 3, "Tom": 3}, 
     ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1}, 
-    ...   valuations       = {"Alice": {"c1": 55, "c2": 55, "c3": 100},
-    ...                         "Bob": {"c1": 40, "c2": 60, "c3": 40},
-    ...                         "Tom": {"c1": 70, "c2": 70, "c3": 100}
+    ...   valuations       = {"Alice": {"c1": 50, "c2": 20, "c3": 80},
+    ...                         "Bob": {"c1": 60, "c2": 40, "c3": 30},
+    ...                         "Tom": {"c1": 70, "c2": 30, "c3": 70}
     ... })
-    >>> price_vector = [40, 50, 50]
-    >>> epsilon = 2
-    >>> student_budgets = [90,100,110]
-    >>> remove_oversubscription(price_vector, student_budgets, instance, epsilon, demand_function)
-    [84, 98, 108]
+    >>> price_vector = [1.2,0.9,1]
+    >>> epsilon = 0.1
+    >>> student_budgets = [2.2,2.1,2]
+    >>> remove_oversubscription(price_vector, student_budgets, instance, epsilon, course_demands)
+    [1.26875,0.9, 1.24375]
 
     >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 2, "Bob": 3, "Tom": 3}, 
+    ...   agent_capacities = {"Alice": 3, "Bob": 3, "Tom": 3}, 
+    ...   item_capacities  = {"c1": 3, "c2": 3, "c3": 3}, 
+    ...   valuations       = {"Alice": {"c1": 50, "c2": 20, "c3": 80},
+    ...                         "Bob": {"c1": 60, "c2": 40, "c3": 30},
+    ...                         "Tom": {"c1": 70, "c2": 30, "c3": 70}
+    ... })
+    >>> price_vector = [1.2,0.9,1]
+    >>> epsilon = 0.1
+    >>> student_budgets = [2.2,2.1,2]
+    >>> remove_oversubscription(price_vector, student_budgets, instance, epsilon, course_demands)
+    [1.2,0.9,1]
+
+    >>> instance = Instance(
+    ...   agent_capacities = {"Alice": 3, "Bob": 3, "Tom": 3}, 
     ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1}, 
-    ...   valuations       = {"Alice": {"c1": 55, "c2": 55, "c3": 100},
-    ...                         "Bob": {"c1": 40, "c2": 60, "c3": 40},
-    ...                         "Tom": {"c1": 70, "c2": 70, "c3": 100}
+    ...   valuations       = {"Alice": {"c1": 50, "c2": 20, "c3": 80},
+    ...                         "Bob": {"c1": 60, "c2": 40, "c3": 30},
+    ...                         "Tom": {"c1": 70, "c2": 30, "c3": 70}
     ... })
-    >>> price_vector = [40, 50, 50]
-    >>> epsilon = 1
-    >>> student_budgets = [90,100,110]
-    >>> remove_oversubscription(price_vector, student_budgets, instance, epsilon, demand_function)
-    [82, 99, 109]
-
-    >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 2, "Bob": 3, "Tom": 3}, 
-    ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1}, 
-    ...   valuations       = {"Alice": {"c1": 55, "c2": 55, "c3": 100},
-    ...                         "Bob": {"c1": 40, "c2": 60, "c3": 40},
-    ...                         "Tom": {"c1": 70, "c2": 70, "c3": 100}
-    ... })
-    >>> price_vector = [0, 0, 0]
-    >>> epsilon = 2
-    >>> student_budgets = [90,100,110]
-    >>> remove_oversubscription(price_vector, student_budgets, instance, epsilon, demand_function)
-    [85, 99, 108]
-    """
-    pass
-
-def demand_function(p: list,instance: Instance, student_budgets: list):
-    """
-    :param p (list): Price vector
-    :param instance (Instance)
-    :param student_budgets (list of floats): List of student budgets 
-  
-    :return (list) List of demands for each course.
-    
-    :example
-    >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 2, "Bob": 3, "Tom": 3},
-    ...   item_capacities  = {"x": 1, "y": 1, "z": 1},
-    ...   valuations       = {"Alice": {"x": 55, "y": 55, "z": 100},
-    ...                         "Bob": {"x": 40, "y": 60, "z": 40},
-    ...                         "Tom": {"x": 70, "y": 70, "z": 100}})
-    >>> p = [40, 50, 50]
-    >>> student_budgets = [110, 100, 90]
-    >>> demand_function(p,instance, student_budgets)
-    [1, 3, 2]
-
-    >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 2, "Bob": 3, "Tom": 3},
-    ...   item_capacities  = {"x": 1, "y": 1, "z": 1},
-    ...   valuations       = {"Alice": {"x": 55, "y": 55, "z": 100},
-    ...                         "Bob": {"x": 40, "y": 60, "z": 40},
-    ...                         "Tom": {"x": 70, "y": 70, "z": 100}
-    ... })
-    >>> p = [200, 200, 200]
-    >>> student_budgets = [110, 100, 90]
-    >>> demand_function(p,instance, student_budgets)
-    [0, 0, 0]
-
-    >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 2, "Bob": 3, "Tom": 3},
-    ...   item_capacities  = {"x": 1, "y": 1, "z": 1},
-    ...   valuations       = {"Alice": {"x": 55, "y": 55, "z": 100},
-    ...                         "Bob": {"x": 40, "y": 60, "z": 40},
-    ...                         "Tom": {"x": 70, "y": 70, "z": 100}
-    ... })
-    >>> p = [0, 0, 0]
-    >>> student_budgets = [110, 100, 90]
-    >>> demand_function(p,instance, student_budgets)
-    [2, 3, 2]
-
-    >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 2, "Bob": 3, "Tom": 3},
-    ...   item_capacities  = {"x": 1, "y": 1, "z": 1},
-    ...   valuations       = {"Alice": {"x": 55, "y": 55, "z": 100},
-    ...                         "Bob": {"x": 40, "y": 60, "z": 40},
-    ...                         "Tom": {"x": 70, "y": 70, "z": 100}
-    ... })
-    >>> p = [70, 60, 110]
-    >>> student_budgets = [110, 80, 90]
-    >>> demand_function(p,instance, student_budgets)
-    [1, 1, 1]
+    >>> price_vector = [0,0,0]
+    >>> epsilon = 0.1
+    >>> student_budgets = [2.2,2.1,2]
+    >>> remove_oversubscription(price_vector, student_budgets, instance, epsilon, course_demands)
+    [2.0375,1.6875, 2.084375]
     """
     pass
 
