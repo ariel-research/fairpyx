@@ -1,3 +1,12 @@
+"""
+"Practical algorithms and experimentally validated incentives
+for equilibrium-based fair division (A-CEEI)"
+tests for algorithm 3 - Tabu Search
+
+Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
+Since: 2024-01
+"""
+
 import random
 
 import pytest

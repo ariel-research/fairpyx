@@ -1,4 +1,7 @@
 """
+"Practical algorithms and experimentally validated incentives
+for equilibrium-based fair division (A-CEEI)"
+
 Implement "Tabu search" course allocation,
 
 Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
@@ -13,6 +16,104 @@ import numpy as np
 from fairpyx import Instance, AllocationBuilder
 
 logger = logging.getLogger(__name__)
+
+
+def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, delta: set):
+    """
+   "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
+    by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
+    ALGORITHM 3: Tabu search
+
+   :param alloc: a fair-course-allocation instance
+   :param initial_budgets: Students' initial budgets, b_0∈[1,1+β]^n
+   :param beta: creates the range of initial_budgets
+
+   :return final courses prices, final distribution
+
+    >>> from fairpyx.adaptors import divide
+    >>> from fairpyx.utils.test_utils import stringify
+    >>> from fairpyx import Instance
+
+    # >>> instance = Instance(
+    # ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
+    # ... agent_capacities=2,
+    # ... item_capacities={"x":2, "y":1, "z":3})
+    # >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
+    # >>> beta = 4
+    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    # "{ami:['y','z'], tami:['x', 'z'], tzumi:['x', 'z'] }"
+
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":5, "y":4, "z":3, "w":2}, "tami":{"x":5, "y":2, "z":4, "w":3}},
+    ... agent_capacities=3,
+    ... item_capacities={"x":1, "y":2, "z":1, "w":2})
+    >>> initial_budgets={"ami":8, "tami":6}
+    >>> beta = 9
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    "{ami:['x','y','z'], tami:['x', 'z', 'w']}"
+
+    # >>> instance = Instance(
+    # ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
+    # ... agent_capacities=2,
+    # ... item_capacities={"x":1, "y":2, "z":2, "w":1})
+    # >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
+    # >>> beta = 5
+    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    # "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
+    #
+    # >>> instance = Instance(
+    # ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
+    # ... agent_capacities=2,
+    # ... item_capacities={"x":1, "y":2, "z":3})
+    # >>> initial_budgets={"ami":6, "tami":4}
+    # >>> beta = 6
+    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    # "{ami:['x','y'], tami:['y', 'z']}"
+    #
+    # >>> instance = Instance(
+    # ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
+    # ... agent_capacities=2,
+    # ... item_capacities={"x":1, "y":1, "z":1})
+    # >>> initial_budgets={"ami":5, "tami":3}
+    # >>> beta = 6
+    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    # "{ami:['y','z'], tami:['x']}"
+    """
+    logger.info("START ALGORITHM")
+    logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅")
+    prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
+    history = []
+
+    logger.info("2)  If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.")
+    norma2 = 1
+    while norma2:
+        neighbors = []  # resets on every iteration
+        allocation = student_best_bundle(prices, alloc.instance, initial_budgets)
+        excess_demand_vector = clipped_excess_demand(alloc.instance, prices, allocation)
+        values = np.array(list(excess_demand_vector.values()))
+        norma2 = np.linalg.norm(values)
+
+        logger.info("If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑")
+        if np.allclose(norma2, 0):
+            break
+
+        logger.info("3) Otherwise, include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑}")
+        equivalent_prices = find_all_equivalent_prices(alloc.instance, initial_budgets, allocation)
+        history.append(equivalent_prices)
+        new_neighbors = find_all_neighbors(alloc.instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
+                           allocation)
+        neighbors.append(new_neighbors)
+
+        logger.info("update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
+        find_min_error_prices(alloc.instance, neighbors, initial_budgets)
+
+    # print the final price (p* = prices) for each course
+    logger.info(f"\nfinal prices p* = {prices}")
+
+    for student, (price, bundle) in allocation.items():
+        logger.info(f"Giving {bundle} to {student}")
+        alloc.give_bundle(student, bundle)
+    return allocation
 
 
 def excess_demand(instance: Instance, allocation: dict):
@@ -472,102 +573,6 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     return neighbors[min_error_index]
 
 
-def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, delta: set):
-    """
-   "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
-    by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
-    ALGORITHM 3: Tabu search
-
-   :param alloc: a fair-course-allocation instance
-   :param initial_budgets: Students' initial budgets, b_0∈[1,1+β]^n
-   :param beta: creates the range of initial_budgets
-
-   :return final courses prices, final distribution
-
-    >>> from fairpyx.adaptors import divide
-    >>> from fairpyx.utils.test_utils import stringify
-    >>> from fairpyx import Instance
-
-    # >>> instance = Instance(
-    # ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
-    # ... agent_capacities=2,
-    # ... item_capacities={"x":2, "y":1, "z":3})
-    # >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
-    # >>> beta = 4
-    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    # "{ami:['y','z'], tami:['x', 'z'], tzumi:['x', 'z'] }"
-
-    >>> instance = Instance(
-    ... valuations={"ami":{"x":5, "y":4, "z":3, "w":2}, "tami":{"x":5, "y":2, "z":4, "w":3}},
-    ... agent_capacities=3,
-    ... item_capacities={"x":1, "y":2, "z":1, "w":2})
-    >>> initial_budgets={"ami":8, "tami":6}
-    >>> beta = 9
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    "{ami:['x','y','z'], tami:['x', 'z', 'w']}"
-
-    # >>> instance = Instance(
-    # ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
-    # ... agent_capacities=2,
-    # ... item_capacities={"x":1, "y":2, "z":2, "w":1})
-    # >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
-    # >>> beta = 5
-    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    # "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
-    #
-    # >>> instance = Instance(
-    # ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
-    # ... agent_capacities=2,
-    # ... item_capacities={"x":1, "y":2, "z":3})
-    # >>> initial_budgets={"ami":6, "tami":4}
-    # >>> beta = 6
-    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    # "{ami:['x','y'], tami:['y', 'z']}"
-    #
-    # >>> instance = Instance(
-    # ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
-    # ... agent_capacities=2,
-    # ... item_capacities={"x":1, "y":1, "z":1})
-    # >>> initial_budgets={"ami":5, "tami":3}
-    # >>> beta = 6
-    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    # "{ami:['y','z'], tami:['x']}"
-    """
-    logger.info("START ALGORITHM")
-    logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅")
-    prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
-    history = []
-
-    logger.info("2)  If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.")
-    norma2 = 1
-    while norma2:
-        neighbors = []  # resets on every iteration
-        allocation = student_best_bundle(prices, alloc.instance, initial_budgets)
-        excess_demand_vector = clipped_excess_demand(alloc.instance, prices, allocation)
-        values = np.array(list(excess_demand_vector.values()))
-        norma2 = np.linalg.norm(values)
-
-        logger.info("If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑")
-        if np.allclose(norma2, 0):
-            break
-
-        logger.info("3) Otherwise, include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑}")
-        equivalent_prices = find_all_equivalent_prices(alloc.instance, initial_budgets, allocation)
-        history.append(equivalent_prices)
-        new_neighbors = find_all_neighbors(alloc.instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
-                           allocation)
-        neighbors.append(new_neighbors)
-
-        logger.info("update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
-        find_min_error_prices(alloc.instance, neighbors, initial_budgets)
-
-    # print the final price (p* = prices) for each course
-    logger.info(f"\nfinal prices p* = {prices}")
-
-    for student, (price, bundle) in allocation.items():
-        logger.info(f"Giving {bundle} to {student}")
-        alloc.give_bundle(student, bundle)
-    return allocation
 
 
 if __name__ == "__main__":
