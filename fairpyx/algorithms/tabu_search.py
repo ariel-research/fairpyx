@@ -136,6 +136,7 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
                 best_bundle[student] = combination
                 break
 
+    logger.info(f"best bundle is {best_bundle}")
     return best_bundle
 
 
@@ -391,8 +392,8 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
                 updated_prices[course] += 1
                 # if updated_prices in history:
                 # if any(all(f(p) for f in sublist) for sublist in history): # todo
-                if all([f(updated_prices) for f in history]):
-                    continue
+                # if all([f(updated_prices) for f in history]):
+                #     continue
                 # get the new demand of the course
                 new_allocation = student_best_bundle(updated_prices, instance, initial_budgets)
                 if (differ_in_one_value(allocation, new_allocation, course) and updated_prices not in neighbors):
@@ -403,7 +404,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
         elif excess_demand < 0:
             updated_prices[course] = 0
             # if updated_prices not in history and updated_prices not in neighbors:
-            if not all([f(updated_prices) for f in history]) and updated_prices not in neighbors:
+            if updated_prices not in neighbors: #todo: add it: not all([f(updated_prices) for f in history]) and
                 new_neighbors.append(updated_prices)
 
     return new_neighbors
@@ -532,12 +533,12 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
     # "{ami:['y','z'], tami:['x']}"
     """
-    # 1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅.
-    # courses = instance.items
+    logger.info("START ALGORITHM")
+    logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅")
     prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
     history = []
 
-    # 2)  If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.
+    logger.info("2)  If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.")
     norma2 = 1
     while norma2:
         neighbors = []  # resets on every iteration
@@ -546,27 +547,31 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
         values = np.array(list(excess_demand_vector.values()))
         norma2 = np.linalg.norm(values)
 
-        # If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑
+        logger.info("If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑")
         if np.allclose(norma2, 0):
             break
 
-        # 3) Otherwise,
-        # • include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑},
+        logger.info("3) Otherwise, include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑}")
         equivalent_prices = find_all_equivalent_prices(alloc.instance, initial_budgets, allocation)
         history.append(equivalent_prices)
         new_neighbors = find_all_neighbors(alloc.instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
                            allocation)
         neighbors.append(new_neighbors)
 
-        # • update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2, and then
+        logger.info("update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
         find_min_error_prices(alloc.instance, neighbors, initial_budgets)
 
     # print the final price (p* = prices) for each course
     logger.info(f"\nfinal prices p* = {prices}")
+
+    for student, (price, bundle) in allocation.items():
+        logger.info(f"Giving {bundle} to {student}")
+        alloc.give_bundle(student, bundle)
     return allocation
 
 
 if __name__ == "__main__":
+    from fairpyx.adaptors import divide
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
 
@@ -574,16 +579,11 @@ if __name__ == "__main__":
     #
     # doctest.testmod()
 
-    instance = Instance(valuations={"A":{"x":3, "y":4, "z":2},
-        "B":{"x":4, "y":3, "z":2}, "C":{"x":2, "y":4, "z":3}},
-         agent_capacities=2,
-        item_capacities={"x":2, "y":1, "z":3})
-    initial_budgets = {"A": 5, "B":4, "C":3}
-    allocation = {"A": {'x', 'y'}, "B":{'x', 'z'}, "C":{'x', 'z'}}
-    equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
-    p = {"x":1, "y":5, "z":2}
-    lista = list(equivalent_prices[0](p))
-    print(lista)
-    print(all(lista))
-    # print(all([equivalent_prices[0](p)]))
-    # False
+    instance = Instance(
+    valuations={"ami":{"x":5, "y":4, "z":3, "w":2}, "tami":{"x":5, "y":2, "z":4, "w":3}},
+    agent_capacities=3,
+    item_capacities={"x":1, "y":2, "z":1, "w":2})
+    initial_budgets={"ami":8, "tami":6}
+    beta = 9
+    print(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    # "{ami:['x','y','z'], tami:['x', 'z', 'w']}"
