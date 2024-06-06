@@ -10,8 +10,7 @@ Date: 1/6/2024
 import random
 import time
 import numpy as np
-from fairpyx.instances import Instance
-from fairpyx import Instance, AllocationBuilder, divide
+from fairpyx import Instance, AllocationBuilder
 
 """
 Algorithm 1: Approximate Competitive Equilibrium from Equal Incomes (A-CEEI), finds the best price vector that matches student preferences and course capacities.
@@ -20,7 +19,7 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60):
     """
     Perform heuristic search to find the best price vector that matches student preferences and course capacities.
 
-    :param instance (Instance): Instance object.
+    :param allocation: Allocation object.
     :param budget (float): Initial budget.
     :param time (float): Time limit for the search.
 
@@ -90,7 +89,7 @@ def find_preferred_schedule(alloc: AllocationBuilder):
     """
     Find the preferred schedule for each student.
 
-    :param instance: Instance object.
+    :param allocation: Allocation object.
 
     :return (dict) Dictionary of preferred schedules.
     """
@@ -100,7 +99,7 @@ def find_preferred_schedule(alloc: AllocationBuilder):
 def course_demands(price_vector: dict ,alloc: AllocationBuilder,  budget : dict, preferred_schedule: dict):
     """
     :param price_vector: List of prices.
-    :param instance: Instance object.
+    :param allocation: Allocation object.
     :param budget: Dictionary of budgets.
     :param preferred_schedule: Dictionary of preferred schedules.
 
@@ -237,7 +236,7 @@ def alpha(demands: dict):
 def find_neighbors(price_vector: dict ,alloc: AllocationBuilder, budget : dict, steps: list, preferred_schedule: dict):    
     """
     :param price_vector: List of prices.
-    :param instance: Instance object.
+    :param allocation: Allocation object.
     :param budget: Dictionary of budgets.
     :param steps: List of steps.
     :param preferred_schedule: Dictionary of preferred schedules.
@@ -275,7 +274,7 @@ def generate_individual_adjustment_neighbors(price_vector: dict, alloc: Allocati
     Generate individual adjustment neighbors.
 
     :param price_vector: List of prices.
-    :param instance: Instance object.
+    :param allocation: Allocation object.
     :param demands: Dictionary of course demands.
     :param budget: Dictionary of budgets.
     :param preferred_schedule: Dictionary of preferred schedules.
