@@ -8,41 +8,8 @@ import cvxpy
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import cvxpy as cp
 import logging
+import fairpyx.algorithms.Optimization_based_Mechanisms.optimal_functions as optimal
 logger = logging.getLogger(__name__)
-
-# check that the number of students who took course j does not exceed the capacity of the course
-def notExceedtheCapacity(constraints, var, alloc):
-    for j, course in enumerate(alloc.remaining_items()):
-        constraints.append(cp.sum(var[j, :]) <= alloc.remaining_item_capacities[course])
-
-        for i, student in enumerate(alloc.remaining_agents()):
-            if (student, course) in alloc.remaining_conflicts:
-                constraints.append(var[j, i] == 0)
-
-
-# check that each student receives only one course in each iteration
-def numberOfCourses(constraints, var, alloc, less_then):
-    for i, student in enumerate(alloc.remaining_agents()):
-        constraints.append(cp.sum(var[:, i]) <= less_then)
-
-def alloctions(alloc, var, logger):
-    # Extract the optimized values of x
-    x_values = var.value
-    logger.info("x_values - the optimum allocation: %s", x_values)
-
-    # Initialize a dictionary where each student will have an empty list
-    assign_map_courses_to_student = {student: [] for student in alloc.remaining_agents()}
-
-    # Iterate over students and courses to populate the lists
-    for i, student in enumerate(alloc.remaining_agents()):
-        for j, course in enumerate(alloc.remaining_items()):
-            if x_values[j, i] == 1:
-                assign_map_courses_to_student[student].append(course)
-
-    # Assign the courses to students based on the dictionary
-    for student, courses in assign_map_courses_to_student.items():
-        for course in courses:
-            alloc.give(student, course)
 
 def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger()):
     """
@@ -71,42 +38,16 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in
                          alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
     logger.info("Max iterations: %d", max_iterations)
+
+    # the amount of bids agent have from all the courses he got before
+    map_student_to_his_sum_bids = {s: 0 for s in alloc.remaining_agents()}
+
     for iteration in range(max_iterations):
         logger.info("Iteration number: %d", iteration+1)
         if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
             logger.info("There are no more agents (%d) or items(%d) ", len(alloc.remaining_agent_capacities),len(alloc.remaining_item_capacities))
             break
 
-        rank_mat = [[0 for _ in range(len(alloc.remaining_agents()))] for _ in range(len(alloc.remaining_items()))]
-
-        for i, student in enumerate(alloc.remaining_agents()):
-            map_courses_to_student = alloc.remaining_items_for_agent(student)
-            sorted_courses = sorted(map_courses_to_student, key=lambda course: alloc.effective_value(student, course))
-
-            for j, course in enumerate(alloc.remaining_items()):
-                if course in sorted_courses:
-                    rank_mat[j][i] = sorted_courses.index(course) + 1
-                else:
-                    rank_mat[j][i] = len(sorted_courses) + 1
-
-        logger.info("Rank matrix: %s", rank_mat)
-
-        x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
-
-        objective_Zt1 = cp.Maximize(cp.sum([rank_mat[j][i] * x[j, i]
-                                            for j, course in enumerate(alloc.remaining_items())
-                                            for i, student in enumerate(alloc.remaining_agents())
-                                            if (student, course) not in alloc.remaining_conflicts]))
-
-        constraints_Zt1 = []
-
-        # condition number 7:
-        notExceedtheCapacity(constraints_Zt1, x, alloc)
-
-        # condition number 8:
-        numberOfCourses(constraints_Zt1, x, alloc, 1)
-
-        problem = cp.Problem(objective_Zt1, constraints=constraints_Zt1)
         result_Zt1 = problem.solve()  # This is the optimal value of program (6)(7)(8)(9).
 
         logger.info("result_Zt1 - the optimum ranking: %d", result_Zt1)

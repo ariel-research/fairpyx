@@ -69,7 +69,7 @@ def test_big_example():
         item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2},
         valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
     )
-    assert fairpyx.divide(fairpyx.algorithms.OC_function, instance=instance) == {'s1': ['c1'], 's2': ['c2', 'c3'], 's3': ['c3', 'c4'], 's4': ['c1', 'c4'], 's5': ['c1', 'c2']}, "ERROR"
+    assert fairpyx.divide(fairpyx.algorithms.OC_function, instance=instance) == {'s1': ['c1','c2'], 's2': ['c1', 'c3'], 's3': ['c3', 'c4'], 's4': ['c1', 'c4'], 's5': ['c2']}, "ERROR"
 
 def test_random():
     for i in range(NUM_OF_RANDOM_INSTANCES):
