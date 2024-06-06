@@ -1,8 +1,8 @@
 """
-"Practical algorithms and experimentally validated incentives
-for equilibrium-based fair division (A-CEEI)"
+    "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
+     by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
+     ALGORITHM 1: find an A-CEEI with (contested) EF-TB property
 
-Implement an " A-CEEI with (contested) EF-TB property" course allocation,
 
 Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
 Since: 2024-01
@@ -26,10 +26,6 @@ logger = logging.getLogger(__name__)
 
 def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta: float, epsilon: float, t: Enum):
     """
-    "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
-     by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
-     ALGORITHM 1: find an A-CEEI with (contested) EF-TB property
-
     :param instance: a fair-course-allocation instance
     :param initial_budgets: Students' initial budgets
     :param delta: The step size

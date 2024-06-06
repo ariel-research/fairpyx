@@ -1,8 +1,7 @@
 """
-"Practical algorithms and experimentally validated incentives
-for equilibrium-based fair division (A-CEEI)"
-
-Implement "Tabu search" course allocation,
+"Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
+    by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
+    ALGORITHM 3: Tabu search
 
 Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
 Since: 2024-01
@@ -20,10 +19,6 @@ logger = logging.getLogger(__name__)
 
 def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, delta: set):
     """
-   "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
-    by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
-    ALGORITHM 3: Tabu search
-
    :param alloc: a fair-course-allocation instance
    :param initial_budgets: Students' initial budgets, b_0∈[1,1+β]^n
    :param beta: creates the range of initial_budgets

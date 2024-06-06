@@ -1,8 +1,8 @@
 """
-"Practical algorithms and experimentally validated incentives
-for equilibrium-based fair division (A-CEEI)"
+"Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
+  by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
+  ALGORITHM 2: Find a profitable manipulation for a student
 
-Implement a "Find a profitable manipulation for a student",
 
 Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
 Since: 2024-05
@@ -31,8 +31,6 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
                                  initial_budgets: dict,
                                  beta: float):
     """
-   "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
-    by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
     ALGORITHM 2: Find a profitable manipulation for a student
 
     :param mechanism: A randomized mechanism M for course-allocation
