@@ -1,6 +1,7 @@
 """
     "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
      by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
+    link to the article: https://arxiv.org/pdf/2305.11406
      ALGORITHM 1: find an A-CEEI with (contested) EF-TB property
 
 
@@ -24,8 +25,12 @@ class EFTBStatus(Enum):
 
 logger = logging.getLogger(__name__)
 
+# ---------------------The main function---------------------
+
 def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta: float, epsilon: float, t: Enum):
     """
+    ALGORITHM 1: find an A-CEEI with (contested) EF-TB property
+
     :param instance: a fair-course-allocation instance
     :param initial_budgets: Students' initial budgets
     :param delta: The step size
@@ -150,7 +155,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     # print the final price (p* = prices) for each course
     logger.info(f"\nfinal prices p* = {prices}")
 
-
+# ---------------------helper functions:---------------------
 def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: any, initial_budgets: dict):
     """
     Return a dict that says for each budget what is the bundle with the maximum utility that a student can take

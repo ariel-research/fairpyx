@@ -1,6 +1,7 @@
 """
 "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
   by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
+  link to the article: https://arxiv.org/pdf/2305.11406
   ALGORITHM 2: Find a profitable manipulation for a student
 
 
@@ -25,6 +26,7 @@ class criteria_for_profitable_manipulation(Enum):
 logger = logging.getLogger(__name__)
 NUMBER_OF_ITERATIONS = 10
 
+# ---------------------The main function---------------------
 
 def find_profitable_manipulation(mechanism: callable, student: str, true_student_utility: dict,
                                  criteria: Enum, neu: float, instance: Instance, delta: float, epsilon: float, t: Enum,
@@ -160,6 +162,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     logger.info("NO MENIPULATION" if true_student_utility==current_best_manipulation else "MENIPULATION!!!!!")
     return current_best_manipulation
 
+# ---------------------helper functions:---------------------
 def random_initial_budgets(instance: Instance, beta: float):
 
     """

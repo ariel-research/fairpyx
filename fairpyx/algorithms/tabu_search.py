@@ -1,6 +1,7 @@
 """
 "Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
     by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
+    link to the article: https://arxiv.org/pdf/2305.11406
     ALGORITHM 3: Tabu search
 
 Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
@@ -16,9 +17,11 @@ from fairpyx import Instance, AllocationBuilder
 
 logger = logging.getLogger(__name__)
 
-
+# ---------------------The main function---------------------
 def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, delta: set):
     """
+    ALGORITHM 3: Tabu search
+
    :param alloc: a fair-course-allocation instance
    :param initial_budgets: Students' initial budgets, b_0∈[1,1+β]^n
    :param beta: creates the range of initial_budgets
@@ -110,7 +113,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
         alloc.give_bundle(student, bundle)
     return allocation
 
-
+# ---------------------helper functions:---------------------
 def excess_demand(instance: Instance, allocation: dict):
     """
     Calculate for every course its excess demand
