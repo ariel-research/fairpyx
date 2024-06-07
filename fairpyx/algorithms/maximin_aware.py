@@ -47,7 +47,7 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
     >>> divide(divide_and_choose_for_three, valuations={"Alice": [5,7,3,5], "Bob": [2,4,6,7], "Claire":[2,2,2,2]})
     {'Alice': [0, 2], 'Bob': [3], 'Claire': [1]}
     """
-    DnC = {
+    TEXT = {
         "algorithm_starts": {
             "he": "אלגוריתם חלק ובחר לשלושה סוכנים מתחיל",
             "en": "Divide-and-Choose Algorithm for Three Agents starts",
@@ -112,7 +112,7 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
     }
 
     def _(code: str):
-        return DnC[code][explanation_logger.language]
+        return TEXT[code][explanation_logger.language]
 
     instance = alloc.instance
     check_value(instance, algo_prefix="divide and choose: ")
