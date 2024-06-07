@@ -18,94 +18,6 @@ from fairpyx import Instance, AllocationBuilder, divide, ExplanationLogger, Agen
 logger = logging.getLogger(__name__)
 
 
-def check_value(instance: Instance, algo_prefix: str):
-    for item in instance.items:
-        if instance.item_capacity(item) != 1:
-            raise ValueError(algo_prefix + "item capacity restricted to only one")
-
-    for agent in instance.agents:
-        if instance.agent_capacity(agent) < instance.num_of_items:
-            raise ValueError(algo_prefix + "agent capacity should be as many as the items")
-
-
-def approx_leximin_partition(valuation: dict, n: int = 3, result: out.OutputType = out.Partition):
-    """
-    Provides approximate leximin partition
-
-    **Info:**
-    A leximin n-partition is a partition which divides the items into n subsets and
-    maximizes the lexicographical order when the values of the partitions are sorted in non-decreasing
-    order. In other words, it maximizes the minimum value over all possible n partitions,
-    and if there is a tie it selects the one maximizing the second minimum value, and so on.
-
-    Since such partition is NP-Hard, a partition where it maximises the smallest sum is used instead.
-
-    :param valuation: a dictionary to represent the items and their valuations
-    :param n: the number of subsets required
-    :param result: the desired result, default is a partition represented by item keys, anything else is for testing and
-     debugging purposes
-
-
-    >>> print(approx_leximin_partition({0:9,1:10}))
-    [[], [0], [1]]
-
-    >>> approx_leximin_partition({0:2,1:8,2:8,3:7},result=out.PartitionAndSumsTuple)
-    (array([8., 8., 9.]), [[1], [2], [0, 3]])
-
-    >>> approx_leximin_partition({0:2,1:8,2:8,3:7,4:5,5:2,6:3},result=out.PartitionAndSumsTuple)
-    (array([11., 11., 13.]), [[2, 6], [0, 3, 5], [1, 4]])
-
-    >>> approx_leximin_partition({0:2,1:2,2:2,3:2},result=out.PartitionAndSumsTuple)
-    (array([2., 2., 4.]), [[2], [1], [0, 3]])
-    """
-    prt = partition(algorithm=integer_programming.optimal, numbins=n, items=valuation, outputtype=result,
-                    objective=obj.MaximizeSmallestSum)
-    return prt
-
-
-def get_bundle_rankings(instance: Instance, agent, bundles: list) -> list:
-    """
-    checks the ranking of bundles according to agent's preferences
-    :param instance: the current instance
-    :param agent: the questioned agent
-    :param bundles: a list of bundles
-    :return: the bundle list  sorted according to the ranking
-    >>> inst1 = Instance(valuations={"Alice": [9,10], "Bob": [7,5], "Claire":[2,8]})
-    >>> get_bundle_rankings(instance=inst1, agent='Alice', bundles=[[], [0], [1]])
-    [[1], [0], []]
-
-    >>> get_bundle_rankings(instance=inst1, agent='Bob', bundles=[[], [0], [1]])
-    [[0], [1], []]
-
-    >>> inst2 = Instance(valuations={"Alice": [2,2,6,7], "Bob": [5,3,7,5], "Claire":[2,2,2,2]})
-    >>> rank_a = get_bundle_rankings(instance=inst2, agent='Alice', bundles=[[2], [1], [0, 3]])
-    >>> rank_b = get_bundle_rankings(instance=inst2, agent='Bob', bundles=[[2], [1], [0, 3]])
-    >>> rank_a == rank_b    # instance that goes to step 4 has same ranking
-    True
-    """
-    ranking = sorted(bundles, key=lambda bundle: instance.agent_bundle_value(agent, bundle), reverse=True)
-    return ranking
-
-
-def is_significant_2nd_bundle(instance: Instance, agent, bundles: list) -> bool:
-    """
-    checks the significance of the second priority bundle of an agent
-
-    :param instance: the current instance
-    :param agent: the agent in question
-    :param bundles: a dict which maps a bundle and its items, sorted by priorities
-    :return: if the second bundle has significant value
-
-    >>> inst2 = Instance(valuations={"Alice": [2,2,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]})
-    >>> is_significant_2nd_bundle(instance=inst2, agent='Alice', bundles=[[0, 3], [2], [1]])
-    True
-    >>> is_significant_2nd_bundle(instance=inst2, agent='Bob', bundles=[[0, 3], [1], [2]])
-    True
-    """
-    return (instance.agent_bundle_value(agent, bundles[1]) * 2) > instance.agent_bundle_value(agent, bundles[0]) \
-           + instance.agent_bundle_value(agent, bundles[2])
-
-
 def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger()):
     """
     Algorithm 1: Finds an mma1 allocation for 3 agents using leximin-n-partition.
@@ -302,6 +214,196 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
     repartition(agent1=other_agent, agent2=non_significant_agent, items=unified_bundle)
 
 
+def alloc_by_matching(alloc: AllocationBuilder, explanation_logger=ExplanationLogger()):
+    """
+    Algorithm 2: Finds an 1/2mma or mmax allocation for any amount of agents and items,
+    using graphs and weighted natchings.
+    note: Only valuations are needed
+
+    Examples:
+    >>> divide(alloc_by_matching, valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]})
+    {'Alice': [1], 'Bob': [0], 'Claire': [2, 3]}
+    >>> val_7items = {"Alice": [10,10,6,4,2,2,2], "Bob": [7,5,6,6,6,2,9], "Claire":[2,8,8,7,5,2,3]}
+    >>> divide(alloc_by_matching, valuations=val_7items)
+    {'Alice': [0, 2, 5], 'Bob': [4, 6], 'Claire': [1, 3]}
+    """
+    TEXTS = {
+        "algorithm_starts": {
+            "he": "הליך צמצום קנאה מתחיל",
+            "en": "Algorithm allocation by matching starts.",
+        },
+        "initialization": {
+            "he": "איתחול R:= רשימת פריטים, L:=רשימת סוכנים, A:=מיפוי הקצאות לכל סוכן (ריק)",
+            "en": "initializing R:=items L:=agents A:=allocation (empty for each agent)",
+        },
+        "curr_agents": {
+            "he": "רשימת הסוכנים כרגע: %s",
+            "en": "\tCurrent agents: %s",
+        },
+        "curr_items": {
+            "he": "רשימת הפריטים כרגע: %s",
+            "en": "\tCurrent items: %s",
+        },
+        "compute_matching": {
+            "he": "חשב שידוך מקסימלי בין סוכנים לפריטים, כאשר כל צלע בין סוכן לפריט משקלו כערך הפריט לפי הסוכן",
+            "en": "Compute a maximum weight matching M between items and agents, "
+                  + "where the weight of edge between i∈agents and j∈items is given by valuation of agent i on item j"
+        },
+        "alloc_by_matching": {
+            "he": "עבור כל צלע (פריט, סוכן) בשידוך, הקצה את הפריט לסוכן",
+            "en": "For every edge (i, j) ∈ M, add item j to agent i's bundle, ",
+        },
+        "exclude_items": {
+            "he": "והוצא את הפריט מרשימת הפריטים",
+            "en": "and remove j from items.",
+        },
+        "new_alloc": {
+            "he": "הקצאה החדשה %s",
+            "en": "\tnew allocation: %s.\n",
+        },
+        "updated_alloc": {
+            "he": "הקצאה מעודכנת %s",
+            "en": "\tupdated allocation: %s.\n",
+        },
+        "matching": {
+            "he": "תוצאת השידוך %s\n",
+            "en": "matching: %s.\n",
+        },
+
+    }
+
+    def _(code: str):
+        return TEXTS[code][explanation_logger.language]
+
+    instance = alloc.instance
+    check_value(instance, algo_prefix="alloc by matching: ")
+    # 1: Initiate L = N and R = M.
+    explanation_logger.info(_("algorithm_starts"))
+    explanation_logger.info("\n" + _("initialization"))
+    agents: list = list(instance.agents)  # L = N := group of agents
+    items: list = list(instance.items)  # R = M := list of items to allocate
+    # 2: Initiate A_i =∅ for all i ∈ N.
+    alloc_dict = {agent: [] for agent in agents}
+    # print("alloc_dict init %s", alloc_dict)
+
+    # 3: while R =∅ do
+    explanation_logger.debug("\t" + _("curr_agents"), agents)
+    explanation_logger.debug("\t" + _("curr_items"), items)
+    while items:
+        # 4: Compute a maximum weight matching M between L and R, where the weight of edge
+        # between i∈L and j∈R is given by vi(Ai∪{j})−vi(Ai).
+        # If all edges have weight 0,then we compute a maximum cardinality matching M instead.
+        explanation_logger.info("\n" + _("compute_matching"))
+        matching = maximum_matching(instance, agents, items)
+        explanation_logger.debug("\t" + _("matching"), str(matching))
+        # 5: For every edge(i, j)∈M, allocate j to i: Ai = Ai∪{j}
+        explanation_logger.info(_("alloc_by_matching"))
+        new_alloc = {a: bundle + [item]
+                     for agent, bundle in alloc_dict.items()
+                     for a, item in matching if a == agent}
+        explanation_logger.debug(_("new_alloc"), new_alloc)
+        alloc_dict.update(new_alloc)
+        explanation_logger.debug(_("updated_alloc"), alloc_dict)
+        # and exclude j from R: R = R\{j}.
+        explanation_logger.info(_("exclude_items"))
+        to_remove = [item for _, item in matching]
+        items = [item for item in items if item not in to_remove]
+        explanation_logger.debug(_("curr_items"), items)
+        agents = envy_reduction_procedure(alloc_dict, instance, explanation_logger=explanation_logger)
+        explanation_logger.debug(_("curr_agents"), agents)
+
+    for agent, bundle in alloc_dict.items():
+        alloc.give_bundle(agent, bundle, logger=explanation_logger)
+
+
+def check_value(instance: Instance, algo_prefix: str):
+    for item in instance.items:
+        if instance.item_capacity(item) != 1:
+            raise ValueError(algo_prefix + "item capacity restricted to only one")
+
+    for agent in instance.agents:
+        if instance.agent_capacity(agent) < instance.num_of_items:
+            raise ValueError(algo_prefix + "agent capacity should be as many as the items")
+
+
+def approx_leximin_partition(valuation: dict, n: int = 3, result: out.OutputType = out.Partition):
+    """
+    Provides approximate leximin partition
+
+    **Info:**
+    A leximin n-partition is a partition which divides the items into n subsets and
+    maximizes the lexicographical order when the values of the partitions are sorted in non-decreasing
+    order. In other words, it maximizes the minimum value over all possible n partitions,
+    and if there is a tie it selects the one maximizing the second minimum value, and so on.
+
+    Since such partition is NP-Hard, a partition where it maximises the smallest sum is used instead.
+
+    :param valuation: a dictionary to represent the items and their valuations
+    :param n: the number of subsets required
+    :param result: the desired result, default is a partition represented by item keys, anything else is for testing and
+     debugging purposes
+
+
+    >>> print(approx_leximin_partition({0:9,1:10}))
+    [[], [0], [1]]
+
+    >>> approx_leximin_partition({0:2,1:8,2:8,3:7},result=out.PartitionAndSumsTuple)
+    (array([8., 8., 9.]), [[1], [2], [0, 3]])
+
+    >>> approx_leximin_partition({0:2,1:8,2:8,3:7,4:5,5:2,6:3},result=out.PartitionAndSumsTuple)
+    (array([11., 11., 13.]), [[2, 6], [0, 3, 5], [1, 4]])
+
+    >>> approx_leximin_partition({0:2,1:2,2:2,3:2},result=out.PartitionAndSumsTuple)
+    (array([2., 2., 4.]), [[2], [1], [0, 3]])
+    """
+    prt = partition(algorithm=integer_programming.optimal, numbins=n, items=valuation, outputtype=result,
+                    objective=obj.MaximizeSmallestSum)
+    return prt
+
+
+def get_bundle_rankings(instance: Instance, agent, bundles: list) -> list:
+    """
+    checks the ranking of bundles according to agent's preferences
+    :param instance: the current instance
+    :param agent: the questioned agent
+    :param bundles: a list of bundles
+    :return: the bundle list  sorted according to the ranking
+    >>> inst1 = Instance(valuations={"Alice": [9,10], "Bob": [7,5], "Claire":[2,8]})
+    >>> get_bundle_rankings(instance=inst1, agent='Alice', bundles=[[], [0], [1]])
+    [[1], [0], []]
+
+    >>> get_bundle_rankings(instance=inst1, agent='Bob', bundles=[[], [0], [1]])
+    [[0], [1], []]
+
+    >>> inst2 = Instance(valuations={"Alice": [2,2,6,7], "Bob": [5,3,7,5], "Claire":[2,2,2,2]})
+    >>> rank_a = get_bundle_rankings(instance=inst2, agent='Alice', bundles=[[2], [1], [0, 3]])
+    >>> rank_b = get_bundle_rankings(instance=inst2, agent='Bob', bundles=[[2], [1], [0, 3]])
+    >>> rank_a == rank_b    # instance that goes to step 4 has same ranking
+    True
+    """
+    ranking = sorted(bundles, key=lambda bundle: instance.agent_bundle_value(agent, bundle), reverse=True)
+    return ranking
+
+
+def is_significant_2nd_bundle(instance: Instance, agent, bundles: list) -> bool:
+    """
+    checks the significance of the second priority bundle of an agent
+
+    :param instance: the current instance
+    :param agent: the agent in question
+    :param bundles: a dict which maps a bundle and its items, sorted by priorities
+    :return: if the second bundle has significant value
+
+    >>> inst2 = Instance(valuations={"Alice": [2,2,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]})
+    >>> is_significant_2nd_bundle(instance=inst2, agent='Alice', bundles=[[0, 3], [2], [1]])
+    True
+    >>> is_significant_2nd_bundle(instance=inst2, agent='Bob', bundles=[[0, 3], [1], [2]])
+    True
+    """
+    return (instance.agent_bundle_value(agent, bundles[1]) * 2) > instance.agent_bundle_value(agent, bundles[0]) \
+           + instance.agent_bundle_value(agent, bundles[2])
+
+
 def create_envy_graph(instance: Instance, allocation: dict,
                       explanation_logger: ExplanationLogger = ExplanationLogger()):
     """
@@ -471,108 +573,6 @@ def maximum_matching(instance: Instance, agents: list, items: list):
     matching = list(zip(agent_ind, items_ind))
 
     return matching
-
-
-def alloc_by_matching(alloc: AllocationBuilder, explanation_logger=ExplanationLogger()):
-    """
-    Algorithm 2: Finds an 1/2mma or mmax allocation for any amount of agents and items,
-    using graphs and weighted natchings.
-    note: Only valuations are needed
-
-    Examples:
-    >>> divide(alloc_by_matching, valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]})
-    {'Alice': [1], 'Bob': [0], 'Claire': [2, 3]}
-    >>> val_7items = {"Alice": [10,10,6,4,2,2,2], "Bob": [7,5,6,6,6,2,9], "Claire":[2,8,8,7,5,2,3]}
-    >>> divide(alloc_by_matching, valuations=val_7items)
-    {'Alice': [0, 2, 5], 'Bob': [4, 6], 'Claire': [1, 3]}
-    """
-    TEXTS = {
-        "algorithm_starts": {
-            "he": "הליך צמצום קנאה מתחיל",
-            "en": "Algorithm allocation by matching starts.",
-        },
-        "initialization": {
-            "he": "איתחול R:= רשימת פריטים, L:=רשימת סוכנים, A:=מיפוי הקצאות לכל סוכן (ריק)",
-            "en": "initializing R:=items L:=agents A:=allocation (empty for each agent)",
-        },
-        "curr_agents": {
-            "he": "רשימת הסוכנים כרגע: %s",
-            "en": "\tCurrent agents: %s",
-        },
-        "curr_items": {
-            "he": "רשימת הפריטים כרגע: %s",
-            "en": "\tCurrent items: %s",
-        },
-        "compute_matching": {
-            "he": "חשב שידוך מקסימלי בין סוכנים לפריטים, כאשר כל צלע בין סוכן לפריט משקלו כערך הפריט לפי הסוכן",
-            "en": "Compute a maximum weight matching M between items and agents, "
-                  + "where the weight of edge between i∈agents and j∈items is given by valuation of agent i on item j"
-        },
-        "alloc_by_matching": {
-            "he": "עבור כל צלע (פריט, סוכן) בשידוך, הקצה את הפריט לסוכן",
-            "en": "For every edge (i, j) ∈ M, add item j to agent i's bundle, ",
-        },
-        "exclude_items": {
-            "he": "והוצא את הפריט מרשימת הפריטים",
-            "en": "and remove j from items.",
-        },
-        "new_alloc": {
-            "he": "הקצאה החדשה %s",
-            "en": "\tnew allocation: %s.\n",
-        },
-        "updated_alloc": {
-            "he": "הקצאה מעודכנת %s",
-            "en": "\tupdated allocation: %s.\n",
-        },
-        "matching": {
-            "he": "תוצאת השידוך %s\n",
-            "en": "matching: %s.\n",
-        },
-
-    }
-
-    def _(code: str):
-        return TEXTS[code][explanation_logger.language]
-
-    instance = alloc.instance
-    check_value(instance, algo_prefix="alloc by matching: ")
-    # 1: Initiate L = N and R = M.
-    explanation_logger.info(_("algorithm_starts"))
-    explanation_logger.info("\n" + _("initialization"))
-    agents: list = list(instance.agents)  # L = N := group of agents
-    items: list = list(instance.items)  # R = M := list of items to allocate
-    # 2: Initiate A_i =∅ for all i ∈ N.
-    alloc_dict = {agent: [] for agent in agents}
-    # print("alloc_dict init %s", alloc_dict)
-
-    # 3: while R =∅ do
-    explanation_logger.debug("\t" + _("curr_agents"), agents)
-    explanation_logger.debug("\t" + _("curr_items"), items)
-    while items:
-        # 4: Compute a maximum weight matching M between L and R, where the weight of edge
-        # between i∈L and j∈R is given by vi(Ai∪{j})−vi(Ai).
-        # If all edges have weight 0,then we compute a maximum cardinality matching M instead.
-        explanation_logger.info("\n" + _("compute_matching"))
-        matching = maximum_matching(instance, agents, items)
-        explanation_logger.debug("\t" + _("matching"), str(matching))
-        # 5: For every edge(i, j)∈M, allocate j to i: Ai = Ai∪{j}
-        explanation_logger.info(_("alloc_by_matching"))
-        new_alloc = {a: bundle + [item]
-                     for agent, bundle in alloc_dict.items()
-                     for a, item in matching if a == agent}
-        explanation_logger.debug(_("new_alloc"), new_alloc)
-        alloc_dict.update(new_alloc)
-        explanation_logger.debug(_("updated_alloc"), alloc_dict)
-        # and exclude j from R: R = R\{j}.
-        explanation_logger.info(_("exclude_items"))
-        to_remove = [item for _, item in matching]
-        items = [item for item in items if item not in to_remove]
-        explanation_logger.debug(_("curr_items"), items)
-        agents = envy_reduction_procedure(alloc_dict, instance, explanation_logger=explanation_logger)
-        explanation_logger.debug(_("curr_agents"), agents)
-
-    for agent, bundle in alloc_dict.items():
-        alloc.give_bundle(agent, bundle, logger=explanation_logger)
 
 
 if __name__ == "__main__":
