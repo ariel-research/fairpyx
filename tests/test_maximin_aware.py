@@ -173,9 +173,9 @@ def test_divide_and_choose():
     assert all(mma1_fairness_calc(inst, alloc)), f'mma1: step 2 fairness failed'
 
     inst = fairpyx.Instance(
-        valuations={"Alice": [10, 10, 6, 4, 2, 2, 2], "Bob": [7, 5, 6, 6, 6, 2, 9], "Claire": [2, 8, 8, 7, 5, 2, 3]})
+        valuations={"Alice": [10, 10, 6, 4, 2, 2, 2], "Bob": [7, 5, 6, 6, 6, 2, 9], "Claire": [2, 9, 8, 7, 5, 2, 3]})
     alloc = fairpyx.divide(maximin_aware.divide_and_choose_for_three, inst)
-    assert alloc == {'Alice': [0, 3, 5], 'Bob': [2, 6], 'Claire': [1, 4]}, f'mma1: step 2 allocation incorrect'
+    assert alloc == {'Alice': [0, 1, 5], 'Bob': [2, 6], 'Claire': [3, 4]}, f'mma1: step 2 allocation incorrect'
     assert all(mma1_fairness_calc(inst, alloc)), f'mma1: step 2 fairness failed'
 
     inst = fairpyx.Instance(
@@ -193,7 +193,7 @@ def test_divide_and_choose():
     inst = fairpyx.Instance(
         valuations={"Alice": [2,4,6,7], "Bob": [5,7,3,5], "Claire": [2, 2, 2, 2]})
     alloc = fairpyx.divide(maximin_aware.divide_and_choose_for_three, inst)
-    assert alloc ==  {'Alice': [3], 'Bob': [0, 2], 'Claire': [1]}, f'mma1: step 4-II allocation incorrect'
+    assert alloc == {'Alice': [3], 'Bob': [0, 2], 'Claire': [1]}, f'mma1: step 4-II allocation incorrect'
     assert all(mma1_fairness_calc(inst, alloc)), f'mma1: step 4-II fairness failed'
 
     inst = fairpyx.Instance(
@@ -227,5 +227,6 @@ def test_alloc_by_matching():
                      'Claire': [1, 3, 9, 11, 12, 16]}, f'mma by matching: large input allocation incorrect'
     assert all(mma_fairness_calc(inst, alloc)), f'mma by matching: large input fairness failed'
 
-    if __name__ == "__main__":
-        pytest.main(["-v", __file__])
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])
