@@ -8,22 +8,24 @@ Naama Shiponi and Ben Dabush
 1/6/2024
 """
 from fairpyx.instances import Instance
-from A_CEEI import course_demands
+from fairpyx.allocations import AllocationBuilder
+from fairpyx.algorithms.CM.A_CEEI import course_demands, find_preferred_schedule
+
 """
 Algorithm 2 : The algorithm makes sure that there are no courses that have more students registered than their capacity.
 """
 
-def remove_oversubscription(price_vector: tuple, student_budgets: tuple, instance: Instance, epsilon: float, course_demands: callable):
+def remove_oversubscription(allocation: AllocationBuilder, price_vector: dict, student_budgets: dict, epsilon: float = 0.1, course_demands: callable = course_demands):
     """
     Perform oversubscription elimination to adjust course prices.
 
-    :param price_vector: Initial price vector (List of floats)
-    :param student_budgets: List of student budgets (list of floats)
-    :param instance: Instance
+    :param allocation: AllocationBuilder
+    :param price_vector: Initial price vector (dict of floats)
+    :param student_budgets: dict of student budgets (dict of floats)
     :param epsilon: Small value to determine when to stop binary search
     :param demand_function: Function that takes price vector and returns excess demand vector
     
-    :return: Adjusted price vector (list of floats)
+    :return: Adjusted price vector (dict of floats)
 
     :pseudo code
     Input:  p* heuristic search solution price vector from Algorithm 1,
@@ -57,40 +59,72 @@ def remove_oversubscription(price_vector: tuple, student_budgets: tuple, instanc
     ...                         "Bob": {"c1": 60, "c2": 40, "c3": 30},
     ...                         "Tom": {"c1": 70, "c2": 30, "c3": 70}
     ... })
-    >>> price_vector = [1.2,0.9,1]
+    >>> allocation = AllocationBuilder(instance)
+    >>> price_vector = {"c1": 1.2, "c2": 0.9, "c3": 1}
     >>> epsilon = 0.1
-    >>> student_budgets = [2.2,2.1,2]
-    >>> remove_oversubscription(price_vector, student_budgets, instance, epsilon, course_demands)
-    [1.26875,0.9, 1.24375]
+    >>> student_budgets = {"Alice": 2.2, "Bob": 2.1, "Tom": 2.0}
+    >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, course_demands)
+    {"c1": 1.26875, "c2": 0.9, "c3": 1.24375}
 
-    >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 3, "Bob": 3, "Tom": 3}, 
-    ...   item_capacities  = {"c1": 3, "c2": 3, "c3": 3}, 
-    ...   valuations       = {"Alice": {"c1": 50, "c2": 20, "c3": 80},
-    ...                         "Bob": {"c1": 60, "c2": 40, "c3": 30},
-    ...                         "Tom": {"c1": 70, "c2": 30, "c3": 70}
-    ... })
-    >>> price_vector = [1.2,0.9,1]
-    >>> epsilon = 0.1
-    >>> student_budgets = [2.2,2.1,2]
-    >>> remove_oversubscription(price_vector, student_budgets, instance, epsilon, course_demands)
-    [1.2,0.9,1]
 
-    >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 3, "Bob": 3, "Tom": 3}, 
-    ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1}, 
-    ...   valuations       = {"Alice": {"c1": 50, "c2": 20, "c3": 80},
-    ...                         "Bob": {"c1": 60, "c2": 40, "c3": 30},
-    ...                         "Tom": {"c1": 70, "c2": 30, "c3": 70}
-    ... })
-    >>> price_vector = [0,0,0]
-    >>> epsilon = 0.1
-    >>> student_budgets = [2.2,2.1,2]
-    >>> remove_oversubscription(price_vector, student_budgets, instance, epsilon, course_demands)
-    [2.0375,1.6875, 2.084375]
+    # >>> instance = Instance(
+    # ...   agent_capacities = {"Alice": 3, "Bob": 3, "Tom": 3}, 
+    # ...   item_capacities  = {"c1": 3, "c2": 3, "c3": 3}, 
+    # ...   valuations       = {"Alice": {"c1": 50, "c2": 20, "c3": 80},
+    # ...                         "Bob": {"c1": 60, "c2": 40, "c3": 30},
+    # ...                         "Tom": {"c1": 70, "c2": 30, "c3": 70}
+    # ... })
+    # ... allocation = AllocationBuilder(instance)
+    # >>> price_vector = [1.2,0.9,1]
+    # >>> epsilon = 0.1
+    # >>> student_budgets = [2.2,2.1,2]
+    # >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, course_demands)
+    # {"c1": 1.2, "c2": 0.9, "c3": 1}
+
+    # >>> instance = Instance(
+    # ...   agent_capacities = {"Alice": 3, "Bob": 3, "Tom": 3}, 
+    # ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1}, 
+    # ...   valuations       = {"Alice": {"c1": 50, "c2": 20, "c3": 80}, "Bob": {"c1": 60, "c2": 40, "c3": 30}, "Tom": {"c1": 70, "c2": 30, "c3": 70}})
+    # ... allocation = AllocationBuilder(instance)
+    # >>> price_vector = [0,0,0]
+    # >>> epsilon = 0.1
+    # >>> student_budgets = [2.2,2.1,2]
+    # >>> remove_oversubscription( allocation, price_vector, student_budgets, epsilon, course_demands)
+    # {"c1": 2.0375, "c2": 1.6875, "c3": 2.084375}
     """
-    pass
+    max_budget = max(student_budgets.values()) + epsilon  # ¯p scalar price greater than any budget
+    preferred_schedule = find_preferred_schedule(allocation)  # {"Alice":  [[1, 0, 1], [0, 1, 1], [1, 1, 0]] , "Bob": [[1, 1, 0], [1, 0, 1], [0, 1, 1]], "Tom": [[1, 0, 1], [1, 1, 0], [0, 1, 1]]}
+
+    while True:
+        # 1: Find the most oversubscribed course
+        excess_demands = course_demands(price_vector, allocation, student_budgets, preferred_schedule)
+        highest_demand_course = max(excess_demands, key=excess_demands.get)
+        highest_demand = excess_demands[highest_demand_course]
+        if highest_demand <= 0:
+            break
+
+        # 3: Perform binary search on the price of course with the most demand until oversubscription equals (at most) d*
+        d_star = highest_demand / 2  # d* = d_j'(p*) / 2
+        low_price = price_vector[highest_demand_course]
+        high_price = max_budget
+
+        # Binary search loop
+        while high_price - low_price >= epsilon:
+            p_mid = (low_price + high_price) / 2
+            price_vector[highest_demand_course] = p_mid
+            current_demand = course_demands(price_vector, allocation, student_budgets, preferred_schedule)[highest_demand_course]
+            if current_demand > d_star:
+                low_price = p_mid
+            else:
+                high_price = p_mid
+
+        # Set to the higher price to be sure oversubscription is at most d*
+        price_vector[highest_demand_course] = high_price
+
+    return price_vector    
+
 
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
+
