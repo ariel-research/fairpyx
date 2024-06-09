@@ -16,7 +16,6 @@ from fairpyx.adaptors import divide
 import logging
 
 
-import mip as mp
 from fairpyx.utils.graph_utils import many_to_many_matching_using_network_flow
 from fairpyx.utils.linear_programming_utils import allocation_variables, allocation_constraints
 from fairpyx.utils.solve import solve
