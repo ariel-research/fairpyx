@@ -12,12 +12,13 @@ import time
 import numpy as np
 from fairpyx import Instance, AllocationBuilder
 from itertools import combinations
+from typing import Any, Callable
 
 
 """
 Algorithm 1: Approximate Competitive Equilibrium from Equal Incomes (A-CEEI), finds the best price vector that matches student preferences and course capacities.
 """
-def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60):
+def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60) -> dict:
     """
     Perform heuristic search to find the best price vector that matches student preferences and course capacities.
 
@@ -27,70 +28,59 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60):
 
     :return (dict) best price vector.
 
-    :example
-    >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 2, "Bob": 2, "Tom": 2},
-    ...   item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
-    ...   item_conflicts = {"c1": ["c2"], "c2": ["c1"], "c3": []},
-    ...   agent_conflicts = {"Alice": ["c2"], "Bob": [], "Tom": []},
-    ...   valuations = {"Alice": {"c1": 90, "c2": 60, "c3": 50},
-    ...                 "Bob": {"c1": 57, "c2": 80, "c3": 63},
-    ...                 "Tom": {"c1": 70, "c2": 50, "c3": 95}
-    ... })
-    >>> allocation = AllocationBuilder(instance)
-    >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
-    >>> A_CEEI(allocation, budget, 2)
-    #{'c1': 1.4896292402060682, 'c2': 0.6800500563258562, 'c3': 1.33237205943072}
 
     """
-    # def initialize_price_vector(budget):
-    #     return {k: random.uniform(0, max(budget.values())) for k in alloc.instance.items}
+    def initialize_price_vector(budget):
+        return {k: random.uniform(0, max(budget.values())) for k in alloc.instance.items}
     
     best_error = float('inf')
-    # best_price_vector = None
-    # start_time = time.time()
-    # steps = [0.1, 0.2, 0.3]  # Example step sizes, can be adjusted
-    # valuations = alloc.instance._valuations
-    # print("agent_conflicts",  alloc.instance.agent_conflicts)
-    # preferred_schedule = find_preferred_schedule(alloc.instance._valuations , alloc.instance._agent_capacities , alloc.instance._item_capacities, alloc.instance.agent_conflicts)
-    
-    #while time.time() - start_time < time_limit:
-    #    price_vector = initialize_price_vector(budget)
-    #    search_error = float('inf')
-    #    tabu_list = []
-    #    c = 0
-    #    
-    #    while c < 5:
-    #        neighbors = find_neighbors(price_vector, alloc, budget, steps, preferred_schedule)
-    #        found_next_step = False
-    #        
-    #        while neighbors:
-    #            next_price_vector = neighbors.pop(0)
-    #            next_demands = course_demands(next_price_vector, alloc, budget, preferred_schedule)
-    #            
-    #            if next_demands not in tabu_list:
-    #                found_next_step = True
-    #                break
-    #        
-    #        if not found_next_step:
-    #            c = 5
-    #        else:
-    #            price_vector = next_price_vector
-    #            tabu_list.append(next_demands)
-    #            current_error = alpha(next_demands)
-    #            
-    #            if current_error < search_error:
-    #                search_error = current_error
-    #                c = 0
-    #            else:
-    #                c += 1
-    #            
-    #            if current_error < best_error:
-    #                best_error = current_error
-    #                best_price_vector = price_vector
-    #
-    #return best_price_vector
-#
+    best_price_vector = None
+    start_time = time.time()
+    steps = [0.1, 0.2, 0.3]  # Example step sizes, can be adjusted
+
+    item_conflicts={item:  alloc.instance.item_conflicts(item) for item in alloc.instance.items}
+    agent_conflicts={agent:  alloc.instance.agent_conflicts(agent) for agent in alloc.instance.agents}
+
+    preferred_schedule = find_preferred_schedule(alloc.instance._valuations , alloc.instance._agent_capacities , item_conflicts , agent_conflicts)
+    booli=False
+    while time.time() - start_time < time_limit and not booli:
+       booli=True
+       price_vector = initialize_price_vector(budget)
+       search_error = float('inf')
+       tabu_list = []
+       c = 0
+       while c < 5:
+           neighbors = find_neighbors(price_vector, alloc, budget, steps, preferred_schedule)
+           found_next_step = False
+           
+           while neighbors:
+               next_price_vector = neighbors.pop(0)
+               next_demands = course_demands(next_price_vector, alloc, budget, preferred_schedule)
+               
+               if next_demands not in tabu_list:
+                   found_next_step = True
+                   break
+           
+           if not found_next_step:
+               c = 5
+           else:
+               price_vector = next_price_vector
+               tabu_list.append(next_demands)
+               current_error = alpha(next_demands)
+               
+               if current_error < search_error:
+                   search_error = current_error
+                   c = 0
+               else:
+                   c += 1
+               
+               if current_error < best_error:
+                   best_error = current_error
+                   best_price_vector = price_vector
+          
+            
+    return best_price_vector
+
 
 def find_preferred_schedule(valuations:dict, agent_capacities:dict, item_conflicts:dict, agent_conflicts:dict):
     """
@@ -111,7 +101,8 @@ def find_preferred_schedule(valuations:dict, agent_capacities:dict, item_conflic
     >>> find_preferred_schedule(valuations, agent_capacities, item_conflicts, agent_conflicts)
     {'Alice': [[1, 0, 1]], 'Bob': [[0, 1, 1], [1, 0, 1]], 'Tom': [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}
 
-    """
+   
+     """
     def is_valid_schedule(schedule, item_conflicts, agent_conflicts, agent):
         # Check item conflicts
         for item, conflicts in item_conflicts.items():
@@ -144,6 +135,7 @@ def find_preferred_schedule(valuations:dict, agent_capacities:dict, item_conflic
         # Calculate valuations for valid schedules
         schedule_valuations = {}
         for schedule in valid_schedules:
+            # print("schedule", schedule)
             total_valuation = sum(valuations[agent][item] for item in schedule if schedule[item] == 1)
             schedule_valuations[total_valuation] = schedule_valuations.get(total_valuation, [])
             schedule_valuations[total_valuation].append([schedule[item] for item in items])
@@ -154,7 +146,8 @@ def find_preferred_schedule(valuations:dict, agent_capacities:dict, item_conflic
         # Collect sorted schedules
         sorted_schedules = []
         for val in sorted_valuations:
-            sorted_schedules.extend(schedule_valuations[val])
+            sorted_schedules.append(schedule_valuations.get(val)[0])
+
         
         preferred_schedules[agent] = sorted_schedules
 
