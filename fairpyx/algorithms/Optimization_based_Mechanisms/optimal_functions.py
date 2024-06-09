@@ -59,13 +59,26 @@ def createRankMat(alloc, logger):
     logger.info("Rank matrix: %s", rank_mat)
     return rank_mat
 
+def SP_O_condition(alloc, result_Zt1, D, p, v):
+    return result_Zt1 * D + cp.sum([alloc.remaining_item_capacities[course] * p[j] for j, course in enumerate(alloc.remaining_items())]) + cp.sum([v[i] for i, student in enumerate(alloc.remaining_agents())])
+
+def conditions_14(alloc, v,p):
+    constraints = []
+    for j, course in enumerate(alloc.remaining_items()):
+        for i, student in enumerate(alloc.remaining_agents()):
+            constraints.append(p[j] >= 0)
+            constraints.append(v[i] >= 0)
+    return constraints
+
 def sumOnRankMat(alloc, rank_mat, var):
     return cp.sum([rank_mat[j][i] * var[j, i]
                 for j, course in enumerate(alloc.remaining_items())
                 for i, student in enumerate(alloc.remaining_agents())
                 if (student, course) not in alloc.remaining_conflicts])
 
-def roundTTC_O(alloc, logger, func):
+#  if flag_if_use_alloc_in_func == 0 then using alloc.effective_value
+#  if flag_if_use_alloc_in_func == 1 then using effective_value_with_price
+def roundTTC_O(alloc, logger, func, flag_if_use_alloc_in_func):
     rank_mat = createRankMat(alloc, logger)
 
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
@@ -84,10 +97,12 @@ def roundTTC_O(alloc, logger, func):
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())),
                        boolean=True)  # Is there a func which zero all the matrix?
 
-    objective_Zt2 = cp.Maximize(cp.sum([func(student, course) * x[j, i]
-                                        for j, course in enumerate(alloc.remaining_items())
-                                        for i, student in enumerate(alloc.remaining_agents())
-                                        if (student, course) not in alloc.remaining_conflicts]))
+    objective_Zt2 = cp.Maximize(cp.sum(
+        [func(student, course) * x[j, i] if flag_if_use_alloc_in_func == 0 else func(alloc, student, course) * x[j, i]
+         for j, course in enumerate(alloc.remaining_items())
+         for i, student in enumerate(alloc.remaining_agents())
+         if (student, course) not in alloc.remaining_conflicts]
+    ))
 
     constraints_Zt2 = notExceedtheCapacity(x, alloc) + numberOfCourses(x, alloc, 1)
 
@@ -99,8 +114,8 @@ def roundTTC_O(alloc, logger, func):
         logger.info("result_Zt2 - the optimum bids: %d", result_Zt2)
 
     except Exception as e:
-        explanation_logger.info("Solver failed: %s", str(e))
+        logger.info("Solver failed: %s", str(e))
         logger.error("An error occurred: %s", str(e))
         raise
 
-    return result_Zt2, x, problem
+    return result_Zt1, result_Zt2, x, problem, rank_mat

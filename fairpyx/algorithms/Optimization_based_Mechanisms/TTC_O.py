@@ -47,7 +47,7 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
             logger.info("There are no more agents (%d) or items(%d) ", len(alloc.remaining_agent_capacities),len(alloc.remaining_item_capacities))
             break
 
-        result_Zt2, var, problem = optimal.roundTTC_O(alloc, logger, alloc.effective_value)
+        result_Zt1, result_Zt2, var, problem , rank_mat= optimal.roundTTC_O(alloc, logger, alloc.effective_value, 0)
 
         # Check if the optimization problem was successfully solved
         if result_Zt2 is not None:

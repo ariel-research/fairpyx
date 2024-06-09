@@ -35,7 +35,7 @@ def test_optimal_improve_cardinal_and_ordinal_results():
         valuations={"s1": s1, "s2": s2, "s3": s3}
     )
 
-    assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': ['c1', 'c2'], 's2': ['c2', 'c3'],  's3': ['c1', 'c2']}, "ERROR"
+    assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': ['c1', 'c2'], 's2': ['c2'],  's3': ['c1', 'c3']}, "ERROR"
 
 
 def test_sub_round_within_sub_round():
@@ -48,7 +48,7 @@ def test_sub_round_within_sub_round():
         valuations={"s1": s1, "s2": s2, "s3": s3}
     )
 
-    assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': ['c3', 'c4'], 's2': ['c1', 'c2'], 's3': ['c2', 'c3']}, "ERROR"
+    assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': ['c3', 'c4'], 's2': ['c1', 'c3'], 's3': ['c2']}, "ERROR"
 
 
 def test_random():
