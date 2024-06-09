@@ -53,56 +53,19 @@ def reduce_undersubscription(allocation: AllocationBuilder, price_vector: dict, 
     ...                         "Bob": {"c1": 60, "c2": 40, "c3": 30},
     ...                         "Tom": {"c1": 70, "c2": 30, "c3": 70}
     ... })
-    >>> price_vector = [1.26875,0.9, 1.24375]
-    >>> student_budgets = [2.2,2.1,2.0]
+    >>> allocation = AllocationBuilder(instance)
+    >>> price_vector = {"c1": 1.26875, "c2": 0.9, "c3": 1.24375}
+    >>> student_budgets = {"Alice": 2.2, "Bob": 2.1, "Tom": 2.0}
     >>> alloction = ({"Alice": [0,0,1]},
     ...                {"Bob": [1,0,0]},
     ...                {"Tom": [0,1,1]})
     >>> sort_student_list = [("Tom", 0.05625), ("Alice", 0.75625), ("Bob", 0.83125)]
     >>> reduce_undersubscription(alloction, price_vector, instance, sort_student_list, allocation_function)
-    {{"Alice": [0,1,1]}, {"Bob": [0,0,1]}, {"Tom": [0,1,1]}}    
+    {'Alice': ['c2', 'c3'], 'Bob': ['c3'], 'Tom': ['c2', 'c3']} 
     """
-    preferred_schedule = find_preferred_schedule(allocation)
-    course_demands_dict = course_demands(price_vector, allocation, student_budgets, preferred_schedule)
-    capacity_undersubscribed_courses = {course : -1*course_demand for course, course_demand in course_demands_dict.items() if course_demand < 0}
-    student_schedule = find_best_schedule(price_vector, student_budgets, preferred_schedule)
-    student_schedule_dict = {student: {} for student in allocation.instance.agents}
-    student_schedule_dict = {student: {course for i, course in enumerate(allocation.instance.items) if student_schedule[i] == 1} for student in allocation.instance.agents}
+    pass
 
-    done = False
-    while not done:
-        done = True
-        # Find undersubscribed courses
-        # undersubscribed_courses = allocation.remaining_items()
-        undersubscribed_courses = {course for course in capacity_undersubscribed_courses.keys()}
-        
-        
-        for student in student_list:
-            # Reoptimize over a restricted set of courses with 10% more budget
-            current_bundle = student_schedule_dict[student]
-            new_bundle = allocation_function(current_bundle.union(undersubscribed_courses), price_vector, 1.1 * student_budgets[student])
-
-            if current_bundle != new_bundle:
-                done = False
-                # Calculate the difference between the current and new bundle
-                diff_in_bundle = current_bundle.difference(new_bundle)
-
-                for course in diff_in_bundle:
-                    if course in student_schedule_dict[student]:
-                        capacity_undersubscribed_courses[course] -= 1
-                        if capacity_undersubscribed_courses[course] == 0:
-                            capacity_undersubscribed_courses.pop(course)
-                    else:
-                        capacity_undersubscribed_courses[course] = 1
-                student_schedule_dict[student] = new_bundle
-
-                break  # Only one student changes their allocation in each pass
-        
-        for student, schedule in student_schedule_dict.items():
-            allocation.give_bundle(student, schedule)
-    return allocation
-
-def allocation_function(student_allocation: tuple, price_vector: tuple, available_courses: tuple, student_budget: float, instance: Instance):   
+def allocation_function(allocation: AllocationBuilder, student_allocation: tuple, price_vector: dict, student_budget: dict):   
     """
     function to reoptimize student's schedule.
 
@@ -120,49 +83,41 @@ def allocation_function(student_allocation: tuple, price_vector: tuple, availabl
     ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1, "c4": 1}, 
     ...   valuations       = {"Alice": {"c1": 90, "c2": 60, "c3": 50, "c4": 10},
     ... })
+    >>> allocation = AllocationBuilder(instance)
     >>> student_budget = 113
-    >>> student_allocation = [1, 0, 0, 0]
-    >>> price_vector = [103, 90, 72, 10]
+    >>> student_allocation = ['c1']
+    >>> price_vector = {"c1": 103, "c2": 90, "c3": 72, "c4": 10}
     >>> available_courses = ["c4"]
-    >>> allocation_function(student_allocation, price_vector, available_courses, student_budget, instance)
-    [1, 0, 0, 1]
+    >>> allocation_function(allocation, student_allocation, price_vector, student_budget)
+    ['c1', 'c4']
 
-    # >>> instance = Instance(
-    # ...   agent_capacities = {"Alice": 3}, 
-    # ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1, "c4": 1}, 
-    # ...   valuations       = {"Alice": {"c1": 90, "c2": 60, "c3": 50, "c4": 40},
-    # ... })
-    # >>> student_budget = 110
-    # >>> student_allocation = [1, 0, 0, 0]
-    # >>> price_vector = [103, 60, 72, 10]
-    # >>> available_courses = ["c2","c4"]
-    # >>> alloction_function(student_allocation, price_vector, available_courses, student_budget, instance)
-    # [0, 1, 0, 1]
+    >>> instance = Instance(
+    ...   agent_capacities = {"Alice": 3}, 
+    ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1, "c4": 1}, 
+    ...   valuations       = {"Alice": {"c1": 90, "c2": 60, "c3": 50, "c4": 40},
+    ... })
+    >>> allocation = AllocationBuilder(instance)
+    >>> student_budget = 110
+    >>> student_allocation = ['c1']
+    >>> price_vector = {"c1": 103, "c2": 90, "c3": 72, "c4": 10}
+    >>> available_courses = ["c2","c4"]
+    >>> allocation_function(allocation, student_allocation, price_vector, student_budget)
+    ['c2', 'c4']
 
-    # >>> instance = Instance(
-    # ...   agent_capacities = {"Alice": 2}, 
-    # ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1, "c4": 1}, 
-    # ...   valuations       = {"Alice": {"c1": 90, "c2": 60, "c3": 50, "c4": 10},
-    # ... })
-    # >>> student_budget = 103
-    # >>> student_allocation = [1, 0, 0, 0]
-    # >>> price_vector = [103, 90, 72, 10]
-    # >>> available_courses = ["c2"]
-    # >>> alloction_function(student_allocation, price_vector, available_courses, student_budget, instance)
-    # [1, 0, 0, 0]
+    >>> instance = Instance(
+    ...   agent_capacities = {"Alice": 2}, 
+    ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1, "c4": 1}, 
+    ...   valuations       = {"Alice": {"c1": 90, "c2": 60, "c3": 50, "c4": 10},
+    ... })
+    >>> allocation = AllocationBuilder(instance)
+    >>> student_budget = 103
+    >>> student_allocation = ['c1']
+    >>> price_vector = {"c1": 103, "c2": 90, "c3": 72, "c4": 10}
+    >>> available_courses = ["c2"]
+    >>> allocation_function(allocation, student_allocation, price_vector, student_budget)
+    ['c1']
     """
-    # Implement a simple greedy algorithm to select courses within the budget
-    course_indices = {course: idx for idx, course in enumerate(instance.valuations[student_allocation])}
-    available_course_indices = [course_indices[course] for course in available_courses]
-
-    new_allocation = student_allocation[:]
-    total_cost = sum(new_allocation[i] * price_vector[i] for i in range(len(price_vector)))
-    for course_idx in available_course_indices:
-        if total_cost + price_vector[course_idx] <= student_budget:
-            new_allocation[course_idx] = 1
-            total_cost += price_vector[course_idx]
-
-    return new_allocation
+    pass
 
 
 if __name__ == "__main__":
