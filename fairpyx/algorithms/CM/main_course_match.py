@@ -10,7 +10,7 @@ Date: 1/6/2024
 from fairpyx.instances import Instance
 from fairpyx.allocations import AllocationBuilder
 
-def course_match_algorithm(instance: Instance):
+def course_match_algorithm(alloc: AllocationBuilder):
     """
     Perform the Course Match algorithm to find the best course allocations.
     
@@ -26,7 +26,8 @@ def course_match_algorithm(instance: Instance):
     ...                 "Bob": {"c1": 0, "c2": 100, "c3": 0},
     ...                 "Tom": {"c1": 0, "c2": 0, "c3": 100}
     ... })
-    >>> course_match_algorithm(instance)
+    >>> allocation = AllocationBuilder(instance)
+    >>> course_match_algorithm(allocation)
     {'c1': ['Alice'], 'c2': ['Bob'], 'c3': ['Tom']}
 
     >>> instance = Instance(
@@ -36,7 +37,8 @@ def course_match_algorithm(instance: Instance):
     ...                 "Bob": {"c1": 0, "c2": 100, "c3": 100},
     ...                 "Tom": {"c1": 100, "c2": 0, "c3": 100}
     ... })
-    >>> course_match_algorithm(instance)
+    >>> allocation = AllocationBuilder(instance)
+    >>> course_match_algorithm(allocation)
     {'c1': ['Alice', 'Tom'], 'c2': ['Alice', 'Bob'], 'c3': ['Bob', 'Tom']}
 
     >>> instance = Instance(
@@ -45,7 +47,8 @@ def course_match_algorithm(instance: Instance):
     ...   valuations = {"Alice": {"c1": 100, "c2": 60, "c3": 0},
     ...                 "Bob": {"c1": 0, "c2": 100, "c3": 0},
     ... })
-    >>> course_match_algorithm(instance)
+    >>> allocation = AllocationBuilder(instance)
+    >>> course_match_algorithm(allocation)
     {'c1': ['Alice'], 'c2': ['Alice', 'Bob'], 'c3': []}
     """
     pass
