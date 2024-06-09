@@ -20,8 +20,6 @@ from fairpyx.utils.graph_utils import many_to_many_matching_using_network_flow
 from fairpyx.utils.linear_programming_utils import allocation_variables, allocation_constraints
 from fairpyx.utils.solve import solve
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
 logger = logging.getLogger(__name__)
 
 
@@ -347,6 +345,8 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X, alloc_Y, allo
 #### MAIN
 
 if __name__ == "__main__":
+    # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
     import doctest, sys
 
     print("\n", doctest.testmod(), "\n")
