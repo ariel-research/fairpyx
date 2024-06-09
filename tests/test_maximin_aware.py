@@ -1,5 +1,7 @@
 """
-Test the maximin-aware algorithms
+Test the maximin-aware algorithms in 
+"Maximin-Aware Allocations of Indivisible Goods" by H. Chan, J. Chen, B. Li, and X. Wu (2019)
+https://arxiv.org/abs/1905.09969
 
 Programmer: Sonya Rybakov
 Since:  2024-05

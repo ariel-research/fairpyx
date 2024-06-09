@@ -2,10 +2,11 @@
 An implementation of the algorithms in:
 "Maximin-Aware Allocations of Indivisible Goods" by H. Chan, J. Chen, B. Li, and X. Wu (2019)
 https://arxiv.org/abs/1905.09969
+
 Programmer: Sonya Rybakov
 Since: 2024-05
 
-Disclaimer: all algorithms are on additive valuations
+Disclaimer: all algorithms are implemented for additive valuations only.
  """
 import logging
 
