@@ -71,14 +71,14 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     "{ami:['x', 'y'], tami:['y', 'z']}"
 
     stack
-    # >>> instance = Instance(
-    # ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
-    # ... agent_capacities=2,
-    # ... item_capacities={"x":1, "y":1, "z":1})
-    # >>> initial_budgets={"ami":5, "tami":3}
-    # >>> beta = 6
-    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    # "{ami:['y','z'], tami:['x']}"
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":1, "y":1, "z":1})
+    >>> initial_budgets={"ami":5, "tami":3}
+    >>> beta = 6
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    "{ami:['y','z'], tami:['x']}"
     """
     logger.info("START ALGORITHM")
     logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅")
@@ -497,10 +497,9 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
         if excess_demand > 0:
             for _ in range(10):
                 updated_prices[course] += 1
-                # if updated_prices in history:
-                # if any(all(f(p) for f in sublist) for sublist in history): # todo
-                # if all([f(updated_prices) for f in history]):
-                #     continue
+                logger.info(f" history : {history}")
+                if any(all(f(updated_prices) for f in sublist) for sublist in history):
+                    continue
                 # get the new demand of the course
                 new_allocation = student_best_bundle(updated_prices.copy(), instance, initial_budgets)
                 if (differ_in_one_value(allocation, new_allocation, course) and updated_prices not in neighbors):
@@ -511,7 +510,8 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
         elif excess_demand < 0:
             updated_prices[course] = 0
             # if updated_prices not in history and updated_prices not in neighbors:
-            if updated_prices not in neighbors: #todo: add it: not all([f(updated_prices) for f in history]) and
+            if updated_prices not in neighbors\
+                     and not any(all(f(updated_prices) for f in sublist) for sublist in history):
                 new_neighbors.append(updated_prices)
 
     return new_neighbors
