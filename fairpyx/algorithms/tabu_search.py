@@ -100,7 +100,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
         history.append(equivalent_prices)
         new_neighbors = find_all_neighbors(alloc.instance, neighbors, history, prices, delta, excess_demand_vector, initial_budgets,
                            allocation)
-        neighbors.append(new_neighbors)
+        neighbors = new_neighbors
 
         logger.info("update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
         find_min_error_prices(alloc.instance, neighbors, initial_budgets)
@@ -230,7 +230,6 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
         combinations_courses_sorted = sorted(combinations_courses_list, key=valuation_function, reverse=True)
 
         for combination in combinations_courses_sorted:
-            # print(f"prices {prices}, combinatuon {combination}")
             price_combination = sum(prices[course] for course in combination)
             if price_combination <= initial_budgets[student]:
                 best_bundle[student] = combination
@@ -496,7 +495,6 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
                 #     continue
                 # get the new demand of the course
                 new_allocation = student_best_bundle(updated_prices.copy(), instance, initial_budgets)
-                # print(f"allocation is {allocation}")
                 if (differ_in_one_value(allocation, new_allocation, course) and updated_prices not in neighbors):
                     logger.info(f"Found new allocation for {allocation}")
                     new_neighbors.append(updated_prices.copy())
@@ -564,6 +562,7 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     """
     errors = []
     for neighbor in neighbors:
+        # allocation = student_best_bundle(neighbor.copy(), instance, initial_budgets)
         allocation = student_best_bundle(neighbor.copy(), instance, initial_budgets)
         error = clipped_excess_demand(instance, neighbor, allocation)
         norma2 = np.linalg.norm(np.array(list(error.values())))
