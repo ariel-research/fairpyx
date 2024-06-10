@@ -86,7 +86,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     norma2 = 1
     while norma2:
         neighbors = []  # resets on every iteration
-        allocation = student_best_bundle(prices, alloc.instance, initial_budgets)
+        allocation = student_best_bundle(prices.copy(), alloc.instance, initial_budgets)
         excess_demand_vector = clipped_excess_demand(alloc.instance, prices, allocation)
         values = np.array(list(excess_demand_vector.values()))
         norma2 = np.linalg.norm(values)
@@ -230,6 +230,7 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
         combinations_courses_sorted = sorted(combinations_courses_list, key=valuation_function, reverse=True)
 
         for combination in combinations_courses_sorted:
+            # print(f"prices {prices}, combinatuon {combination}")
             price_combination = sum(prices[course] for course in combination)
             if price_combination <= initial_budgets[student]:
                 best_bundle[student] = combination
@@ -494,7 +495,8 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
                 # if all([f(updated_prices) for f in history]):
                 #     continue
                 # get the new demand of the course
-                new_allocation = student_best_bundle(updated_prices, instance, initial_budgets)
+                new_allocation = student_best_bundle(updated_prices.copy(), instance, initial_budgets)
+                # print(f"allocation is {allocation}")
                 if (differ_in_one_value(allocation, new_allocation, course) and updated_prices not in neighbors):
                     logger.info(f"Found new allocation for {allocation}")
                     new_neighbors.append(updated_prices.copy())
@@ -525,7 +527,7 @@ def find_all_neighbors(instance: Instance, neighbors: list, history: list, price
     individual_price_adjustment_neighbors = find_individual_price_adjustment_neighbors(instance, neighbors, history, prices,
                                                excess_demand_vector, initial_budgets, allocation)
 
-    return gradient_neighbors.extend(individual_price_adjustment_neighbors)
+    return gradient_neighbors + individual_price_adjustment_neighbors
 
 
 def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: dict):
@@ -562,7 +564,7 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     """
     errors = []
     for neighbor in neighbors:
-        allocation = student_best_bundle(neighbor, instance, initial_budgets)
+        allocation = student_best_bundle(neighbor.copy(), instance, initial_budgets)
         error = clipped_excess_demand(instance, neighbor, allocation)
         norma2 = np.linalg.norm(np.array(list(error.values())))
         errors.append(norma2)
