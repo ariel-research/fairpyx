@@ -586,8 +586,8 @@ def maximum_matching(instance: Instance, agents: list, items: list):
 
 
 if __name__ == "__main__":
-    import pytest
-    pytest.main(["-v", __file__])
+    import doctest
+    print(doctest.testmod())
     sys.exit()
 
     from fairpyx import ConsoleExplanationLogger
