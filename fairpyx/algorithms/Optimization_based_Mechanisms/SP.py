@@ -66,9 +66,7 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
                         for course_that_no_longer_potential in map_student_to_course_with_no_seats_and_the_bids[current_agent]:
                             # if the algorithm pass a course that the student can't get - add his bids if needed
                             if alloc.effective_value(current_agent, current_course) < map_student_to_course_with_no_seats_and_the_bids[current_agent][course_that_no_longer_potential]:
-                                #logger.info(f'map_student_to_his_sum_bids66{map_student_to_his_sum_bids}')
                                 map_student_to_his_sum_bids[current_agent] += map_student_to_course_with_no_seats_and_the_bids[current_agent][course_that_no_longer_potential]
-                                #logger.info(f'map_student_to_his_sum_bids68{map_student_to_his_sum_bids}')
                                 pop_course_that_moved_bids.append(course_that_no_longer_potential) #save the courses should delete
                 for course in pop_course_that_moved_bids: # remove the courses that the algorithm add the bids
                     map_student_to_course_with_no_seats_and_the_bids[current_agent].pop(course, None)
@@ -81,9 +79,7 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
             # 2. Allocate the remaining seats in each course:
             for student, course in map_agent_to_best_item.items():  # update the bids of each student
-                #logger.info(f'map_student_to_his_sum_bids81{map_student_to_his_sum_bids}')
                 map_student_to_his_sum_bids[student] += alloc.effective_value(student, course)
-                #logger.info(f'map_student_to_his_sum_bids83{map_student_to_his_sum_bids}')
 
             # create dict for each course of student that point on the course and their bids
             map_course_to_students_with_max_bids = {course:
@@ -114,8 +110,6 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
                             if student in sorted_students_pointing_to_course[remaining_capacity:]:
                                 continue
                             map_student_to_course_with_no_seats_and_the_bids[student][conflict_course] = alloc.effective_value(student, conflict_course) # save the bids for each student for the courses that have conflict
-                        #logger.info(f'map_student_to_his_sum_bids{map_student_to_his_sum_bids}')
-                        #logger.info("Student %s suggest %d bids for course %s", student,map_student_to_his_sum_bids[student], course)
                         alloc.give(student, course, logger)
                         agents_who_need_an_item_in_current_iteration.remove(student)  # removing the agent from the set (dont worry he will come back in the next round)
                         map_agent_to_best_item.pop(student, None)  # Delete student if exists in the dict
@@ -125,22 +119,5 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
 
 if __name__ == "__main__":
-    import doctest, sys
+    import doctest
     print(doctest.testmod())
-
-    #logger.addHandler(logging.StreamHandler())
-    #logger.setLevel(logging.INFO)
-
-    #from fairpyx.adaptors import divide
-    #for i in range(10):
-    #    np.random.seed(i)
-    #    instance = Instance.random_uniform(
-    #        num_of_agents=10, num_of_items=5, normalized_sum_of_values=100,
-    #        agent_capacity_bounds=[2,4],
-    #        item_capacity_bounds=[2,5],
-    #        item_base_value_bounds=[1,1000],
-    #        item_subjective_ratio_bounds=[0.5, 1.5]
-    #        )
-    #    allocation = divide(SP_function, instance=instance)
-    #    fairpyx.validate_allocation(instance, allocation, title=f"Seed {i}, SP_function")
-    #divide(SP_function, instance=instance)
