@@ -41,15 +41,16 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
     # "{ami:['y','z'], tami:['x', 'z'], tzumi:['x', 'z'] }"
 
-    >>> instance = Instance(
-    ... valuations={"ami":{"x":5, "y":4, "z":3, "w":2}, "tami":{"x":5, "y":2, "z":4, "w":3}},
-    ... agent_capacities=3,
-    ... item_capacities={"x":1, "y":2, "z":1, "w":2})
-    >>> initial_budgets={"ami":8, "tami":6}
-    >>> beta = 9
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    "{ami:['x','y','z'], tami:['x', 'z', 'w']}"
+    # >>> instance = Instance(
+    # ... valuations={"ami":{"x":5, "y":4, "z":3, "w":2}, "tami":{"x":5, "y":2, "z":4, "w":3}},
+    # ... agent_capacities=3,
+    # ... item_capacities={"x":1, "y":2, "z":1, "w":2})
+    # >>> initial_budgets={"ami":8, "tami":6}
+    # >>> beta = 9
+    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    # "{ami:['x','y','z'], tami:['x', 'z', 'w']}"
 
+    stack
     # >>> instance = Instance(
     # ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
     # ... agent_capacities=2,
@@ -58,16 +59,17 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     # >>> beta = 5
     # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
     # "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
-    #
-    # >>> instance = Instance(
-    # ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
-    # ... agent_capacities=2,
-    # ... item_capacities={"x":1, "y":2, "z":3})
-    # >>> initial_budgets={"ami":6, "tami":4}
-    # >>> beta = 6
-    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    # "{ami:['x','y'], tami:['y', 'z']}"
-    #
+
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":1, "y":2, "z":3})
+    >>> initial_budgets={"ami":6, "tami":4}
+    >>> beta = 6
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    "{ami:['x','y'], tami:['y', 'z']}"
+
+    stack
     # >>> instance = Instance(
     # ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
     # ... agent_capacities=2,
@@ -103,14 +105,14 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
         neighbors = new_neighbors
 
         logger.info("update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
-        find_min_error_prices(alloc.instance, neighbors, initial_budgets)
+        prices = find_min_error_prices(alloc.instance, neighbors, initial_budgets)
 
     # print the final price (p* = prices) for each course
     logger.info(f"\nfinal prices p* = {prices}")
 
-    for student, (price, bundle) in allocation.items():
-        logger.info(f"Giving {bundle} to {student}")
-        alloc.give_bundle(student, bundle)
+    # for student, (price, bundle) in allocation.items():
+    #     logger.info(f"Giving {bundle} to {student}")
+    #     alloc.give_bundle(student, bundle)
     return allocation
 
 # ---------------------helper functions:---------------------
@@ -211,7 +213,7 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
     {'Alice': ('x', 'y'), 'Bob': ('x', 'y'), 'Eve': ('x', 'y')}
 
     """
-    best_bundle = {student: None for student in instance.agents}
+    best_bundle = {student: () for student in instance.agents}
     logger.info("START combinations")
 
     for student in instance.agents:
@@ -583,11 +585,21 @@ if __name__ == "__main__":
     #
     # doctest.testmod()
 
-    instance = Instance(
-    valuations={"ami":{"x":5, "y":4, "z":3, "w":2}, "tami":{"x":5, "y":2, "z":4, "w":3}},
-    agent_capacities=3,
-    item_capacities={"x":1, "y":2, "z":1, "w":2})
-    initial_budgets={"ami":8, "tami":6}
-    beta = 9
-    print(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    # 2
+    # instance = Instance(
+    # valuations={"ami":{"x":5, "y":4, "z":3, "w":2}, "tami":{"x":5, "y":2, "z":4, "w":3}},
+    # agent_capacities=3,
+    # item_capacities={"x":1, "y":2, "z":1, "w":2})
+    # initial_budgets={"ami":8, "tami":6}
+    # beta = 9
+    # print(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
     # "{ami:['x','y','z'], tami:['x', 'z', 'w']}"
+
+    instance = Instance(
+    valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
+    agent_capacities=2,
+    item_capacities={"x":1, "y":2, "z":3})
+    initial_budgets={"ami":6, "tami":4}
+    beta = 6
+    divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1})
+    # "{ami:['x','y'], tami:['y', 'z']}"
