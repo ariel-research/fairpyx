@@ -175,7 +175,7 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
     explanation_logger.info("\n3: " + _("same_first_priority"), agents[0], agents[1])
     if priorities1[1] == priorities2[1]:
         # agent 2 takes their favorite two bundles for re-partition,
-        explanation_logger.info(_("same_second_priority"), agents[1])
+        explanation_logger.info(_("same_second_priority"))
         explanation_logger.info(_("repartition"), agents[1])
         unified_bundle = priorities2[0] + priorities2[1]
         # and leaves the remainder to third agent
@@ -357,8 +357,8 @@ def approx_leximin_partition(valuation: dict, n: int = 3, result: out.OutputType
     >>> approx_leximin_partition({0:2,1:8,2:8,3:7},result=out.PartitionAndSumsTuple)
     (array([8., 8., 9.]), [[1], [2], [0, 3]])
 
-    >>> approx_leximin_partition({0:2,1:9,2:8,3:7,4:5,5:2,6:3},result=out.PartitionAndSumsTuple)
-    (array([12., 12., 12.]), [[1, 6], [3, 4], [0, 2, 5]])
+    >>> sorted(approx_leximin_partition({0:2,1:9,2:8,3:7,4:5,5:2,6:3}))
+    [[0, 2, 5], [1, 6], [3, 4]]
 
     >>> approx_leximin_partition({0:2,1:2,2:2,3:2},result=out.PartitionAndSumsTuple)
     (array([2., 2., 4.]), [[2], [1], [0, 3]])
@@ -590,14 +590,14 @@ if __name__ == "__main__":
     pytest.main(["-v", __file__])
     sys.exit()
 
+    from fairpyx import ConsoleExplanationLogger
     my_log = ConsoleExplanationLogger()
     inst = Instance(
         valuations={"Alice": [8, 5, 1, 5, 5, 3, 6, 9, 3, 3, 7, 5, 8, 8, 4, 10, 3, 8, 10, 2],
                     "Bob": [3, 5, 5, 3, 4, 9, 5, 5, 8, 1, 2, 6, 8, 6, 9, 1, 2, 8, 9, 7],
-                    "Claire": [7, 8, 2, 9, 3, 2, 3, 8, 8, 8, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
+                    "Claire": [7, 1, 2, 9, 3, 2, 3, 8, 8, 7, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
     alloc = divide(divide_and_choose_for_three, inst, explanation_logger=my_log)
-    print(alloc)
 
     inst = Instance(valuations={"Alice": [10, 10, 6, 4], "Bob": [7, 5, 6, 6], "Claire": [2, 8, 8, 7]})
     alloc = divide(alloc_by_matching, inst, explanation_logger=my_log)
-    print(alloc)
+

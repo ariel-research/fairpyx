@@ -221,10 +221,10 @@ def test_alloc_by_matching():
     inst = fairpyx.Instance(
         valuations={"Alice": [8, 5, 1, 5, 5, 3, 6, 9, 3, 3, 7, 5, 8, 8, 4, 10, 3, 8, 10, 2],
                     "Bob": [3, 5, 5, 3, 4, 9, 5, 5, 8, 1, 2, 6, 8, 6, 9, 1, 2, 8, 9, 7],
-                    "Claire": [7, 8, 2, 9, 3, 2, 3, 8, 8, 8, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
+                    "Claire": [7, 1, 2, 9, 3, 2, 3, 8, 8, 7, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
     alloc = fairpyx.divide(maximin_aware.alloc_by_matching, inst)
-    assert alloc == {'Alice': [0, 4, 7, 10, 13, 15, 18], 'Bob': [2, 5, 6, 8, 14, 17, 19],
-                     'Claire': [1, 3, 9, 11, 12, 16]}, f'mma by matching: large input allocation incorrect'
+    assert alloc == {'Alice': [0, 4, 6, 7, 10, 15, 18], 'Bob': [1, 2, 5, 8, 14, 17, 19],
+                     'Claire': [3, 9, 11, 12, 13, 16]}, f'mma by matching: large input allocation incorrect'
     assert all(mma_fairness_calc(inst, alloc)), f'mma by matching: large input fairness failed'
 
 
