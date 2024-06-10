@@ -165,8 +165,9 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation, constraints_
     for i in range(num_agents):
         for j in range(num_agents):
             if i != j:
-                envy_free_constraints.append(cp.sum(cp.multiply(agent_valuations[i, :], allocation[j, :])) <= cp.sum(
-                    cp.multiply(agent_valuations[i, :], allocation[i, :])))
+                value_i_for_j = cp.sum(cp.multiply(agent_valuations[i, :], allocation[j, :]))
+                value_i_for_i = cp.sum(cp.multiply(agent_valuations[i, :], allocation[i, :]))
+                envy_free_constraints.append(value_i_for_j <= value_i_for_i)
 
     # Define ILP constraints
     for cont in constraints_ilp:
@@ -346,9 +347,17 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X, alloc_Y, allo
 
 if __name__ == "__main__":
     # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
     import doctest, sys
-
     print("\n", doctest.testmod(), "\n")
 
+    num_of_agents = 6
+    num_of_items = 3
 
+    from fairpyx.adaptors import divide_random_instance, divide
+
+    print("\n\nhigh_multiplicity_fair_allocation:")
+    divide_random_instance(
+        algorithm=high_multiplicity_fair_allocation, 
+        num_of_agents=num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12], 
+        item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
+        random_seed=1)
