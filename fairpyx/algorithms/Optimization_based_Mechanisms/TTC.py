@@ -71,7 +71,23 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
                     map_agent_to_best_item.pop(student, None)   # Delete student if exists in the dict
 
 if __name__ == "__main__":
-    import doctest
+    import doctest, sys
     print("\n", doctest.testmod(), "\n")
+    sys.exit(1)
 
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+
+    from fairpyx.adaptors import divide
+    s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
+    s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}
+    s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}
+    s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}
+    s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}
+    instance = Instance(
+        agent_capacities={"s1": 2, "s2": 2, "s3": 2, "s4": 2, "s5": 2},
+        item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2},
+        valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
+    )
+    divide(TTC_function, instance=instance)
 
