@@ -63,7 +63,7 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
 if __name__ == "__main__":
     import doctest, sys
     print("\n", doctest.testmod(), "\n")
-    sys.exit(1)
+    # sys.exit(1)
 
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
     np.random.seed(2)
     instance = fairpyx.Instance.random_uniform(
-        num_of_agents=70, num_of_items=10, normalized_sum_of_values=100,
+        num_of_agents=10, num_of_items=5, normalized_sum_of_values=100,
         agent_capacity_bounds=[2, 6],
         item_capacity_bounds=[20, 40],
         item_base_value_bounds=[1, 1000],

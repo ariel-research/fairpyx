@@ -124,7 +124,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
 if __name__ == "__main__":
     import doctest, sys
     print("\n", doctest.testmod(), "\n")
-    sys.exit(1)
+    # sys.exit(1)
 
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)

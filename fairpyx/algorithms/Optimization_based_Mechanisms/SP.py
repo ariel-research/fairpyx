@@ -20,7 +20,6 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents of
      the fair course allocation problem(CAP).
 
-
     >>> from fairpyx.adaptors import divide
     >>> s1 = {"c1": 50, "c2": 49, "c3": 1}
     >>> s2 = {"c1": 48, "c2": 46, "c3": 6}
@@ -121,7 +120,7 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 if __name__ == "__main__":
     import doctest, sys
     print("\n", doctest.testmod(), "\n")
-    sys.exit(1)
+    # sys.exit(1)
 
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
