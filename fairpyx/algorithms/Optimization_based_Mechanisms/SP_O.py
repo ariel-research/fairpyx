@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 # global dict
 map_student_to_his_sum_bids = {}
 
-
 def effective_value_with_price(alloc, student, course):
     global map_student_to_his_sum_bids
     return alloc.effective_value(student, course) + map_student_to_his_sum_bids[student]
@@ -31,14 +30,14 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
      the fair course allocation problem(CAP).
 
 
-    #>>> from fairpyx.adaptors import divide
-    #>>> s1 = {"c1": 50, "c2": 49, "c3": 1}
-    #>>> s2 = {"c1": 48, "c2": 46, "c3": 6}
-    #>>> agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
-    #>>> course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
-    #>>> valuations = {"s1": s1, "s2": s2}
-    #>>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
-    #>>> divide(SP_O_function, instance=instance)
+    >>> from fairpyx.adaptors import divide
+    >>> s1 = {"c1": 50, "c2": 49, "c3": 1}
+    >>> s2 = {"c1": 48, "c2": 46, "c3": 6}
+    >>> agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
+    >>> course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
+    >>> valuations = {"s1": s1, "s2": s2}
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    >>> divide(SP_O_function, instance=instance)
     {'s1': ['c2'], 's2': ['c1']}
     """
 
@@ -123,19 +122,5 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
 
 
 if __name__ == "__main__":
-    #import doctest, sys
-    #print(doctest.testmod())
-
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
-
-    from fairpyx.adaptors import divide
-    s1 = {"c1": 40, "c2": 10, "c3": 20, "c4": 30}
-    s2 = {"c1": 50, "c2": 10, "c3": 15, "c4": 25}
-    s3 = {"c1": 60, "c2": 30, "c3": 2, "c4": 8}
-    instance = Instance(
-        agent_capacities={"s1": 2, "s2": 2, "s3": 2},
-        item_capacities={"c1": 1, "c2": 2, "c3": 2, "c4": 1},
-        valuations={"s1": s1, "s2": s2, "s3": s3}
-    )
-    divide(SP_O_function, instance=instance)
+    import doctest
+    print(doctest.testmod())

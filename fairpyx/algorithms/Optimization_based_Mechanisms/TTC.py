@@ -74,17 +74,4 @@ if __name__ == "__main__":
     import doctest
     print("\n", doctest.testmod(), "\n")
 
-    #logger.addHandler(logging.StreamHandler())
-    #logger.setLevel(logging.INFO)
-
-    #from fairpyx.adaptors import divide
-    #s1 = {"c1": 50, "c2": 49, "c3": 1}
-    #s2 = {"c1": 48, "c2": 46, "c3": 6}
-    #agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
-    #course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
-    #valuations = {"s1": s1, "s2": s2}
-    #instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
-    #divide(TTC_function, instance=instance)
-
-
 

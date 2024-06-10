@@ -81,3 +81,4 @@ if __name__ == "__main__":
     allocation = divide(TTC_O_function, instance=instance)
     fairpyx.validate_allocation(instance, allocation, title=f"Seed {5}, TTC_O_function")
     divide(TTC_O_function, instance=instance)
+
