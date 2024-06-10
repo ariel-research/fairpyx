@@ -27,14 +27,14 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
      the fair course allocation problem(CAP).
 
 
-    #>>> from fairpyx.adaptors import divide
-    #>>> s1 = {"c1": 50, "c2": 49, "c3": 1}
-    #>>> s2 = {"c1": 48, "c2": 46, "c3": 6}
-    #>>> agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
-    #>>> course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
-    #>>> valuations = {"s1": s1, "s2": s2}
-    #>>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
-    #>>> divide(TTC_O_function, instance=instance)
+    >>> from fairpyx.adaptors import divide
+    >>> s1 = {"c1": 50, "c2": 49, "c3": 1}
+    >>> s2 = {"c1": 48, "c2": 46, "c3": 6}
+    >>> agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
+    >>> course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
+    >>> valuations = {"s1": s1, "s2": s2}
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    >>> divide(TTC_O_function, instance=instance)
     {'s1': ['c2'], 's2': ['c1']}
     """
     explanation_logger.info("\nAlgorithm TTC-O starts.\n")
@@ -61,8 +61,9 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
 
 
 if __name__ == "__main__":
-    #import doctest
-    #print(doctest.testmod())
+    import doctest, sys
+    print("\n", doctest.testmod(), "\n")
+    sys.exit(1)
 
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
