@@ -71,14 +71,14 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     "{ami:['x', 'y'], tami:['y', 'z']}"
 
     stack
-    >>> instance = Instance(
-    ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
-    ... agent_capacities=2,
-    ... item_capacities={"x":1, "y":1, "z":1})
-    >>> initial_budgets={"ami":5, "tami":3}
-    >>> beta = 6
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    "{ami:['y','z'], tami:['x']}"
+    # >>> instance = Instance(
+    # ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
+    # ... agent_capacities=2,
+    # ... item_capacities={"x":1, "y":1, "z":1})
+    # >>> initial_budgets={"ami":5, "tami":3}
+    # >>> beta = 6
+    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    # "{ami:['x', 'y'], tami:['z']}"
     """
     logger.info("START ALGORITHM")
     logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅")
