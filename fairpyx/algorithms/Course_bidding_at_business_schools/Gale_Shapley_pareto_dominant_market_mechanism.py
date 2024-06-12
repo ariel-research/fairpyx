@@ -8,8 +8,7 @@ Programmer: Zachi Ben Shitrit
 Since: 2024-05
 """
 
-from fairpyx import Instance, AllocationBuilder, ExplanationLogger
-import fairpyx
+from fairpyx import AllocationBuilder
 import numpy as np
 from typing import Dict, List
 
@@ -18,19 +17,18 @@ logger = logging.getLogger(__name__)
 
 def sort_and_tie_brake(input_dict: Dict[str, float], tie_braking_lottery: Dict[str, float], course_capacity: int) -> List[tuple[str, float]]:
     """
-    Sorts a dictionary by its values in descending order and adds a  number
-    to the values of keys with the same value.
-    stops if the count passed the course's capacity and its not on a tie.
+    Sorts a dictionary by its values in descending order and adds a number
+    to the values of keys with the same value to break ties.
+    Stops if the count surpasses the course's capacity and is not in a tie.
 
     Parameters:
-    input_dict (Dict[str, float]): A dictionary with string keys and float values.
-    tie_braking_lottery (Dict[str, float]): A dictionary with string keys and float values.
-    course_capacity (int): The number of students allowed at the course
+    input_dict (Dict[str, float]): A dictionary with string keys and float values representing student bids.
+    tie_braking_lottery (Dict[str, float]): A dictionary with string keys and float values for tie-breaking.
+    course_capacity (int): The number of students allowed in the course.
 
     Returns:
-    dict: A new dictionary with sorted and modified values.
+    List[tuple[str, float]]: A list of tuples containing student names and their modified bids, sorted in descending order.
     """
-
     # Sort the dictionary by values in descending order
     sorted_dict = dict(sorted(input_dict.items(), key=lambda item: item[1], reverse=True))
     
@@ -56,6 +54,7 @@ def sort_and_tie_brake(input_dict: Dict[str, float], tie_braking_lottery: Dict[s
         previous_value = sorted_dict[key]
         prev_key = key
     
+    # Sort again after tie-breaking
     sorted_dict = (sorted(sorted_dict.items(), key=lambda item: item[1], reverse=True))
     
     return sorted_dict
@@ -63,11 +62,17 @@ def sort_and_tie_brake(input_dict: Dict[str, float], tie_braking_lottery: Dict[s
 
 def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, List[str]], tie_braking_lottery: Dict[str, float]):
     """
-    Allocate the given items to the given agents using the gale_shapley protocol.
-    :param alloc: an allocation builder which tracks agent_capacities, item_capacities, valuations.
-    :param course_order_per_student: a dictionary that matches each agent to hes course rankings in order to indicate his preferences
-    :param tie_braking_lottery: a dictionary that matches each agent to hes tie breaking additive points (a sample from unified distribution [0,1])
+    Allocate the given items to the given agents using the Gale-Shapley protocol.
 
+    Parameters:
+    alloc (AllocationBuilder): An allocation builder which tracks agent capacities, item capacities, and valuations.
+    course_order_per_student (Dict[str, List[str]]): A dictionary that matches each agent to their course rankings indicating preferences.
+    tie_braking_lottery (Dict[str, float]): A dictionary that matches each agent to their tie-breaking additive points (sampled from a uniform distribution [0,1]).
+
+    Returns:
+    Dict[str, List[str]]: A dictionary representing the final allocation of courses to students.
+
+    Example:
     >>> from fairpyx.adaptors import divide
     >>> s1 = {"c1": 40, "c2": 60}
     >>> s2 = {"c1": 70, "c2": 30}
@@ -84,9 +89,7 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, L
     {'Alice': ['c2'], 'Bob': ['c1'], 'Chana': ['c1'], 'Dana': ['c2'], 'Dor': ['c1']}
     """
     
-    if(not tie_braking_lottery):
-        tie_braking_lottery = {agent: float(np.random.uniform(0.001, 1, 1)) for agent in alloc.remaining_agents()}
-    
+    # Check if inputs are dictionaries
     input_to_check_types = [alloc.remaining_agent_capacities, alloc.remaining_item_capacities, course_order_per_student, tie_braking_lottery]
     for input_to_check in input_to_check_types:
         if(type(input_to_check) != dict):
@@ -99,7 +102,7 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, L
     student_to_rejection_count: Dict[str, int] = {student: alloc.remaining_agent_capacities[student] for student in alloc.remaining_agents()}
     
     while(was_an_offer_declined):
-        logger.info("Each student proposes to his top qI courses based on his stated preferences.")
+        logger.info("Each student who is rejected from k > 0 courses in the previous step proposes to his best remaining k courses based on his stated preferences")
         for student in alloc.remaining_agents():
             student_capability: int = student_to_rejection_count[student]
             for index in range(student_capability):
@@ -113,16 +116,17 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, L
                     except Exception as e:
                         return {}
                     
-        logger.info("Each course c rejects all but the highest bidding qc students among those who have proposed")
+        logger.info("Each course c considers the new proposals together with the proposals on hold and rejects all but the highest bidding Qc (the maximum capacity of students in course c) students")
         student_to_rejection_count = {student: 0 for student in alloc.remaining_agents()}
         for course_name in course_to_on_hold_students:
             course_capacity = alloc.remaining_item_capacities[course_name]
             course_to_offerings = course_to_on_hold_students[course_name]
-            if(len(course_to_offerings) == 0):
+            if len(course_to_offerings) == 0:
                 continue
-            elif(len(course_to_offerings) <= course_capacity):
+            elif len(course_to_offerings) <= course_capacity:
                 was_an_offer_declined = False
                 continue
+            logger.info("In case there is a tie, the tie-breaking lottery is used to determine who is rejected and who will be kept on hold.")
             on_hold_students_sorted_and_tie_braked = sort_and_tie_brake(course_to_offerings, tie_braking_lottery, course_capacity)
             course_to_on_hold_students[course_name].clear()
             for key, value in on_hold_students_sorted_and_tie_braked[:course_capacity]:
@@ -138,8 +142,7 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, L
     for course_name, matching in final_course_matchings:
         for student, bid in matching.items():
             alloc.give(student, course_name, logger)
-            
-            
+
 if __name__ == "__main__":
     import doctest
     print(doctest.testmod())
