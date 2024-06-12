@@ -258,15 +258,15 @@ def alloc_by_matching(alloc: AllocationBuilder, explanation_logger=ExplanationLo
         },
         "new_alloc": {
             "he": "הקצאה החדשה %s",
-            "en": "\tnew allocation: %s.\n",
+            "en": "new allocation: %s.",
         },
         "updated_alloc": {
             "he": "הקצאה מעודכנת %s",
-            "en": "\tupdated allocation: %s.\n",
+            "en": "updated allocation: %s.",
         },
         "matching": {
-            "he": "תוצאת השידוך %s\n",
-            "en": "matching: %s.\n",
+            "he": "תוצאת השידוך %s",
+            "en": "matching: %s.",
         },
 
     }
@@ -276,18 +276,21 @@ def alloc_by_matching(alloc: AllocationBuilder, explanation_logger=ExplanationLo
 
     instance = alloc.instance
     check_no_capacities(instance, algo_prefix="alloc by matching: ")
+
     # 1: Initiate L = N and R = M.
     explanation_logger.info(_("algorithm_starts"))
     explanation_logger.info("\n" + _("initialization"))
-    agents: list = list(instance.agents)  # L = N := group of agents
-    items: list = list(instance.items)  # R = M := list of items to allocate
+    agents = list(alloc.remaining_agents())  # L = N := group of agents
+    items = list(alloc.remaining_items())  # R = M := list of items to allocate
+
     # 2: Initiate A_i =∅ for all i ∈ N.
+    # NOTE: the allocation is handled in a dict, to allow exchange along envy cycles.
     alloc_dict = {agent: [] for agent in agents}
-    # print("alloc_dict init %s", alloc_dict)
 
     # 3: while R =∅ do
     explanation_logger.debug("\t" + _("curr_agents"), agents)
     explanation_logger.debug("\t" + _("curr_items"), items)
+
     while items:
         # 4: Compute a maximum weight matching M between L and R, where the weight of edge
         # between i∈L and j∈R is given by vi(Ai∪{j})−vi(Ai).
@@ -295,20 +298,22 @@ def alloc_by_matching(alloc: AllocationBuilder, explanation_logger=ExplanationLo
         explanation_logger.info("\n" + _("compute_matching"))
         matching = maximum_matching(instance, agents, items)
         explanation_logger.debug("\t" + _("matching"), str(matching))
+
         # 5: For every edge(i, j)∈M, allocate j to i: Ai = Ai∪{j}
         explanation_logger.info(_("alloc_by_matching"))
         new_alloc = {a: bundle + [item]
                      for agent, bundle in alloc_dict.items()
                      for a, item in matching if a == agent}
-        explanation_logger.debug(_("new_alloc"), new_alloc)
+        # explanation_logger.debug(_("new_alloc"), new_alloc)
         alloc_dict.update(new_alloc)
         explanation_logger.debug(_("updated_alloc"), alloc_dict)
         # and exclude j from R: R = R\{j}.
-        explanation_logger.info(_("exclude_items"))
+        # explanation_logger.info(_("exclude_items"))
         to_remove = [item for _, item in matching]
         items = [item for item in items if item not in to_remove]
         explanation_logger.debug(_("curr_items"), items)
-        agents = envy_reduction_procedure(alloc_dict, instance, explanation_logger=explanation_logger)
+        non_envied_agents = envy_reduction_procedure(alloc_dict, instance, explanation_logger=explanation_logger)
+        agents = non_envied_agents
         explanation_logger.debug(_("curr_agents"), agents)
 
     for agent, bundle in alloc_dict.items():
@@ -468,7 +473,7 @@ def create_envy_graph(instance: Instance, allocation: dict,
 
 
 def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
-                             explanation_logger: ExplanationLogger = ExplanationLogger()):
+                             explanation_logger: ExplanationLogger = ExplanationLogger())->list:
     """
     Procedure P for algo. 2: builds an envy graph from a given allocation, finds and reduces envy cycles.
     i.e. allocations with envy-cycles should and would be fixed here.
@@ -504,11 +509,11 @@ def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
     TEXTS = {
         "procedure_starts": {
             "he": "הליך צמצום קנאה מתחיל",
-            "en": "envy reduction process starts",
+            "en": "Envy-cycle reduction starts",
         },
         "current_alloc": {
             "he": "הקצאה נוכחית %s",
-            "en": "current allocation %s",
+            "en": "Current allocation %s",
         },
         "define_envy_graph": {
             "he": "מגדיר גרף קנאה",
@@ -516,7 +521,7 @@ def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
         },
         "no_envy_cycle": {
             "he": "אין מעגל קנאה בדרף הקנאה, ההליך מסתיים",
-            "en": "There is no envy cycle within the envy-graph\n procedure ends",
+            "en": "There is no envy cycle within the envy-graph. Procedure ends",
         },
         "envy_cycle": {
             "he": "יש מעגל קנאה, מקצה מחדש חבילות",
@@ -528,7 +533,7 @@ def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
         },
         "new_alloc": {
             "he": "הקצאה החדשה",
-            "en": "new allocation: %s.\n",
+            "en": "New allocation: %s.\n",
         },
     }
 
@@ -537,20 +542,20 @@ def envy_reduction_procedure(alloc: dict[str, list], instance: Instance,
 
     explanation_logger.info("\n" + _("procedure_starts"))
     explanation_logger.debug("\t" + _("current_alloc"), alloc)
-    explanation_logger.info("\n" + _("define_envy_graph"))
+    explanation_logger.info(_("define_envy_graph"))
     envy_graph = create_envy_graph(instance, alloc, explanation_logger)
     while not nx.is_directed_acyclic_graph(envy_graph):
         envy_cycle = nx.find_cycle(envy_graph)
-        explanation_logger.info("\n" + _("envy_cycle"))
+        explanation_logger.info(_("envy_cycle"))
         explanation_logger.debug("\t" + _("reassignment_for"), envy_cycle)
         new_alloc = {envious: alloc[envied] for envious, envied in envy_cycle}
         explanation_logger.debug("\t" + _("new_alloc"), new_alloc)
         alloc.update(new_alloc)
         envy_graph = create_envy_graph(instance, alloc, explanation_logger)
-    explanation_logger.info("\n" + _("no_envy_cycle"))
+    explanation_logger.info(_("no_envy_cycle"))
     # return non envied agents, i.e. those who have no inward edges
-    no_envy_agents = [node for node in envy_graph.nodes if envy_graph.in_degree(node) == 0]
-    return no_envy_agents
+    non_envied_agents = [node for node in envy_graph.nodes if envy_graph.in_degree(node) == 0]
+    return non_envied_agents
 
 
 def maximum_matching(instance: Instance, agents: list, items: list):
@@ -603,13 +608,22 @@ if __name__ == "__main__":
     # divide_random_instance(algorithm=divide_and_choose_for_three, 
     #                        num_of_agents=num_of_agents, num_of_items=num_of_items, 
     #                        agent_capacity_bounds=[num_of_items,num_of_items], item_capacity_bounds=[1,1], 
-    #                        item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
+    #                        item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=1000,
     #                        explanation_logger=console_explanation_logger,
     #                        random_seed=2)
 
-    inst = Instance(
-        valuations={"Alice": [10, 10, 6, 4], 
-                    "Bob": [7, 5, 6, 6], 
-                    "Claire": [2, 8, 8, 7]})
-    alloc = divide(alloc_by_matching, inst, explanation_logger=console_explanation_logger)
+    # inst = Instance(
+    #     valuations={"Alice": [10, 10, 6, 4], 
+    #                 "Bob": [7, 5, 6, 6], 
+    #                 "Claire": [2, 8, 8, 7]})
+    # alloc = divide(alloc_by_matching, inst, explanation_logger=console_explanation_logger)
 
+
+    num_of_agents = 3
+    num_of_items = 19
+    divide_random_instance(algorithm=alloc_by_matching, 
+                           num_of_agents=num_of_agents, num_of_items=num_of_items, 
+                           agent_capacity_bounds=[num_of_items,num_of_items], item_capacity_bounds=[1,1], 
+                           item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=1000,
+                           explanation_logger=console_explanation_logger,
+                           random_seed=2)

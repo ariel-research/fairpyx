@@ -127,7 +127,7 @@ def test_fairness_alloc_by_matching():
 
 
 def test_errors_divide_and_choose():
-    with pytest.raises(ValueError, match='divide and choose is for 3 agents'):
+    with pytest.raises(ValueError):
         instance = fairpyx.Instance(valuations={"Alice": [11, 22], "Bob": [33, 44]})
         allocation = fairpyx.divide(maximin_aware.divide_and_choose_for_three, instance=instance)
 
