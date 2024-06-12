@@ -50,6 +50,18 @@ def test_sub_round_within_sub_round():
 
     assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': ['c3', 'c4'], 's2': ['c1', 'c3'], 's3': ['c2']}, "ERROR"
 
+def test_for_Erel():
+    s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
+    s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}
+    s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}
+    s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}
+    s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}
+    instance = fairpyx.Instance(
+        agent_capacities={"s1": 2, "s2": 2, "s3": 2, "s4": 2, "s5": 2},
+        item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2},
+        valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
+    )
+    fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance)
 
 def test_random():
     for i in range(NUM_OF_RANDOM_INSTANCES):

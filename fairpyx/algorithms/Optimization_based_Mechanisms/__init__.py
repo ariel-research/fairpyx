@@ -3,5 +3,5 @@ from fairpyx.algorithms.Optimization_based_Mechanisms.SP_O import SP_O_function
 from fairpyx.algorithms.Optimization_based_Mechanisms.SP import SP_function
 from fairpyx.algorithms.Optimization_based_Mechanisms.TTC_O import TTC_O_function
 from fairpyx.algorithms.Optimization_based_Mechanisms.TTC import TTC_function
-from fairpyx.algorithms.Optimization_based_Mechanisms.optimal_functions import numberOfCourses, numberOfCourses, alloctions
+from fairpyx.algorithms.Optimization_based_Mechanisms.optimal_functions import numberOfCourses, numberOfCourses, allocations
 

@@ -24,8 +24,8 @@ def numberOfCourses(var, alloc, less_then):
     return constraints
 
 
-
-def alloctions(alloc, var, logger):
+# allocation course to student according the result of the linear programing
+def allocations(alloc, var, logger):
     # Extract the optimized values of x
     x_values = var.value
     logger.info("x_values - the optimum allocation: %s", x_values)
@@ -45,13 +45,16 @@ def alloctions(alloc, var, logger):
             alloc.give(student, course, logger)
 
 
+# creating the rank matrix for the linear programing ((6) (17) in the article) using for TTC-O, SP-O and OC
 def createRankMat(alloc, logger):
     rank_mat = [[0 for _ in range(len(alloc.remaining_agents()))] for _ in range(len(alloc.remaining_items()))]
 
+    # sort the course to each student by the bids (best bids = higher rank)
     for i, student in enumerate(alloc.remaining_agents()):
         map_courses_to_student = alloc.remaining_items_for_agent(student)
-        sorted_courses = sorted(map_courses_to_student, key=lambda course: alloc.effective_value(student, course), )
+        sorted_courses = sorted(map_courses_to_student, key=lambda course: alloc.effective_value(student, course))
 
+        #fill the mat
         for j, course in enumerate(alloc.remaining_items()):
             if course in sorted_courses:
                 rank_mat[j][i] = sorted_courses.index(course) + 1
@@ -59,9 +62,11 @@ def createRankMat(alloc, logger):
     logger.info("Rank matrix: %s", rank_mat)
     return rank_mat
 
+# conditions (12) (16) in the article using only for the SP-O
 def SP_O_condition(alloc, result_Zt1, D, p, v):
     return result_Zt1 * D + cp.sum([alloc.remaining_item_capacities[course] * p[j] for j, course in enumerate(alloc.remaining_items())]) + cp.sum([v[i] for i, student in enumerate(alloc.remaining_agents())])
 
+# conditions (14) in the article using only for the SP-O
 def conditions_14(alloc, v,p):
     constraints = []
     for j, course in enumerate(alloc.remaining_items()):
@@ -70,14 +75,15 @@ def conditions_14(alloc, v,p):
             constraints.append(v[i] >= 0)
     return constraints
 
+# sum the optimal rank to be sure the optimal bids agree with the optimal rank (6) (10) (17) (19)
 def sumOnRankMat(alloc, rank_mat, var):
     return cp.sum([rank_mat[j][i] * var[j, i]
                 for j, course in enumerate(alloc.remaining_items())
                 for i, student in enumerate(alloc.remaining_agents())
                 if (student, course) not in alloc.remaining_conflicts])
 
-#  if flag_if_use_alloc_in_func == 0 then using alloc.effective_value
-#  if flag_if_use_alloc_in_func == 1 then using effective_value_with_price
+# if flag_if_use_alloc_in_func == 0 then using alloc.effective_value for TTC-O
+# if flag_if_use_alloc_in_func == 1 then using effective_value_with_price for SP-O
 def roundTTC_O(alloc, logger, func, flag_if_use_alloc_in_func):
     rank_mat = createRankMat(alloc, logger)
 
@@ -101,8 +107,7 @@ def roundTTC_O(alloc, logger, func, flag_if_use_alloc_in_func):
         [func(student, course) * x[j, i] if flag_if_use_alloc_in_func == 0 else func(alloc, student, course) * x[j, i]
          for j, course in enumerate(alloc.remaining_items())
          for i, student in enumerate(alloc.remaining_agents())
-         if (student, course) not in alloc.remaining_conflicts]
-    ))
+         if (student, course) not in alloc.remaining_conflicts]))
 
     constraints_Zt2 = notExceedtheCapacity(x, alloc) + numberOfCourses(x, alloc, 1)
 

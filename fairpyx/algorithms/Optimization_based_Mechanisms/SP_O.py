@@ -39,6 +39,18 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
     >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
     >>> divide(SP_O_function, instance=instance)
     {'s1': ['c2'], 's2': ['c1']}
+
+    >>> s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}   #{c1: 40, c4: 30, c2:20, c3: 10}
+    >>> s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}     #{c3: 70, c2: 20, c1:6, c4: 4}
+    >>> s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}    #{c4: 50, c3: 21, c2:20, c1: 9}
+    >>> s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}    #{c4: 55, c1: 25, c3:15, c2: 5}
+    >>> s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}      #{c2: 90, c1: 5, c3:3, c4: 2}
+    >>> agent_capacities={"s1": 2, "s2": 2, "s3": 2, "s4": 2, "s5": 2}
+    >>> item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2}
+    >>> valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+    >>> divide(SP_O_function, instance=instance)
+    {'s1': ['c1', 'c2'], 's2': ['c1', 'c3'], 's3': ['c3', 'c4'], 's4': ['c1', 'c4'], 's5': ['c2']}
     """
 
     explanation_logger.info("\nAlgorithm SP-O starts.\n")
@@ -112,7 +124,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
                         map_student_to_his_sum_bids[student] -= p_values[j]
                         logger.info("student %s payed: %f", student, p_values[j])
                         logger.info("student %s have in dict: %f", student, map_student_to_his_sum_bids[student])
-            optimal.alloctions(alloc, x, logger)
+            optimal.allocations(alloc, x, logger)
 
             optimal_value = problem.value
             logger.info("Optimal Objective Value: %d", optimal_value)

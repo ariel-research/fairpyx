@@ -51,7 +51,7 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
 
         # Check if the optimization problem was successfully solved
         if result_Zt2 is not None:
-            optimal.alloctions(alloc, var, logger)
+            optimal.allocations(alloc, var, logger)
 
             optimal_value = problem.value
             explanation_logger.info("Optimal Objective Value:", optimal_value)

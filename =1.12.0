@@ -1,2 +1,0 @@
-Requirement already satisfied: scipy in /home/moriyaester/Desktop/Autonomous-Robots/.venv/Scripts/python.exe/lib/python3.10/site-packages (1.11.4)
-Requirement already satisfied: numpy<1.28.0,>=1.21.6 in /home/moriyaester/Desktop/Autonomous-Robots/.venv/Scripts/python.exe/lib/python3.10/site-packages (from scipy) (1.26.4)
