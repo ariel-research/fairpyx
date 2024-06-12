@@ -112,7 +112,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
                         map_student_to_his_sum_bids[student] -= p_values[j]
                         logger.info("student %s payed: %f", student, p_values[j])
                         logger.info("student %s have in dict: %f", student, map_student_to_his_sum_bids[student])
-            optimal.alloctions(alloc, x, logger)
+            optimal.allocations(alloc, x, logger)
 
             optimal_value = problem.value
             logger.info("Optimal Objective Value: %d", optimal_value)
