@@ -9,11 +9,59 @@ Since: 2024-05
 """
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
+import fairpyx
+import numpy as np
+from typing import Dict, List
 
 import logging
 logger = logging.getLogger(__name__)
 
-def gale_shapley(alloc: AllocationBuilder, course_order_per_student: dict, tie_braking_lottery: dict) -> dict:
+def sort_and_tie_brake(input_dict: Dict[str, float], tie_braking_lottery: Dict[str, float], course_capacity: int) -> List[tuple[str, float]]:
+    """
+    Sorts a dictionary by its values in descending order and adds a  number
+    to the values of keys with the same value.
+    stops if the count passed the course's capacity and its not on a tie.
+
+    Parameters:
+    input_dict (Dict[str, float]): A dictionary with string keys and float values.
+    tie_braking_lottery (Dict[str, float]): A dictionary with string keys and float values.
+    course_capacity (int): The number of students allowed at the course
+
+    Returns:
+    dict: A new dictionary with sorted and modified values.
+    """
+
+    # Sort the dictionary by values in descending order
+    sorted_dict = dict(sorted(input_dict.items(), key=lambda item: item[1], reverse=True))
+    
+    # Initialize previous value to track duplicate values
+    previous_value = None
+    prev_key = ""
+    
+    # Initialize a variable to track count
+    count: int = 0
+    
+    # Iterate over the sorted dictionary and modify values
+    for key in sorted_dict:
+        current_value = sorted_dict[key]
+        
+        if current_value == previous_value:
+            # If current value is the same as previous, add the number to both current and previous values
+            sorted_dict[key] += tie_braking_lottery[key]
+            sorted_dict[prev_key] += tie_braking_lottery[prev_key]
+        elif count >= course_capacity:
+            break
+            
+        # Update previous_value and prev_key to current_value and key for next iteration
+        previous_value = sorted_dict[key]
+        prev_key = key
+    
+    sorted_dict = (sorted(sorted_dict.items(), key=lambda item: item[1], reverse=True))
+    
+    return sorted_dict
+
+
+def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, List[str]], tie_braking_lottery: Dict[str, float]):
     """
     Allocate the given items to the given agents using the gale_shapley protocol.
     :param alloc: an allocation builder which tracks agent_capacities, item_capacities, valuations.
@@ -36,4 +84,62 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: dict, tie_b
     {'Alice': ['c2'], 'Bob': ['c1'], 'Chana': ['c1'], 'Dana': ['c2'], 'Dor': ['c1']}
     """
     
-    return {}
+    if(not tie_braking_lottery):
+        tie_braking_lottery = {agent: float(np.random.uniform(0.001, 1, 1)) for agent in alloc.remaining_agents()}
+    
+    input_to_check_types = [alloc.remaining_agent_capacities, alloc.remaining_item_capacities, course_order_per_student, tie_braking_lottery]
+    for input_to_check in input_to_check_types:
+        if(type(input_to_check) != dict):
+            raise TypeError;
+    
+    if(alloc.remaining_agent_capacities == {} or alloc.remaining_item_capacities == {}):
+        return {}
+    was_an_offer_declined: bool = True
+    course_to_on_hold_students: Dict[str, Dict[str, float]] = {course: {} for course in alloc.remaining_items()} 
+    student_to_rejection_count: Dict[str, int] = {student: alloc.remaining_agent_capacities[student] for student in alloc.remaining_agents()}
+    
+    while(was_an_offer_declined):
+        logger.info("Each student proposes to his top qI courses based on his stated preferences.")
+        for student in alloc.remaining_agents():
+            student_capability: int = student_to_rejection_count[student]
+            for index in range(student_capability):
+                wanted_course = course_order_per_student[student].pop(index)
+                if(wanted_course in course_to_on_hold_students):
+                    if(student in course_to_on_hold_students[wanted_course]):
+                        continue
+                    try:
+                        student_to_course_proposal = alloc.effective_value(student, wanted_course)
+                        course_to_on_hold_students[wanted_course][student] = student_to_course_proposal
+                    except Exception as e:
+                        return {}
+                    
+        logger.info("Each course c rejects all but the highest bidding qc students among those who have proposed")
+        student_to_rejection_count = {student: 0 for student in alloc.remaining_agents()}
+        for course_name in course_to_on_hold_students:
+            course_capacity = alloc.remaining_item_capacities[course_name]
+            course_to_offerings = course_to_on_hold_students[course_name]
+            if(len(course_to_offerings) == 0):
+                continue
+            elif(len(course_to_offerings) <= course_capacity):
+                was_an_offer_declined = False
+                continue
+            on_hold_students_sorted_and_tie_braked = sort_and_tie_brake(course_to_offerings, tie_braking_lottery, course_capacity)
+            course_to_on_hold_students[course_name].clear()
+            for key, value in on_hold_students_sorted_and_tie_braked[:course_capacity]:
+                course_to_on_hold_students[course_name][key] = value
+                
+            rejected_students = on_hold_students_sorted_and_tie_braked[course_capacity:]
+            for rejected_student, bid in rejected_students:
+                student_to_rejection_count[rejected_student] += 1
+            was_an_offer_declined = True
+    
+    logger.info("The procedure terminates when no proposal is rejected, and at this stage course assignments are finalized.")
+    final_course_matchings = course_to_on_hold_students.items()
+    for course_name, matching in final_course_matchings:
+        for student, bid in matching.items():
+            alloc.give(student, course_name, logger)
+            
+            
+if __name__ == "__main__":
+    import doctest
+    print(doctest.testmod())

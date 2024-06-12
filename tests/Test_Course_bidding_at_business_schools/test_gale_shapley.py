@@ -51,14 +51,14 @@ def test_empty_input():
     valuations = {}
     course_order_per_student = {}
     tie_braking_lottery = {}
-    instance = fairpyx.Instance(agent_capacities=agent_capacities, 
-                                item_capacities=course_capacities, 
-                                valuations=valuations)
-    allocation = fairpyx.divide(fairpyx.algorithms.gale_shapley, 
-                            instance=instance, 
-                            course_order_per_student=course_order_per_student, 
-                            tie_braking_lottery=tie_braking_lottery)
-    assert allocation == {}, "failed"
+    with pytest.raises(StopIteration):
+        instance = fairpyx.Instance(agent_capacities=agent_capacities, 
+                                    item_capacities=course_capacities, 
+                                    valuations=valuations)
+        allocation = fairpyx.divide(fairpyx.algorithms.gale_shapley, 
+                                instance=instance, 
+                                course_order_per_student=course_order_per_student, 
+                                tie_braking_lottery=tie_braking_lottery)
 
 def test_wrong_input_type_agent_capacities():
     agent_capacities = "not a dict"
