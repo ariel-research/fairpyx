@@ -598,15 +598,18 @@ if __name__ == "__main__":
     #                 "Claire": [7, 1, 2, 9, 3, 2, 3, 8, 8, 7, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
     # alloc = divide(divide_and_choose_for_three, inst, explanation_logger=console_explanation_logger)
 
-    num_of_agents = 3
-    num_of_items = 19
-    divide_random_instance(algorithm=divide_and_choose_for_three, 
-                           num_of_agents=num_of_agents, num_of_items=num_of_items, 
-                           agent_capacity_bounds=[num_of_items,num_of_items], item_capacity_bounds=[1,1], 
-                           item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
-                           explanation_logger=console_explanation_logger,
-                           random_seed=2)
+    # num_of_agents = 3
+    # num_of_items = 19
+    # divide_random_instance(algorithm=divide_and_choose_for_three, 
+    #                        num_of_agents=num_of_agents, num_of_items=num_of_items, 
+    #                        agent_capacity_bounds=[num_of_items,num_of_items], item_capacity_bounds=[1,1], 
+    #                        item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
+    #                        explanation_logger=console_explanation_logger,
+    #                        random_seed=2)
 
-    # inst = Instance(valuations={"Alice": [10, 10, 6, 4], "Bob": [7, 5, 6, 6], "Claire": [2, 8, 8, 7]})
-    # alloc = divide(alloc_by_matching, inst, explanation_logger=my_log)
+    inst = Instance(
+        valuations={"Alice": [10, 10, 6, 4], 
+                    "Bob": [7, 5, 6, 6], 
+                    "Claire": [2, 8, 8, 7]})
+    alloc = divide(alloc_by_matching, inst, explanation_logger=console_explanation_logger)
 
