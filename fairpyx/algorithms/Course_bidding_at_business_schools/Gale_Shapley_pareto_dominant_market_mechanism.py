@@ -73,6 +73,7 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, L
     Dict[str, List[str]]: A dictionary representing the final allocation of courses to students.
 
     Example:
+    >>> from fairpyx import Instance, AllocationBuilder
     >>> from fairpyx.adaptors import divide
     >>> s1 = {"c1": 40, "c2": 60}
     >>> s2 = {"c1": 70, "c2": 30}
