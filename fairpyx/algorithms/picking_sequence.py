@@ -31,8 +31,10 @@ def picking_sequence(alloc: AllocationBuilder, agent_order:list):
     logger.info("\nPicking-sequence with items %s , agents %s, and agent-order %s", alloc.remaining_item_capacities, alloc.remaining_agent_capacities, agent_order)
     for agent in cycle(agent_order):
         if alloc.isdone():
-            break 
+            logger.info("No more items to allocate")
+            break
         if not agent in alloc.remaining_agent_capacities:
+            logger.info("No more agents with capacities")
             continue
         potential_items_for_agent = set(alloc.remaining_items_for_agent(agent))
         if len(potential_items_for_agent)==0:
@@ -40,6 +42,7 @@ def picking_sequence(alloc: AllocationBuilder, agent_order:list):
             alloc.remove_agent_from_loop(agent)
             continue
         best_item_for_agent = max(potential_items_for_agent, key=lambda item: alloc.effective_value(agent,item))
+        # logger.info("\nAgent %s picks item %s", agent, best_item_for_agent)
         alloc.give(agent, best_item_for_agent, logger)
 
 
@@ -125,13 +128,20 @@ round_robin.logger = picking_sequence.logger = serial_dictatorship.logger = logg
 ### MAIN
 
 if __name__ == "__main__":
-    import doctest, sys
-    print("\n",doctest.testmod(), "\n")
+    # import doctest
+    # print("\n",doctest.testmod(), "\n")
 
     # sys.exit()
 
-    # logger.addHandler(logging.StreamHandler(sys.stdout))
-    # logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+
+    from fairpyx.adaptors import divide
+    agent_capacities = {"Alice": 2, "Bob": 3, "Chana": 2, "Dana": 3}      # 10 seats required
+    course_capacities = {"c1": 2, "c2": 3, "c3": 4}                       # 9 seats available
+    valuations = {"Alice": {"c1": 10, "c2": 8, "c3": 6}, "Bob": {"c1": 10, "c2": 8, "c3": 6}, "Chana": {"c1": 6, "c2": 8, "c3": 10}, "Dana": {"c1": 6, "c2": 8, "c3": 10}}
+    instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    divide(picking_sequence, instance=instance, agent_order=["Alice","Bob", "Chana", "Dana","Dana","Chana","Bob", "Alice"])
 
     # from fairpyx.adaptors import divide_random_instance
 
