@@ -89,18 +89,18 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
             return
         else:
             logger.info(f"Found Pareto dominating allocation: {alloc_Y}, updating constraints.")
-            allocation.value = None
-            new_cont= create_more_constraints_ILP(alloc, alloc_X, alloc_Y, allocation)
+            new_allocation = cp.Variable((len(alloc.remaining_agents()), len(alloc.remaining_agents())), integer=True)
+            new_cont= create_more_constraints_ILP(alloc, alloc_X, alloc_Y, new_allocation)
             for cont in new_cont:
                 constraints_ilp.append(cont)
 
-            alloc_X = find_envy_free_allocation(alloc, allocation, constraints_ilp)
+            alloc_X = find_envy_free_allocation(alloc, new_allocation, constraints_ilp)
 
     logger.info(f"No envy-free allocation found after {iteration_count} iterations, ending process.")
     return None
 
 
-def find_envy_free_allocation(alloc: AllocationBuilder, allocation, constraints_ilp):
+def find_envy_free_allocation(alloc: AllocationBuilder, allocation=None, constraints_ilp=None):
     """
        Find an envy-free allocation of items to agents.
 
@@ -125,6 +125,12 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation, constraints_
 """
 
     logger.debug("Searching for envy-free allocation.")
+
+    if allocation is None:
+        allocation = []
+    if constraints_ilp is None:
+        constraints_ilp = []
+
     agents_names, items_names, all_constraints_ilp  = [], [], []
 
     remaining_items = alloc.remaining_items()
@@ -165,9 +171,8 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation, constraints_
     for i in range(num_agents):
         for j in range(num_agents):
             if i != j:
-                value_i_for_j = cp.sum(cp.multiply(agent_valuations[i, :], allocation[j, :]))
-                value_i_for_i = cp.sum(cp.multiply(agent_valuations[i, :], allocation[i, :]))
-                envy_free_constraints.append(value_i_for_j <= value_i_for_i)
+                envy_free_constraints.append(cp.sum(cp.multiply(agent_valuations[i], allocation[j, :])) <= cp.sum(
+                    cp.multiply(agent_valuations[i], allocation[i, :])))
 
     # Define ILP constraints
     for cont in constraints_ilp:
@@ -199,7 +204,7 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
                                         maxtrix[i][j] = x -> times agent i gets item j.
 
 
-    >>> agent_capacities = {"Ami": 6, "Tami": 6, "Rami": 6}
+    >>> agent_capacities = {"Ami": 2, "Tami": 2, "Rami": 2}
     >>> item_capacities = {"Fork": 2, "Knife": 2, "Pen": 2}
     >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1} }
     >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
@@ -208,20 +213,8 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
     >>> pareto_optimal_allocation = find_pareto_dominates_allocation(alloc, alloc_X)
     >>> print(pareto_optimal_allocation)
     [[2 0 0]
-     [0 1 2]
-     [0 1 0]]
-
-    >>> item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
-    >>> agent_capacities = {"Ami": 9, "Tami": 9, "Rami": 9}
-    >>> valuations = {"Ami": {"Fork": 3, "Knife": 5, "Pen": 8}, "Rami": {"Fork": 5, "Knife": 7, "Pen": 5},"Tami": {"Fork": 4, "Knife": 1, "Pen": 11}}
-    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
-    >>> alloc = AllocationBuilder(instance)
-    >>> alloc_X = np.array([[3, 0, 0], [0, 0, 3], [0, 3, 0]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
-    >>> pareto_optimal_allocation = find_pareto_dominates_allocation(alloc, alloc_X)
-    >>> print(pareto_optimal_allocation)
-    [[3 0 2]
-     [0 3 0]
-     [0 0 1]]
+     [0 0 2]
+     [0 2 0]]
 
     """
 
@@ -273,16 +266,18 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
 
     # Define Pareto dominance constraints
     pareto_dominates_constraints = []
+    sum_val_x, sum_val_y = 0, 0
     for i in range(num_agents):
-        pareto_dominates_constraints.append(cp.sum(cp.multiply(agent_valuations[i, :], allocation[i, :])) >= cp.sum(
-            cp.multiply(agent_valuations[i, :], alloc_matrix[i, :])))
+        pareto_dominates_constraints.append(cp.sum(cp.multiply(agent_valuations[i], allocation[i, :])) >= cp.sum(
+            cp.multiply(agent_valuations[i], alloc_matrix[i, :])))
+        sum_val_x += cp.sum(cp.multiply(agent_valuations[i], alloc_matrix[i, :]))
+        sum_val_y += cp.sum(cp.multiply(agent_valuations[i], allocation[i, :]))
 
     # Ensure sum_val_y > sum_val_x
-    pareto_dominates_constraints.append(
-        cp.sum([cp.sum(cp.multiply(agent_valuations[i, :], allocation[i, :])) for i in range(num_agents)]) >=
-        1 + cp.sum([cp.sum(cp.multiply(agent_valuations[i, :], alloc_matrix[i, :])) for i in range(num_agents)]))
+    pareto_dominates_constraints.append(sum_val_y >= sum_val_x + 1)
 
-
+    logger.debug(f"Pareto dominance constraints: {pareto_dominates_constraints}")
+    logger.debug(f"Capacity constraints: {item_capacity_constraints + agent_capacity_constraints}")
 
     # Create the optimization problem
     problem = cp.Problem(objective, pareto_dominates_constraints + item_capacity_constraints + agent_capacity_constraints)
@@ -330,34 +325,41 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X, alloc_Y, allo
             # Constraint 1
             constraints.append( allocation[i][j] + (alloc_Y[i][j] - alloc_X[i][j]) <= -1 + (2 * items_capacities[j]) * (1 - Z[agent, item]))
             # Constraint 2
-            constraints.append(allocation[i][j] + (alloc_Y[i][j] - alloc_X[i][j]) >= Z_bar[agent, item] * (items_capacities[j] + 1))
+            constraints.append(allocation[i][j] + (alloc_Y[i][j] - alloc_X[i][j])>= Z_bar[agent, item] * (items_capacities[j] + 1))
             j += 1
         i += 1
         j = 0
 
     # Add constraint for each agent that at least one item must change
-    constraints.append(cp.sum([Z[agent, item] for agent in agents for item in items]) +
-                       cp.sum([Z_bar[agent, item] for agent in agents for item in items]) >= 1)
+    constraints.append( cp.sum([cp.sum([Z[agent, item] + Z_bar[agent, item] for item in items]) for agent in agents]) >= 1)
     logger.info("Additional ILP constraints created successfully.")
 
     return constraints
 
 
+# Example usage:
+# Suppose alloc_X and alloc_Y are dictionaries representing allocations for two scenarios:
+# alloc_X = {'agent1': {'item1': 10, 'item2': 5}, 'agent2': {'item1': 8, 'item2': 6}}
+# alloc_Y = {'agent1': {'item1': 8, 'item2': 7}, 'agent2': {'item1': 7, 'item2': 5}}
+
+# Create additional constraints
+# additional_constraints = create_more_constraints_ILP(alloc_X, alloc_Y)
+
 #### MAIN
 
 if __name__ == "__main__":
-    # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     import doctest, sys
+
+    # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
     print("\n", doctest.testmod(), "\n")
 
-    num_of_agents = 6
-    num_of_items = 3
+    item_capacities = {"Fork": 2, "Knife": 2, "Pen": 2}
+    agent_capacities = {"Ami": 6, "Tami": 6, "Rami": 6}
+    valuations = {"Ami": {"Fork": 0, "Knife": 5, "Pen": 1}, "Rami": {"Fork": 5, "Knife": 1, "Pen": 0},
+                  "Tami": {"Fork": 1, "Knife": 0, "Pen": 5}}
 
-    from fairpyx.adaptors import divide_random_instance, divide
+    instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
 
-    print("\n\nhigh_multiplicity_fair_allocation:")
-    divide_random_instance(
-        algorithm=high_multiplicity_fair_allocation, 
-        num_of_agents=num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12], 
-        item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
-        random_seed=1)
+    answer_dict = divide(algorithm=high_multiplicity_fair_allocation, instance=instance)
+    print(answer_dict)
