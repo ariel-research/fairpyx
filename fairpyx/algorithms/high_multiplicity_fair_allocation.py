@@ -55,7 +55,7 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
     for agent in alloc.remaining_agents():
         agents.append(agent)
 
-    allocation = cp.Variable((len(alloc.remaining_agents()), len(alloc.remaining_agents())), integer=True)
+    allocation = cp.Variable((len(alloc.remaining_agents()), len(alloc.remaining_items())), integer=True)
 
     logger.debug(f"Initial constraints: {constraints_ilp}")
 
@@ -115,7 +115,7 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation, constraints_
     >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1} }
     >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
     >>> alloc = AllocationBuilder(instance)
-    >>> allocation = cp.Variable((len(alloc.remaining_agents()), len(alloc.remaining_agents())), integer=True)
+    >>> allocation = cp.Variable((len(alloc.remaining_agents()), len(alloc.remaining_items())), integer=True)
     >>> alloc_X = find_envy_free_allocation(alloc, allocation, [])
     >>> print(alloc_X)
     [[2 0 0]
