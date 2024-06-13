@@ -12,12 +12,7 @@ Since : 2024-05
 import cvxpy as cp
 import numpy as np
 from fairpyx import Instance, AllocationBuilder
-from fairpyx.adaptors import divide
 import logging
-
-from fairpyx.utils.graph_utils import many_to_many_matching_using_network_flow
-from fairpyx.utils.linear_programming_utils import allocation_variables, allocation_constraints
-from fairpyx.utils.solve import solve
 
 logger = logging.getLogger(__name__)
 
@@ -298,12 +293,6 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
         return None
 
 
-# Suppose alloc_matrix is a dictionary containing the current allocation:
-# alloc_matrix = {'agent1': {'item1': 10, 'item2': 5}, 'agent2': {'item1': 8, 'item2': 6}}
-
-# Find a Pareto-dominating allocation
-# pareto_allocation = find_pareto_dominates_allocation(alloc_matrix)
-
 
 def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X, alloc_Y, allocation):
     logger.debug("Creating more ILP constraints based on current and previous allocations.")
@@ -344,15 +333,7 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X, alloc_Y, allo
     return constraints
 
 
-# Example usage:
-# Suppose alloc_X and alloc_Y are dictionaries representing allocations for two scenarios:
-# alloc_X = {'agent1': {'item1': 10, 'item2': 5}, 'agent2': {'item1': 8, 'item2': 6}}
-# alloc_Y = {'agent1': {'item1': 8, 'item2': 7}, 'agent2': {'item1': 7, 'item2': 5}}
-
-# Create additional constraints
-# additional_constraints = create_more_constraints_ILP(alloc_X, alloc_Y)
-
-#### MAIN
+#### MAIN ####
 
 if __name__ == "__main__":
     import doctest, sys
