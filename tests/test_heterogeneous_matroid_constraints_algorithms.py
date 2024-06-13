@@ -13,14 +13,8 @@ from fairpyx.algorithms import heterogeneous_matroid_constraints_algorithms
 from fairpyx import divide
 import numpy as np
 
-#logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-handler=logging.FileHandler('test_heterogeneous_matroid_constraints_algorithms.log',mode='w')
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-# TODO lets do reconstruction here tomorrow ! , less functions ! beautify ! straight to point !
 
+logger = logging.getLogger(__name__)
 def random_instance(equal_capacities: bool = False, equal_valuations: bool = False, binary_valuations: bool = False,
                     category_count=-1, num_of_agents=-1, num_of_items=-1, item_capacity_bounds=(-1,-1), random_seed_num:int=-1) -> tuple[Instance, dict, dict, list]:
     random_seed_num=np.random.randint(1, 2 ** 31) if random_seed_num == -1 else random_seed_num
