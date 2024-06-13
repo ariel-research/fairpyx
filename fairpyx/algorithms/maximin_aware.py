@@ -225,6 +225,12 @@ def alloc_by_matching(alloc: AllocationBuilder, explanation_logger=ExplanationLo
     >>> val_7items = {"Alice": [10,10,6,4,2,2,2], "Bob": [7,5,6,6,6,2,9], "Claire":[2,8,8,7,5,2,3]}
     >>> divide(alloc_by_matching, valuations=val_7items)
     {'Alice': [0, 2, 5], 'Bob': [4, 6], 'Claire': [1, 3]}
+    >>> val_envycycle = {"Alice": [14, 17, 2], "Bob": [14, 19, 6]}
+    >>> divide(alloc_by_matching, valuations=val_envycycle)
+    {'Alice': [1], 'Bob': [0, 2]}
+    >>> val_envycycle_2 = {"Alice": [57, 34, 22, 19, 14, 6], "Bob": [59, 34, 26, 17, 14, 2]}
+    >>> divide(alloc_by_matching, valuations=val_envycycle_2)
+    {'Alice': [0, 3], 'Bob': [1, 2, 4, 5]}
     """
     TEXTS = {
         "algorithm_starts": {
@@ -618,12 +624,17 @@ if __name__ == "__main__":
     #                 "Claire": [2, 8, 8, 7]})
     # alloc = divide(alloc_by_matching, inst, explanation_logger=console_explanation_logger)
 
+    inst = Instance(  # exemplifies an envy-cycle
+        valuations={"Alice": [57, 34, 22, 19, 14, 6], 
+                    "Bob": [59, 34, 26, 17, 14, 2]})
+    alloc = divide(alloc_by_matching, inst, explanation_logger=console_explanation_logger)
 
-    num_of_agents = 3
-    num_of_items = 19
-    divide_random_instance(algorithm=alloc_by_matching, 
-                           num_of_agents=num_of_agents, num_of_items=num_of_items, 
-                           agent_capacity_bounds=[num_of_items,num_of_items], item_capacity_bounds=[1,1], 
-                           item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=1000,
-                           explanation_logger=console_explanation_logger,
-                           random_seed=2)
+
+    # num_of_agents = 3
+    # num_of_items = 19
+    # divide_random_instance(algorithm=alloc_by_matching, 
+    #                        num_of_agents=num_of_agents, num_of_items=num_of_items, 
+    #                        agent_capacity_bounds=[num_of_items,num_of_items], item_capacity_bounds=[1,1], 
+    #                        item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=1000,
+    #                        explanation_logger=console_explanation_logger,
+    #                        random_seed=2)
