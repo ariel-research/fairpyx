@@ -74,14 +74,14 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     for category in item_categories.keys():
         logger.info(f'current category -> {category}')
         logger.info(f'Envy graph before  RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
-        categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities, category)
-        update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
+        helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities, category)
+        helper_update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
         logger.info(f'Envy graph after  RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
         if not nx.is_directed_acyclic_graph(envy_graph):
             logger.info(
                 f"Cycle removal started ")
 
-            remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
+            helper_remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
             logger.info(
                 f'cycle removal ended successfully ')
         current_order = list(nx.topological_sort(envy_graph))
@@ -151,8 +151,8 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     # no need for envy graphs whatsoever
     current_order = initial_agent_order
     logger.info(f'initial_agent_order -> {initial_agent_order}')
-    categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
-                                             target_category=target_category)  # this is RR without wrapper
+    helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
+                                                    target_category=target_category)  # this is RR without wrapper
     logger.info(f'alloc after CRR -> {alloc}')
 
 def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
@@ -221,13 +221,13 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             """
     current_order = initial_agent_order
     logger.info(f'initial_agent_order -> {current_order}')
-    categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
-                                             target_category=target_category_pair[0])  #calling CRR on first category
+    helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
+                                                    target_category=target_category_pair[0])  #calling CRR on first category
     logger.info(f'alloc after CRR#{target_category_pair[0]} ->{alloc}')
     current_order.reverse()  #reversing order
     logger.info(f'reversed initial_agent_order -> {current_order}')
-    categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
-                                             target_category=target_category_pair[1])  # calling CRR on second category
+    helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
+                                                    target_category=target_category_pair[1])  # calling CRR on second category
     logger.info(f'alloc after CRR#{target_category_pair[1]} ->{alloc}')
 
 
@@ -282,12 +282,12 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
     valuation_func = alloc.instance.agent_item_value
     logger.info(f'initial_agent_order->{initial_agent_order}')
     for category in item_categories.keys():
-        categorization_friendly_picking_sequence(alloc=alloc, agent_order=current_order,
-                                                 item_categories=item_categories,
-                                                 agent_category_capacities=agent_category_capacities,
-                                                 target_category=category)
-        update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-                          item_categories=item_categories, agent_category_capacities=agent_category_capacities)
+        helper_categorization_friendly_picking_sequence(alloc=alloc, agent_order=current_order,
+                                                        item_categories=item_categories,
+                                                        agent_category_capacities=agent_category_capacities,
+                                                        target_category=category)
+        helper_update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
+                                 item_categories=item_categories, agent_category_capacities=agent_category_capacities)
         current_order = list(nx.topological_sort(envy_graph))
         logger.info(f'alloc after RR in category ->{category} is ->{alloc}.\n Envy graph nodes->{envy_graph.nodes} edges->{envy_graph.edges}.\ntopological sort->{current_order}')
     logger.info(f'allocation after termination of algorithm4 -> {alloc}')
@@ -370,9 +370,9 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             )  # building the Bi-Partite graph
 
             # Creation of envy graph
-            update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-                              item_categories=item_categories,
-                              agent_category_capacities=agent_category_capacities)  # updating envy graph with respect to matchings (first iteration we get no envy, cause there is no matching)
+            helper_update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
+                                     item_categories=item_categories,
+                                     agent_category_capacities=agent_category_capacities)  # updating envy graph with respect to matchings (first iteration we get no envy, cause there is no matching)
             #topological sort (papers prove graph is always a-cyclic)
             topological_sort = list(nx.topological_sort(envy_graph))
             logger.info(f'topological sort is -> {topological_sort}')
@@ -391,12 +391,16 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
         logger.info(f'remaining_category_agent_capacities of agents capable of carrying arbitrary item ->{remaining_category_agent_capacities}')
         logger.info(f'current_item_list that were not allocated in the priority matching ->{current_item_list}')
 
-        categorization_friendly_picking_sequence(alloc, current_order,item_categories,agent_category_capacities={agent:{category:remaining_category_agent_capacities[agent]}for agent in remaining_category_agent_capacities.keys()},target_category=category)
+        helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities={agent:{category:remaining_category_agent_capacities[agent]} for agent in remaining_category_agent_capacities.keys()}, target_category=category)
     logger.info(f'FINAL ALLOCATION IS -> {alloc.bundles}')
 
 
-def envy(source: str, target: str, bundles: dict[str, set or list], val_func: callable, item_categories: dict,
-         agent_category_capacities: dict):
+
+ # helper functions section :
+
+
+def helper_envy(source: str, target: str, bundles: dict[str, set or list], val_func: callable, item_categories: dict,
+                agent_category_capacities: dict):
     """
         Determine if the source agent envies the target agent's bundle.
 
@@ -420,10 +424,10 @@ def envy(source: str, target: str, bundles: dict[str, set or list], val_func: ca
         >>> alloc=AllocationBuilder(instance=Instance(valuations=valuations,items=items))
         >>> alloc.bundles=bundles
         >>> val_func = lambda agent, item : valuations[agent][item]
-        >>> update_envy_graph(curr_bundles=bundles,valuation_func=val_func,envy_graph=envy_graph,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
-        >>> envy('agent1', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_update_envy_graph(curr_bundles=bundles,valuation_func=val_func,envy_graph=envy_graph,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
+        >>> helper_envy('agent1', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
         False
-        >>> envy('agent2', 'agent1', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_envy('agent2', 'agent1', alloc.bundles, val_func, item_categories, agent_category_capacities)
         True
 
         Example 2: example of a cycle between 2 agents ,with envy-check before and after elimination of cycles
@@ -436,15 +440,15 @@ def envy(source: str, target: str, bundles: dict[str, set or list], val_func: ca
         >>> alloc=AllocationBuilder(instance=Instance(valuations=valuations,items=items))
         >>> alloc.bundles=bundles
         >>> val_func = lambda agent, item: {'agent1': {'m1': 1, 'm2': 2, 'm3': 3, 'm4': 4},'agent2': {'m1': 4, 'm2': 3, 'm3': 2, 'm4': 1}}[agent][item]
-        >>> update_envy_graph(curr_bundles=bundles,valuation_func=val_func,envy_graph=envy_graph,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
-        >>> envy('agent1', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_update_envy_graph(curr_bundles=bundles,valuation_func=val_func,envy_graph=envy_graph,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
+        >>> helper_envy('agent1', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
         True
-        >>> envy('agent2', 'agent1', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_envy('agent2', 'agent1', alloc.bundles, val_func, item_categories, agent_category_capacities)
         True
-        >>> remove_cycles(envy_graph=envy_graph,alloc=alloc,valuation_func=val_func,agent_category_capacities=agent_category_capacities,item_categories=item_categories)
-        >>> envy('agent1', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_remove_cycles(envy_graph=envy_graph,alloc=alloc,valuation_func=val_func,agent_category_capacities=agent_category_capacities,item_categories=item_categories)
+        >>> helper_envy('agent1', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
         False
-        >>> envy('agent2', 'agent1', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_envy('agent2', 'agent1', alloc.bundles, val_func, item_categories, agent_category_capacities)
         False
 
         Example 3: example of a double cycle between 3 agents ,with envy-check before and after elimination of cycles
@@ -457,27 +461,27 @@ def envy(source: str, target: str, bundles: dict[str, set or list], val_func: ca
         >>> alloc=AllocationBuilder(instance=Instance(valuations=valuations,items=items))
         >>> alloc.bundles=bundles
         >>> val_func = lambda agent, item: valuations[agent][item]
-        >>> update_envy_graph(curr_bundles=bundles,valuation_func=val_func,envy_graph=envy_graph,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
-        >>> envy('agent1', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_update_envy_graph(curr_bundles=bundles,valuation_func=val_func,envy_graph=envy_graph,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
+        >>> helper_envy('agent1', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
         True
-        >>> envy('agent2', 'agent1', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_envy('agent2', 'agent1', alloc.bundles, val_func, item_categories, agent_category_capacities)
         True
-        >>> envy('agent2', 'agent3', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_envy('agent2', 'agent3', alloc.bundles, val_func, item_categories, agent_category_capacities)
         True
-        >>> envy('agent3', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_envy('agent3', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
         True
-        >>> envy('agent3', 'agent1', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_envy('agent3', 'agent1', alloc.bundles, val_func, item_categories, agent_category_capacities)
         False
-        >>> envy('agent1', 'agent3', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_envy('agent1', 'agent3', alloc.bundles, val_func, item_categories, agent_category_capacities)
         False
-        >>> remove_cycles(envy_graph=envy_graph,alloc=alloc,valuation_func=val_func,agent_category_capacities=agent_category_capacities,item_categories=item_categories)
-        >>> envy('agent1', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_remove_cycles(envy_graph=envy_graph,alloc=alloc,valuation_func=val_func,agent_category_capacities=agent_category_capacities,item_categories=item_categories)
+        >>> helper_envy('agent1', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
         False
-        >>> envy('agent2', 'agent1', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_envy('agent2', 'agent1', alloc.bundles, val_func, item_categories, agent_category_capacities)
         False
-        >>> envy('agent2', 'agent3', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_envy('agent2', 'agent3', alloc.bundles, val_func, item_categories, agent_category_capacities)
         False
-        >>> envy('agent3', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
+        >>> helper_envy('agent3', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
         False
         """
     val = val_func
@@ -500,8 +504,8 @@ def envy(source: str, target: str, bundles: dict[str, set or list], val_func: ca
     logger.info(f'does {source} envy {target} ? -> {target_bundle_val > source_bundle_val}')
     return target_bundle_val > source_bundle_val
 
-def categorization_friendly_picking_sequence(alloc:AllocationBuilder, agent_order:list, item_categories:dict, agent_category_capacities:dict,
-                                             target_category:str='c1'):
+def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, agent_order:list, item_categories:dict, agent_category_capacities:dict,
+                                                    target_category:str='c1'):
     """
     This is Round Robin algorithm with respect to categorization (works on each category separately when called)
     it was copied from picking_sequence.py and modified to align with our task
@@ -520,7 +524,7 @@ def categorization_friendly_picking_sequence(alloc:AllocationBuilder, agent_orde
     >>> agent_category_capacities={'agent1': {'c1': 2}, 'agent2': {'c1': 1}, 'agent3': {'c1': 0}}
     >>> target_category='c1'
     >>> alloc=AllocationBuilder(instance=Instance(valuations=valuations,items=items))
-    >>> categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category)
+    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category)
     >>> alloc.sorted()
     {'agent1': ['m1', 'm3'], 'agent2': ['m2'], 'agent3': []}
 
@@ -532,7 +536,7 @@ def categorization_friendly_picking_sequence(alloc:AllocationBuilder, agent_orde
     >>> agent_category_capacities={'agent1': {'c1': 1}, 'agent2': {'c1': 2}, 'agent3': {'c1': 1}}
     >>> target_category='c1'
     >>> alloc=AllocationBuilder(instance=Instance(valuations=valuations,items=items))
-    >>> categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category)
+    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category)
     >>> alloc.sorted()
     {'agent1': ['m3'], 'agent2': ['m1'], 'agent3': ['m2']}
 
@@ -544,10 +548,10 @@ def categorization_friendly_picking_sequence(alloc:AllocationBuilder, agent_orde
     >>> agent_category_capacities={'agent1': {'c1': 3,'c2':0,'c3':0,'c4':1}, 'agent2': {'c1': 2,'c2':0,'c3':0,'c4':1}, 'agent3': {'c1': 1,'c2':2,'c3':1,'c4':1}}
     >>> target_category='c1'
     >>> alloc=AllocationBuilder(instance=Instance(valuations=valuations,items=items))
-    >>> categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category)
-    >>> categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category='c2')
-    >>> categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category='c3')
-    >>> categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category='c4')
+    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category)
+    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category='c2')
+    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category='c3')
+    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category='c4')
     >>> alloc.sorted()
     {'agent1': ['m3', 'm7'], 'agent2': ['m1'], 'agent3': ['m2', 'm4', 'm5', 'm6']}
     """
@@ -558,7 +562,7 @@ def categorization_friendly_picking_sequence(alloc:AllocationBuilder, agent_orde
                                            agent_category_capacities.keys() if
                                            agent_category_capacities[agent][target_category] != 0} # all the agents with non zero capacities in our category
     logger.info(f"agent_category_capacities-> {agent_category_capacities}")
-    remaining_category_items = update_category_items(alloc, item_categories, target_category)
+    remaining_category_items = helper_update_category_items(alloc, item_categories, target_category)
     active_agents=agent_order.copy()
     for agent in cycle(agent_order):
         logger.info(f"agent order is -> {agent_order}")
@@ -583,11 +587,11 @@ def categorization_friendly_picking_sequence(alloc:AllocationBuilder, agent_orde
         remaining_category_agent_capacities[agent] -= 1
         if remaining_category_agent_capacities[agent] <= 0:
             del remaining_category_agent_capacities[agent]
-        remaining_category_items = update_category_items(alloc, item_categories, target_category) # in case an item is out of capacity the list is updated !
+        remaining_category_items = helper_update_category_items(alloc, item_categories, target_category) # in case an item is out of capacity the list is updated !
         logger.info(f'remaining_category_items -> {remaining_category_items} & remaining agents {remaining_category_agent_capacities}')
 
 
-def update_category_items(alloc:AllocationBuilder, item_categories:dict, target_category:str):
+def helper_update_category_items(alloc:AllocationBuilder, item_categories:dict, target_category:str):
     """
         This function verifies that items in a specific category are synced with allocationbuilder, when item reaches capacity 0 its removed
         @param alloc: AllocationBuilder instance
@@ -605,9 +609,9 @@ def update_category_items(alloc:AllocationBuilder, item_categories:dict, target_
         >>> alloc.give('agent1','m2')
         >>> alloc.give('agent1','m4')
         >>> alloc.give('agent1','m5')
-        >>> update_category_items(alloc,item_categories,target_category='c1')
+        >>> helper_update_category_items(alloc,item_categories,target_category='c1')
         ['m3']
-        >>> update_category_items(alloc,item_categories,target_category='c2')
+        >>> helper_update_category_items(alloc,item_categories,target_category='c2')
         ['m6']
 
         >>> # example 2 : empty lists
@@ -622,9 +626,9 @@ def update_category_items(alloc:AllocationBuilder, item_categories:dict, target_
         >>> alloc.give('agent1','m4')
         >>> alloc.give('agent1','m5')
         >>> alloc.give('agent1','m6')
-        >>> update_category_items(alloc,item_categories,target_category='c1')
+        >>> helper_update_category_items(alloc,item_categories,target_category='c1')
         []
-        >>> update_category_items(alloc,item_categories,target_category='c2')
+        >>> helper_update_category_items(alloc,item_categories,target_category='c2')
         []
 
         >>> # example 3 : running RR
@@ -634,9 +638,9 @@ def update_category_items(alloc:AllocationBuilder, item_categories:dict, target_
         >>> alloc=AllocationBuilder(instance=Instance(items=items,valuations=valuations))
         >>> alloc.remaining_item_capacities={'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1}
         >>> per_category_round_robin(alloc,item_categories,agent_category_capacities={'agent1':{'c1':3,'c2':2}},initial_agent_order=['agent1'])
-        >>> update_category_items(alloc,item_categories,target_category='c1')
+        >>> helper_update_category_items(alloc,item_categories,target_category='c1')
         []
-        >>> update_category_items(alloc,item_categories,target_category='c2')
+        >>> helper_update_category_items(alloc,item_categories,target_category='c2')
         ['m4']
     """
     remaining_category_items = [x for x in alloc.remaining_items() if x in item_categories[target_category]]
@@ -644,8 +648,8 @@ def update_category_items(alloc:AllocationBuilder, item_categories:dict, target_
     return remaining_category_items
 
 
-def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph, item_categories: dict, # TODO serious problem , we get bundles with 4 agents we end up with 3 agent nodes !! HOW !!
-                      agent_category_capacities: dict):
+def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph, item_categories: dict,  # TODO serious problem , we get bundles with 4 agents we end up with 3 agent nodes !! HOW !!
+                             agent_category_capacities: dict):
     """
     simply a helper function to update the envy-graph based on given params
     :param curr_bundles: the current allocation
@@ -660,7 +664,7 @@ def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: 
     >>> bundle={'Agent1':['m1'],'Agent2':['m2']}
     >>> item_categories={'c1':['m1','m2']}
     >>> agent_category_capacities= {'Agent1':{'c1':1},'Agent2':{'c1':1}}
-    >>> update_envy_graph(envy_graph=graph, valuation_func=valuation_func, item_categories=item_categories, agent_category_capacities=agent_category_capacities, curr_bundles=bundle )
+    >>> helper_update_envy_graph(envy_graph=graph, valuation_func=valuation_func, item_categories=item_categories, agent_category_capacities=agent_category_capacities, curr_bundles=bundle )
     >>> graph.has_edge('Agent2','Agent1')
     True
     >>> graph.has_edge('Agent1','Agent2')
@@ -671,7 +675,7 @@ def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: 
     >>> bundle={'Agent1':['m1'],'Agent2':['m2']}
     >>> item_categories={'c1':['m1','m2']}
     >>> agent_category_capacities= {'Agent1':{'c1':1},'Agent2':{'c1':1}}
-    >>> update_envy_graph(envy_graph=graph, valuation_func=valuation_func, item_categories=item_categories, agent_category_capacities=agent_category_capacities, curr_bundles=bundle )
+    >>> helper_update_envy_graph(envy_graph=graph, valuation_func=valuation_func, item_categories=item_categories, agent_category_capacities=agent_category_capacities, curr_bundles=bundle )
     >>> graph.has_edge('Agent2','Agent1')
     True
     >>> graph.has_edge('Agent1','Agent2')
@@ -685,12 +689,12 @@ def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: 
     >>> bundle={'Agent1':['m1'],'Agent2':['m2']}
     >>> item_categories={'c1':['m1','m2']}
     >>> agent_category_capacities= {'Agent1':{'c1':1},'Agent2':{'c1':1}}
-    >>> update_envy_graph(envy_graph=graph, valuation_func=valuation_func, item_categories=item_categories, agent_category_capacities=agent_category_capacities, curr_bundles=bundle )
+    >>> helper_update_envy_graph(envy_graph=graph, valuation_func=valuation_func, item_categories=item_categories, agent_category_capacities=agent_category_capacities, curr_bundles=bundle )
     >>> graph.has_edge('Agent2','Agent1')
     True
     >>> graph.has_edge('Agent1','Agent2')
     True
-    >>> remove_cycles(envy_graph=graph,alloc=AllocationBuilder(instance=Instance(items=items,valuations=valuations)),valuation_func=valuation_func,agent_category_capacities=agent_category_capacities,item_categories=item_categories)
+    >>> helper_remove_cycles(envy_graph=graph,alloc=AllocationBuilder(instance=Instance(items=items,valuations=valuations)),valuation_func=valuation_func,agent_category_capacities=agent_category_capacities,item_categories=item_categories)
     >>> graph.has_edge('Agent2','Agent1')
     False
     >>> graph.has_edge('Agent1','Agent2')
@@ -704,8 +708,8 @@ def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: 
             if agent1 is not agent2:  # make sure w're not comparing same agent to himself
                 # make sure to value with respect to the constraints of feasibility
                 # since in algo 1 its always feasible because everyone has equal capacity we dont pay much attention to it
-                if envy(source=agent1, target=agent2, bundles=curr_bundles, val_func=valuation_func,
-                        item_categories=item_categories, agent_category_capacities=agent_category_capacities):
+                if helper_envy(source=agent1, target=agent2, bundles=curr_bundles, val_func=valuation_func,
+                               item_categories=item_categories, agent_category_capacities=agent_category_capacities):
                     #print(f"{agent1} envies {agent2}")  # works great .
                     # we need to add edge from the envier to the envyee
                     envy_graph.add_edge(agent1, agent2)
@@ -718,7 +722,7 @@ def update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: 
 #     plt.show()
 #
 
-def remove_cycles(envy_graph, alloc:AllocationBuilder, valuation_func, item_categories, agent_category_capacities):
+def helper_remove_cycles(envy_graph, alloc:AllocationBuilder, valuation_func, item_categories, agent_category_capacities):
     """
         Removes cycles from the envy graph by updating the bundles.
 
@@ -742,12 +746,12 @@ def remove_cycles(envy_graph, alloc:AllocationBuilder, valuation_func, item_cate
         >>> envy_graph = nx.DiGraph()
         >>> valuation_callable=alloc.instance.agent_item_value
         >>> def valuation_func(agent, item): return valuation_callable(agent,item)
-        >>> update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
+        >>> helper_update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
         >>> list(envy_graph.edges)
         [('Agent1', 'Agent2'), ('Agent2', 'Agent3'), ('Agent3', 'Agent1')]
         >>> not nx.is_directed_acyclic_graph(envy_graph)
         True
-        >>> remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
+        >>> helper_remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
         >>> list(nx.simple_cycles(envy_graph))
         []
         >>> list(envy_graph.edges)
@@ -768,12 +772,12 @@ def remove_cycles(envy_graph, alloc:AllocationBuilder, valuation_func, item_cate
         >>> envy_graph = nx.DiGraph()
         >>> valuation_callable=alloc.instance.agent_item_value
         >>> def valuation_func(agent, item): return valuation_callable(agent,item)
-        >>> update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
+        >>> helper_update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
         >>> list(envy_graph.edges)
         [('Agent1', 'Agent2'), ('Agent2', 'Agent1'), ('Agent2', 'Agent3'), ('Agent3', 'Agent2')]
         >>> not nx.is_directed_acyclic_graph(envy_graph)
         True
-        >>> remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
+        >>> helper_remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
         >>> list(nx.simple_cycles(envy_graph))
         []
         >>> list(envy_graph.edges)
@@ -794,12 +798,12 @@ def remove_cycles(envy_graph, alloc:AllocationBuilder, valuation_func, item_cate
         >>> envy_graph = nx.DiGraph()
         >>> valuation_callable=alloc.instance.agent_item_value
         >>> def valuation_func(agent, item): return valuation_callable(agent,item)
-        >>> update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
+        >>> helper_update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
         >>> list(envy_graph.edges)
         [('Agent1', 'Agent2'), ('Agent2', 'Agent1')]
         >>> not nx.is_directed_acyclic_graph(envy_graph)
         True
-        >>> remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
+        >>> helper_remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
         >>> list(nx.simple_cycles(envy_graph))
         []
         >>> list(envy_graph.edges)
@@ -833,7 +837,7 @@ def remove_cycles(envy_graph, alloc:AllocationBuilder, valuation_func, item_cate
                 logger.info(f"Updated temp_val: {temp_val}")
 
             # Update the envy graph after swapping
-            update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
+            helper_update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
             logger.info(f"Updated envy graph. is Graph acyclic ?? {nx.is_directed_acyclic_graph(envy_graph)}")
 
         except nx.NetworkXNoCycle:
@@ -848,8 +852,6 @@ def remove_cycles(envy_graph, alloc:AllocationBuilder, valuation_func, item_cate
         raise RuntimeError("Cycle removal failed to achieve an acyclic graph.")
 
     logger.info("Cycle removal process ended successfully")
-
- # helper functions section :
 
 def helper_update_ordered_agent_list(current_order: list, remaining_category_agent_capacities: dict) -> list:
     """
