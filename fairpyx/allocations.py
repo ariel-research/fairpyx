@@ -148,12 +148,18 @@ class AllocationBuilder:
         """
         return len(self.remaining_item_capacities) == 0 or len(self.remaining_agent_capacities) == 0 
 
-
     def remaining_items(self)->list: 
         """
         Return the items with positive remaining capacity.
         """
         return self.remaining_item_capacities.keys()
+    
+    def remaining_items_for_agent(self, agent)->list:
+        """
+        Return the items with positive remaining capacity, that are available for the agent
+        (== the agent does not already have them, and there are no item-conflicts or agent-conflicts)
+        """
+        return [item for item in self.remaining_items() if (agent,item) not in self.remaining_conflicts]
 
     def remaining_agents(self)->list: 
         """
@@ -202,6 +208,8 @@ class AllocationBuilder:
             raise ValueError(f"Agent {agent} has no remaining capacity for item {item}")
         if item not in self.remaining_item_capacities:
             raise ValueError(f"Item {item} has no remaining capacity for agent {agent}")
+        if (agent,item) in self.remaining_conflicts:
+            raise ValueError(f"Agent {agent} is not allowed to take item {item} due to a conflict")
         self.bundles[agent].add(item)
         if logger is not None:
             logger.info("Agent %s takes item %s with value %s", agent, item, self.instance.agent_item_value(agent, item))
