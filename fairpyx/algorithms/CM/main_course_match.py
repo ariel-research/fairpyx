@@ -28,7 +28,7 @@ def course_match_algorithm(alloc: AllocationBuilder):
     ... })
     >>> allocation = AllocationBuilder(instance)
     >>> course_match_algorithm(allocation)
-    {'c1': ['Alice'], 'c2': ['Bob'], 'c3': ['Tom']}
+    {'Alice': ['c1'], 'Bob': ['c2'], 'Tom': ['c3']}
 
     >>> instance = Instance(
     ...   agent_capacities = {"Alice": 2, "Bob": 2, "Tom": 2}, 
@@ -39,7 +39,7 @@ def course_match_algorithm(alloc: AllocationBuilder):
     ... })
     >>> allocation = AllocationBuilder(instance)
     >>> course_match_algorithm(allocation)
-    {'c1': ['Alice', 'Tom'], 'c2': ['Alice', 'Bob'], 'c3': ['Bob', 'Tom']}
+    {'Alice': ['c1','c2'], 'Bob': ['c2','c3'], 'Tom': ['c1','c3']}
 
     >>> instance = Instance(
     ...   agent_capacities = {"Alice": 2, "Bob": 1},
@@ -49,7 +49,8 @@ def course_match_algorithm(alloc: AllocationBuilder):
     ... })
     >>> allocation = AllocationBuilder(instance)
     >>> course_match_algorithm(allocation)
-    {'c1': ['Alice'], 'c2': ['Alice', 'Bob'], 'c3': []}
+    {'Alice': ['c1','c2'], 'Bob': ['c2'], 'Tom': []}
+    
     """
     pass
 
