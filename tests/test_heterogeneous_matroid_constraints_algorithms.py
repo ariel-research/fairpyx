@@ -59,8 +59,8 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                                               num_of_items=num_of_items,
                                               agent_capacity_bounds=agent_capacity_bounds,
                                               item_capacity_bounds=item_capacity_bounds,
-                                              item_base_value_bounds=item_base_value_bounds, # TODO valuation doesnt do me justice too , no respect for equal valuations
-                                              item_subjective_ratio_bounds=item_subjective_ratio_bounds, # TODO understand this
+                                              item_base_value_bounds=item_base_value_bounds,
+                                              item_subjective_ratio_bounds=item_subjective_ratio_bounds,
                                               normalized_sum_of_values=normalized_sum_of_values,
                                               agent_name_template=agent_name_template,
                                               item_name_template=item_name_template,
@@ -111,7 +111,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
         random_category = np.random.choice(list(categories.keys()))
         categories[random_category].append(item)
 
-    result_instance.agent_capacity = { # TODO this is where we make capacity as sum of all category capacities per each agent !(useful to prevent algorithm early termination)
+    result_instance.agent_capacity = { # this is where we make capacity as sum of all category capacities per each agent !(useful to prevent algorithm early termination)
         agent: sum(agent_category_capacities[agent][category] for category in agent_category_capacities[agent]) for agent in agent_category_capacities.keys()}
 
     item_capacities = {item: result_instance.item_capacity(item) for item in result_instance.items}
@@ -204,7 +204,7 @@ def test_algorithm_1(run):
 
 
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
-def test_algorithm_2(run):# TODO show Erel the video of the problem (the item caps affecting fairness) (no wonder each algorithm using RR is gonna be failing in some instances where item capacity affects the situation)
+def test_algorithm_2(run):
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, category_count=1, item_capacity_bounds=(1,1),
                                                                                            random_seed_num=0)
     # logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
@@ -221,7 +221,7 @@ def test_algorithm_2(run):# TODO show Erel the video of the problem (the item ca
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_3(run):
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, category_count=2, item_capacity_bounds=(1,1),
-                                                                                           random_seed_num=0) # TODO somehow it runs stupid with only 1 item !!! WHYYYYYYY
+                                                                                           random_seed_num=0)
     logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
 
     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin,
@@ -253,7 +253,7 @@ def test_algorithm_4(run):
 
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_5(
-        run):  # binary valuations # TODO force it to create instance witn no cyclces in envy graph kind of weird since in binary vals no envy cycle can be imagined
+        run):  # binary valuations
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False, binary_valuations=True, item_capacity_bounds=(1,1),
                                                                                            random_seed_num=0)
     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,

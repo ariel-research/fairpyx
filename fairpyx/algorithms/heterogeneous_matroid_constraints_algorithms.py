@@ -293,7 +293,7 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
     logger.info(f'allocation after termination of algorithm4 -> {alloc}')
 
 
-def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):# TODO recheck algorithm around 10% of tests fall due to not satisfying f-ef1
+def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):
     """
     this is Algorithm 5  deals with (partition Matroids with Binary Valuations, may have different capacities)
     loops as much as maximum capacity in per each category , each iteration we build :
@@ -577,7 +577,7 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
             logger.info(f'no potential items for agent {agent}')
             # either no items left / or agent already has items (conflicted)
             if remaining_category_agent_capacities[agent]>0:# need to remove agent from our loop
-                del remaining_category_agent_capacities[agent] # TODO REMOVE IF NOT USEFUL
+                del remaining_category_agent_capacities[agent]
                 logger.info(f"current agent order is -> {agent_order}")
                 continue
         # safe to assume agent has capacity & has the best item to pick
@@ -648,7 +648,7 @@ def helper_update_category_items(alloc:AllocationBuilder, item_categories:dict, 
     return remaining_category_items
 
 
-def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph, item_categories: dict,  # TODO serious problem , we get bundles with 4 agents we end up with 3 agent nodes !! HOW !!
+def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph, item_categories: dict,
                              agent_category_capacities: dict):
     """
     simply a helper function to update the envy-graph based on given params
@@ -1044,7 +1044,6 @@ def helper_create_agent_item_bipartite_graph(agents, items, valuation_func,
     >>> bipartite_graph = helper_create_agent_item_bipartite_graph(agents, items,valuation_func)
     >>> sorted(bipartite_graph.edges(data=True))
     [('Agent3', 'Item1', {'weight': 2}), ('Agent3', 'Item2', {'weight': 2}), ('Agent3', 'Item3', {'weight': 2})]
-    >>> # TODO ask Erel (agent 3 is third but he's the only one to choose items doe he still get less weight do to his order 3'rd in the sigma ?)
     """
     agent_item_bipartite_graph = nx.Graph()
     agent_item_bipartite_graph.add_nodes_from(agents, bipartite=0)

@@ -19,6 +19,8 @@ def divide(
     valuations: any = None,
     agent_capacities: any = None,  # default is unbounded (= num of items)
     item_capacities:  any = None,  # default is 1 per course
+    agent_conflicts:  any = None,
+    item_conflicts:   any = None,
     **kwargs
 ):
     """
@@ -42,7 +44,7 @@ def divide(
     {'Alice': ['c1', 'c3'], 'Bob': ['c2']}
     """
     if instance is None:
-        instance = Instance(valuations=valuations, agent_capacities=agent_capacities, item_capacities=item_capacities)
+        instance = Instance(valuations=valuations, agent_capacities=agent_capacities, item_capacities=item_capacities, agent_conflicts=agent_conflicts, item_conflicts=item_conflicts)
     alloc = AllocationBuilder(instance)
     explanation_logger:ExplanationLogger = kwargs.get("explanation_logger", None)
     if explanation_logger:
