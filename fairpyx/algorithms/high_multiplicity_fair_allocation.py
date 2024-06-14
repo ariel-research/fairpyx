@@ -230,21 +230,9 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
     """
 
     logger.debug("Searching for Pareto dominates allocation.")
-    agents_names, item_capacities, agent_capacities, items_names = [], [], [], []
 
-    for i in alloc.remaining_items():
-        item_capacities.append(alloc.remaining_item_capacities[i])
-        items_names.append(i)
-
-    # agent_valuations = []
-    for agent in alloc.remaining_agents():
-        # agent_valuations.append([alloc.effective_value(agent, item) for item in remaining_items])
-        agent_capacities.append(alloc.remaining_agent_capacities[agent])
-        agents_names.append(agent)
-
-    agent_valuations = [
-        [alloc.effective_value(agent, item) for item in alloc.remaining_items()]
-        for agent in alloc.remaining_agents()]
+    agents_names, items_names, item_capacities, \
+        agent_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
 
     logger.debug(f"Item names and capacities: {alloc.remaining_item_capacities}")
 
@@ -263,20 +251,20 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
 
     # Define capacity constraints
     item_capacity_constraints = [cp.sum(allocation_variables[:, j]) == item_capacities[j] for j in range(num_items)]
-    # [item_capacity_constraints.append(cp.sum(allocation[:, j]) >= 0) for j in range(num_items)]
     agent_capacity_constraints = [allocation_variables[i, j] >= 0 for i in range(num_agents) for j in range(num_items)]
 
     # Ensure no agent receives more items than their capacity
     agent_capacity_constraints += [cp.sum(allocation_variables[i, :]) <= agent_capacities[i] for i in range(num_agents)]
 
     # Define Pareto dominance constraints
-    current_value_per_agent = [cp.sum(cp.multiply(agent_valuations[i, :], alloc_matrix[i, :])) for i in range(num_agents)]
-    new_value_per_agent =     [cp.sum(cp.multiply(agent_valuations[i, :], allocation_variables[i, :]))   for i in range(num_agents)]
+    current_value_per_agent = [cp.sum(cp.multiply(agent_valuations[i, :], alloc_matrix[i, :])) for i in
+                               range(num_agents)]
+    new_value_per_agent = [cp.sum(cp.multiply(agent_valuations[i, :], allocation_variables[i, :])) for i in
+                           range(num_agents)]
     pareto_dominates_constraints = [new_value_per_agent[i] >= current_value_per_agent[i] for i in range(num_agents)]
 
     # Ensure sum_val_y > sum_val_x
-    pareto_dominates_constraints.append(
-        cp.sum(new_value_per_agent) >= 1 + cp.sum(current_value_per_agent))
+    pareto_dominates_constraints.append(cp.sum(new_value_per_agent) >= 1 + cp.sum(current_value_per_agent))
 
     # Create the optimization problem
     problem = cp.Problem(cp.Maximize(0),
@@ -296,47 +284,44 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
         return None
 
 
-
 def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, alloc_Y: np.ndarray, allocation_variables: cp.Variable):
     """
-    TODO: add documentation
+    Creates additional ILP constraints based on current and previous allocations to ensure
+    the new allocation differs from the previous one and satisfies specific conditions.
 
-    What are the params?
+    Parameters:
+    - alloc (AllocationBuilder): The allocation object containing the remaining agents and items.
+    - alloc_X (np.ndarray): The previous allocation matrix.
+    - alloc_Y (np.ndarray): The current allocation matrix.
+    - allocation_variables (cp.Variable): The ILP variable representing the allocation.
+
+    Returns:
+    - list: A list of additional constraints.
     """
     logger.debug("Creating more ILP constraints based on current and previous allocations.")
-    # Define variables
-    agents = alloc.remaining_agents()
-    items = alloc.remaining_items()
 
-    # TODO: Move to helper function
-    items_capacities = []
-    for i in alloc.remaining_items():
-        items_capacities.append(alloc.remaining_item_capacities[i])
-    # Initialize constraints list
+    # Define variables
+    agents, items, items_capacities = get_agents_items_and_capacities(alloc, True)  # True to return only this tuple
 
     # Create binary variables for each agent-item combination
     Z = {(agent, item): cp.Variable(boolean=True) for agent in agents for item in items}
     Z_bar = {(agent, item): cp.Variable(boolean=True) for agent in agents for item in items}
 
     # Add constraints for each agent-item combination
-
     constraints = []
-    # TODO: Use either i,j or agent,item but not both
-    i, j = 0, 0
-    for agent in agents:
-        # logger.debug
-        for item in items:
-            # Constraint 1
-            constraints.append(
-                allocation_variables[i][j] + (alloc_Y[i][j] - alloc_X[i][j]) <= 
-                -1 + (2 * items_capacities[j]) * (1 - Z[agent, item]))
-            # Constraint 2
-            constraints.append(
-                allocation_variables[i][j] + (alloc_Y[i][j] - alloc_X[i][j]) >= 
-                Z_bar[agent, item] * (items_capacities[j] + 1))
-            j += 1
-        i += 1
-        j = 0
+    for i, agent in agents:
+        for j, item in items:
+            # Constraint 1 - inequality (7) in the paper.
+            constraint1 = (allocation_variables[i][j] + (alloc_Y[i][j] - alloc_X[i][j]) <=
+                           -1 + (2 * items_capacities[j]) * (1 - Z[agent, item]))
+            constraints.append(constraint1)
+            logger.debug(f"Constraint 1 for agent {agent}, item {item}: {constraint1}")
+
+            # Constraint 2 - inequality (8) in the paper.
+            constraint2 = (allocation_variables[i][j] + (alloc_Y[i][j] - alloc_X[i][j]) >=
+                           Z_bar[agent, item] * (items_capacities[j] + 1))
+            constraints.append(constraint2)
+            logger.debug(f"Constraint 2 for agent {agent}, item {item}: {constraint2}")
 
     # Add constraint for each agent that at least one item must change: inequality (9) in the paper.
     constraints.append(
@@ -345,6 +330,31 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, a
     logger.info("Additional ILP constraints created successfully.")
 
     return constraints
+
+
+def get_agents_items_and_capacities(alloc: AllocationBuilder, bool=False):
+    """
+    Helper function to get the remaining agents, items, and their capacities.
+
+    Parameters:
+    alloc: The AllocationBuilder object with methods to get remaining agents and items.
+
+    Returns:
+    tuple: A tuple containing the list of agents, the list of items, and the list of item capacities.
+    """
+    # Define variables
+    agents_names = alloc.remaining_agents()
+    items_names = alloc.remaining_items()
+    item_capacities = [alloc.remaining_item_capacities[item] for item in items_names]
+    if bool:
+        # Return only the tuple of agents, items, and item capacities
+        return agents_names, items_names, item_capacities
+
+    # else
+    agent_capacities = [alloc.remaining_agent_capacities[agent] for agent in agents_names]
+    agent_valuations = [[alloc.effective_value(agent, item) for item in items_names] for agent in agents_names]
+    # Return all variables
+    return agents_names, items_names, item_capacities, agent_capacities, agent_valuations
 
 
 #### MAIN ####
@@ -360,18 +370,19 @@ if __name__ == "__main__":
 
     agent_capacities = {"Ami": 6, "Tami": 6, "Rami": 6, "Yumi": 6}
     item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
-    valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Yumi": {"Fork": 4, "Knife": 5, "Pen": 6} }
+    valuations = {"Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1},
+                  "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Yumi": {"Fork": 4, "Knife": 5, "Pen": 6}}
     instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
     alloc = AllocationBuilder(instance)
-    alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1], [1, 1, 1]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
+    alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1], [1, 1, 1]])
     # pareto_optimal_allocation = find_pareto_dominates_allocation(alloc, alloc_X)
     # print(pareto_optimal_allocation)
 
     agent_capacities = {"Ami": 6, "Tami": 6}
     item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
-    valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}}
+    valuations = {"Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}}
     instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
     alloc = AllocationBuilder(instance)
-    alloc_X = np.array([[3, 2, 1], [0, 1, 2]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
+    alloc_X = np.array([[3, 2, 1], [0, 1, 2]])
     pareto_optimal_allocation = find_pareto_dominates_allocation(alloc, alloc_X)
     print(pareto_optimal_allocation)
