@@ -27,6 +27,19 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60) -> di
     :param time (float): Time limit for the search.
 
     :return (dict) best price vector.
+    :example
+    # >>> instance = Instance(
+    # ...   valuations = {"Alice": {"c1": 90, "c2": 60, "c3": 50},
+    # ...                 "Bob": {"c1": 57, "c2": 80, "c3": 63},
+    # ...                 "Tom": {"c1": 70, "c2": 50, "c3": 95}},
+    # ...   item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
+    # ...   agent_capacities = {"Alice": 2, "Bob": 2, "Tom": 2},
+    # ...   item_conflicts = {"c1": [], "c2": [], "c3": []},
+    # ...   agent_conflicts = {"Alice": [], "Bob": [], "Tom": []})
+    # >>> allocation = AllocationBuilder(instance)
+    # >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
+    # >>> A_CEEI(allocation, budget, 60)
+    # {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
 
 
     """
@@ -36,17 +49,14 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60) -> di
     best_error = float('inf')
     best_price_vector = None
     start_time = time.time()
-    steps = [0.1, 0.2, 0.3]  # Example step sizes, can be adjusted
+    steps = [0.1, 0.2, 0.3, 0.4, 0.5]  # Example step sizes, can be adjusted
 
-    item_conflicts={item:  alloc.instance.item_conflicts(item) for item in alloc.instance.items}
-    agent_conflicts={agent:  alloc.instance.agent_conflicts(agent) for agent in alloc.instance.agents}
-
-    preferred_schedule = find_preferred_schedule(alloc.instance._valuations , alloc.instance._agent_capacities , item_conflicts , agent_conflicts)
-    booli=False
-    while time.time() - start_time < time_limit and not booli:
-       booli=True
+    preferred_schedule = before_find_preferred_schedule(alloc)
+    counter = 0
+    while time.time() - start_time < time_limit and counter < 5:
+    #    counter += 1
        price_vector = initialize_price_vector(budget)
-       search_error = float('inf')
+       search_error = alpha(course_demands(price_vector, alloc, budget, preferred_schedule))
        tabu_list = []
        c = 0
        while c < 5:
@@ -99,59 +109,62 @@ def find_preferred_schedule(valuations:dict, agent_capacities:dict, item_conflic
     >>> agent_conflicts = {"Alice": ["c2"], "Bob": [], "Tom": []}
     >>> valuations = {"Alice": {"c1": 90, "c2": 60, "c3": 50}, "Bob": {"c1": 50, "c2": 81, "c3": 60}, "Tom": {"c1": 100, "c2": 95, "c3": 30}}
     >>> find_preferred_schedule(valuations, agent_capacities, item_conflicts, agent_conflicts)
-    {'Alice': [[1, 0, 1]], 'Bob': [[0, 1, 1], [1, 0, 1]], 'Tom': [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}
+    {'Alice': [[1, 0, 1], [1, 0, 0], [0, 0, 1]], 'Bob': [[0, 1, 1], [1, 0, 1], [0, 1, 0], [0, 0, 1], [1, 0, 0]], 'Tom': [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}
+    """
 
-   
-     """
     def is_valid_schedule(schedule, item_conflicts, agent_conflicts, agent):
         # Check item conflicts
         for item, conflicts in item_conflicts.items():
+            # print(f"Item: {item}, Conflicts: {conflicts}")  # Debug print
             if schedule.get(item, 0) == 1:
                 for conflict in conflicts:
                     if schedule.get(conflict, 0) == 1:
                         return False
         # Check agent conflicts
         for conflict in agent_conflicts.get(agent, []):
+            # print(f"Agent: {agent}, Conflict: {conflict}")  # Debug print
             if schedule.get(conflict, 0) == 1:
                 return False
         return True
-
+    
     def generate_all_schedules(items, capacity):
-        all_schedules = []
-        for combo in combinations(items, capacity):
-            schedule = {item: 0 for item in items}
-            for item in combo:
-                schedule[item] = 1
-            all_schedules.append(schedule)
-        return all_schedules
-
+            all_schedules = []
+            for i in range(1, capacity + 1):
+                for schedule in combinations(items, i):
+                    schedule_dict = {item: 1 if item in schedule else 0 for item in items}
+                    all_schedules.append(schedule_dict)
+            return all_schedules
+    
     preferred_schedules = {}
 
-    for agent, capacity in agent_capacities.items():
+    for agent in agent_capacities.keys():
         items = valuations[agent].keys()
+        capacity = agent_capacities[agent]
         all_schedules = generate_all_schedules(items, capacity)
         valid_schedules = [schedule for schedule in all_schedules if is_valid_schedule(schedule, item_conflicts, agent_conflicts, agent)]
-        
         # Calculate valuations for valid schedules
         schedule_valuations = {}
         for schedule in valid_schedules:
-            # print("schedule", schedule)
             total_valuation = sum(valuations[agent][item] for item in schedule if schedule[item] == 1)
             schedule_valuations[total_valuation] = schedule_valuations.get(total_valuation, [])
             schedule_valuations[total_valuation].append([schedule[item] for item in items])
-        
         # Sort the schedules by total valuation in descending order
         sorted_valuations = sorted(schedule_valuations.keys(), reverse=True)
-        
-        # Collect sorted schedules
-        sorted_schedules = []
+
         for val in sorted_valuations:
-            sorted_schedules.append(schedule_valuations.get(val)[0])
+            if len(schedule_valuations.get(val)) > 1:
+                schedule_valuations[val] = sorted(schedule_valuations.get(val), key=lambda x: sum(x), reverse=True)
 
-        
+        # Collect sorted schedules
+        sorted_schedules = []     
+
+        for val in sorted_valuations:
+            for schedule in schedule_valuations.get(val):
+                sorted_schedules.append(schedule)
+
         preferred_schedules[agent] = sorted_schedules
-
     return preferred_schedules
+
 
 
 def course_demands(price_vector: dict ,alloc: AllocationBuilder,  budget : dict, preferred_schedule: dict):
@@ -165,31 +178,24 @@ def course_demands(price_vector: dict ,alloc: AllocationBuilder,  budget : dict,
 
     :example
     >>> instance = Instance(
+    ...   agent_conflicts = {"Alice": [], "Bob": [], "Tom": []},
+    ...   item_conflicts = {"c1": [], "c2": [], "c3": []},
     ...   item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
-    ...   valuations = {"Alice": {"c1": 90, "c2": 60, "c3": 50},
-    ...                 "Bob": {"c1": 57, "c2": 80, "c3": 63},
-    ...                 "Tom": {"c1": 70, "c2": 50, "c3": 95}
+    ...   agent_capacities = {"Alice": 2, "Bob": 2, "Tom": 2},
+    ...   valuations = {"Alice": {"c1": 50, "c2": 20, "c3": 80},
+    ...                 "Bob": {"c1": 60, "c2": 40, "c3": 30},
+    ...                 "Tom": {"c1": 70, "c2": 30, "c3": 70}
     ... })
     >>> allocation = AllocationBuilder(instance)
     >>> price_vector = {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
     >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
-    >>> preferred_schedule = {"Alice":  [[1, 0, 1], [0, 1, 1], [1, 1, 0]] , "Bob": [[1, 1, 0], [1, 0, 1], [0, 1, 1]], "Tom": [[1, 0, 1], [1, 1, 0], [0, 1, 1]]}
+    >>> preferred_schedule = before_find_preferred_schedule(allocation)
     >>> course_demands(price_vector,allocation , budget, preferred_schedule)
     {'c1': 2, 'c2': -1, 'c3': 0}
 
-    >>> instance = Instance(
-    ...   item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
-    ...   valuations = {"Alice": {"c1": 90, "c2": 60, "c3": 50},
-    ...                 "Bob": {"c1": 57, "c2": 80, "c3": 63},
-    ...                 "Tom": {"c1": 70, "c2": 50, "c3": 95}
-    ... })
-    >>> allocation = AllocationBuilder(instance)
-    >>> price_vector = {'c1': 1.2, 'c2': 0.9, 'c3': 1.0}
-    >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
-    >>> preferred_schedule = {"Alice":  [[1, 0, 1], [0, 1, 1], [1, 1, 0]] , "Bob": [[1, 1, 0], [1, 0, 1], [0, 1, 1]], "Tom": [[1, 0, 1], [1, 1, 0], [0, 1, 1]]}
-    >>> course_demands(price_vector, allocation, budget, preferred_schedule)
-    {'c1': 1, 'c2': 0, 'c3': 0}
+    
     """
+    # print(preferred_schedule)
     best_schedules = find_best_schedule(price_vector, budget, preferred_schedule)
     sol = np.sum(np.array(best_schedules), axis=0)
     # Convert item capacities to a list
@@ -214,39 +220,19 @@ def find_best_schedule(price_vector: dict, budget : dict, preferred_schedule: di
     :return (list) List of courses in the best schedule.
 
     :example
-    >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 2, "Bob": 2, "Tom": 2},
-    ...   item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
-    ...   valuations = {"Alice": {"c1": 90, "c2": 60, "c3": 50},
-    ...                 "Bob": {"c1": 57, "c2": 80, "c3": 63},
-    ...                 "Tom": {"c1": 70, "c2": 50, "c3": 95}
-    ... })
     >>> price_vector = {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
     >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
     >>> preferred_schedule = {"Alice": [[1, 0, 1], [0, 1, 1], [1, 1, 0]] , "Bob": [[1, 1, 0], [1, 0, 1], [0, 1, 1]], "Tom": [[1, 0, 1], [1, 1, 0], [0, 1, 1]]}
     >>> find_best_schedule(price_vector, budget, preferred_schedule) #    {"Alice":  "AC", "Bob": "AB", "Tom": "AC"}
     [[1, 0, 1], [1, 1, 0], [1, 0, 1]]
 
-    >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 2, "Bob": 2, "Tom": 2}, 
-    ...   item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
-    ...   valuations = {"Alice": {"c1": 90, "c2": 60, "c3": 50},
-    ...                 "Bob": {"c1": 57, "c2": 80, "c3": 63},
-    ...                 "Tom": {"c1": 70, "c2": 50, "c3": 95}
-    ... })
+
     >>> price_vector = {'c1': 1.2, 'c2': 0.9, 'c3': 1.0}
     >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
     >>> preferred_schedule = {"Alice": [[1, 0, 1], [0, 1, 1], [1, 1, 0]] , "Bob": [[1, 1, 0], [1, 0, 1], [0, 1, 1]], "Tom": [[1, 0, 1], [1, 1, 0], [0, 1, 1]]}
     >>> find_best_schedule(price_vector, budget, preferred_schedule) #    {"Alice":  "BC", "Bob": "AB", "Tom": "AC"}
     [[0, 1, 1], [1, 1, 0], [1, 0, 1]]
 
-    >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 2, "Bob": 1, "Tom": 1},
-    ...   item_capacities  = {"c1": 2, "c2": 2, "c3": 2},
-    ...   valuations = {"Alice": {"c1": 100, "c2": 100, "c3": 0},
-    ...                 "Bob": {"c1": 0, "c2": 100, "c3": 0},
-    ...                 "Tom": {"c1": 0, "c2": 0, "c3": 100}
-    ... })
     >>> price_vector = {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
     >>> budget = {"Alice": 2.0, "Bob": 1.1, "Tom": 1.3}
     >>> preferred_schedule = {"Alice": [[1, 0, 1], [0, 1, 1], [1, 1, 0]] , "Bob": [[0, 1, 0], [0, 0, 1], [1, 0, 0]], "Tom": [[0, 0, 1], [1, 0, 0], [0, 1, 0]]}
@@ -303,16 +289,19 @@ def find_neighbors(price_vector: dict ,alloc: AllocationBuilder, budget : dict, 
 
     :example
     >>> instance = Instance(
+    ...   agent_conflicts = {"Alice": [], "Bob": [], "Tom": []},
+    ...   item_conflicts = {"c1": [], "c2": [], "c3": []},
+    ...   agent_capacities = {"Alice": 2, "Bob": 2, "Tom": 2},
     ...   item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
-    ...   valuations = {"Alice": {"c1": 90, "c2": 60, "c3": 50},
-    ...                 "Bob": {"c1": 57, "c2": 80, "c3": 63},
-    ...                 "Tom": {"c1": 70, "c2": 50, "c3": 95}
+    ...   valuations = {"Alice": {"c1": 50, "c2": 20, "c3": 80},
+    ...                 "Bob": {"c1": 60, "c2": 40, "c3": 30},
+    ...                 "Tom": {"c1": 70, "c2": 30, "c3": 70}
     ... })
     >>> allocation = AllocationBuilder(instance)
     >>> price_vector = {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
     >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
     >>> steps = [0.1, 0.2]
-    >>> preferred_schedule = {"Alice": [[1, 0, 1], [0, 1, 1], [1, 1, 0]] , "Bob": [[1, 1, 0], [1, 0, 1], [0, 1, 1]], "Tom": [[1, 0, 1], [1, 1, 0], [0, 1, 1]]} #{"Alice":  ["AC", "CB", "AB"] , "Bob": ["AB", "AC" "BC"], "Tom": ["AC", "AB", "BC"]}
+    >>> preferred_schedule = before_find_preferred_schedule(allocation)
     >>> find_neighbors(price_vector, allocation, budget, steps, preferred_schedule)
     [{'c1': 1.2, 'c2': 0.9, 'c3': 1.0}, {'c1': 1.4, 'c2': 0.8, 'c3': 1.0}, {'c1': 1.1, 'c2': 1.0, 'c3': 1.0}, {'c1': 1.0, 'c2': 0.0, 'c3': 1.0}]
 
@@ -341,6 +330,9 @@ def generate_individual_adjustment_neighbors(price_vector: dict, alloc: Allocati
 
     :example
     >>> instance = Instance(
+    ...   agent_conflicts = {"Alice": [], "Bob": [], "Tom": []},
+    ...   item_conflicts = {"c1": [], "c2": [], "c3": []},
+    ...   agent_capacities = {"Alice": 2, "Bob": 2, "Tom": 2},
     ...   item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
     ...   valuations = {"Alice": {"c1": 90, "c2": 60, "c3": 50},
     ...                 "Bob": {"c1": 57, "c2": 80, "c3": 63},
@@ -349,7 +341,7 @@ def generate_individual_adjustment_neighbors(price_vector: dict, alloc: Allocati
     >>> allocation = AllocationBuilder(instance)
     >>> price_vector = {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
     >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
-    >>> preferred_schedule = {"Alice":  [[1, 0, 1], [0, 1, 1], [1, 1, 0]] , "Bob": [[1, 1, 0], [1, 0, 1], [0, 1, 1]], "Tom": [[1, 0, 1], [1, 1, 0], [0, 1, 1]]}
+    >>> preferred_schedule = before_find_preferred_schedule(allocation)
     >>> demands = {'c1': 2, 'c2': -1, 'c3': 0}
     >>> generate_individual_adjustment_neighbors(price_vector, allocation, demands, budget, preferred_schedule)
     [{'c1': 1.1, 'c2': 1.0, 'c3': 1.0}, {'c1': 1.0, 'c2': 0.0, 'c3': 1.0}]
@@ -418,9 +410,40 @@ def generate_gradient_neighbors(price_vector: dict, demands: dict, steps: list):
         neighbors.append(new_price_vector)
     return neighbors  
 
+def before_find_preferred_schedule(alloc: AllocationBuilder):
+    item_conflicts={item:  alloc.instance.item_conflicts(item) for item in alloc.instance.items}
+    agent_conflicts={agent:  alloc.instance.agent_conflicts(agent) for agent in alloc.instance.agents}
+    return find_preferred_schedule(alloc.instance._valuations , alloc.instance._agent_capacities , item_conflicts , agent_conflicts)
+   
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
 
-
-
+    # instance = Instance(
+    #   agent_conflicts = {"Alice": [], "Bob": []},
+    #   item_conflicts = {"c1": [], "c2": [], "c3": []},
+    #   agent_capacities = {"Alice": 2, "Bob": 1},
+    #   item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
+    #   valuations = {"Alice": {"c1": 100, "c2": 60, "c3": 0},
+    #                 "Bob": {"c1": 0, "c2": 100, "c3": 0},
+    # })
+    # allocation = AllocationBuilder(instance)
+    # budget = {"Alice": 2.0, "Bob": 1.0}    
+    
+    # print(A_CEEI(allocation, budget, 5))
+    
+    # price_vector = {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
+    # preferred_schedule = before_find_preferred_schedule(allocation)
+    # d = course_demands(price_vector,allocation , budget, preferred_schedule)
+    # print(d)
+    # print(alpha(d))
+    # agent_capacities = {"Alice": 2, "Bob": 1}
+    # item_conflicts = {"c1": [], "c2": [], "c3": []}
+    # agent_conflicts = {"Alice": [], "Bob": [], "Tom": []}
+    # valuations = {"Alice": {"c1": 100, "c2": 60, "c3": 0},
+    #                 "Bob": {"c1": 0, "c2": 100, "c3": 0},
+    # }
+    # preferred_schedule = find_preferred_schedule(valuations, agent_capacities, item_conflicts, agent_conflicts)
+    # print(find_best_schedule(price_vector, budget, preferred_schedule))
+    # print(find_neighbors(price_vector, allocation, budget, [0.1, 0.2, 0.3, 0.4, 0.5], preferred_schedule))
