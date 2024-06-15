@@ -153,9 +153,10 @@ def reoptimize_student_schedules(allocation, price_vector, student_list, student
         for student in student_list:
             current_bundle = list(student_schedule_dict[student[0]])
             current_bundle.extend(x for x in list(capacity_undersubscribed_courses.keys()) if x not in current_bundle)
+            current_bundle.sort()
             student_budget = {student[0]: 1.1 * student_budgets[student[0]]}
             new_bundle = allocation_function(allocation, student[0], current_bundle, price_vector, student_budget)
-            if not is_the_bundle_equal(allocation, student[0], student_schedule_dict[student[0]], new_bundle.get(student[0], {})):
+            if is_new_bundle_better(allocation, student[0], student_schedule_dict[student[0]], new_bundle.get(student[0], {})):
                 not_done = True
                 update_student_schedule_dict(student, student_schedule_dict, new_bundle, capacity_undersubscribed_courses)
                 break  # Only one student changes their allocation in each pass
@@ -252,7 +253,7 @@ def filter_valuations_for_courses(allocation, student, student_allocation) -> di
         }
     }
 
-def is_the_bundle_equal(allocation: AllocationBuilder, student: str, current_bundle: set, new_bundle: set) -> bool:
+def is_new_bundle_better(allocation: AllocationBuilder, student: str, current_bundle: set, new_bundle: set) -> bool:
     """
     Check if the current bundle and new bundle are equal.
 
@@ -279,13 +280,13 @@ def is_the_bundle_equal(allocation: AllocationBuilder, student: str, current_bun
     >>> is_the_bundle_equal(allocation, "Alice", ["c1"], ["c2", "c3"])
     False
     """
-    if len(current_bundle) != len(new_bundle):
-        return False
-
     sum_valuations_cur = sum(valuations for course, valuations in allocation.instance._valuations.get(student, {}).items() if course in current_bundle)
     sum_valuations_new = sum(valuations for course, valuations in allocation.instance._valuations.get(student, {}).items() if course in new_bundle)
     
-    return sum_valuations_cur == sum_valuations_new
+    if (sum_valuations_cur < sum_valuations_new) or (len(current_bundle) < len(new_bundle) and sum_valuations_cur <= sum_valuations_new):
+        return True
+        
+    return False
 
 
 
@@ -293,10 +294,31 @@ def is_the_bundle_equal(allocation: AllocationBuilder, student: str, current_bun
 
 
 if __name__ == "__main__":
-    pass
-    # import doctest
+    # pass
+    import doctest
 
-    # doctest.testmod()
+    doctest.testmod()
+
+#     instance = Instance(
+#        agent_conflicts = {"Alice": [], "Bob": []},
+#        item_conflicts = {"c1": [], "c2": [], "c3": []},
+#        agent_capacities = {"Alice": 2, "Bob": 1},
+#        item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
+#        valuations = {"Alice": {"c1": 100, "c2": 60, "c3": 0},
+#                      "Bob": {"c1": 0, "c2": 100, "c3": 0},
+#  })
+#     allocation = AllocationBuilder(instance)
+#     student_budgets = {"Alice": 3.0, "Bob": 1.0}  
+#     price_vector = {"c1": 2.0, "c2": 1.0, "c3": 5.0}
+#     print(
+#         reduce_undersubscription(
+#             allocation,
+#             price_vector,
+#             student_budgets,
+#         ).bundles
+    # )
+
+    # {'Alice': ['c1', 'c2'], 'Bob': ['c2']}
 
     # instance = Instance(
     #     agent_capacities={"Alice": 2, "Bob": 2, "Tom": 2},
