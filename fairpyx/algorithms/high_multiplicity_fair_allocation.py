@@ -309,17 +309,17 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, a
 
     # Add constraints for each agent-item combination
     constraints = []
-    for i, agent in agents:
-        for j, item in items:
+    for agent in agents:
+        for item in items:
             # Constraint 1 - inequality (7) in the paper.
-            constraint1 = (allocation_variables[i][j] + (alloc_Y[i][j] - alloc_X[i][j]) <=
-                           -1 + (2 * items_capacities[j]) * (1 - Z[agent, item]))
+            constraint1 = (allocation_variables[agent][item] + (alloc_Y[agent][item] - alloc_X[agent][item]) <=
+                           -1 + (2 * items_capacities[item]) * (1 - Z[agent, item]))
             constraints.append(constraint1)
             logger.debug(f"Constraint 1 for agent {agent}, item {item}: {constraint1}")
 
             # Constraint 2 - inequality (8) in the paper.
-            constraint2 = (allocation_variables[i][j] + (alloc_Y[i][j] - alloc_X[i][j]) >=
-                           Z_bar[agent, item] * (items_capacities[j] + 1))
+            constraint2 = (allocation_variables[agent][item] + (alloc_Y[agent][item] - alloc_X[agent][item]) >=
+                           Z_bar[agent, item] * (items_capacities[item] + 1))
             constraints.append(constraint2)
             logger.debug(f"Constraint 2 for agent {agent}, item {item}: {constraint2}")
 
