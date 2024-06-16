@@ -193,22 +193,6 @@ def allocation_function(allocation: AllocationBuilder, student: str, student_all
     :param student_budget: (dict) New student's budget
 
     :return: (dict) new course allocations
-
-    >>> instance = Instance(
-    ...     agent_capacities={"Alice": 2, "Bob": 2, "Tom": 2},
-    ...     item_capacities={"c1": 2, "c2": 2, "c3": 2},
-    ...     valuations={
-    ...         "Alice": {"c1": 50, "c2": 20, "c3": 80},
-    ...         "Bob": {"c1": 60, "c2": 40, "c3": 30},
-    ...         "Tom": {"c1": 70, "c2": 30, "c3": 70},
-    ...     },
-    ... )
-    >>> allocation = AllocationBuilder(instance)
-    >>> price_vector = {"c1": 1.26875, "c2": 0.9, "c3": 1.24375}
-    >>> student_allocation = {"c1", "c3"}
-    >>> student_budget = {"Alice": 2.6}
-    >>> allocation_function(allocation, "Alice", student_allocation, price_vector, student_budget)
-    {'Alice': ['c1', 'c3']}
     """
     limited_student_valuations = filter_valuations_for_courses(allocation, student, student_allocation)
     item_conflicts, agent_conflicts = calculate_conflicts(allocation)
@@ -273,11 +257,13 @@ def is_new_bundle_better(allocation: AllocationBuilder, student: str, current_bu
     ...     },
     ... )
     >>> allocation = AllocationBuilder(instance)
-    >>> is_the_bundle_equal(allocation, "Alice", ["c1", "c3"], ["c1", "c3"])
-    True
-    >>> is_the_bundle_equal(allocation, "Alice", ["c1", "c3"], ["c2", "c3"])
+    >>> is_new_bundle_better(allocation, "Alice", ["c1", "c3"], ["c1", "c3"])
     False
-    >>> is_the_bundle_equal(allocation, "Alice", ["c1"], ["c2", "c3"])
+    >>> is_new_bundle_better(allocation, "Alice", ["c1", "c3"], ["c2", "c3"])
+    False
+    >>> is_new_bundle_better(allocation, "Alice", ["c1"], ["c2", "c3"])
+    True
+    >>> is_new_bundle_better(allocation, "Alice", ["c3"], ["c1", "c2"])
     False
     """
     sum_valuations_cur = sum(valuations for course, valuations in allocation.instance._valuations.get(student, {}).items() if course in current_bundle)
