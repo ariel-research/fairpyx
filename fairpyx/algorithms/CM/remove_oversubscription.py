@@ -76,35 +76,35 @@ def remove_oversubscription(
     >>> epsilon = 0.1
     >>> student_budgets = {"Alice": 2.2, "Bob": 2.1, "Tom": 2.0}
     >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, course_demands)
-    {"c1": 1.26875, "c2": 0.9, "c3": 1.24375}
+    {'c1': 2.0421875000000003, 'c2': 1.1515624999999998, 'c3': 2.0562500000000004}
 
-    # >>> instance = Instance(
-    # ...   agent_capacities = {"Alice": 3, "Bob": 3, "Tom": 3},
-    # ...   item_capacities  = {"c1": 3, "c2": 3, "c3": 3},
-    # ...   valuations       = {"Alice": {"c1": 50, "c2": 20, "c3": 80},
-    # ...                      "Bob": {"c1": 60, "c2": 40, "c3": 30},
-    # ...                      "Tom": {"c1": 70, "c2": 30, "c3": 70}}
-    # ... )
-    # >>> allocation = AllocationBuilder(instance)
-    # >>> price_vector = {"c1": 1.2, "c2": 0.9, "c3": 1}
-    # >>> epsilon = 0.1
-    # >>> student_budgets = {"Alice": 2.2, "Bob": 2.1, "Tom": 2.0}
-    # >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, course_demands)
-    # {"c1": 1.2, "c2": 0.9, "c3": 1}
+    >>> instance = Instance(
+    ...   agent_capacities = {"Alice": 3, "Bob": 3, "Tom": 3},
+    ...   item_capacities  = {"c1": 3, "c2": 3, "c3": 3},
+    ...   valuations       = {"Alice": {"c1": 50, "c2": 20, "c3": 80},
+    ...                      "Bob": {"c1": 60, "c2": 40, "c3": 30},
+    ...                      "Tom": {"c1": 70, "c2": 30, "c3": 70}}
+    ... )
+    >>> allocation = AllocationBuilder(instance)
+    >>> price_vector = {"c1": 1.2, "c2": 0.9, "c3": 1}
+    >>> epsilon = 0.1
+    >>> student_budgets = {"Alice": 2.2, "Bob": 2.1, "Tom": 2.0}
+    >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, course_demands)
+    {'c1': 1.2, 'c2': 0.9, 'c3': 1}
 
-    # >>> instance = Instance(
-    # ...   agent_capacities = {"Alice": 3, "Bob": 3, "Tom": 3},
-    # ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1},
-    # ...   valuations       = {"Alice": {"c1": 50, "c2": 20, "c3": 80},
-    # ...                      "Bob": {"c1": 60, "c2": 40, "c3": 30},
-    # ...                      "Tom": {"c1": 70, "c2": 30, "c3": 70}}
-    # ... )
-    # >>> allocation = AllocationBuilder(instance)
-    # >>> price_vector = {"c1": 0, "c2": 0, "c3": 0}
-    # >>> epsilon = 0.1
-    # >>> student_budgets = {"Alice": 2.2, "Bob": 2.1, "Tom": 2.0}
-    # >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, course_demands)
-    # {"c1": 2.0375, "c2": 1.6875, "c3": 2.084375}
+    >>> instance = Instance(
+    ...   agent_capacities = {"Alice": 3, "Bob": 3, "Tom": 3},
+    ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1},
+    ...   valuations       = {"Alice": {"c1": 50, "c2": 20, "c3": 80},
+    ...                      "Bob": {"c1": 60, "c2": 40, "c3": 30},
+    ...                      "Tom": {"c1": 70, "c2": 30, "c3": 70}}
+    ... )
+    >>> allocation = AllocationBuilder(instance)
+    >>> price_vector = {"c1": 0, "c2": 0, "c3": 0}
+    >>> epsilon = 0.1
+    >>> student_budgets = {"Alice": 2.2, "Bob": 2.1, "Tom": 2.0}
+    >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, course_demands)
+    {'c1': 2.0125, 'c2': 0.21113281250000004, 'c3': 2.0125}
     """
     max_budget = (
         max(student_budgets.values()) + epsilon
