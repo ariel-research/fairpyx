@@ -162,8 +162,7 @@ def remove_oversubscription(
 
 if __name__ == "__main__":
     import doctest
-
-    doctest.testmod()
+    print(doctest.testmod())
 
     instance = Instance(
         agent_capacities={"Alice": 2, "Bob": 2, "Tom": 2},

@@ -296,8 +296,7 @@ def is_new_bundle_better(allocation: AllocationBuilder, student: str, current_bu
 if __name__ == "__main__":
     # pass
     import doctest
-
-    doctest.testmod()
+    print(doctest.testmod())
 
 #     instance = Instance(
 #        agent_conflicts = {"Alice": [], "Bob": []},

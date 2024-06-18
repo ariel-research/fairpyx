@@ -1,6 +1,6 @@
 """
 Course Match: A Large-Scale Implementation ofApproximate Competitive Equilibrium fromEqual Incomes for Combinatorial Allocation,
-by Eric Budish,a Gérard P. Cachon,b Judd B. Kessler,b Abraham Othmanb
+by Eric Budish, Gérard P. Cachon, Judd B. Kessler, Abraham Othman
 June 2, 2016
 https://pubsonline.informs.org/doi/epdf/10.1287/opre.2016.1544
 
@@ -12,7 +12,6 @@ import time
 import numpy as np
 from fairpyx import Instance, AllocationBuilder
 from itertools import combinations
-from typing import Any, Callable
 
 
 """
@@ -418,7 +417,7 @@ def before_find_preferred_schedule(alloc: AllocationBuilder):
 
 if __name__ == "__main__":
     import doctest
-    doctest.testmod()
+    print(doctest.testmod())
 
     # instance = Instance(
     #   agent_conflicts = {"Alice": [], "Bob": []},

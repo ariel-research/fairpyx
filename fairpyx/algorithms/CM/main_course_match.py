@@ -66,5 +66,5 @@ def course_match_algorithm(alloc: AllocationBuilder, budget: dict):
 
 if __name__ == "__main__":
     import doctest
-    doctest.testmod()
+    print(doctest.testmod())
 
