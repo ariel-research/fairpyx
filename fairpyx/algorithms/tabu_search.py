@@ -55,7 +55,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     # >>> instance = Instance(
     # ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
     # ... agent_capacities=2,
-    # ... item_capacities={"x":1, "y":2, "z":2, "w":1})
+    # ... item_capacities={"x":1, "y":2, "z":2})
     # >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
     # >>> beta = 5
     # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
@@ -90,10 +90,11 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     while norma2:
         neighbors = []  # resets on every iteration
         allocation = student_best_bundle(prices.copy(), alloc.instance, initial_budgets)
-        logger.info(f"----------NORMA {norma2}-----------------")
         excess_demand_vector = clipped_excess_demand(alloc.instance, prices, allocation)
         values = np.array(list(excess_demand_vector.values()))
         norma2 = np.linalg.norm(values)
+        logger.info(f"----------NORMA {norma2}-----------------")
+
 
         logger.info("If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑")
         if np.allclose(norma2, 0):
@@ -217,7 +218,7 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
 
     """
     best_bundle = {student: () for student in instance.agents}
-    logger.info("START combinations")
+    logger.info("\nSTART combinations")
     logger.info(f"prices in student_best_bundle : {prices}")
     for student in instance.agents:
 
@@ -226,7 +227,7 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
         capacity = instance.agent_capacity(student)
         for r in range(1, capacity + 1):
             combinations_courses_list.extend(combinations(instance.items, r))
-        logger.info(f"FINISH combinations for {student}")
+        # logger.info(f"FINISH combinations for {student}")
 
         # Define a lambda function that calculates the valuation of a combination
         valuation_function = lambda combination: instance.agent_bundle_value(student, combination)
@@ -497,7 +498,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, neighbors: li
         if excess_demand > 0:
             for _ in range(10):
                 updated_prices[course] += 1
-                logger.info(f" history : {history}")
+                # logger.info(f" history : {history}")
                 if any(all(f(updated_prices) for f in sublist) for sublist in history):
                     continue
                 # get the new demand of the course
@@ -569,15 +570,18 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
 
     """
     logger.info("find_min_error_prices")
+    logger.info(f"parameters {instance, neighbors, initial_budgets}")
     errors = []
     for neighbor in neighbors:
         # allocation = student_best_bundle(neighbor.copy(), instance, initial_budgets)
         allocation = student_best_bundle(neighbor.copy(), instance, initial_budgets)
         error = clipped_excess_demand(instance, neighbor, allocation)
         norma2 = np.linalg.norm(np.array(list(error.values())))
+        logger.info(f"neighbor = {neighbor}, norma = {norma2}")
         errors.append(norma2)
 
     min_error_index = np.argmin(errors)
+    logger.info(f"**********best neighobor {neighbors[min_error_index]}**************")
     return neighbors[min_error_index]
 
 
@@ -621,12 +625,20 @@ if __name__ == "__main__":
     # "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
     # prices in student_best_bundle: {'x': 5.833587131557837, 'y': 2.7234331595014756, 'z': 3.2679800545656685,
     #                                 'w': 3.5553886393152174}
+    # seed = random.randint(1, 10000)
+    seed = 2802
+    random.seed(seed)
+    logger.info(f"seed is {seed}")
+
+    # Write the seed to a new file
+    with open('seed.txt', 'w') as file:
+        file.write(f"seed is {seed}\n")
 
     instance = Instance(
-    valuations = {"ami": {"x": 5, "y": 4, "z": 3, "w": 2}, "tami": {"x": 5, "y": 2, "z": 4, "w": 3}},
-    agent_capacities = 3,
-    item_capacities = {"x": 1, "y": 2, "z": 1, "w": 2})
-    initial_budgets = {"ami": 8, "tami": 6}
-    beta = 9
+    valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
+    agent_capacities=2,
+    item_capacities={"x":1, "y":2, "z":2})
+    initial_budgets={"ami":4, "tami":5, "tzumi":2}
+    beta = 5
     divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={1})
-    # "{ami:['x','y','z'], tami:['x', 'z', 'w']}"
+    # "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
