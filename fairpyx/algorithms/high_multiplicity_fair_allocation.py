@@ -36,6 +36,12 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
       >>> divide(high_multiplicity_fair_allocation, instance=instance)
       {'Ami': ['Fork', 'Fork'], 'Rami': ['Pen', 'Pen'], 'Tami': ['Knife', 'Knife']}
 
+    >>> agent_capacities = {"Ami": 9, "Tami": 9}
+    >>> item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
+    >>> valuations = {"Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}}
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+    >>> divide(high_multiplicity_fair_allocation, instance=instance)
+    {'Ami': ['Fork', 'Fork', 'Fork'], 'Tami': ['Knife', 'Knife', 'Knife', 'Pen', 'Pen', 'Pen']}
       """
 
     ## Step 1: Find a envy-free allocation
@@ -50,12 +56,12 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
     for agent in alloc.remaining_agents():
         agents.append(agent)
 
-    allocation = cp.Variable((len(alloc.remaining_agents()), len(alloc.remaining_items())), integer=True)
+    allocation_variables = cp.Variable((len(alloc.remaining_agents()), len(alloc.remaining_items())), integer=True)
 
     logger.debug(f"Initial constraints: {constraints_ilp}")
 
     iteration_count = 0  # Initialize the iteration counter
-    alloc_X = find_envy_free_allocation(alloc, allocation, constraints_ilp)
+    alloc_X = find_envy_free_allocation(alloc, allocation_variables, constraints_ilp)
 
     while alloc_X is not None:
         iteration_count += 1  # Increment counter on each iteration
@@ -83,12 +89,12 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
             return
         else:
             logger.info(f"Found Pareto dominating allocation: {alloc_Y}, updating constraints.")
-            allocation.value = None
-            new_cont = create_more_constraints_ILP(alloc, alloc_X, alloc_Y, allocation)
+            allocation_variables.value = None
+            new_cont = create_more_constraints_ILP(alloc, alloc_X, alloc_Y, allocation_variables)
             for cont in new_cont:
                 constraints_ilp.append(cont)
 
-            alloc_X = find_envy_free_allocation(alloc, allocation, constraints_ilp)
+            alloc_X = find_envy_free_allocation(alloc, allocation_variables, constraints_ilp)
 
     logger.info(f"No envy-free allocation found after {iteration_count} iterations, ending process.")
     return None
@@ -119,7 +125,7 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation, constraints_
 """
 
     logger.debug("Searching for envy-free allocation.")
-    agents_names, items_names, all_constraints_ilp = [], [], []
+    agents_names, items_names = [], []
 
     remaining_items = alloc.remaining_items()
     remaining_agents = alloc.remaining_agents()
@@ -157,18 +163,15 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation, constraints_
     # Define envy-free constraints
     envy_free_constraints = []
     for i in range(num_agents):
+        i_profit = cp.sum(cp.multiply(agent_valuations[i, :], allocation[i, :]))
         for j in range(num_agents):
             if i != j:
-                envy_free_constraints.append(cp.sum(cp.multiply(agent_valuations[i, :], allocation[j, :])) <= cp.sum(
-                    cp.multiply(agent_valuations[i, :], allocation[i, :])))
-
-    # Define ILP constraints
-    for cont in constraints_ilp:
-        all_constraints_ilp.append(cont)
+                j_profit = cp.sum(cp.multiply(agent_valuations[i, :], allocation[j, :]))
+                envy_free_constraints.append(j_profit <= i_profit)
 
     # Define the problem
     prob = cp.Problem(objective, item_capacity_constraints + agent_capacity_constraints +
-                      envy_free_constraints + all_constraints_ilp)
+                      envy_free_constraints + constraints_ilp)
 
     # Solve the problem
     try:
