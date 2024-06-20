@@ -35,7 +35,6 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
       >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
       >>> divide(high_multiplicity_fair_allocation, instance=instance)
       {'Ami': ['Fork', 'Fork'], 'Rami': ['Pen', 'Pen'], 'Tami': ['Knife', 'Knife']}
-
       """
 
     ## Step 1: Find a envy-free allocation
