@@ -8,6 +8,7 @@ Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
 Since: 2024-01
 """
 import logging
+import coloredlogs
 import random
 from itertools import combinations
 
@@ -15,7 +16,22 @@ import numpy as np
 
 from fairpyx import Instance, AllocationBuilder
 
+# Setup logger and colored logs
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.DEBUG)
+
+# Customizing the colors and format
+level_styles = {
+    'debug': {'color': 'green'},
+    'info': {'color': 'cyan'},
+    'warning': {'color': 'yellow'},
+    'error': {'color': 'red', 'bold': True},
+    'critical': {'color': 'red', 'bold': True, 'background': 'white'}
+}
+
+# Setup colored logs with custom format
+coloredlogs.install(level='DEBUG', logger=logger, fmt='%(message)s', level_styles=level_styles)
 
 
 # ---------------------The main function---------------------
@@ -91,13 +107,13 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     norma2 = 1
     while norma2:
         allocation = student_best_bundle(prices.copy(), alloc.instance, initial_budgets)
-        logger.info(f"prices: {prices}")
-        logger.info(f"best bundle is: {allocation}")
+        logger.debug(f"prices: {prices}")
+        logger.debug(f"best bundle is: {allocation}")
 
         excess_demand_vector = clipped_excess_demand(alloc.instance, prices, allocation)
         values = np.array(list(excess_demand_vector.values()))
         norma2 = np.linalg.norm(values)
-        logger.info(f"----------NORMA {norma2}-----------------")
+        logger.debug(f"----------NORMA {norma2}-----------------")
 
         logger.info("If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑")
         if np.allclose(norma2, 0):
@@ -176,7 +192,7 @@ def clipped_excess_demand(instance: Instance, prices: dict, allocation: dict):
     """
     z = excess_demand(instance, allocation)
     clipped_z = {course: max(0, z[course]) if prices[course] == 0 else z[course] for course in z}
-    logger.info(f"excess demand: {clipped_z}")
+    logger.debug(f"excess demand: {clipped_z}")
     return clipped_z
 
 
@@ -230,7 +246,7 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
         capacity = instance.agent_capacity(student)
         for r in range(1, capacity + 1):
             combinations_courses_list.extend(combinations(instance.items, r))
-        # logger.info(f"FINISH combinations for {student}")
+        # logger.debug(f"FINISH combinations for {student}")
 
         # Define a lambda function that calculates the valuation of a combination
         valuation_function = lambda combination: instance.agent_bundle_value(student, combination)
@@ -343,7 +359,7 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     # The constraints that the bundles they get in allocation meet their budgets
     for student in instance.agents:
         func = lambda p, agent=student, keys=allocation[student]: (
-                    sum(p[key] for key in keys) <= initial_budgets[agent])
+                sum(p[key] for key in keys) <= initial_budgets[agent])
         description = lambda p, keys=allocation[student], budget=initial_budgets[
             student]: f"sum([{', '.join([f'{p[key]}' for key in keys])}]) <= {budget}"
         # equivalent_prices.append(debug_lambda(func, description))
@@ -377,7 +393,8 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
                 # Create a copy of sorted_combination for the lambda function
                 combination_copy = sorted_combination.copy()
 
-                func = lambda p, agent=student, keys=allocation[student]: (sum(p[key] for key in keys) > initial_budgets[agent])
+                func = lambda p, agent=student, keys=allocation[student]: (
+                        sum(p[key] for key in keys) > initial_budgets[agent])
                 description = lambda p, keys=combination_copy, budget=initial_budgets[
                     student]: f"sum([{', '.join([f'{p[key]}' for key in keys])}]) > {budget}"
                 # equivalent_prices.append(debug_lambda(func, description))
@@ -392,6 +409,7 @@ def debug_lambda(func, description):
         calculation = description(p)
         print(f"Function: {func.__name__}, Input: {p}, Calculation: {calculation}, Result: {result}")
         return result
+
     return wrapper
 
 
@@ -554,7 +572,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
         if excess_demand > 0:
             for _ in range(10):
                 updated_prices[course] += 1
-                # logger.info(f" history : {history}")
+                # logger.debug(f" history : {history}")
                 if any(all(f(updated_prices) for f in sublist) for sublist in history):
                     continue
                 # get the new demand of the course
@@ -587,8 +605,8 @@ def find_all_neighbors(instance: Instance, history: list, prices: dict, delta: s
                                                                                        prices,
                                                                                        excess_demand_vector,
                                                                                        initial_budgets, allocation)
-    logger.info(f"neighbors: \ngradient_neighbors = {gradient_neighbors}")
-    logger.info(f"individual_price = {individual_price_adjustment_neighbors}")
+    logger.debug(f"neighbors: \ngradient_neighbors = {gradient_neighbors}")
+    logger.debug(f"individual_price = {individual_price_adjustment_neighbors}")
 
     return gradient_neighbors + individual_price_adjustment_neighbors
 
@@ -631,39 +649,37 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
         allocation = student_best_bundle(neighbor.copy(), instance, initial_budgets)
         error = clipped_excess_demand(instance, neighbor, allocation)
         norma2 = np.linalg.norm(np.array(list(error.values())))
-        logger.info(f"neighbor = {neighbor}, norma = {norma2}")  # todo: delete logger
+        logger.debug(f"neighbor = {neighbor}, norma = {norma2}")  # todo: delete logger
         errors.append(norma2)
 
     min_error_index = np.argmin(errors)
-    logger.info(f"\nbest neighobor {neighbors[min_error_index]}")
+    logger.debug(f"\nbest neighobor {neighbors[min_error_index]}")
     return neighbors[min_error_index]
 
 
 if __name__ == "__main__":
     from fairpyx.adaptors import divide
 
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
-
     # import doctest
     #
     # doctest.testmod()
 
-    instance = Instance(valuations={"ami": {"x": 3, "y": 3, "z": 3, "w": 3}, "tami": {"x": 3, "y": 3, "z": 3, "w": 3},
-                                    "tzumi": {"x": 4, "y": 4, "z": 4, "w": 4}},
-                        agent_capacities=2, item_capacities={"x": 1, "y": 2, "z": 2, "w": 1})
-    history = [[lambda p: p['x'] + p['z'] <= 4, lambda p: p['x'] + p['z'] <= 5, lambda p: p['z'] <= 2]]
-    prices = {'x': 2.6124658024539347, 'y': 4.138416343413373, 'z': 1.1604071365185367, 'w': 5.930224022321449}
-    excess_demand_vector = {'x': 1, 'y': -2, 'z': 1, 'w': -1}
-    initial_budgets = {"ami": 4, "tami": 5, "tzumi": 2}
-    allocation = {'ami': ('x', 'z'), 'tami': ('x', 'z'), 'tzumi': 'z'}
-    print(find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets,
-                                                     allocation))
+    # ### Check find_individual_price_adjustment_neighbors function
+    # instance = Instance(valuations={"ami": {"x": 3, "y": 3, "z": 3, "w": 3}, "tami": {"x": 3, "y": 3, "z": 3, "w": 3},
+    #                                 "tzumi": {"x": 4, "y": 4, "z": 4, "w": 4}},
+    #                     agent_capacities=2, item_capacities={"x": 1, "y": 2, "z": 2, "w": 1})
+    # history = [[lambda p: p['x'] + p['z'] <= 4, lambda p: p['x'] + p['z'] <= 5, lambda p: p['z'] <= 2]]
+    # prices = {'x': 2.6124658024539347, 'y': 4.138416343413373, 'z': 1.1604071365185367, 'w': 5.930224022321449}
+    # excess_demand_vector = {'x': 1, 'y': -2, 'z': 1, 'w': -1}
+    # initial_budgets = {"ami": 4, "tami": 5, "tzumi": 2}
+    # allocation = {'ami': ('x', 'z'), 'tami': ('x', 'z'), 'tzumi': 'z'}
+    # print(find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets,
+    #                                                  allocation))
 
     # seed = random.randint(1, 10000)
     # seed = 2802
     # random.seed(seed)
-    # logger.info(f"seed is {seed}")
+    # logger.debug(f"seed is {seed}")
     #
     # # Write the seed to a new file
     # with open('seed.txt', 'w') as file:
@@ -681,11 +697,11 @@ if __name__ == "__main__":
     # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={1})
     # # "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
 
-    # # Good Example:
-    # instance = Instance(valuations = {"ami": {"x": 5, "y": 4, "z": 3, "w": 2}, "tami": {"x": 5, "y": 2, "z": 4, "w": 3}},
-    #                     agent_capacities = 3,
-    #                     item_capacities = {"x": 1, "y": 2, "z": 1, "w": 2})
-    # initial_budgets = {"ami": 8, "tami": 6}
-    # beta = 9
-    # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={1})
-    # # "{ami:['w', 'x', 'y'], tami:['w', 'y', 'z']}"
+    # Good Example:
+    instance = Instance(valuations = {"ami": {"x": 5, "y": 4, "z": 3, "w": 2}, "tami": {"x": 5, "y": 2, "z": 4, "w": 3}},
+                        agent_capacities = 3,
+                        item_capacities = {"x": 1, "y": 2, "z": 1, "w": 2})
+    initial_budgets = {"ami": 8, "tami": 6}
+    beta = 9
+    divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={1})
+    # "{ami:['w', 'x', 'y'], tami:['w', 'y', 'z']}"
