@@ -90,7 +90,10 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
         # condition number 13 + 14:
         for j, course in enumerate(alloc.remaining_items()):
             for i, student in enumerate(alloc.remaining_agents()):
-                constraints_Wt1.append(p[j]+v[i]+rank_mat[j][i]*D >= alloc.effective_value(student,course))
+                if (alloc.effective_value(student,course) < 0):
+                    constraints_Wt1.append(p[j] + v[i] + rank_mat[j][i] * D >= 0)
+                else:
+                    constraints_Wt1.append(p[j]+v[i]+rank_mat[j][i]*D >= alloc.effective_value(student,course))
 
         condition_14 = optimal.conditions_14(alloc, v, p)
         constraints_Wt1 += condition_14
