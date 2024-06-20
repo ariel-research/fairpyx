@@ -103,19 +103,19 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
     history = []
 
-    logger.info("2)  If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.")
+    logger.info("2) If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.")
     norma2 = 1
     while norma2:
         allocation = student_best_bundle(prices.copy(), alloc.instance, initial_budgets)
         logger.debug(f"prices: {prices}")
-        logger.debug(f"best bundle is: {allocation}")
+        logger.debug(f"best bundle: {allocation}")
 
         excess_demand_vector = clipped_excess_demand(alloc.instance, prices, allocation)
         values = np.array(list(excess_demand_vector.values()))
         norma2 = np.linalg.norm(values)
         logger.debug(f"----------NORMA {norma2}-----------------")
 
-        logger.info("If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑")
+        logger.info("   If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑")
         if np.allclose(norma2, 0):
             break
 
@@ -126,7 +126,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
                                        initial_budgets,
                                        allocation)
 
-        logger.info("update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
+        logger.info("   update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
         prices = find_min_error_prices(alloc.instance, neighbors, initial_budgets)
 
     # print the final price (p* = prices) for each course
@@ -653,7 +653,7 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
         errors.append(norma2)
 
     min_error_index = np.argmin(errors)
-    logger.debug(f"\nbest neighobor {neighbors[min_error_index]}")
+    logger.debug(f"\nbest neighbor: {neighbors[min_error_index]}\n")
     return neighbors[min_error_index]
 
 
@@ -676,32 +676,32 @@ if __name__ == "__main__":
     # print(find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets,
     #                                                  allocation))
 
-    # seed = random.randint(1, 10000)
-    # seed = 2802
-    # random.seed(seed)
-    # logger.debug(f"seed is {seed}")
-    #
-    # # Write the seed to a new file
-    # with open('seed.txt', 'w') as file:
-    #     file.write(f"seed is {seed}\n")
-    #
-    # # Stack!!
-    # # Example run 3
-    # instance = Instance(
-    #     valuations={"ami": {"x": 3, "y": 3, "z": 3, "w":3}, "tami": {"x": 3, "y": 3, "z": 3, "w":3},
-    #                 "tzumi": {"x": 4, "y": 4, "z": 4, "w":4}},
-    #     agent_capacities=2,
-    #     item_capacities={"x": 1, "y": 2, "z": 2, "w":1})
-    # initial_budgets = {"ami": 4, "tami": 5, "tzumi": 2}
-    # beta = 5
-    # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={1})
-    # # "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
+    seed = random.randint(1, 10000)
+    seed = 2802
+    random.seed(seed)
+    logger.debug(f"seed is {seed}")
 
-    # Good Example:
-    instance = Instance(valuations = {"ami": {"x": 5, "y": 4, "z": 3, "w": 2}, "tami": {"x": 5, "y": 2, "z": 4, "w": 3}},
-                        agent_capacities = 3,
-                        item_capacities = {"x": 1, "y": 2, "z": 1, "w": 2})
-    initial_budgets = {"ami": 8, "tami": 6}
-    beta = 9
+    # Write the seed to a new file
+    with open('seed.txt', 'w') as file:
+        file.write(f"seed is {seed}\n")
+
+    # Stack!!
+    # Example run 3
+    instance = Instance(
+        valuations={"ami": {"x": 3, "y": 3, "z": 3, "w":3}, "tami": {"x": 3, "y": 3, "z": 3, "w":3},
+                    "tzumi": {"x": 4, "y": 4, "z": 4, "w":4}},
+        agent_capacities=2,
+        item_capacities={"x": 1, "y": 2, "z": 2, "w":1})
+    initial_budgets = {"ami": 4, "tami": 5, "tzumi": 2}
+    beta = 5
     divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={1})
-    # "{ami:['w', 'x', 'y'], tami:['w', 'y', 'z']}"
+    # "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
+
+    # # Good Example:
+    # instance = Instance(valuations = {"ami": {"x": 5, "y": 4, "z": 3, "w": 2}, "tami": {"x": 5, "y": 2, "z": 4, "w": 3}},
+    #                     agent_capacities = 3,
+    #                     item_capacities = {"x": 1, "y": 2, "z": 1, "w": 2})
+    # initial_budgets = {"ami": 8, "tami": 6}
+    # beta = 9
+    # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={1})
+    # # "{ami:['w', 'x', 'y'], tami:['w', 'y', 'z']}"
