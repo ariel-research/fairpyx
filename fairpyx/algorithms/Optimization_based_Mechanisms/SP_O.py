@@ -139,3 +139,20 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
 if __name__ == "__main__":
     import doctest
     print(doctest.testmod())
+
+    import numpy as np, fairpyx
+
+    np.random.seed(1)
+    instance = fairpyx.Instance.random_uniform(
+        num_of_agents=70, num_of_items=10, normalized_sum_of_values=100,
+        agent_capacity_bounds=[2, 6],
+        item_capacity_bounds=[10, 20],
+        item_base_value_bounds=[1, 1000],
+        item_subjective_ratio_bounds=[0.5, 1.5]
+    )
+    instance =fairpyx.Instance(valuations = {"s1": {"c1": 10}, "s2": {"c1": 11}}, item_capacities={"c1": 1}, agent_capacities={"s1": 1, "s2": 1})
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+
+    allocation = fairpyx.divide(SP_O_function, instance=instance)
+    print(allocation)

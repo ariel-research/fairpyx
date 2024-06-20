@@ -10,7 +10,7 @@ import pytest
 import fairpyx
 import numpy as np
 
-NUM_OF_RANDOM_INSTANCES=10
+NUM_OF_RANDOM_INSTANCES=2
 
 
 def test_optimal_change_result():

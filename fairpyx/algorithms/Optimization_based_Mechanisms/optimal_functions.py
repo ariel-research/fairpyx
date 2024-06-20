@@ -84,7 +84,7 @@ def sumOnRankMat(alloc, rank_mat, var):
 
 # if flag_if_use_alloc_in_func == 0 then using alloc.effective_value for TTC-O
 # if flag_if_use_alloc_in_func == 1 then using effective_value_with_price for SP-O
-def roundTTC_O(alloc, logger, func, flag_if_use_alloc_in_func):
+def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func):
     rank_mat = createRankMat(alloc, logger)
 
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
@@ -104,7 +104,7 @@ def roundTTC_O(alloc, logger, func, flag_if_use_alloc_in_func):
                        boolean=True)  # Is there a func which zero all the matrix?
 
     objective_Zt2 = cp.Maximize(cp.sum(
-        [func(student, course) * x[j, i] if flag_if_use_alloc_in_func == 0 else func(alloc, student, course) * x[j, i]
+        [agent_item_value_func(student, course) * x[j, i] if flag_if_use_alloc_in_func == 0 else agent_item_value_func(alloc, student, course) * x[j, i]
          for j, course in enumerate(alloc.remaining_items())
          for i, student in enumerate(alloc.remaining_agents())
          if (student, course) not in alloc.remaining_conflicts]))

@@ -73,5 +73,19 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
 if __name__ == "__main__":
     import doctest
     print("\n", doctest.testmod(), "\n")
+    import numpy as np, fairpyx
 
+    np.random.seed(1)
+    instance = fairpyx.Instance.random_uniform(
+        num_of_agents=70, num_of_items=10, normalized_sum_of_values=100,
+        agent_capacity_bounds=[2, 6],
+        item_capacity_bounds=[20, 40],
+        item_base_value_bounds=[1, 1000],
+        item_subjective_ratio_bounds=[0.5, 1.5]
+    )
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+
+    allocation = fairpyx.divide(TTC_function, instance=instance)
+    print(allocation)
 

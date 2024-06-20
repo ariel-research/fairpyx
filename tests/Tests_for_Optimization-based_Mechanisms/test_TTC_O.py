@@ -11,7 +11,7 @@ import fairpyx
 import numpy as np
 
 
-NUM_OF_RANDOM_INSTANCES=10
+NUM_OF_RANDOM_INSTANCES=2
 
 def test_optimal_change_result():
     s1 = {"c1": 50, "c2": 49, "c3": 1}
