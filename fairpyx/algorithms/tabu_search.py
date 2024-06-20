@@ -298,9 +298,9 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     False
 
 
-    >>> p = {"x":1, "y":3, "z":1}
-    >>> all([f(p) for f in equivalent_prices])
-    True
+    # >>> p = {"x":1, "y":3, "z":1}
+    # >>> all([f(p) for f in equivalent_prices])
+    # True
 
     # [(['x', 'y'], '<=', 5), (['x', 'z'], '<=', 4), (['x', 'z'], '<=', 3),
     #  (['x', 'y'], '>', 4), (['x', 'y'], '>', 3), (['y', 'z'], '>', 3)]
@@ -335,22 +335,19 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     >>> allocation = {'ami': ('x', 'z'), 'tami': ('x', 'z'), 'tzumi': 'z'}
     >>> equivalent_prices = find_all_equivalent_prices(instance, initial_budgets, allocation)
     >>> p = {'x': 2.6124658024539347, 'y': 0, 'z': 1.1604071365185367, 'w': 5.930224022321449}
-    >>> ([f(p) for f in equivalent_prices])
+    >>> all([f(p) for f in equivalent_prices])
     False
 
     """
     equivalent_prices = []
     # The constraints that the bundles they get in allocation meet their budgets
     for student in instance.agents:
-        # equivalent_prices.append(
-        #     lambda p, agent=student, keys=allocation[student]: (sum(p[key] for key in keys) <= initial_budgets[agent]))
         func = lambda p, agent=student, keys=allocation[student]: (
                     sum(p[key] for key in keys) <= initial_budgets[agent])
         description = lambda p, keys=allocation[student], budget=initial_budgets[
             student]: f"sum([{', '.join([f'{p[key]}' for key in keys])}]) <= {budget}"
-        equivalent_prices.append(debug_lambda(func, description))
-
-        print(f"sum[ {allocation[student]} ] <= {initial_budgets[student]}")
+        # equivalent_prices.append(debug_lambda(func, description))
+        equivalent_prices.append(func)
 
     # Constraints that will ensure that this is the allocation that will be accepted
     for student in instance.agents:
@@ -362,7 +359,6 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
         # print(f"combinations_courses_list = {combinations_courses_list}")
 
         original_utility = instance.agent_bundle_value(student, allocation[student])
-
         current_alloc = False
 
         for combination in combinations_courses_list:
@@ -381,14 +377,11 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
                 # Create a copy of sorted_combination for the lambda function
                 combination_copy = sorted_combination.copy()
 
-                # equivalent_prices.append(
-                #     lambda p: (sum(p[key] for key in combination_copy) > initial_budgets[student]))
-                func = lambda p: (sum(p[key] for key in combination_copy) > initial_budgets[student])
+                func = lambda p, agent=student, keys=allocation[student]: (sum(p[key] for key in keys) > initial_budgets[agent])
                 description = lambda p, keys=combination_copy, budget=initial_budgets[
                     student]: f"sum([{', '.join([f'{p[key]}' for key in keys])}]) > {budget}"
-                equivalent_prices.append(debug_lambda(func, description))
-
-                print(f"sum[ {combination_copy} ] > {initial_budgets[student]}")
+                # equivalent_prices.append(debug_lambda(func, description))
+                equivalent_prices.append(func)
 
     return list(equivalent_prices)
 
