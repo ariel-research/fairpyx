@@ -8,47 +8,47 @@ We used chat-GPT and our friends from the university for ideas of cases.
 
 import pytest
 from fairpyx import Instance
-import LookAheadRoutine
+from fairpyx.algorithms.Optimization_Matching.FaStGen import LookAheadRoutine
 
 def test_look_ahead_routine_basic_case():
     """
     Basic test case for the Look Ahead Routine algorithm.
     """
     # Define the instance
-    S = {"s1", "s2", "s3", "s4", "s5"}
-    C = {"c1", "c2", "c3", "c4"}
-    U = {
-        "s1": ["c1", "c3", "c2", "c4"],
-        "s2": ["c2", "c3", "c4", "c1"],
-        "s3": ["c3", "c4", "c1", "c2"],
-        "s4": ["c4", "c1", "c2", "c3"],
-        "s5": ["c1", "c3", "c2", "c4"]
-    }
-    V = {
-        "c1": ["s1", "s2", "s3", "s4", "s5"],
-        "c2": ["s2", "s1", "s3", "s4", "s5"],
-        "c3": ["s3", "s2", "s1", "s4", "s5"],
-        "c4": ["s4", "s3", "s2", "s1", "s5"]
-    }
-    
-    I = (S, C, U, V)
+    S = ["s1", "s2", "s3", "s4", "s5"]
+    C = ["c1", "c2", "c3", "c4"]
+    V = {       #the colleges valuations
+        "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10}, 
+        "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26}, 
+        "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28}, 
+        "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15}
+    }                               
+    U = {       #the students valuations
+        "s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, 
+        "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, 
+        "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, 
+        "s4" : {"c1":41,"c2":24,"c3":5,"c4":3}, 
+        "s5" : {"c1":36,"c2":19,"c3":9,"c4":6}
+    }                              
+    I = (S, C, U ,V)
     match = {
-        "c1": ["s1", "s2"],
-        "c2": ["s3", "s5"],
-        "c3": ["s4"],
-        "c4": []
+        "c1" : ["s1","s2"], 
+        "c2" : ["s3","s5"], 
+        "c3" : ["s4"], 
+        "c4" : []
     }
     down = "c4"
     LowerFix = []
     UpperFix = []
     SoftFix = []
 
+
     # Run the Look Ahead Routine algorithm
     new_match, new_LowerFix, new_UpperFix, new_SoftFix = LookAheadRoutine(I, match, down, LowerFix, UpperFix, SoftFix)
 
     # Define the expected output
-    expected_new_match = {'c1': ['s1', 's2'], 'c2': ['s5'], 'c3': ['s3'], 'c4': ['s4']}
-    expected_new_LowerFix = ['c2']
+    expected_new_match = {"c1": ["s1", "s2"], "c2": ["s5"], "c3" : ["s3"], "c4" : ["s4"]}
+    expected_new_LowerFix = ['c1']
     expected_new_UpperFix = []
     expected_new_SoftFix = []
 
@@ -77,7 +77,7 @@ def test_look_ahead_routine_edge_cases():
     assert new_SoftFix_empty == [], "Look Ahead Routine algorithm failed on empty input (SoftFix)"
 
     # Edge case 2: Single student and single course
-    I_single = ({"s1"}, {"c1"}, {"s1": ["c1"]}, {"c1": ["s1"]})
+    I_single = ({"s1"}, {"c1"}, {"s1": {"c1":100}}, {"c1": {"s1":80}})
     match_single = {"c1": ["s1"]}
     down_single = "c1"
     LowerFix_single = []
@@ -96,14 +96,14 @@ def test_look_ahead_routine_large_input():
     """
     # Define the instance with a large number of students and courses
     num_students = 100
-    num_courses = 50
+    num_college = 50
     students = {f"s{i}" for i in range(1, num_students + 1)}
-    courses = {f"c{i}" for i in range(1, num_courses + 1)}
-    U = {student: list(courses) for student in students}
-    V = {course: list(students) for course in courses}
+    colleges = {f"c{i}" for i in range(1, num_college + 1)}
+    U = {student: list(colleges) for student in students}
+    V = {course: list(students) for course in colleges}
 
-    I_large = (students, courses, U, V)
-    match_large = {course: [] for course in courses}
+    I_large = (students, colleges, U, V)
+    match_large = {course: [] for course in colleges}
     down_large = "c1"
     LowerFix_large = []
     UpperFix_large = []

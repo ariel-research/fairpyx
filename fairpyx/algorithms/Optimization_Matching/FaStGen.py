@@ -8,6 +8,7 @@
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 from FaSt import Demote
 import logging
+import sys
 logger = logging.getLogger(__name__)
 
 def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:dict)->dict:
@@ -20,23 +21,26 @@ def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:d
     :param items_valuations: a dictionary represents how items valuates the agents
     
     >>> from fairpyx.adaptors import divide
-    >>> S = {"s1", "s2", "s3", "s4", "s5", "s6", "s7"}
-    >>> C = {"c1", "c2", "c3"}
-    >>> V = {
-        "c1" : ["s1","s2","s3","s4","s5","s6","s7"], 
-        "c2" : ["s2","s4","s1","s3","s5","s6","s7"], 
-        "c3" : [s3,s5,s6,s1,s2,s4,s7]}           #the colleges valuations                    
-    >>> U = {
-        "s1" : ["c1","c3","c2"], 
-        "s2" : ["c2","c1","c3"], 
-        "s3" : ["c1","c3","c2"], 
-        "s4" : ["c3","c2","c1"],
-        "s5" : ["c2","c3","c1"], 
-        "s6" :["c3","c1","c2"], 
-        "s7" : ["c1","c2","c3"]}        #the students valuations                 
+    >>> S = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
+    >>> C = ["c1", "c2", "c3", "c4"]
+    >>> V = {       #the colleges valuations
+        "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
+        "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
+        "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
+        "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}
+        }
+    >>> U = {       #the students valuations   
+        "s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, 
+        "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, 
+        "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, 
+        "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},
+        "s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, 
+        "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, 
+        "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}
+        }
     >>> instance = Instance(agents=S, items=C)
     >>> divide(FaStGen, instance=instance, agents_valuations=U, items_valuations=V)
-    {'c1' : ['s1','s2'], 'c2' : ['s3','s4','s5']. 'c3' : ['s6','s7']}
+    {"c1" : ["s1","s2","s3","s4"], "c2" : ["s5"], "c3" : ["s6"], "c4" : ["s7"]}
     """
     S = alloc.instance.agents
     C = alloc.instance.items
@@ -46,21 +50,25 @@ def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:d
     SoftFix = []
     UnFixed = [item for item in C if item not in UpperFix]
 
-    matching_valuations_sum = {
+    matching_valuations_sum = { #in the artical it looks like this: vj(mu)
         colleague: sum(items_valuations[colleague][student] for student in students) 
         for colleague, students in match.items()
         }
 
-    while len(LowerFix) + len([item for item in UpperFix if item not in LowerFix]) < len(C) - 1:
+    while len(LowerFix) + len([item for item in UpperFix if item not in LowerFix]) < len(C):
         up = min([j for j in C if j not in LowerFix])
-        down = min(valuations_sum for valuations_sum  in matching_valuations_sum.values())
+        down = min(valuations_sum for key, valuations_sum in matching_valuations_sum.items() if key in UnFixed)
         SoftFix = [pair for pair in SoftFix if not (pair[1] <= up < pair[0])]
         
-        if (len(match[up]) == 1) or ():
+        if (len(match[up]) == 1) or (matching_valuations_sum[up] <= matching_valuations_sum[down]):
             LowerFix.append(up)
         else:
-            _match = Demote(_match, up, down)
-            if calcluate_leximin(_match) >= calcluate_leximin(match):
+            #check the lowest-rank student who currently belongs to mu(c_{down-1})
+            agant_to_demote = get_lowest_ranked_student(down-1, match, items_valuations)
+            _match = Demote(_match, agant_to_demote, up, down)
+            _match_leximin_tuple = create_leximin_tuple(match=_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
+            match_leximin_tuple = create_leximin_tuple(match=match, agents_valuations=agents_valuations, items_valuations=items_valuations)
+            if compare_leximin(match_leximin_tuple, _match_leximin_tuple):
                 match = _match
             elif sourceDec(_match, match) == up:
                 LowerFix.append(up)
@@ -72,7 +80,7 @@ def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:d
                 A = [j for j in UnFixed if (j > t + 1)]
                 SoftFix.extend((j, t+1) for j in A)
             else:
-                match, LowerFix, UpperFix, SoftFix = LookAheadRoutine(match, down, LowerFix, UpperFix, SoftFix)
+                match, LowerFix, UpperFix, SoftFix = LookAheadRoutine((S, C, agents_valuations, items_valuations), match, down, LowerFix, UpperFix, SoftFix)
     UnFixed = [
         j for j in alloc.instance.items 
         if (j not in UpperFix) or 
@@ -80,7 +88,6 @@ def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:d
         ]
 
     return match
-
 
 def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list, SoftFix:list)->tuple:
     """
@@ -100,19 +107,19 @@ def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list
     
 
     >>> from fairpyx.adaptors import divide
-    >>> S = {"s1", "s2", "s3", "s4", "s5"}
-    >>> C = {"c1", "c2", "c3", "c4"}
-    >>> V = {
-        "c1" : ["s1","s2","s3","s4","s5"], 
-        "c2" : ["s2","s1","s3","s4","s5"], 
-        "c3" : ["s3","s2","s1","s4","s5"], 
-        "c4" : ["s4","s3","s2","s1","s5"]}           #the colleges valuations                    
-    >>> U = {
-        "s1" : ["c1","c3","c2","c4"], 
-        "s2" : ["c2","c3","c4","c1"], 
-        "s3" : ["c3","c4","c1","c2"], 
-        "s4" : ["c4","c1","c2","c3"], 
-        "s5" : ["c1","c3","c2","c4"]}        #the students valuations                      
+    >>> S = ["s1", "s2", "s3", "s4", "s5"]
+    >>> C = ["c1", "c2", "c3", "c4"]
+    >>> V = {       #the colleges valuations
+        "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10}, 
+        "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26}, 
+        "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28}, 
+        "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15}}                               
+    >>> U = {       #the students valuations
+        "s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, 
+        "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, 
+        "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, 
+        "s4" : {"c1":41,"c2":24,"c3":5,"c4":3}, 
+        "s5" : {"c1":36,"c2":19,"c3":9,"c4":6}}                              
     >>> I = (S, C, U ,V)
     >>> match = {
         "c1" : ["s1","s2"], 
@@ -124,20 +131,30 @@ def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list
     >>> UpperFix = []
     >>> SoftFix = []
     >>> LookAheadRoutine(I, match, down, LowerFix, UpperFix, SoftFix)
-    ({'c1': ['s1', 's2'], 'c2': ['s5'], 'c3' : ['s3'], 'c4' : ['s4']}, ['c2'], [], [])
+    ({"c1": ["s1", "s2"], "c2": ["s5"], "c3" : ["s3"], "c4" : ["s4"]}, ["c1"], [], [])
     """
     agents, items, agents_valuations, items_valuations = I
     LF = LowerFix.copy()
     UF = UpperFix.copy()
     _match = match.copy()
 
+    matching_valuations_sum = { #in the artical it looks like this: vj(mu)
+        colleague: sum(items_valuations[colleague][student] for student in students) 
+        for colleague, students in match.items()
+        }
+
+
     while len(LF) + len([item for item in UF if item not in LF]) < len(items) - 1:
         up = min([j for j in items if j not in LowerFix])
-        if (len(match[up]) == 1) or ():
+        if (len(match[up]) == 1) or (matching_valuations_sum[up] <= matching_valuations_sum[down]):
             LF.append(up)
         else:
-            _match = Demote(_match, len(agents) - 1, up, down)
-            if calcluate_leximin(_match) >= calcluate_leximin(match):
+            #check the lowest-rank student who currently belongs to mu(c_{down-1})
+            agant_to_demote = get_lowest_ranked_student(down-1, match)
+            _match = Demote(_match, agant_to_demote, up, down)
+            _match_leximin_tuple = create_leximin_tuple(match=_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
+            match_leximin_tuple = create_leximin_tuple(match=match, agents_valuations=agents_valuations, items_valuations=items_valuations)
+            if compare_leximin(match_leximin_tuple, _match_leximin_tuple):
                 match = _match
                 LowerFix = LF
                 UpperFix = UF
@@ -146,7 +163,7 @@ def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list
                 LF.append(up)
                 UF.append(up + 1)
             elif sourceDec(_match, match) in agents:
-                    t = match[sourceDec(_match, match)]
+                    t = _match[sourceDec(_match, match)]
                     if t == down:
                         UpperFix.append(down)
                     else:
@@ -154,24 +171,60 @@ def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list
                     break
     return (match, LowerFix, UpperFix, SoftFix)
 
-def calcluate_leximin(match:dict)->int:
-    return 0
+def create_leximin_tuple(match:dict, agents_valuations:dict, items_valuations:dict):
+    leximin_tuple = []
+    for item in match.keys():
+        for agent in match[item]:
+            leximin_tuple.append((agent,items_valuations[item][agent]))
+            leximin_tuple.append((item, agents_valuations[agent][item]))
+    leximin_tuple.sort(key = lambda x: x[1]) 
+    return leximin_tuple
 
-def sourceDec(new_match:dict, old_match:dict):
+def compare_leximin(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->bool:
+    """
+    Determain whethere the leximin tuple of the new match is grater or equal to the leximin tuple of the old match
+    
+    Parameters:
+    - new_match_leximin_tuple: the leximin tuple of the new matching
+    - old_match_leximin_tuple: the leximin tuple of the old matching
+
+    Return:
+    - true or false if new_match_leximin_tuple >= old_match_leximin_tuple
+    """
+    for k in range(0, len(new_match_leximin_tuple)):
+        if new_match_leximin_tuple[k][1] == old_match_leximin_tuple[k][1]:
+            continue
+        elif new_match_leximin_tuple[k][1] > old_match_leximin_tuple[k][1]:
+            return True
+        else:
+            return False
+
+def sourceDec(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->str:
     """
     Determines the agent causing the leximin decrease between two matchings mu1 and mu2.
     
     Parameters:
-    - new_match: First matching (dict of colleges to students)
-    - old_match: Second matching (dict of colleges to students)
+    - new_match_leximin_tuple: the leximin tuple of the new matching
+    - old_match_leximin_tuple: the leximin tuple of the old matching
     
     Returns:
     - The agent (student) causing the leximin decrease.
     """
-    for agent in new_match:
-        if new_match[agent] != old_match[agent]:
-            return agent
-    return None
+    for k in range(0, len(new_match_leximin_tuple)):
+        if new_match_leximin_tuple[k][1] < old_match_leximin_tuple[k][1]:
+            return old_match_leximin_tuple[k][0]  
+    return ""
+
+def get_lowest_ranked_student(item:int, match:dict, items_valuations:dict)->str:
+    # min = sys.maxsize
+    # lowest_ranked_student = 0
+    # for agant in match[item]:
+    #     minTemp = items_valuations[item][agant]
+    #     if minTemp < min:
+    #         min = minTemp
+    #         lowest_ranked_student = agant
+    # return lowest_ranked_student
+    return min(match[item], key=lambda agant: items_valuations[item][agant])
 
 if __name__ == "__main__":
     import doctest, sys
