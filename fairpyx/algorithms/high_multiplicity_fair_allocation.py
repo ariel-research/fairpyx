@@ -35,7 +35,14 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
       >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
       >>> divide(high_multiplicity_fair_allocation, instance=instance)
       {'Ami': ['Fork', 'Fork'], 'Rami': ['Pen', 'Pen'], 'Tami': ['Knife', 'Knife']}
-    """
+
+    >>> agent_capacities = {"Ami": 9, "Tami": 9}
+    >>> item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
+    >>> valuations = {"Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}}
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+    >>> divide(high_multiplicity_fair_allocation, instance=instance)
+    {'Ami': ['Fork', 'Fork', 'Fork'], 'Tami': ['Knife', 'Knife', 'Knife', 'Pen', 'Pen', 'Pen']}
+      """
 
     ## Step 1: Find a envy-free allocation
     ## Step 2: Check if there is a Pareto-dominate allocation
