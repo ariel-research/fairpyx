@@ -363,7 +363,7 @@ def get_agents_items_and_capacities(alloc: AllocationBuilder, bool=False):
 #### MAIN ####
 
 if __name__ == "__main__":
-    import doctest, sys
+    import doctest
 
     # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
