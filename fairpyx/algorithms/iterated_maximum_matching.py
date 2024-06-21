@@ -172,13 +172,21 @@ if __name__ == "__main__":
     from fairpyx.adaptors import divide_random_instance, divide
     from fairpyx.explanations import ConsoleExplanationLogger, FilesExplanationLogger, StringsExplanationLogger
 
+    console_explanation_logger = ConsoleExplanationLogger()
+    files_explanation_logger = FilesExplanationLogger({
+        i: f"logs/s{i+1}.log"
+        for i in range(2)
+    }, mode='w', language="he")
+    string_explanation_logger = StringsExplanationLogger(f"s{i+1}" for i in range(2))
+
     instance = Instance(valuations=[[5,4,3,2],[2,3,4,5]], agent_capacities=2, item_capacities=1)
-    print(divide(iterated_maximum_matching, instance=instance, explanation_logger=ConsoleExplanationLogger()))
+    print(divide(iterated_maximum_matching, instance=instance, explanation_logger=files_explanation_logger))
 
     sys.exit()
 
     num_of_agents = 30
     num_of_items = 10
+
 
     console_explanation_logger = ConsoleExplanationLogger()
     files_explanation_logger = FilesExplanationLogger({
