@@ -50,10 +50,7 @@ def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:d
     SoftFix = []
     UnFixed = [item for item in C if item not in UpperFix]
 
-    matching_valuations_sum = { #in the artical it looks like this: vj(mu)
-        colleague: sum(items_valuations[colleague][student] for student in students) 
-        for colleague, students in match.items()
-        }
+    matching_valuations_sum = update_matching_valuations_sum(match=match,items_valuations=items_valuations, agents=S, items=C)
 
     while len(LowerFix) + len([item for item in UpperFix if item not in LowerFix]) < len(C):
         up = min([j for j in C if j not in LowerFix])
@@ -69,7 +66,8 @@ def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:d
             _match_leximin_tuple = create_leximin_tuple(match=_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
             match_leximin_tuple = create_leximin_tuple(match=match, agents_valuations=agents_valuations, items_valuations=items_valuations)
             if compare_leximin(match_leximin_tuple, _match_leximin_tuple):
-                match = _match
+                match = _match  
+                matching_valuations_sum = update_matching_valuations_sum(match=match,items_valuations=items_valuations, agents=S, items=C)
             elif sourceDec(_match, match) == up:
                 LowerFix.append(up)
                 UpperFix.append(up + 1)
@@ -138,11 +136,7 @@ def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list
     UF = UpperFix.copy()
     _match = match.copy()
 
-    matching_valuations_sum = { #in the artical it looks like this: vj(mu)
-        colleague: sum(items_valuations[colleague][student] for student in students) 
-        for colleague, students in match.items()
-        }
-
+    matching_valuations_sum = update_matching_valuations_sum(match=_match,items_valuations=items_valuations, agents=agents, items=items)
 
     while len(LF) + len([item for item in UF if item not in LF]) < len(items) - 1:
         up = min([j for j in items if j not in LowerFix])
@@ -152,6 +146,7 @@ def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list
             #check the lowest-rank student who currently belongs to mu(c_{down-1})
             agant_to_demote = get_lowest_ranked_student(down-1, match)
             _match = Demote(_match, agant_to_demote, up, down)
+            matching_valuations_sum = update_matching_valuations_sum(match=_match,items_valuations=items_valuations, agents=agents, items=items)
             _match_leximin_tuple = create_leximin_tuple(match=_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
             match_leximin_tuple = create_leximin_tuple(match=match, agents_valuations=agents_valuations, items_valuations=items_valuations)
             if compare_leximin(match_leximin_tuple, _match_leximin_tuple):
@@ -212,7 +207,7 @@ def sourceDec(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->str:
     """
     for k in range(0, len(new_match_leximin_tuple)):
         if new_match_leximin_tuple[k][1] < old_match_leximin_tuple[k][1]:
-            return old_match_leximin_tuple[k][0]  
+            return new_match_leximin_tuple[k][0]  
     return ""
 
 def get_lowest_ranked_student(item:int, match:dict, items_valuations:dict)->str:
@@ -225,6 +220,13 @@ def get_lowest_ranked_student(item:int, match:dict, items_valuations:dict)->str:
     #         lowest_ranked_student = agant
     # return lowest_ranked_student
     return min(match[item], key=lambda agant: items_valuations[item][agant])
+
+def update_matching_valuations_sum(match:dict, items_valuations:dict, agents:list, items:list)->dict:
+    matching_valuations_sum = { #in the artical it looks like this: vj(mu)
+        colleague: sum(items_valuations[colleague][student] for student in students) 
+        for colleague, students in match.items()
+        }
+    return matching_valuations_sum
 
 if __name__ == "__main__":
     import doctest, sys
