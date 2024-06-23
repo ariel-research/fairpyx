@@ -183,6 +183,7 @@ class Instance:
  * agent conflicts:  { {agent: self.agent_conflicts(agent) for agent in self.agents} }
  * item capacities:  { {item: self.item_capacity(item) for item in self.items} }
  * item conflicts:  { {item: self.item_conflicts(item) for item in self.items} }
+ * valuations: {dict(self._valuations)}
  """
     
     @cache
