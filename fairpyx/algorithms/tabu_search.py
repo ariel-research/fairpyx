@@ -49,53 +49,53 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     >>> from fairpyx.utils.test_utils import stringify
     >>> from fairpyx import Instance
 
-    # >>> instance = Instance(
-    # ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
-    # ... agent_capacities=2,
-    # ... item_capacities={"x":2, "y":1, "z":3})
-    # >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
-    # >>> beta = 4
-    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    # "{ami:['y', 'z'], tami:['x', 'z'], tzumi:['x', 'z']}"
-    #
-    # Example run 2
-    # >>> instance = Instance(
-    # ... valuations={"ami":{"x":5, "y":4, "z":3, "w":2}, "tami":{"x":5, "y":2, "z":4, "w":3}},
-    # ... agent_capacities=3,
-    # ... item_capacities={"x":1, "y":2, "z":1, "w":2})
-    # >>> initial_budgets={"ami":8, "tami":6}
-    # >>> beta = 9
-    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    # "{ami:['w', 'x', 'y'], tami:['w', 'y', 'z']}"
-    #
-    # stack
-    # Example run 3
-    # >>> random.seed(1000)
-    # >>> instance = Instance(
-    # ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
-    # ... agent_capacities=2,
-    # ... item_capacities={"x":1, "y":2, "z":2})
-    # >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
-    # >>> beta = 5
-    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    # "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}"
-    #
-    # # >>> valid_results = [
-    # # ...     "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}",
-    # # ...     "{ami:['y', 'z'], tami:['x', 'z'], tzumi:['y']}",
-    # # ...     "{ami:['x', 'y'], tami:['y', 'z'], tzumi:['z']}"
-    # # ... ]
-    # # >>> any(result == valid_result for valid_result in valid_results)
-    # # True
-    #
-    # >>> instance = Instance(
-    # ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
-    # ... agent_capacities=2,
-    # ... item_capacities={"x":1, "y":2, "z":3})
-    # >>> initial_budgets={"ami":6, "tami":4}
-    # >>> beta = 6
-    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    # "{ami:['x', 'y'], tami:['y', 'z']}"
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":2, "y":1, "z":3})
+    >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
+    >>> beta = 4
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    "{ami:['y', 'z'], tami:['x', 'z'], tzumi:['x', 'z']}"
+
+    Example run 2
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":5, "y":4, "z":3, "w":2}, "tami":{"x":5, "y":2, "z":4, "w":3}},
+    ... agent_capacities=3,
+    ... item_capacities={"x":1, "y":2, "z":1, "w":2})
+    >>> initial_budgets={"ami":8, "tami":6}
+    >>> beta = 9
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    "{ami:['w', 'x', 'y'], tami:['w', 'y', 'z']}"
+
+    stack
+    Example run 3
+    >>> random.seed(1000)
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":1, "y":2, "z":2})
+    >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
+    >>> beta = 5
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}"
+
+    # >>> valid_results = [
+    # ...     "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}",
+    # ...     "{ami:['y', 'z'], tami:['x', 'z'], tzumi:['y']}",
+    # ...     "{ami:['x', 'y'], tami:['y', 'z'], tzumi:['z']}"
+    # ... ]
+    # >>> any(result == valid_result for valid_result in valid_results)
+    # True
+
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":1, "y":2, "z":3})
+    >>> initial_budgets={"ami":6, "tami":4}
+    >>> beta = 6
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    "{ami:['x', 'y'], tami:['y', 'z']}"
 
     stack
     >>> instance = Instance(
@@ -136,7 +136,10 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
                                        allocation)
 
         logger.info("   update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
-        prices = find_min_error_prices(alloc.instance, neighbors, initial_budgets)
+        possible_prices = find_min_error_prices(alloc.instance, neighbors, initial_budgets)
+        prices = random.choice(possible_prices)
+        logger.warning(f"possible_prices: {possible_prices}")
+        logger.warning(f"prices: {prices}")
 
     # print the final price (p* = prices) for each course
     logger.info(f"\nfinal prices p* = {prices}")
@@ -434,8 +437,8 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     for student in instance.agents:
         func = lambda p, agent=student, keys=allocation[student]: (
                 sum(p[key] for key in keys) <= initial_budgets[agent])
-        description = lambda p, keys=allocation[student], budget=initial_budgets[
-            student]: f"sum([{', '.join([f'{p[key]}' for key in keys])}]) <= {budget}"
+        # description = lambda p, keys=allocation[student], : \
+        #     f"sum([{', '.join([f'{p[key]}' for key in keys])}]) <= {initial_budgets[agent]}"
         # equivalent_prices.append(debug_lambda(func, description))
         equivalent_prices.append(func)
 
@@ -469,8 +472,8 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
 
                 func = lambda p, agent=student, keys=allocation[student]: (
                         sum(p[key] for key in keys) > initial_budgets[agent])
-                description = lambda p, keys=combination_copy, budget=initial_budgets[
-                    student]: f"sum([{', '.join([f'{p[key]}' for key in keys])}]) > {budget}"
+                description = lambda p, : \
+                    f"sum([{', '.join([f'{p[key]}' for key in combination_copy])}]) > {initial_budgets[student]}"
                 # equivalent_prices.append(debug_lambda(func, description))
                 equivalent_prices.append(func)
 
@@ -705,7 +708,7 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     >>> neighbors = [{"x":1, "y":4, "z":0}, {"x":1, "y":3, "z":1}]
     >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
     >>> find_min_error_prices(instance, neighbors, initial_budgets)
-    {'x': 1, 'y': 4, 'z': 0}
+    [{'x': 1, 'y': 4, 'z': 0}]
 
      Example run 1 iteration 2
     >>> instance = Instance(
@@ -715,10 +718,10 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     >>> neighbors = [{"x":2, "y":4, "z":0}, {"x":3, "y":4, "z":0}]
     >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
     >>> find_min_error_prices(instance, neighbors, initial_budgets)
-    {'x': 2, 'y': 4, 'z': 0}
-
+    [{'x': 2, 'y': 4, 'z': 0}, {'x': 3, 'y': 4, 'z': 0}]
     """
     errors = []
+    min_error_prices = []
     for neighbor in neighbors:
         # allocation = student_best_bundle(neighbor.copy(), instance, initial_budgets)
         allocations = student_best_bundle(neighbor.copy(), instance, initial_budgets)
@@ -727,9 +730,11 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
         logger.debug(f"neighbor = {neighbor}, norma = {norma}")  # todo: delete logger
         errors.append(norma)
 
-    min_error_index = np.argmin(errors)
-    logger.debug(f"\nbest neighbor: {neighbors[min_error_index]}\n")
-    return neighbors[min_error_index]
+    min_error_index = np.where(errors == min(errors))[0]
+    for error_index in min_error_index:
+        min_error_prices.append(neighbors[error_index])
+    # logger.debug(f"\nbest neighbor: {neighbors[min_error_index]}\n")
+    return min_error_prices
 
 
 if __name__ == "__main__":
