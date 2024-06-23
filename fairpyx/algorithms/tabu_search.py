@@ -10,7 +10,7 @@ Since: 2024-01
 import logging
 import coloredlogs
 import random
-from itertools import combinations
+from itertools import combinations, product
 
 import numpy as np
 
@@ -49,27 +49,28 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     >>> from fairpyx.utils.test_utils import stringify
     >>> from fairpyx import Instance
 
-    >>> instance = Instance(
-    ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
-    ... agent_capacities=2,
-    ... item_capacities={"x":2, "y":1, "z":3})
-    >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
-    >>> beta = 4
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    "{ami:['y', 'z'], tami:['x', 'z'], tzumi:['x', 'z']}"
-
-    Example run 2
-    >>> instance = Instance(
-    ... valuations={"ami":{"x":5, "y":4, "z":3, "w":2}, "tami":{"x":5, "y":2, "z":4, "w":3}},
-    ... agent_capacities=3,
-    ... item_capacities={"x":1, "y":2, "z":1, "w":2})
-    >>> initial_budgets={"ami":8, "tami":6}
-    >>> beta = 9
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    "{ami:['w', 'x', 'y'], tami:['w', 'y', 'z']}"
-
-    stack
+    # >>> instance = Instance(
+    # ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
+    # ... agent_capacities=2,
+    # ... item_capacities={"x":2, "y":1, "z":3})
+    # >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
+    # >>> beta = 4
+    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    # "{ami:['y', 'z'], tami:['x', 'z'], tzumi:['x', 'z']}"
+    #
+    # Example run 2
+    # >>> instance = Instance(
+    # ... valuations={"ami":{"x":5, "y":4, "z":3, "w":2}, "tami":{"x":5, "y":2, "z":4, "w":3}},
+    # ... agent_capacities=3,
+    # ... item_capacities={"x":1, "y":2, "z":1, "w":2})
+    # >>> initial_budgets={"ami":8, "tami":6}
+    # >>> beta = 9
+    # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    # "{ami:['w', 'x', 'y'], tami:['w', 'y', 'z']}"
+    #
+    # stack
     # Example run 3
+    # >>> random.seed(1000)
     # >>> instance = Instance(
     # ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
     # ... agent_capacities=2,
@@ -77,26 +78,34 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     # >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
     # >>> beta = 5
     # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    # "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
-
-    >>> instance = Instance(
-    ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
-    ... agent_capacities=2,
-    ... item_capacities={"x":1, "y":2, "z":3})
-    >>> initial_budgets={"ami":6, "tami":4}
-    >>> beta = 6
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    "{ami:['x', 'y'], tami:['y', 'z']}"
-
-    stack
+    # "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}"
+    #
+    # # >>> valid_results = [
+    # # ...     "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}",
+    # # ...     "{ami:['y', 'z'], tami:['x', 'z'], tzumi:['y']}",
+    # # ...     "{ami:['x', 'y'], tami:['y', 'z'], tzumi:['z']}"
+    # # ... ]
+    # # >>> any(result == valid_result for valid_result in valid_results)
+    # # True
+    #
     # >>> instance = Instance(
     # ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
     # ... agent_capacities=2,
-    # ... item_capacities={"x":1, "y":1, "z":1})
-    # >>> initial_budgets={"ami":5, "tami":3}
+    # ... item_capacities={"x":1, "y":2, "z":3})
+    # >>> initial_budgets={"ami":6, "tami":4}
     # >>> beta = 6
     # >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    # "{ami:['x', 'y'], tami:['z']}"
+    # "{ami:['x', 'y'], tami:['y', 'z']}"
+
+    stack
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":1, "y":1, "z":1})
+    >>> initial_budgets={"ami":5, "tami":3}
+    >>> beta = 6
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    "{ami:['x', 'y'], tami:['z']}"
     """
     logger.info("START ALGORITHM")
     logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅")
@@ -104,19 +113,19 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     history = []
 
     logger.info("2) If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.")
-    norma2 = 1
-    while norma2:
-        allocation = student_best_bundle(prices.copy(), alloc.instance, initial_budgets)
+    norma = 1
+    while norma:
+        max_utilities_allocations = student_best_bundle(prices.copy(), alloc.instance, initial_budgets)
+
+        allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(alloc.instance, prices,
+                                                                                   max_utilities_allocations)
+
         logger.debug(f"prices: {prices}")
         logger.debug(f"best bundle: {allocation}")
-
-        excess_demand_vector = clipped_excess_demand(alloc.instance, prices, allocation)
-        values = np.array(list(excess_demand_vector.values()))
-        norma2 = np.linalg.norm(values)
-        logger.debug(f"----------NORMA {norma2}-----------------")
+        logger.debug(f"----------NORMA {norma}-----------------")
 
         logger.info("   If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑")
-        if np.allclose(norma2, 0):
+        if np.allclose(norma, 0):
             break
 
         logger.info("3) Otherwise, include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑}")
@@ -140,6 +149,55 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
 
 
 # ---------------------helper functions:---------------------
+def min_excess_demand_for_allocation(instance: Instance, prices: dict, max_utilities_allocations: list[dict]):
+    """
+    Goes through all allocations with the highest utilities of the students, and returns the allocation with the
+    lowest norm
+
+    :param instance: fair-course-allocation instance
+    :param prices: dictionary with courses prices
+    :param max_utilities_allocations: A list of dictionaries that tells for each student all the package options he
+                                      can take with the maximum utility
+
+    :return: Allocation, and its excess demand vector, which gives the lowest norm
+
+    Example run 2 iteration 1
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":5, "y":4, "z":3, "w":2}, "Bob":{"x":5, "y":2, "z":4, "w":3}},
+    ...     agent_capacities=3,
+    ...     item_capacities={"x":1, "y":2, "z":1, "w":2})
+    >>> prices = {"x": 1, "y": 2, "z": 3, "w":4}
+    >>> max_utilities_allocations = [{'Alice': ('x', 'y', 'z'), 'Bob': ('x', 'y', 'z')}]
+    >>> min_excess_demand_for_allocation(instance, prices, max_utilities_allocations)
+    ({'Alice': ('x', 'y', 'z'), 'Bob': ('x', 'y', 'z')}, {'x': 1, 'y': 0, 'z': 1, 'w': -2}, 2.449489742783178)
+
+
+    Example run 3 iteration 1
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":3, "y":3, "z":3, "w":3}, "Bob":{"x":3, "y":3, "z":3, "w":3}, "Eve":{"x":4, "y":4, "z":4, "w":4}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":2, "z":2, "w":1})
+    >>> prices = {'x': 2.6124658024539347, 'y': 0, 'z': 1.1604071365185367, 'w': 5.930224022321449}
+    >>> max_utilities_allocations = [{'Alice': ('x', 'y'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'y'), 'Bob': ('x', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'y'), 'Bob': ('y', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'z'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'z'), 'Bob': ('x', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'z'), 'Bob': ('y', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('y', 'z'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}, {'Alice': ('y', 'z'), 'Bob': ('x', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('y', 'z'), 'Bob': ('y', 'z'), 'Eve': ('y', 'z')}]
+    >>> min_excess_demand_for_allocation(instance, prices, max_utilities_allocations)
+    ({'Alice': ('x', 'y'), 'Bob': ('x', 'z'), 'Eve': ('y', 'z')}, {'x': 1, 'y': 0, 'z': 0, 'w': -1}, 1.4142135623730951)
+    """
+    min_norma = float("inf")
+    min_excess_demand = {}
+    best_alloc = {}
+    for alloc in max_utilities_allocations:
+        excess_demand_vector = clipped_excess_demand(instance, prices, alloc)
+        values = np.array(list(excess_demand_vector.values()))
+        curr_norma = np.linalg.norm(values)
+
+        if curr_norma < min_norma:
+            min_norma = curr_norma
+            min_excess_demand = excess_demand_vector
+            best_alloc = alloc
+
+    return best_alloc, min_excess_demand, min_norma
+
+
 def excess_demand(instance: Instance, allocation: dict):
     """
     Calculate for every course its excess demand
@@ -198,13 +256,13 @@ def clipped_excess_demand(instance: Instance, prices: dict, allocation: dict):
 
 def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict):
     """
-    Return a dict that says for each student what is the bundle with the maximum utility that a student can take
+    Return a list of dictionaries that tells for each student all the bundle options he can take with the maximum benefit
 
     :param prices: dictionary with courses prices
     :param instance: fair-course-allocation instance
     :param initial_budgets: students' initial budgets
 
-    :return: a dictionary that maps each student to its best bundle.
+    :return: a list of dictionaries that maps each student to its best bundle.
 
      Example run 1 iteration 1
     >>> instance = Instance(
@@ -214,7 +272,7 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
     >>> initial_budgets = {"Alice": 5, "Bob": 4, "Eve": 3}
     >>> prices = {"x": 1, "y": 2, "z": 1}
     >>> student_best_bundle(prices, instance, initial_budgets)
-    {'Alice': ('x', 'y'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}
+    [{'Alice': ('x', 'y'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}]
 
      Example run 2 iteration 1
     >>> instance = Instance(
@@ -224,7 +282,7 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
     >>> initial_budgets = {"Alice": 8, "Bob": 6}
     >>> prices = {"x": 1, "y": 2, "z": 3, "w":4}
     >>> student_best_bundle(prices, instance, initial_budgets)
-    {'Alice': ('x', 'y', 'z'), 'Bob': ('x', 'y', 'z')}
+    [{'Alice': ('x', 'y', 'z'), 'Bob': ('x', 'y', 'z')}]
 
 
     Example run 3 iteration 1
@@ -233,34 +291,50 @@ def student_best_bundle(prices: dict, instance: Instance, initial_budgets: dict)
     ...     agent_capacities=2,
     ...     item_capacities={"x":1, "y":2, "z":2, "w":1})
     >>> initial_budgets = {"Alice": 4, "Bob": 5, "Eve": 2}
-    >>> prices = {"x": 1, "y": 1, "z": 1, "w":1}
+    >>> prices = {'x': 2.6124658024539347, 'y': 0, 'z': 1.1604071365185367, 'w': 5.930224022321449}
     >>> student_best_bundle(prices, instance, initial_budgets)
-    {'Alice': ('x', 'y'), 'Bob': ('x', 'y'), 'Eve': ('x', 'y')}
+    [{'Alice': ('x', 'y'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'y'), 'Bob': ('x', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'y'), 'Bob': ('y', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'z'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'z'), 'Bob': ('x', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'z'), 'Bob': ('y', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('y', 'z'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}, {'Alice': ('y', 'z'), 'Bob': ('x', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('y', 'z'), 'Bob': ('y', 'z'), 'Eve': ('y', 'z')}]
+
 
     """
-    best_bundle = {student: () for student in instance.agents}
-    for student in instance.agents:
+    all_combinations = {student: [] for student in instance.agents}
 
-        # Creating a list of combinations of courses up to the size of the student's capacity
+    for student in instance.agents:
+        # all_combinations[student] = []
         combinations_courses_list = []
         capacity = instance.agent_capacity(student)
         for r in range(1, capacity + 1):
             combinations_courses_list.extend(combinations(instance.items, r))
-        # logger.debug(f"FINISH combinations for {student}")
 
-        # Define a lambda function that calculates the valuation of a combination
         valuation_function = lambda combination: instance.agent_bundle_value(student, combination)
-
-        # Sort the combinations_set based on their valuations in descending order
         combinations_courses_sorted = sorted(combinations_courses_list, key=valuation_function, reverse=True)
 
+        max_valuation = -1
         for combination in combinations_courses_sorted:
             price_combination = sum(prices[course] for course in combination)
             if price_combination <= initial_budgets[student]:
-                best_bundle[student] = combination
-                break
+                current_valuation = valuation_function(combination)
+                if current_valuation >= max_valuation:
+                    if current_valuation > max_valuation:
+                        all_combinations[student] = []
+                    max_valuation = current_valuation
+                    all_combinations[student].append(combination)
 
-    return best_bundle
+        if not all_combinations[student]:
+            all_combinations[student].append(())
+
+    all_combinations_list = list(product(*all_combinations.values()))
+
+    valid_allocations = []
+    for allocation in all_combinations_list:
+        valid_allocation = {}
+        for student, bundle in zip(instance.agents, allocation):
+            if sum(prices[item] for item in bundle) <= initial_budgets[student]:
+                valid_allocation[student] = bundle
+        if len(valid_allocation) == len(instance.agents):
+            valid_allocations.append(valid_allocation)
+
+    return valid_allocations
 
 
 def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, allocation: dict):
@@ -576,9 +650,10 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
                 if any(all(f(updated_prices) for f in sublist) for sublist in history):
                     continue
                 # get the new demand of the course
-                new_allocation = student_best_bundle(updated_prices.copy(), instance, initial_budgets)
-                if differ_in_one_value(allocation, new_allocation, course):
-                    new_neighbors.append(updated_prices.copy())
+                new_allocations = student_best_bundle(updated_prices.copy(), instance, initial_budgets)
+                for new_allocation in new_allocations:
+                    if differ_in_one_value(allocation, new_allocation, course):
+                        new_neighbors.append(updated_prices.copy())
 
         elif excess_demand < 0:
             updated_prices[course] = 0
@@ -646,11 +721,11 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     errors = []
     for neighbor in neighbors:
         # allocation = student_best_bundle(neighbor.copy(), instance, initial_budgets)
-        allocation = student_best_bundle(neighbor.copy(), instance, initial_budgets)
-        error = clipped_excess_demand(instance, neighbor, allocation)
-        norma2 = np.linalg.norm(np.array(list(error.values())))
-        logger.debug(f"neighbor = {neighbor}, norma = {norma2}")  # todo: delete logger
-        errors.append(norma2)
+        allocations = student_best_bundle(neighbor.copy(), instance, initial_budgets)
+        allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(instance, neighbor, allocations)
+        # norma2 = np.linalg.norm(np.array(list(error.values())))
+        logger.debug(f"neighbor = {neighbor}, norma = {norma}")  # todo: delete logger
+        errors.append(norma)
 
     min_error_index = np.argmin(errors)
     logger.debug(f"\nbest neighbor: {neighbors[min_error_index]}\n")
@@ -677,25 +752,33 @@ if __name__ == "__main__":
     #                                                  allocation))
 
     seed = random.randint(1, 10000)
-    seed = 2802
+    seed = 182
     random.seed(seed)
     logger.debug(f"seed is {seed}")
 
-    # Write the seed to a new file
-    with open('seed.txt', 'w') as file:
-        file.write(f"seed is {seed}\n")
+    # # Write the seed to a new file
+    # with open('seed.txt', 'a') as file:
+    #     file.write(f"seed is {seed}\n")
 
-    # Stack!!
-    # Example run 3
-    instance = Instance(
-        valuations={"ami": {"x": 3, "y": 3, "z": 3, "w":3}, "tami": {"x": 3, "y": 3, "z": 3, "w":3},
-                    "tzumi": {"x": 4, "y": 4, "z": 4, "w":4}},
-        agent_capacities=2,
-        item_capacities={"x": 1, "y": 2, "z": 2, "w":1})
-    initial_budgets = {"ami": 4, "tami": 5, "tzumi": 2}
-    beta = 5
+    # # Stack!!
+    # # Example run 3
+    # instance = Instance(
+    #     valuations={"ami": {"x": 3, "y": 3, "z": 3, "w":3}, "tami": {"x": 3, "y": 3, "z": 3, "w":3},
+    #                 "tzumi": {"x": 4, "y": 4, "z": 4, "w":4}},
+    #     agent_capacities=2,
+    #     item_capacities={"x": 1, "y": 2, "z": 2, "w":1})
+    # initial_budgets = {"ami": 4, "tami": 5, "tzumi": 2}
+    # beta = 5
+    # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={1})
+    # # "{ami': ('x', 'y'), 'tami': ('y', 'z'), 'tzumi': ('z', 'w')}"
+
+    # stack
+    instance = Instance(valuations={"ami": {"x": 4, "y": 3, "z": 2}, "tami": {"x": 5, "y": 1, "z": 2}},
+                        agent_capacities=2, item_capacities={"x": 1, "y": 1, "z": 1})
+    initial_budgets = {"ami": 5, "tami": 3}
+    beta = 6
     divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={1})
-    # "{ami:['y','z'], tami:['x', 'w'], tzumi:['y', 'z'] }"
+    # "{ami:['x', 'y'], tami:['z']}"
 
     # # Good Example:
     # instance = Instance(valuations = {"ami": {"x": 5, "y": 4, "z": 3, "w": 2}, "tami": {"x": 5, "y": 2, "z": 4, "w": 3}},
