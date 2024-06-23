@@ -62,19 +62,6 @@ def createRankMat(alloc, logger):
     logger.info("Rank matrix: %s", rank_mat)
     return rank_mat
 
-# conditions (12) (16) in the article using only for the SP-O
-def SP_O_condition(alloc, result_Zt1, D, p, v):
-    return result_Zt1 * D + cp.sum([alloc.remaining_item_capacities[course] * p[j] for j, course in enumerate(alloc.remaining_items())]) + cp.sum([v[i] for i, student in enumerate(alloc.remaining_agents())])
-
-# conditions (14) in the article using only for the SP-O
-def conditions_14(alloc, v,p):
-    constraints = []
-    for j, course in enumerate(alloc.remaining_items()):
-        for i, student in enumerate(alloc.remaining_agents()):
-            constraints.append(p[j] >= 0)
-            constraints.append(v[i] >= 0)
-    return constraints
-
 # sum the optimal rank to be sure the optimal bids agree with the optimal rank (6) (10) (17) (19)
 def sumOnRankMat(alloc, rank_mat, var):
     return cp.sum([rank_mat[j][i] * var[j, i]
@@ -82,45 +69,4 @@ def sumOnRankMat(alloc, rank_mat, var):
                 for i, student in enumerate(alloc.remaining_agents())
                 if (student, course) not in alloc.remaining_conflicts])
 
-# if flag_if_use_alloc_in_func == 0 then using alloc.effective_value for TTC-O
-# if flag_if_use_alloc_in_func == 1 then using effective_value_with_price for SP-O
-def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func):
-    rank_mat = createRankMat(alloc, logger)
 
-    x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
-
-    sum_rank = sumOnRankMat(alloc, rank_mat, x)
-
-    objective_Zt1 = cp.Maximize(sum_rank)
-
-    constraints_Zt1 = notExceedtheCapacity(x, alloc) + numberOfCourses(x, alloc, 1)
-
-    problem = cp.Problem(objective_Zt1, constraints=constraints_Zt1)
-    result_Zt1 = problem.solve()  # This is the optimal value of program (6)(7)(8)(9).
-    logger.info("result_Zt1 - the optimum ranking: %d", result_Zt1)
-
-    # Write and solve new program for Zt2 (10)(11)(7)(8)
-    x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())),
-                       boolean=True)  # Is there a func which zero all the matrix?
-
-    objective_Zt2 = cp.Maximize(cp.sum(
-        [agent_item_value_func(student, course) * x[j, i] if flag_if_use_alloc_in_func == 0 else agent_item_value_func(alloc, student, course) * x[j, i]
-         for j, course in enumerate(alloc.remaining_items())
-         for i, student in enumerate(alloc.remaining_agents())
-         if (student, course) not in alloc.remaining_conflicts]))
-
-    constraints_Zt2 = notExceedtheCapacity(x, alloc) + numberOfCourses(x, alloc, 1)
-
-    constraints_Zt2.append(sum_rank == result_Zt1)
-
-    try:
-        problem = cp.Problem(objective_Zt2, constraints=constraints_Zt2)
-        result_Zt2 = problem.solve()
-        logger.info("result_Zt2 - the optimum bids: %d", result_Zt2)
-
-    except Exception as e:
-        logger.info("Solver failed: %s", str(e))
-        logger.error("An error occurred: %s", str(e))
-        raise
-
-    return result_Zt1, result_Zt2, x, problem, rank_mat

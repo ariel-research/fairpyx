@@ -24,6 +24,15 @@ def test_optimal_change_result():
 
     assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': ['c2'], 's2': ['c1']}, "ERROR"
 
+def test_with_two_students_one_course():
+    s1 = {"c1": 10}
+    s2 = {"c1": 11}
+    instance = fairpyx.Instance(
+        agent_capacities={"s1": 1, "s2": 1},
+        item_capacities={"c1": 1},
+        valuations={"s1": s1, "s2": s2}
+    )
+    assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': [], 's2': ['c1']}, "ERROR"
 
 def test_optimal_improve_cardinal_and_ordinal_results():
     s1 = {"c1": 50, "c2": 30, "c3": 20}

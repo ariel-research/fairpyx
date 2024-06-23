@@ -14,7 +14,48 @@ import logging
 import cvxpy as cp
 logger = logging.getLogger(__name__)
 
+# if flag_if_use_alloc_in_func == 0 then using alloc.effective_value for TTC-O
+# if flag_if_use_alloc_in_func == 1 then using effective_value_with_price for SP-O
+def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func):
+    rank_mat = optimal.createRankMat(alloc, logger)
 
+    x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
+
+    sum_rank = optimal.sumOnRankMat(alloc, rank_mat, x)
+
+    objective_Zt1 = cp.Maximize(sum_rank)
+
+    constraints_Zt1 = optimal.notExceedtheCapacity(x, alloc) + optimal.numberOfCourses(x, alloc, 1)
+
+    problem = cp.Problem(objective_Zt1, constraints=constraints_Zt1)
+    result_Zt1 = problem.solve()  # This is the optimal value of program (6)(7)(8)(9).
+    logger.info("result_Zt1 - the optimum ranking: %d", result_Zt1)
+
+    # Write and solve new program for Zt2 (10)(11)(7)(8)
+    x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())),
+                       boolean=True)  # Is there a func which zero all the matrix?
+
+    objective_Zt2 = cp.Maximize(cp.sum(
+        [agent_item_value_func(student, course) * x[j, i] if flag_if_use_alloc_in_func == 0 else agent_item_value_func(alloc, student, course) * x[j, i]
+         for j, course in enumerate(alloc.remaining_items())
+         for i, student in enumerate(alloc.remaining_agents())
+         if (student, course) not in alloc.remaining_conflicts]))
+
+    constraints_Zt2 = optimal.notExceedtheCapacity(x, alloc) + optimal.numberOfCourses(x, alloc, 1)
+
+    constraints_Zt2.append(sum_rank == result_Zt1)
+
+    try:
+        problem = cp.Problem(objective_Zt2, constraints=constraints_Zt2)
+        result_Zt2 = problem.solve()
+        logger.info("result_Zt2 - the optimum bids: %d", result_Zt2)
+
+    except Exception as e:
+        logger.info("Solver failed: %s", str(e))
+        logger.error("An error occurred: %s", str(e))
+        raise
+
+    return result_Zt1, result_Zt2, x, problem, rank_mat
 
 def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger()):
     """
@@ -47,7 +88,7 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
             logger.info("There are no more agents (%d) or items(%d) ", len(alloc.remaining_agent_capacities),len(alloc.remaining_item_capacities))
             break
 
-        result_Zt1, result_Zt2, var, problem , rank_mat= optimal.roundTTC_O(alloc, logger, alloc.effective_value, 0)
+        result_Zt1, result_Zt2, var, problem , rank_mat = roundTTC_O(alloc, logger, alloc.effective_value, 0)
 
         # Check if the optimization problem was successfully solved
         if result_Zt2 is not None:
