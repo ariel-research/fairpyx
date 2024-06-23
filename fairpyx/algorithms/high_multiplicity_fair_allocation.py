@@ -11,7 +11,7 @@ Since : 2024-05
 """
 import cvxpy as cp
 import numpy as np
-from fairpyx import Instance, AllocationBuilder
+from fairpyx import Instance, AllocationBuilder, divide
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,6 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
       - alloc (AllocationBuilder): The allocation of items to agents.
 
 
-      >>> from fairpyx.adaptors import divide
       >>> agent_capacities = {"Ami": 2, "Tami": 2, "Rami": 2}
       >>> item_capacities = {"Fork": 2, "Knife": 2, "Pen": 2}
       >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1} }
@@ -67,20 +66,19 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
         iteration_count += 1  # Increment counter on each iteration
         logging.info(f"Attempting envy-free allocation, iteration {iteration_count}")
 
-        alloc_Y = find_pareto_dominates_allocation(alloc, alloc_X)
+        alloc_Y = find_pareto_dominating_allocation(alloc, alloc_X)
         if alloc_Y is None:
-            logger.info("No Pareto dominating allocation found, finalizing allocation.")
-            logger.info(f"The allocatin matrix: {alloc_X}")
+            logger.info("No Pareto dominating allocation found, finalizing allocation:\n%s",alloc_X)
 
             i = 0
             for agent in alloc_X:
                 for item in range(0, len(items)):
                     if agent[item] > 0:
                         for item_num in range(0, agent[item]):
-                            logger.info(f"remaining items {alloc.remaining_item_capacities}")
-                            logger.info(f"{agents[i]} get: {items[item]}")
+                            # logger.info(f"remaining items {alloc.remaining_item_capacities}")
+                            # logger.info(f"{agents[i]} get: {items[item]}")
 
-                            alloc.give(agents[i], items[item])
+                            alloc.give(agents[i], items[item], logger)
                     agent[item] -= 1
 
                 i += 1
@@ -88,7 +86,7 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
             logger.info("Allocation complete.")
             return
         else:
-            logger.info(f"Found Pareto dominating allocation: {alloc_Y}, updating constraints.")
+            logger.info(f"Found Pareto dominating allocation:\n%s.\nUpdating constraints.", alloc_Y)
             allocation_variables.value = None
             new_cont = create_more_constraints_ILP(alloc, alloc_X, alloc_Y, allocation_variables)
             for cont in new_cont:
@@ -176,16 +174,15 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation, constraints_
     # Solve the problem
     try:
         prob.solve()
-        logger.info("Optimization problem solved successfully.")
         allocations = np.round(allocation.value).astype(int)
-        logger.debug(f"Allocation results: {allocations}")
+        logger.debug(f"Allocation results:\n{allocations}")
         return allocations
     except Exception as e:
         logger.error(f"An error occurred during optimization: {e}")
         return None
 
 
-def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
+def find_pareto_dominating_allocation(alloc: AllocationBuilder, alloc_matrix):
     """
     Find a Pareto-dominates allocation of items to agents.
 
@@ -200,7 +197,7 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
     >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
     >>> alloc = AllocationBuilder(instance)
     >>> alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
-    >>> pareto_optimal_allocation = find_pareto_dominates_allocation(alloc, alloc_X)
+    >>> pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
     >>> print(pareto_optimal_allocation)
     [[2 0 0]
      [0 1 2]
@@ -212,7 +209,7 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
     >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
     >>> alloc = AllocationBuilder(instance)
     >>> alloc_X = np.array([[3, 0, 0], [0, 0, 3], [0, 3, 0]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
-    >>> pareto_optimal_allocation = find_pareto_dominates_allocation(alloc, alloc_X)
+    >>> pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
     >>> print(pareto_optimal_allocation)
     [[3 0 2]
      [0 3 0]
@@ -224,7 +221,7 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
     >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
     >>> alloc = AllocationBuilder(instance)
     >>> alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1], [1, 1, 1]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
-    >>> pareto_optimal_allocation = find_pareto_dominates_allocation(alloc, alloc_X)
+    >>> pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
     >>> print(pareto_optimal_allocation)
     [[1 0 0]
      [1 3 0]
@@ -232,19 +229,18 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
      [1 0 2]]
     """
 
-    logger.debug("Searching for Pareto dominates allocation.")
+    logger.debug("Searching for a Pareto-dominating allocation for:\n%s.",alloc_matrix)
 
     agents_names, items_names, item_capacities, \
         agent_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
 
-    logger.debug(f"Item names and capacities: {alloc.remaining_item_capacities}")
 
     num_agents = len(alloc.remaining_agents())
     num_items = len(alloc.remaining_items())
 
-    logger.debug(f"Agents names and capacities: {alloc.remaining_agent_capacities}")
-    logger.debug(f"Agent valuations: {agent_valuations}")
-    logger.debug(f"Initial allocation matrix:\n{alloc_matrix}")
+    # logger.debug(f"Item names and capacities: {alloc.remaining_item_capacities}")
+    # logger.debug(f"Agents names and capacities: {alloc.remaining_agent_capacities}")
+    # logger.debug(f"Agent valuations: {agent_valuations}")
 
     # Convert agent_valuations to numpy array
     agent_valuations = np.array(agent_valuations)
@@ -264,14 +260,14 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
                                range(num_agents)]
     new_value_per_agent = [cp.sum(cp.multiply(agent_valuations[i, :], allocation_variables[i, :])) for i in
                            range(num_agents)]
-    pareto_dominates_constraints = [new_value_per_agent[i] >= current_value_per_agent[i] for i in range(num_agents)]
+    pareto_dominating_constraints = [new_value_per_agent[i] >= current_value_per_agent[i] for i in range(num_agents)]
 
     # Ensure sum_val_y > sum_val_x
-    pareto_dominates_constraints.append(cp.sum(new_value_per_agent) >= 1 + cp.sum(current_value_per_agent))
+    pareto_dominating_constraints.append(cp.sum(new_value_per_agent) >= 1 + cp.sum(current_value_per_agent))
 
     # Create the optimization problem
     problem = cp.Problem(cp.Maximize(0),
-                         pareto_dominates_constraints + item_capacity_constraints + agent_capacity_constraints)
+                         pareto_dominating_constraints + item_capacity_constraints + agent_capacity_constraints)
 
     # Solve the problem
     try:
@@ -279,11 +275,10 @@ def find_pareto_dominates_allocation(alloc: AllocationBuilder, alloc_matrix):
         if allocation_variables.value is None:
             return None
         allocations = np.round(allocation_variables.value).astype(int)
-        logger.info("Pareto dominates allocation successfully found.")
-        logger.debug(f"Pareto dominates allocation results:\n{allocations}")
+        logger.debug(f"Pareto dominating allocation found:\n{allocations}")
         return allocations
     except Exception as e:
-        logger.error("Failed to find Pareto dominates allocation: ", exc_info=True)
+        logger.error("Failed to find Pareto dominating allocation: ", exc_info=True)
         return None
 
 
@@ -362,6 +357,28 @@ def get_agents_items_and_capacities(alloc: AllocationBuilder, bool=False):
 
 #### MAIN ####
 
+def instance_4_3():
+    agent_capacities = {"Ami": 6, "Tami": 6, "Rami": 6, "Yumi": 6}
+    item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
+    valuations = {
+        "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, 
+        "Rami": {"Fork": 0, "Knife": 1, "Pen": 1},
+        "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}, 
+        "Yumi": {"Fork": 4, "Knife": 5, "Pen": 6}}
+    return Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+
+def instance_4_6():
+    agent_capacities = {'s1': 6, 's2': 6, 's3': 6, 's4': 6}
+    item_capacities = {'c1': 5, 'c2': 6, 'c3': 2, 'c4': 3, 'c5': 5, 'c6': 2}
+    valuations = {
+         's1': {'c1': 152, 'c2': 86, 'c3': 262, 'c4': 68, 'c5': 263, 'c6': 169}, 
+         's2': {'c1': 124, 'c2': 70, 'c3': 98, 'c4': 244, 'c5': 329, 'c6': 135}, 
+         's3': {'c1': 170, 'c2': 235, 'c3': 295, 'c4': 91, 'c5': 91, 'c6': 118}, 
+         's4': {'c1': 158, 'c2': 56, 'c3': 134, 'c4': 255, 'c5': 192, 'c6': 205}}
+    return Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+
+
+
 if __name__ == "__main__":
     import doctest
 
@@ -371,21 +388,27 @@ if __name__ == "__main__":
 
     logger.setLevel(logging.DEBUG)
 
-    agent_capacities = {"Ami": 6, "Tami": 6, "Rami": 6, "Yumi": 6}
-    item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
-    valuations = {"Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1},
-                  "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Yumi": {"Fork": 4, "Knife": 5, "Pen": 6}}
-    instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
-    alloc = AllocationBuilder(instance)
-    alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1], [1, 1, 1]])
-    # pareto_optimal_allocation = find_pareto_dominates_allocation(alloc, alloc_X)
+    # instance = Instance.random_uniform(
+    #     num_of_agents=4, num_of_items=6, 
+    #     agent_capacity_bounds=(6,6), item_capacity_bounds=(2,6),
+    #     item_base_value_bounds=(50,150),
+    #     item_subjective_ratio_bounds=(0.5,1.5),
+    #     normalized_sum_of_values=1000,
+    #     random_seed=1)
+    # print(instance)
+    divide(high_multiplicity_fair_allocation, instance_4_6())
+
+
+    # alloc = AllocationBuilder(instance)
+    # alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1], [1, 1, 1]])
+    # pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
     # print(pareto_optimal_allocation)
 
-    agent_capacities = {"Ami": 6, "Tami": 6}
-    item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
-    valuations = {"Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}}
-    instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
-    alloc = AllocationBuilder(instance)
-    alloc_X = np.array([[3, 2, 1], [0, 1, 2]])
-    pareto_optimal_allocation = find_pareto_dominates_allocation(alloc, alloc_X)
-    print(pareto_optimal_allocation)
+    # agent_capacities = {"Ami": 6, "Tami": 6}
+    # item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
+    # valuations = {"Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}}
+    # instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+    # alloc = AllocationBuilder(instance)
+    # alloc_X = np.array([[3, 2, 1], [0, 1, 2]])
+    # pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
+    # print(pareto_optimal_allocation)
