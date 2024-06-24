@@ -23,9 +23,9 @@ def effective_value_with_price(alloc, student, course):
 def conditions_14(alloc, v,p):
     constraints = []
     for j, course in enumerate(alloc.remaining_items()):
-        for i, student in enumerate(alloc.remaining_agents()):
-            constraints.append(p[j] >= 0)
-            constraints.append(v[i] >= 0)
+        constraints.append(p[j] >= 0)
+    for i, student in enumerate(alloc.remaining_agents()):
+        constraints.append(v[i] >= 0)
     return constraints
 
 
@@ -114,7 +114,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
         problem = cp.Problem(objective_Wt1, constraints=constraints_Wt1)
         result_Wt1 = problem.solve()  # This is the optimal value of program (12)(13)(14).
 
-        logger.info("result_Wt1 - the optimum price: %d", result_Wt1)
+        logger.info("result_Wt1 - the optimum Wt1: %s", result_Wt1)
 
         # linear problem number 15:
         objective_Wt2 = cp.Minimize(cp.sum([alloc.remaining_item_capacities[course] * p[j]
@@ -128,7 +128,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
         problem = cp.Problem(objective_Wt2, constraints=constraints_Wt2)
         result_Wt2 = problem.solve()  # This is the optimal price
 
-        logger.info("result_Wt2 - the optimum price: %d", result_Wt2)
+        logger.info("result_Wt2 - the optimum Wt2: %s", result_Wt2)
 
         # Check if the optimization problem was successfully solved
         if result_Wt2 is not None:
@@ -139,8 +139,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
             logger.info("p values: " + str(p_values))
             logger.info("v values: " + str(v_value))
             logger.info("D values: " + str(D_value))
-            logger.info("W1 values: %d", result_Wt1)
-            logger.info("W2 values: %d", result_Wt2)
+
             # Iterate over students and courses to pay the price of the course each student got
             for i, student in enumerate(alloc.remaining_agents()):
                 for j, course in enumerate(alloc.remaining_items()):
