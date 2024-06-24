@@ -68,16 +68,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
     "{ami:['w', 'x', 'y'], tami:['w', 'y', 'z']}"
 
-    Example run 3
-    >>> random.seed(1000)
-    >>> instance = Instance(
-    ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
-    ... agent_capacities=2,
-    ... item_capacities={"x":1, "y":2, "z":2})
-    >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
-    >>> beta = 5
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}"
+
 
     >>> instance = Instance(
     ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
@@ -96,6 +87,17 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     >>> beta = 6
     >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
     "{ami:['x', 'y'], tami:['z']}"
+
+    Example run 3
+    >>> random.seed(1000)
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":1, "y":2, "z":2})
+    >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
+    >>> beta = 5
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}"
     """
     logger.info("START ALGORITHM")
     logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅")
@@ -468,7 +470,7 @@ def debug_lambda(func, description):
     return wrapper
 
 
-def find_gradient_neighbors(prices: dict, delta: set, excess_demand_vector: dict):
+def find_gradient_neighbors(prices: dict, delta: set, excess_demand_vector: dict, history: list[list]):
     """
     Add the gradient neighbors to the neighbors list
     N_gradient(𝒑, Δ) = {𝒑 + 𝛿 · 𝒛(𝒖,𝒄, 𝒑, 𝒃) : 𝛿 ∈ Δ}
@@ -483,21 +485,31 @@ def find_gradient_neighbors(prices: dict, delta: set, excess_demand_vector: dict
     >>> prices = {"x": 1, "y": 2, "z": 1}
     >>> delta = {1}
     >>> excess_demand_vector = {"x":0,"y":2,"z":-2}
-    >>> find_gradient_neighbors(prices,delta,excess_demand_vector)
+    >>> history = []
+    >>> find_gradient_neighbors(prices,delta,excess_demand_vector, history)
     [{'x': 1, 'y': 4, 'z': 0}]
 
-
-     Example run 1 iteration 2
+    Example run 1 iteration 2
     >>> prices = {"x": 1, "y": 4, "z": 0}
     >>> delta = {1}
     >>> excess_demand_vector = {"x":1,"y":0,"z":0}
-    >>> find_gradient_neighbors(prices,delta,excess_demand_vector)
+    >>> history = []
+    >>> find_gradient_neighbors(prices,delta,excess_demand_vector, history)
     [{'x': 2, 'y': 4, 'z': 0}]
+
+     Example run 1 iteration 2
+    >>> prices = {'x': 1, 'y': 4, 'z': 0}
+    >>> delta = {1}
+    >>> excess_demand_vector = {'x':1,'y':0,'z':0}
+    >>> history = [[lambda p: p['x']+p['y']<=5, lambda p: p['x']+p['y']<=4, lambda p: p['y']+p['z']<=3]]
+    >>> find_gradient_neighbors(prices,delta,excess_demand_vector, history)
+    []
 
     >>> prices = {"x": 1, "y": 4, "z": 0}
     >>> delta = {0.5, 1}
     >>> excess_demand_vector = {"x":1,"y":0,"z":2}
-    >>> find_gradient_neighbors(prices,delta,excess_demand_vector)
+    >>> history = []
+    >>> find_gradient_neighbors(prices,delta,excess_demand_vector, history)
     [{'x': 1.5, 'y': 4.0, 'z': 1.0}, {'x': 2, 'y': 4, 'z': 2}]
     """
     new_neighbors = []
@@ -506,7 +518,8 @@ def find_gradient_neighbors(prices: dict, delta: set, excess_demand_vector: dict
         for course, price in prices.items():
             updated_prices[course] = max(0, price + d * excess_demand_vector.get(course, 0))
             # if updated_prices not in history:
-        new_neighbors.append(updated_prices.copy())  # Using copy() to append a new dictionary to the list
+        if not any(all(f(updated_prices) for f in sublist) for sublist in history):
+            new_neighbors.append(updated_prices.copy())  # Using copy() to append a new dictionary to the list
 
     return new_neighbors
 
@@ -557,7 +570,7 @@ def differ_in_one_value(original_allocation: dict, new_allocation: dict, course:
     return diff_count == 1 and course in original_allocation[diff_course] and course not in new_allocation[diff_course]
 
 
-def find_individual_price_adjustment_neighbors(instance: Instance, history: list, prices: dict,
+def find_individual_price_adjustment_neighbors(instance: Instance, history: list[list], prices: dict,
                                                excess_demand_vector: dict, initial_budgets: dict, allocation: dict):
     """
     Add the individual price adjustment neighbors N(p) to the neighbors list
@@ -581,7 +594,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
     >>> initial_budgets = {"ami":5,"tami":4,"tzumi":3}
     >>> allocation = {"ami":('x','y'),"tami":('x','y'),"tzumi":('y','z')}
     >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation)
-    [{'x': 1, 'y': 3, 'z': 1}]
+    [{'x': 1, 'y': 2.7071067811865475, 'z': 1}]
 
 
      Example run 1 iteration 2
@@ -596,7 +609,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
     >>> initial_budgets = {"ami":5,"tami":4,"tzumi":3}
     >>> allocation = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
     >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation)
-    [{'x': 2, 'y': 4, 'z': 0}, {'x': 3, 'y': 4, 'z': 0}]
+    [{'x': 1.7071067811865475, 'y': 4, 'z': 0}, {'x': 2.414213562373095, 'y': 4, 'z': 0}]
 
 
     Example run 3 iteration 1
@@ -627,7 +640,6 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
         if excess_demand > 0:
             for _ in range(10):
                 updated_prices[course] += np.sqrt(0.5)
-                # logger.debug(f" history : {history}")
                 if any(all(f(updated_prices) for f in sublist) for sublist in history):
                     continue
                 # get the new demand of the course
@@ -638,7 +650,6 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
 
         elif excess_demand < 0:
             updated_prices[course] = 0
-            # if updated_prices not in history and updated_prices not in neighbors:
             if not any(all(f(updated_prices) for f in sublist) for sublist in history):
                 new_neighbors.append(updated_prices)
 
@@ -656,7 +667,7 @@ def find_all_neighbors(instance: Instance, history: list, prices: dict, delta: s
     :param delta: The step size
     """
 
-    gradient_neighbors = find_gradient_neighbors(prices, delta, excess_demand_vector)
+    gradient_neighbors = find_gradient_neighbors(prices, delta, excess_demand_vector, history)
     individual_price_adjustment_neighbors = find_individual_price_adjustment_neighbors(instance, history,
                                                                                        prices,
                                                                                        excess_demand_vector,
