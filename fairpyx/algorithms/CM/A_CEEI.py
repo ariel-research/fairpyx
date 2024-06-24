@@ -443,9 +443,8 @@ def before_find_preferred_schedule(alloc: AllocationBuilder):
     return find_preferred_schedule(alloc.instance._valuations , alloc.instance._agent_capacities , item_conflicts , agent_conflicts)
     
 
-if __name__ == "_main_":
-    import doctest
-    doctest.testmod()
+import doctest
+doctest.testmod()
 
     # instance = Instance(
     #   agent_conflicts = {"Alice": [], "Bob": [], "Tom": []},
