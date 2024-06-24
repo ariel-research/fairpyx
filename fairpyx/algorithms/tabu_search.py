@@ -136,8 +136,6 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
         logger.info("   update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
         possible_prices = find_min_error_prices(alloc.instance, neighbors, initial_budgets)
         prices = random.choice(possible_prices)
-        logger.warning(f"possible_prices: {possible_prices}")
-        logger.warning(f"prices: {prices}")
 
     # print the final price (p* = prices) for each course
     logger.info(f"\nfinal prices p* = {prices}")
@@ -435,9 +433,6 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     for student in instance.agents:
         func = lambda p, agent=student, keys=allocation[student]: (
                 sum(p[key] for key in keys) <= initial_budgets[agent])
-        # description = lambda p, keys=allocation[student], : \
-        #     f"sum([{', '.join([f'{p[key]}' for key in keys])}]) <= {initial_budgets[agent]}"
-        # equivalent_prices.append(debug_lambda(func, description))
         equivalent_prices.append(func)
 
     # Constraints that will ensure that this is the allocation that will be accepted
@@ -447,7 +442,6 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
         capacity = instance.agent_capacity(student)
         for r in range(1, capacity + 1):
             combinations_courses_list.extend(combinations(instance.items, r))
-        # print(f"combinations_courses_list = {combinations_courses_list}")
 
         original_utility = instance.agent_bundle_value(student, allocation[student])
         current_alloc = False
@@ -470,9 +464,6 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
 
                 func = lambda p, agent=student, keys=allocation[student]: (
                         sum(p[key] for key in keys) > initial_budgets[agent])
-                description = lambda p, : \
-                    f"sum([{', '.join([f'{p[key]}' for key in combination_copy])}]) > {initial_budgets[student]}"
-                # equivalent_prices.append(debug_lambda(func, description))
                 equivalent_prices.append(func)
 
     return list(equivalent_prices)
@@ -718,20 +709,20 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     >>> find_min_error_prices(instance, neighbors, initial_budgets)
     [{'x': 2, 'y': 4, 'z': 0}, {'x': 3, 'y': 4, 'z': 0}]
     """
-    errors = []
+    errors = []  # tuple of (allocation, excess_demand, norm)
     min_error_prices = []
+    logger.debug("\nChecking the neighbors:")
     for neighbor in neighbors:
-        # allocation = student_best_bundle(neighbor.copy(), instance, initial_budgets)
+        logger.debug(f"neighbor = {neighbor}")
         allocations = student_best_bundle(neighbor.copy(), instance, initial_budgets)
         allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(instance, neighbor, allocations)
-        # norma2 = np.linalg.norm(np.array(list(error.values())))
-        logger.debug(f"neighbor = {neighbor}, norma = {norma}")  # todo: delete logger
-        errors.append(norma)
+        logger.debug(f"norma = {norma}")
+        errors.append((allocation, excess_demand_vector, norma))
+    logger.debug("")
 
     min_error_index = np.where(errors == min(errors))[0]
     for error_index in min_error_index:
         min_error_prices.append(neighbors[error_index])
-    # logger.debug(f"\nbest neighbor: {neighbors[min_error_index]}\n")
     return min_error_prices
 
 
