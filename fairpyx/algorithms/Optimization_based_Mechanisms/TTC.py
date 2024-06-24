@@ -35,7 +35,7 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
     logger.info("Max iterations: %d", max_iterations)
     for iteration in range(max_iterations):   # External loop of algorithm: in each iteration, each student gets 1 seat (if possible).
-        logger.info("Iteration number: %d", iteration+1)
+        logger.info("\n Iteration number: %d", iteration+1)
         if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more courses with seats
             logger.info("There are no more agents (%d) or items(%d) ",len(alloc.remaining_agent_capacities), len(alloc.remaining_item_capacities))
             break
@@ -51,6 +51,7 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
                     map_agent_to_best_item[current_agent] = max(potential_items_for_agent,
                                                           key=lambda item: alloc.effective_value(current_agent, item))  # for each agent save the course with the max bids from the potential courses only
 
+            logger.debug("map_agent_to_best_item = %s", map_agent_to_best_item)
             for current_agent in agents_with_no_potential_items:  # remove agents that don't need courses
                 logger.info("Agent %s cannot pick any more items: remaining=%s, bundle=%s", current_agent,
                             alloc.remaining_item_capacities, alloc.bundles[current_agent])
@@ -76,20 +77,21 @@ if __name__ == "__main__":
     # sys.exit(1)
 
     logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
     from fairpyx.adaptors import divide
-    s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
-    s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}
-    s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}
-    s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}
-    s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}
-    instance = Instance(
-        agent_capacities={"s1": 2, "s2": 2, "s3": 2, "s4": 2, "s5": 2},
-        item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2},
-        valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
-    )
-    divide(TTC_function, instance=instance)
+
+    # s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
+    # s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}
+    # s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}
+    # s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}
+    # s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}
+    # instance = Instance(
+    #     agent_capacities={"s1": 2, "s2": 2, "s3": 2, "s4": 2, "s5": 2},
+    #     item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2},
+    #     valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
+    # )
+    # divide(TTC_function, instance=instance)
 
     np.random.seed(1)
     instance = Instance.random_uniform(
@@ -99,9 +101,6 @@ if __name__ == "__main__":
         item_base_value_bounds=[1, 1000],
         item_subjective_ratio_bounds=[0.5, 1.5]
     )
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
 
     allocation = divide(TTC_function, instance=instance)
-    print(allocation)
 

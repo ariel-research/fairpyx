@@ -83,7 +83,7 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
     logger.info("Max iterations: %d", max_iterations)
     for iteration in range(max_iterations):
-        logger.info("Iteration number: %d", iteration+1)
+        logger.info("\nIteration number: %d", iteration+1)
         if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
             logger.info("There are no more agents (%d) or items(%d) ", len(alloc.remaining_agent_capacities),len(alloc.remaining_item_capacities))
             break
@@ -92,7 +92,7 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
 
         # Check if the optimization problem was successfully solved
         if result_Zt2 is not None:
-            optimal.allocations(alloc, var, logger)
+            optimal.give_items_according_to_allocation_matrix(alloc, var, logger)
 
             optimal_value = problem.value
             logger.info("Optimal Objective Value: %s", optimal_value)
@@ -102,7 +102,7 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
 
 
 if __name__ == "__main__":
-    import doctest, numpy as np
+    import doctest, sys, numpy as np
     print("\n", doctest.testmod(), "\n")
     # sys.exit(1)
 
@@ -121,10 +121,3 @@ if __name__ == "__main__":
     )
     allocation = divide(TTC_O_function, instance=instance)
     fairpyx.validate_allocation(instance, allocation, title=f"Seed {5}, TTC_O_function")
-    divide(TTC_O_function, instance=instance)
-
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
-
-    allocation = fairpyx.divide(TTC_O_function, instance=instance)
-    print(allocation)

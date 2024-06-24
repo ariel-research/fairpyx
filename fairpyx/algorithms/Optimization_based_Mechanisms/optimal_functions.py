@@ -25,10 +25,10 @@ def numberOfCourses(var, alloc, less_then):
 
 
 # allocation course to student according the result of the linear programing
-def allocations(alloc, var, logger):
+def give_items_according_to_allocation_matrix(alloc, allocation_matrix, logger):
     # Extract the optimized values of x
-    x_values = var.value
-    logger.info("x_values - the optimum allocation: %s", x_values)
+    x_values = allocation_matrix.value
+    logger.info("x_values - the optimum allocation:\n%s", x_values)
 
     # Initialize a dictionary where each student will have an empty list
     assign_map_courses_to_student = {student: [] for student in alloc.remaining_agents()}
@@ -59,7 +59,7 @@ def createRankMat(alloc, logger):
             if course in sorted_courses:
                 rank_mat[j][i] = sorted_courses.index(course) + 1
 
-    logger.info("Rank matrix: %s", rank_mat)
+    logger.debug("Rank matrix:\n%s", rank_mat)
     return rank_mat
 
 # sum the optimal rank to be sure the optimal bids agree with the optimal rank (6) (10) (17) (19)

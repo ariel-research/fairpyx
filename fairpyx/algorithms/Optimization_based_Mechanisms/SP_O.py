@@ -74,7 +74,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
     map_student_to_his_sum_bids = {s: 0 for s in alloc.remaining_agents()}
 
     for iteration in range(max_iterations):
-        logger.info("Iteration number: %d", iteration+1)
+        logger.info("\nIteration number: %d", iteration+1)
         if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
             logger.info("There are no more agents (%d) or items(%d) ", len(alloc.remaining_agent_capacities),len(alloc.remaining_item_capacities))
             break
@@ -148,7 +148,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
                         map_student_to_his_sum_bids[student] -= p_values[j]
                         logger.info("student %s payed: %f", student, p_values[j])
                         logger.info("student %s have in dict: %f", student, map_student_to_his_sum_bids[student])
-            optimal.allocations(alloc, x, logger)
+            optimal.give_items_according_to_allocation_matrix(alloc, x, logger)
 
             optimal_value = problem.value
             logger.info("Optimal Objective Value: %d", optimal_value)
@@ -160,6 +160,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
 if __name__ == "__main__":
     import doctest, sys, numpy as np
     print("\n", doctest.testmod(), "\n")
+    from fairpyx.adaptors import divide
 
     s1 = {"c1": 10}
     s2 = {"c1": 11}
@@ -170,9 +171,10 @@ if __name__ == "__main__":
     )
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
+    allocation = divide(SP_O_function, instance=instance)
+    print(allocation,"\n\n\n")
 
 
-    from fairpyx.adaptors import divide
     s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
     s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}
     s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}

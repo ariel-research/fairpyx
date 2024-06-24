@@ -42,7 +42,7 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
     logger.info("Max iterations: %d", max_iterations)
     for iteration in range(max_iterations):  # External loop of algorithm: in each iteration, each student gets 1 seat (if possible).
-        logger.info("Iteration number: %d", iteration+1)
+        logger.info("\nIteration number: %d", iteration+1)
         if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
             logger.info("There are no more agents (%d) or items(%d) ",len(alloc.remaining_agent_capacities), len(alloc.remaining_item_capacities))
             break
@@ -136,4 +136,15 @@ if __name__ == "__main__":
         item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2},
         valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
     )
-    divide(SP_function, instance=instance)
+    # divide(SP_function, instance=instance)
+
+    np.random.seed(1)
+    instance = Instance.random_uniform(
+        num_of_agents=70, num_of_items=10, normalized_sum_of_values=100,
+        agent_capacity_bounds=[2, 6],
+        item_capacity_bounds=[10, 30],
+        item_base_value_bounds=[1, 1000],
+        item_subjective_ratio_bounds=[0.5, 1.5]
+    )
+
+    allocation = divide(SP_function, instance=instance)
