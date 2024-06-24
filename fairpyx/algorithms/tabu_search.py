@@ -115,6 +115,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(alloc.instance, prices,
                                                                                max_utilities_allocations)
     while norma:
+        logger.debug(f"min excess demand: {excess_demand_vector}")
         logger.debug(f"prices: {prices}")
         logger.debug(f"best bundle: {allocation}")
         logger.debug(f"----------NORMA {norma}-----------------")
@@ -269,7 +270,7 @@ def clipped_excess_demand(instance: Instance, prices: dict, allocation: dict):
     """
     z = excess_demand(instance, allocation)
     clipped_z = {course: max(0, z[course]) if prices[course] == 0 else z[course] for course in z}
-    logger.debug(f"excess demand: {clipped_z}")
+    # logger.debug(f"excess demand: {clipped_z}")
     return clipped_z
 
 
@@ -722,9 +723,10 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     min_error_prices = []
     logger.debug("\nChecking the neighbors:")
     for neighbor in neighbors:
-        logger.debug(f"neighbor = {neighbor}")
+        logger.debug(f"neighbor: {neighbor}")
         allocations = student_best_bundles(neighbor.copy(), instance, initial_budgets)
         allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(instance, neighbor, allocations)
+        logger.debug(f"excess demand: {excess_demand_vector}")
         logger.debug(f"norma = {norma}")
         errors.append((allocation, excess_demand_vector, norma, neighbor))
     logger.debug("")
