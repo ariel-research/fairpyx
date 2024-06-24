@@ -443,7 +443,7 @@ def before_find_preferred_schedule(alloc: AllocationBuilder):
     return find_preferred_schedule(alloc.instance._valuations , alloc.instance._agent_capacities , item_conflicts , agent_conflicts)
     
 
-if __name__ == "__main__":
+if __name__ == "_main_":
     import doctest
     doctest.testmod()
 
@@ -459,7 +459,3 @@ if __name__ == "__main__":
     # budget = {"Alice": 1.0, "Bob": 1.1, "Tom": 1.3}    
     # allocation = AllocationBuilder(instance)
     # print(A_CEEI(allocation, budget, 60, 45))
-
-     
-  
-  
