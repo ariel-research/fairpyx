@@ -55,7 +55,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     ... item_capacities={"x":2, "y":1, "z":3})
     >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
     >>> beta = 4
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={0.8}))
     "{ami:['y', 'z'], tami:['x', 'z'], tzumi:['x', 'z']}"
 
     Example run 2
@@ -68,7 +68,6 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
     "{ami:['w', 'x', 'y'], tami:['w', 'y', 'z']}"
 
-    stack
     Example run 3
     >>> random.seed(1000)
     >>> instance = Instance(
@@ -97,7 +96,6 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
     "{ami:['x', 'y'], tami:['y', 'z']}"
 
-    stack
     >>> instance = Instance(
     ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
     ... agent_capacities=2,
@@ -648,7 +646,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
         updated_prices = prices.copy()
         if excess_demand > 0:
             for _ in range(10):
-                updated_prices[course] += 1
+                updated_prices[course] += np.sqrt(0.5)
                 # logger.debug(f" history : {history}")
                 if any(all(f(updated_prices) for f in sublist) for sublist in history):
                     continue
@@ -757,15 +755,14 @@ if __name__ == "__main__":
     #                                                  allocation))
 
     seed = random.randint(1, 10000)
-    seed = 182
-    random.seed(seed)
+    # seed = 5054
+    # random.seed(seed)
     logger.debug(f"seed is {seed}")
 
     # # Write the seed to a new file
     # with open('seed.txt', 'a') as file:
     #     file.write(f"seed is {seed}\n")
 
-    # # Stack!!
     # # Example run 3
     # instance = Instance(
     #     valuations={"ami": {"x": 3, "y": 3, "z": 3, "w":3}, "tami": {"x": 3, "y": 3, "z": 3, "w":3},
@@ -777,9 +774,8 @@ if __name__ == "__main__":
     # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={1})
     # # "{ami': ('x', 'y'), 'tami': ('y', 'z'), 'tzumi': ('z', 'w')}"
 
-    # stack
     instance = Instance(valuations={"ami": {"x": 4, "y": 3, "z": 2}, "tami": {"x": 5, "y": 1, "z": 2}},
-                        agent_capacities=2, item_capacities={"x": 1, "y": 1, "z": 1})
+                        agent_capacities=1, item_capacities={"x": 1, "y": 1, "z": 1})
     initial_budgets = {"ami": 5, "tami": 3}
     beta = 6
     divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={1})
