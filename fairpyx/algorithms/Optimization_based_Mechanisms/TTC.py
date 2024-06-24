@@ -71,7 +71,7 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
                     map_agent_to_best_item.pop(student, None)   # Delete student if exists in the dict
 
 if __name__ == "__main__":
-    import doctest, sys
+    import doctest, sys, numpy as np
     print("\n", doctest.testmod(), "\n")
     # sys.exit(1)
 
@@ -90,4 +90,18 @@ if __name__ == "__main__":
         valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
     )
     divide(TTC_function, instance=instance)
+
+    np.random.seed(1)
+    instance = Instance.random_uniform(
+        num_of_agents=70, num_of_items=10, normalized_sum_of_values=100,
+        agent_capacity_bounds=[2, 6],
+        item_capacity_bounds=[20, 40],
+        item_base_value_bounds=[1, 1000],
+        item_subjective_ratio_bounds=[0.5, 1.5]
+    )
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+
+    allocation = divide(TTC_function, instance=instance)
+    print(allocation)
 

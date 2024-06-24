@@ -9,6 +9,7 @@ from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import cvxpy as cp
 import logging
 import fairpyx.algorithms.Optimization_based_Mechanisms.optimal_functions as optimal
+import fairpyx.algorithms.Optimization_based_Mechanisms.TTC_O as TTC_O
 logger = logging.getLogger(__name__)
 
 # global dict
@@ -17,6 +18,15 @@ map_student_to_his_sum_bids = {}
 def effective_value_with_price(alloc, student, course):
     global map_student_to_his_sum_bids
     return alloc.effective_value(student, course) + map_student_to_his_sum_bids[student]
+
+# conditions (14) in the article using only for the SP-O
+def conditions_14(alloc, v,p):
+    constraints = []
+    for j, course in enumerate(alloc.remaining_items()):
+        for i, student in enumerate(alloc.remaining_agents()):
+            constraints.append(p[j] >= 0)
+            constraints.append(v[i] >= 0)
+    return constraints
 
 
 def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger()):
@@ -30,26 +40,26 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
      the fair course allocation problem(CAP).
 
 
-    >>> from fairpyx.adaptors import divide
-    >>> s1 = {"c1": 50, "c2": 49, "c3": 1}
-    >>> s2 = {"c1": 48, "c2": 46, "c3": 6}
-    >>> agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
-    >>> course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
-    >>> valuations = {"s1": s1, "s2": s2}
-    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
-    >>> divide(SP_O_function, instance=instance)
+    #>>> from fairpyx.adaptors import divide
+    #>>> s1 = {"c1": 50, "c2": 49, "c3": 1}
+    #>>> s2 = {"c1": 48, "c2": 46, "c3": 6}
+    #>>> agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
+    #>>> course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
+    #>>> valuations = {"s1": s1, "s2": s2}
+    #>>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    #>>> divide(SP_O_function, instance=instance)
     {'s1': ['c2'], 's2': ['c1']}
 
-    >>> s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}   #{c1: 40, c4: 30, c2:20, c3: 10}
-    >>> s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}     #{c3: 70, c2: 20, c1:6, c4: 4}
-    >>> s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}    #{c4: 50, c3: 21, c2:20, c1: 9}
-    >>> s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}    #{c4: 55, c1: 25, c3:15, c2: 5}
-    >>> s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}      #{c2: 90, c1: 5, c3:3, c4: 2}
-    >>> agent_capacities={"s1": 2, "s2": 2, "s3": 2, "s4": 2, "s5": 2}
-    >>> item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2}
-    >>> valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
-    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
-    >>> divide(SP_O_function, instance=instance)
+    #>>> s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}   #{c1: 40, c4: 30, c2:20, c3: 10}
+    #>>> s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}     #{c3: 70, c2: 20, c1:6, c4: 4}
+    #>>> s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}    #{c4: 50, c3: 21, c2:20, c1: 9}
+    #>>> s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}    #{c4: 55, c1: 25, c3:15, c2: 5}
+    #>>> s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}      #{c2: 90, c1: 5, c3:3, c4: 2}
+    #>>> agent_capacities={"s1": 2, "s2": 2, "s3": 2, "s4": 2, "s5": 2}
+    #>>> item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2}
+    #>>> valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
+    #>>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+    #>>> divide(SP_O_function, instance=instance)
     {'s1': ['c1', 'c2'], 's2': ['c1', 'c3'], 's3': ['c3', 'c4'], 's4': ['c1', 'c4'], 's5': ['c2']}
     """
 
@@ -70,7 +80,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
             break
 
         logger.info("map_student_to_his_sum_bids : " + str(map_student_to_his_sum_bids))
-        result_Zt1, result_Zt2, x, problem, rank_mat = optimal.roundTTC_O(alloc, logger, effective_value_with_price, 1)  # This is the TTC-O round.
+        result_Zt1, result_Zt2, x, problem, rank_mat = TTC_O.roundTTC_O(alloc, logger, effective_value_with_price, 1)  # This is the TTC-O round.
 
         optimal_value = problem.value
         logger.info("Optimal Objective Value: %d", optimal_value)
@@ -81,7 +91,10 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
         p = cvxpy.Variable(len(alloc.remaining_items()))  # list of price to each course
         v = cvxpy.Variable(len(alloc.remaining_agents()))  # list of value to each student
 
-        linear_problem = optimal.SP_O_condition(alloc, result_Zt1, D, p, v)
+        # conditions (12) (16) in the article using only for the SP-O
+        linear_problem = (result_Zt1 * D + cp.sum([alloc.remaining_item_capacities[course] *
+                                                  p[j] for j, course in enumerate(alloc.remaining_items())]) +
+                                                    cp.sum([v[i] for i, student in enumerate(alloc.remaining_agents())]))
         # linear problem number 12:
         objective_Wt1 = cp.Minimize(linear_problem)
 
@@ -95,11 +108,13 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
                 else:
                     constraints_Wt1.append(p[j]+v[i]+rank_mat[j][i]*D >= alloc.effective_value(student,course))
 
-        condition_14 = optimal.conditions_14(alloc, v, p)
+        condition_14 = conditions_14(alloc, v, p)
         constraints_Wt1 += condition_14
 
         problem = cp.Problem(objective_Wt1, constraints=constraints_Wt1)
         result_Wt1 = problem.solve()  # This is the optimal value of program (12)(13)(14).
+
+        logger.info("result_Wt1 - the optimum price: %d", result_Wt1)
 
         # linear problem number 15:
         objective_Wt2 = cp.Minimize(cp.sum([alloc.remaining_item_capacities[course] * p[j]
@@ -119,7 +134,13 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
         if result_Wt2 is not None:
             x_values = x.value
             p_values = p.value
+            v_value = v.value
+            D_value = D.value
             logger.info("p values: " + str(p_values))
+            logger.info("v values: " + str(v_value))
+            logger.info("D values: " + str(D_value))
+            logger.info("W1 values: %d", result_Wt1)
+            logger.info("W2 values: %d", result_Wt2)
             # Iterate over students and courses to pay the price of the course each student got
             for i, student in enumerate(alloc.remaining_agents()):
                 for j, course in enumerate(alloc.remaining_items()):
@@ -137,12 +158,19 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
 
 
 if __name__ == "__main__":
-    import doctest, sys
+    import doctest, sys, numpy as np
     print("\n", doctest.testmod(), "\n")
-    # sys.exit(1)
 
+    s1 = {"c1": 10}
+    s2 = {"c1": 11}
+    instance = Instance(
+        agent_capacities={"s1": 1, "s2": 1},
+        item_capacities={"c1": 1},
+        valuations={"s1": s1, "s2": s2}
+    )
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
+
 
     from fairpyx.adaptors import divide
     s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
@@ -155,4 +183,6 @@ if __name__ == "__main__":
         item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2},
         valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
     )
-    divide(SP_O_function, instance=instance)
+    allocation = divide(SP_O_function, instance=instance)
+    print(allocation)
+
