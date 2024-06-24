@@ -152,7 +152,7 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation_variables, co
     # Define the problem
     prob = cp.Problem(objective, item_capacity_constraints + agent_capacity_constraints +
                       envy_free_constraints + constraints_ilp)
-
+    logger.debug(f'Problem constraints {prob.constraints} ')
     # Solve the problem
     try:
         prob.solve()
@@ -305,6 +305,7 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, a
         cp.sum([Z_bar[i][j] for i in range(num_agents) for j in range(num_items)])) >= 1)
 
     logger.info("Additional ILP constraints created successfully.")
+    logger.debug(f'the ILP constraints {constraints} ')
 
     return constraints
 
