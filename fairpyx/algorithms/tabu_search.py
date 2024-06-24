@@ -68,17 +68,6 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
     "{ami:['w', 'x', 'y'], tami:['w', 'y', 'z']}"
 
-    Example run 3
-    >>> random.seed(1000)
-    >>> instance = Instance(
-    ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
-    ... agent_capacities=2,
-    ... item_capacities={"x":1, "y":2, "z":2})
-    >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
-    >>> beta = 5
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
-    "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}"
-
     >>> instance = Instance(
     ... valuations={"ami":{"x":4, "y":3, "z":2}, "tami":{"x":5, "y":1, "z":2}},
     ... agent_capacities=2,
@@ -96,6 +85,17 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     >>> beta = 6
     >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
     "{ami:['x', 'y'], tami:['z']}"
+
+    Example run 3
+    >>> random.seed(1000)
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":3, "y":3, "z":3}, "tami":{"x":3, "y":3, "z":3}, "tzumi":{"x":4, "y":4, "z":4}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":1, "y":2, "z":2})
+    >>> initial_budgets={"ami":4, "tami":5, "tzumi":2}
+    >>> beta = 5
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={1}))
+    "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}"
     """
     logger.info("START ALGORITHM")
     logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅")
@@ -124,7 +124,8 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
                                        allocation)
 
         logger.info("   update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
-        allocation, excess_demand_vector, norma, prices = find_min_error_prices(alloc.instance, neighbors, initial_budgets)
+        allocation, excess_demand_vector, norma, prices = find_min_error_prices(alloc.instance, neighbors,
+                                                                                initial_budgets)
 
     # print the final price (p* = prices) for each course
     logger.info(f"\nfinal prices p* = {prices}")
@@ -288,7 +289,6 @@ def student_best_bundles(prices: dict, instance: Instance, initial_budgets: dict
     all_combinations = {student: [] for student in instance.agents}
 
     for student in instance.agents:
-        # all_combinations[student] = []
         combinations_courses_list = []
         capacity = instance.agent_capacity(student)
         for r in range(1, capacity + 1):
@@ -375,15 +375,6 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
     >>> all([f(p) for f in equivalent_prices])
     False
 
-
-    # >>> p = {"x":1, "y":3, "z":1}
-    # >>> all([f(p) for f in equivalent_prices])
-    # True
-
-    # [(['x', 'y'], '<=', 5), (['x', 'z'], '<=', 4), (['x', 'z'], '<=', 3),
-    #  (['x', 'y'], '>', 4), (['x', 'y'], '>', 3), (['y', 'z'], '>', 3)]
-
-
     Example run 2 iteration 1
     >>> instance = Instance(valuations={"A":{"x":5, "y":4, "z":3, "w":2},"B":{"x":5, "y":2, "z":4, "w":3}},
     ...     agent_capacities=3,
@@ -449,23 +440,13 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
 
             if current_utility >= original_utility:
                 # Create a copy of sorted_combination for the lambda function
-                combination_copy = sorted_combination.copy()
+                combination_copy = sorted_combination.copy()  # todo - we dont use it
 
                 func = lambda p, agent=student, keys=allocation[student]: (
                         sum(p[key] for key in keys) > initial_budgets[agent])
                 equivalent_prices.append(func)
 
     return list(equivalent_prices)
-
-
-def debug_lambda(func, description):
-    def wrapper(p):
-        result = func(p)
-        calculation = description(p)
-        print(f"Function: {func.__name__}, Input: {p}, Calculation: {calculation}, Result: {result}")
-        return result
-
-    return wrapper
 
 
 def find_gradient_neighbors(prices: dict, delta: set, excess_demand_vector: dict):
@@ -505,7 +486,6 @@ def find_gradient_neighbors(prices: dict, delta: set, excess_demand_vector: dict
     for d in delta:
         for course, price in prices.items():
             updated_prices[course] = max(0, price + d * excess_demand_vector.get(course, 0))
-            # if updated_prices not in history:
         new_neighbors.append(updated_prices.copy())  # Using copy() to append a new dictionary to the list
 
     return new_neighbors
@@ -710,9 +690,6 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     logger.debug("")
 
     min_error_tuple = min(errors, key=lambda x: x[2])
-    # min_error_index = np.where(errors == min(errors))[0]
-    # for error_index in min_error_index:
-    #     min_error_prices.append(neighbors[error_index])
     return min_error_tuple
 
 
@@ -722,18 +699,6 @@ if __name__ == "__main__":
     # import doctest
     #
     # doctest.testmod()
-
-    # ### Check find_individual_price_adjustment_neighbors function
-    # instance = Instance(valuations={"ami": {"x": 3, "y": 3, "z": 3, "w": 3}, "tami": {"x": 3, "y": 3, "z": 3, "w": 3},
-    #                                 "tzumi": {"x": 4, "y": 4, "z": 4, "w": 4}},
-    #                     agent_capacities=2, item_capacities={"x": 1, "y": 2, "z": 2, "w": 1})
-    # history = [[lambda p: p['x'] + p['z'] <= 4, lambda p: p['x'] + p['z'] <= 5, lambda p: p['z'] <= 2]]
-    # prices = {'x': 2.6124658024539347, 'y': 4.138416343413373, 'z': 1.1604071365185367, 'w': 5.930224022321449}
-    # excess_demand_vector = {'x': 1, 'y': -2, 'z': 1, 'w': -1}
-    # initial_budgets = {"ami": 4, "tami": 5, "tzumi": 2}
-    # allocation = {'ami': ('x', 'z'), 'tami': ('x', 'z'), 'tzumi': 'z'}
-    # print(find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets,
-    #                                                  allocation))
 
     seed = random.randint(1, 10000)
     # seed = 5054
