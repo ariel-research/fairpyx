@@ -8,6 +8,8 @@ Naama Shiponi and Ben Dabush
 1/6/2024
 """
 
+import logging
+logger = logging.getLogger(__name__)
 from fairpyx.algorithms.CM.A_CEEI import (
     course_demands,
     find_best_schedule,
@@ -32,18 +34,25 @@ def reduce_undersubscription(allocation: AllocationBuilder, price_vector: dict, 
 
     :return: Updated course allocations
     """
+    logger.info("Starting reduce undersubscription algorithm (algorithm 3).")
     item_conflicts, agent_conflicts = calculate_conflicts(allocation)
     preferred_schedule = find_preferred_schedule(allocation.instance._valuations, allocation.instance._agent_capacities, item_conflicts, agent_conflicts)
+    logger.debug('Preferred schedule calculated: %s', preferred_schedule)
 
     # Calculate the demand for each course based on the price vector and student budgets
-    course_demands_dict = course_demands(price_vector, allocation, student_budgets, preferred_schedule)
+    course_demands_dict = course_demands(price_vector, allocation, student_budgets, preferred_schedule)  
+    logger.info('Course demands calculated: %s', course_demands_dict)
 
     # Identify undersubscribed courses (courses with negative demand)
     capacity_undersubscribed_courses = {course: -1 * course_demand for course, course_demand in course_demands_dict.items() if course_demand < 0}
+    logger.info('Undersubscribed courses identified: %s', capacity_undersubscribed_courses)
 
     student_schedule = find_best_schedule(price_vector, student_budgets, preferred_schedule)
     student_schedule_dict = create_dictionary_of_schedules(student_schedule, allocation.instance.items, allocation.instance.agents)
+    logger.debug('Initial student schedules: %s', student_schedule_dict)
+
     student_list = calculate_remaining_budgets(price_vector, student_budgets, student_schedule_dict)
+    logger.debug('Student list with remaining budgets: %s', student_list)
 
     # Reoptimize student schedules to fill undersubscribed courses
     student_schedule_dict = reoptimize_student_schedules(allocation, price_vector, student_list, student_budgets, student_schedule_dict, capacity_undersubscribed_courses)
@@ -51,7 +60,9 @@ def reduce_undersubscription(allocation: AllocationBuilder, price_vector: dict, 
     # Update the allocation with the new student schedules
     for student, schedule in student_schedule_dict.items():
         allocation.give_bundle(student, schedule)
+        logger.info('Updated allocation for student %s: %s', student, schedule)
 
+    logger.info("Finished reduce_undersubscription algorithm.")
     return allocation
 
 
@@ -84,6 +95,9 @@ def calculate_conflicts(allocation: AllocationBuilder) -> tuple:
         agent: allocation.instance.agent_conflicts(agent)
         for agent in allocation.instance.agents
     }
+    
+    logger.debug('Calculated item conflicts: %s', item_conflicts)
+    logger.debug('Calculated agent conflicts: %s', agent_conflicts)
     return item_conflicts, agent_conflicts
 
 
@@ -103,8 +117,9 @@ def create_dictionary_of_schedules(student_schedule, course, students) -> dict:
     >>> create_dictionary_of_schedules(student_schedule, course, students)
     {'Alice': ['c1', 'c3'], 'Bob': ['c1', 'c2'], 'Tom': ['c1', 'c3']}
     """
-    return {student: [course for j, course in enumerate(course) if student_schedule[i][j] == 1] for i, student in enumerate(students)}
-
+    schedule_dict = {student: [course for j, course in enumerate(course) if student_schedule[i][j] == 1] for i, student in enumerate(students)}
+    logger.debug('Created dictionary of schedules: %s', schedule_dict)
+    return schedule_dict
 
 def calculate_remaining_budgets(price_vector, student_budgets, student_courses) -> list:
     """
@@ -131,6 +146,7 @@ def calculate_remaining_budgets(price_vector, student_budgets, student_courses) 
     # Sort the list of tuples by remaining budget
     remaining_budgets.sort(key=lambda x: x[1])
     
+    logger.debug('Calculated remaining budgets: %s', remaining_budgets)
     return remaining_budgets
 
 
@@ -147,6 +163,7 @@ def reoptimize_student_schedules(allocation, price_vector, student_list, student
 
     :return: Updated student schedules
     """
+    logger.info("Starting reoptimization of student schedules.")
     not_done = True
     while not_done and len(capacity_undersubscribed_courses) != 0:
         not_done = False
@@ -159,7 +176,9 @@ def reoptimize_student_schedules(allocation, price_vector, student_list, student
             if is_new_bundle_better(allocation, student[0], student_schedule_dict[student[0]], new_bundle.get(student[0], {})):
                 not_done = True
                 update_student_schedule_dict(student, student_schedule_dict, new_bundle, capacity_undersubscribed_courses)
+                logger.debug('Updated student %s schedule: %s', student[0], student_schedule_dict[student[0]])
                 break  # Only one student changes their allocation in each pass
+    logger.info("Finished reoptimization of student schedules.")    
     return student_schedule_dict
 
 
@@ -181,6 +200,7 @@ def update_student_schedule_dict(student, student_schedule_dict, new_bundle, cap
             if capacity_undersubscribed_courses[course] == 0:
                 capacity_undersubscribed_courses.pop(course)
     student_schedule_dict.update({student[0]: new_bundle.get(student[0])})
+    logger.debug('Updated undersubscribed course capacities: %s', capacity_undersubscribed_courses)
 
 def allocation_function(allocation: AllocationBuilder, student: str, student_allocation: dict, price_vector: dict, student_budget: dict) -> dict:
     """
@@ -201,6 +221,7 @@ def allocation_function(allocation: AllocationBuilder, student: str, student_all
     limited_price_vector = {course: price for course, price in price_vector.items() if course in student_allocation}
     new_allocation = find_best_schedule(limited_price_vector, student_budget, preferred_schedule)
     new_allocation_dict = create_dictionary_of_schedules(new_allocation, student_allocation, agent_capacities.keys())
+    logger.debug('Reoptimized schedule for student %s: %s', student, new_allocation_dict)
     return new_allocation_dict
 
 def filter_valuations_for_courses(allocation, student, student_allocation) -> dict:
@@ -227,7 +248,7 @@ def filter_valuations_for_courses(allocation, student, student_allocation) -> di
     >>> filter_valuations_for_courses(allocation, "Alice", student_allocation)
     {'Alice': {'c1': 50, 'c3': 80}}
     """
-    return {
+    filtered_valuations = {
         student: {
             course: valuations
             for course, valuations in allocation.instance._valuations.get(
@@ -236,6 +257,8 @@ def filter_valuations_for_courses(allocation, student, student_allocation) -> di
             if course in student_allocation
         }
     }
+    logger.debug('Filtered valuations for student %s: %s', student, filtered_valuations)
+    return filtered_valuations
 
 def is_new_bundle_better(allocation: AllocationBuilder, student: str, current_bundle: set, new_bundle: set) -> bool:
     """
@@ -269,9 +292,13 @@ def is_new_bundle_better(allocation: AllocationBuilder, student: str, current_bu
     sum_valuations_cur = sum(valuations for course, valuations in allocation.instance._valuations.get(student, {}).items() if course in current_bundle)
     sum_valuations_new = sum(valuations for course, valuations in allocation.instance._valuations.get(student, {}).items() if course in new_bundle)
     
+    logger.debug('Current bundle valuations for student %s: %g', student, sum_valuations_cur)
+    logger.debug('New bundle valuations for student %s: %g', student, sum_valuations_new)
+
     if (sum_valuations_cur < sum_valuations_new) or (len(current_bundle) < len(new_bundle) and sum_valuations_cur <= sum_valuations_new):
+        logger.info('New bundle is better for student %s.', student)
         return True
-        
+    logger.info('New bundle is not better for student %s.', student)
     return False
 
 

@@ -7,7 +7,8 @@ https://pubsonline.informs.org/doi/epdf/10.1287/opre.2016.1544
 Naama Shiponi and Ben Dabush
 1/6/2024
 """
-
+import logging
+logger = logging.getLogger(__name__)
 from fairpyx.instances import Instance
 from fairpyx.allocations import AllocationBuilder
 from fairpyx.algorithms.CM.A_CEEI import (
@@ -106,10 +107,9 @@ def remove_oversubscription(
     >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, course_demands)
     {'c1': 2.0125, 'c2': 0.21113281250000004, 'c3': 2.0125}
     """
-    max_budget = (
-        max(student_budgets.values()) + epsilon
-    )  # ¯p scalar price greater than any budget
-    # preferred_schedule = find_preferred_schedule(allocation.instance._valuations, allocation.instance._agent_capacities, allocation.instance.item_conflicts, allocation.instance.agent_conflicts)
+    logger.info("Starting remove oversubscription algorithm")
+    max_budget = max(student_budgets.values()) + epsilon
+    logger.debug('Max budget set to %g', max_budget)
     item_conflicts = {
         item: allocation.instance.item_conflicts(item)
         for item in allocation.instance.items
@@ -125,40 +125,38 @@ def remove_oversubscription(
         item_conflicts,
         agent_conflicts,
     )
-    # print(preferred_schedule)
-
+    logger.info("Preferred schedule determined")
     while True:
-        # 1: Find the most oversubscribed course
-        excess_demands = course_demands(
-            price_vector, allocation, student_budgets, preferred_schedule
-        )
+        excess_demands = course_demands(price_vector, allocation, student_budgets, preferred_schedule)
         highest_demand_course = max(excess_demands, key=excess_demands.get)
         highest_demand = excess_demands[highest_demand_course]
+        logger.debug('Highest demand course: %s with demand %g', highest_demand_course, highest_demand)
         if highest_demand <= 0:
+            logger.info("No oversubscription detected, ending remove oversubscription algorithm")
             break
 
-        # 3: Perform binary search on the price of course with the most demand until oversubscription equals (at most) d*
-        d_star = highest_demand / 2  # d* = d_j'(p*) / 2
+        d_star = highest_demand / 2
         low_price = price_vector[highest_demand_course]
         high_price = max_budget
 
-        # Binary search loop
+        logger.info('Starting binary search for course %s', highest_demand_course)
         while high_price - low_price >= epsilon:
             p_mid = (low_price + high_price) / 2
             price_vector[highest_demand_course] = p_mid
-            current_demand = course_demands(
-                price_vector, allocation, student_budgets, preferred_schedule
-            )[highest_demand_course]
+            current_demand = course_demands(price_vector, allocation, student_budgets, preferred_schedule)[highest_demand_course]
+            logger.debug('Mid price set to %g, current demand %g', p_mid, current_demand)
             if current_demand > d_star:
                 low_price = p_mid
+                logger.debug('Current demand %g is greater than d_star %g, updating low_price to %g', current_demand, d_star, low_price)
             else:
                 high_price = p_mid
+                logger.debug('Current demand %g is less than or equal to d_star %g, updating high_price to %g', current_demand, d_star, high_price)
 
-        # Set to the higher price to be sure oversubscription is at most d*
         price_vector[highest_demand_course] = high_price
+        logger.info('Final price for course %s set to %g', highest_demand_course, high_price)
 
+    logger.info("Oversubscription removal completed")
     return price_vector
-
 
 if __name__ == "__main__":
     import doctest
@@ -179,9 +177,7 @@ if __name__ == "__main__":
     epsilon = 0.1
     student_budgets = {"Alice": 2.2, "Bob": 2.1, "Tom": 2.0}
 
-    max_budget = (
-        max(student_budgets.values()) + 0.01
-    )  # ¯p scalar price greater than any budget
+    max_budget = max(student_budgets.values()) + 0.01  # ¯p scalar price greater than any budget
     # preferred_schedule = find_preferred_schedule(allocation.instance._valuations, allocation.instance._agent_capacities, allocation.instance.item_conflicts, allocation.instance.agent_conflicts)
     item_conflicts = {
         item: allocation.instance.item_conflicts(item)
