@@ -40,18 +40,6 @@ def test_case_1():
             assert (item in allocation[agent])
 
 
-# def test_case_1_mini():
-#     instance = Instance.random_uniform(num_of_agents=5, num_of_items=10, agent_capacity_bounds=(10, 10),
-#                                        item_capacity_bounds=(10, 10), item_base_value_bounds=(1, 5),
-#                                        item_subjective_ratio_bounds=(1, 1.5),
-#                                        normalized_sum_of_values=1000)
-#     allocation = divide(ACEEI.find_ACEEI_with_EFTB, instance=instance, initial_budgets=random_initial_budgets,
-#                         delta=random_value, epsilon=random_value, t=random_t)
-#     for agent in instance.agents:
-#         for item in instance.items:
-#             assert (item in allocation[agent])
-
-
 # Each student i will get course i
 def test_case_2():
     utilities = {f"s{i}": {f"c{j}": 1 if j == i else 0 for j in range(1, 101)} for i in range(1, 101)}

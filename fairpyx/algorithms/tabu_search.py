@@ -132,19 +132,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
                                        allocation)
         if len(neighbors) == 0:
             logger.info("\n-- NO OPTIMAL SOLUTION --")
-            # logger.info(f"final prices p* = {best_prices}")
-            # logger.info(f"allocation is {best_allocation}")
-            # for student, bundle in best_allocation.items():
-            #     for item in new_bundle:
-            #         if item in self.remaining_item_capacities:
-            #             self.give(agent, item, logger)
-            #
-            #
-            #     logger.info(f"Giving {bundle} to {student}")
-            #     alloc.give_bundle(student, bundle)
-            logger.error("------------")
             break
-            # return best_allocation
 
         logger.info("   update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
         allocation, excess_demand_vector, norma, prices = find_min_error_prices(alloc.instance, neighbors,
@@ -155,7 +143,6 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
             best_prices = prices
             best_norma = norma
 
-    # print the final price (p* = prices) for each course
     logger.info(f"\nfinal prices p* = {best_prices}")
     logger.info(f"allocation is: {best_allocation}")
     for student, bundle in best_allocation.items():
@@ -163,8 +150,6 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
             if item in alloc.remaining_item_capacities:
                 alloc.give(student, item, logger)
 
-        # logger.info(f"Giving {bundle} to {student}")
-        # alloc.give_bundle(student, bundle)
     return best_allocation
 
 

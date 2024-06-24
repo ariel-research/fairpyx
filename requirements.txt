@@ -1,6 +1,6 @@
 numpy>=1.21.3 
 scipy>=1.6.1
-networkz
+networkz~=1.0.6
 cvxpy_base>=1.1.17
 # cmake
 # matplotlib
@@ -10,3 +10,10 @@ cvxpy_base>=1.1.17
 # prtpy>=0.7.0
 # more_itertools
 # scs
+
+pytest~=8.1.1
+fairpyx~=0.0.4
+coloredlogs~=15.0.1
+mip~=1.15.0
+setuptools~=65.5.0
+matplotlib~=3.8.2
