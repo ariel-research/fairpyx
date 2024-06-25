@@ -82,7 +82,7 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
 
                 i += 1
 
-            logger.info("Allocation complete.")
+            logger.info(f"allocation found after {iteration_count} iterations")
             return
         else:
             logger.debug(f'The envy matrix of the Pareto dominating allocation {calculate_envy_matrix(alloc, alloc_Y)} ')
@@ -129,7 +129,6 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation_variables, co
     objective = cp.Maximize(0)
 
     item_capacity_constraints = [cp.sum(allocation_variables[:, j]) == items_capacities[j] for j in range(num_items)]
-    item_capacity_constraints += [cp.sum(allocation_variables[:, j]) >= 0 for j in range(num_items)]
 
     agent_capacity_constraints = []
     # Ensure no agent receives more items than their capacity
@@ -139,6 +138,7 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation_variables, co
 
     agent_capacity_constraints += [cp.sum(allocation_variables[i, :]) <= agent_capacities[i] for i in
      range(num_agents)]
+
 
     # Define envy-free constraints
     envy_free_constraints = []
@@ -152,9 +152,9 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation_variables, co
     # Define the problem
     prob = cp.Problem(objective, item_capacity_constraints + agent_capacity_constraints +
                       envy_free_constraints + constraints_ilp)
-    logger.debug(f'Problem constraints:')
-    for constraint in prob.constraints:
-        logger.debug(f'{constraint} ')
+    # logger.debug(f'Problem constraints:')
+    # for constraint in prob.constraints:
+    #     logger.debug(f'{constraint} ')
     # Solve the problem
     try:
         prob.solve()
@@ -288,27 +288,27 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, a
     Z = cp.Variable((num_agents, num_items), boolean=True)
     Z_bar = cp.Variable((num_agents, num_items), boolean=True)
 
+
     # Add constraints for each agent-item combination
     constraints = []
+
     for i in range(num_agents):
         for j in range(num_items):
             delta = alloc_Y[i][j] - alloc_X[i][j]
-            logger.debug(f'Delta [{i}][{j}]: {delta}')
+            # logger.debug(f'Delta [{i}][{j}]: {delta}')
 
-            # Constraint 1 - inequality (7) in the paper.
-            constraint1 = allocation_variables[i][j] + delta <= -1 + (2 * items_capacities[j]) * (1 - Z[i][j])
-            constraints.append(constraint1)
+            # Constraint 7 - inequality (7) in the paper.
+            constraint7 = allocation_variables[i][j] + delta <= -1 + (2 * items_capacities[j]) * (1 - Z[i][j])
+            constraints.append(constraint7)
 
-            # Constraint 2 - inequality (8) in the paper.
-            constraint2 = allocation_variables[i][j] + delta >= Z_bar[i][j] * (items_capacities[j] + 1)
-            constraints.append(constraint2)
-
-
+            # Constraint 8 - inequality (8) in the paper.
+            constraint8 = allocation_variables[i][j] + delta >= Z_bar[i][j] * (items_capacities[j] + 1)
+            constraints.append(constraint8)
     # Add constraint for each agent that at least one item must change: inequality (9) in the paper.
 
-    cons = (cp.sum([Z[i][j] for i in range(num_agents) for j in range(num_items)]) +
+    constraint9 = (cp.sum([Z[i][j] for i in range(num_agents) for j in range(num_items)]) +
         cp.sum([Z_bar[i][j] for i in range(num_agents) for j in range(num_items)])) >= 1
-    constraints.append(cons)
+    constraints.append(constraint9)
 
     return constraints
 
