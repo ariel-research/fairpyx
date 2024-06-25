@@ -115,6 +115,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(alloc.instance, prices,
                                                                                max_utilities_allocations)
     #check the branch -------------------------------------------------------------
+    # _________
     while norma:
         logger.debug(f"min excess demand: {excess_demand_vector}")
         logger.debug(f"prices: {prices}")
