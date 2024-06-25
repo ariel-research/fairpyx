@@ -31,6 +31,8 @@ def many_to_many_matching(item_capacities: dict[any,int], agent_capacities:dict[
     >>> valuations = {"a":{"x":11, "y":22}, "b":{"x":33,"y":-1}}
     >>> stringify(many_to_many_matching(item_capacities={"x":2, "y":2}, agent_capacities={"a":1, "b":3}, valuations=valuations))
     "{a:['y'], b:['x']}"
+    >>> stringify(many_to_many_matching(item_capacities={0:1, 1:1, 2:1, 3:1}, agent_capacities={0:2, 1:2}, valuations=[[5,4,3,2],[2,3,4,5]]))
+    '{0:[0, 1], 1:[2, 3]}'
     """
     # subroutine = many_to_many_matching_using_node_cloning
     subroutine = many_to_many_matching_using_network_flow
@@ -43,6 +45,11 @@ def many_to_many_matching(item_capacities: dict[any,int], agent_capacities:dict[
         agent_entitlement = agent_entitlement)
 
 
+def agent_str(agent):
+    return agent if isinstance(agent,str) else f"A{agent}"
+def item_str(item):
+    return item if isinstance(item,str) else f"I{item}"
+
 def many_to_many_matching_using_network_flow(items:list, item_capacity: callable, agents:list, agent_capacity: callable, agent_item_value:callable, agent_entitlement:callable=lambda x:1, allow_negative_value_assignments=False)->nx.Graph:
     """
     Computes a many-to-many matching of items to agents. 
@@ -53,28 +60,28 @@ def many_to_many_matching_using_network_flow(items:list, item_capacity: callable
     graph = nx.DiGraph()
     graph.add_nodes_from(["s", "t"])
     for agent in agents:
-        graph.add_edge("s", agent, capacity=agent_capacity(agent), weight=0)
+        graph.add_edge("s", agent_str(agent), capacity=agent_capacity(agent), weight=0)
     for agent,item in product(agents,items):
         value =  agent_item_value(agent, item)
         if value<0 and not allow_negative_value_assignments:
             continue
         weight = value * agent_entitlement(agent)
-        graph.add_edge(agent, item, capacity=1, weight=-weight)
+        graph.add_edge(agent_str(agent), item_str(item), capacity=1, weight=-weight)
     for item in items:
-        graph.add_edge(item, "t", capacity=item_capacity(item), weight=0)
+        graph.add_edge(item_str(item), "t", capacity=item_capacity(item), weight=0)
 
     ### b. Compute the max-flow min-cost flow:
     flow = nx.max_flow_min_cost(graph, "s", "t", capacity="capacity", weight="weight")
-    # flow = nx.min_cost_flow(graph, "s", "t", capacity="capacity", weight="weight")
 
     ### c. Convert the flow to a many-to-many matching:
-    map_agent_name_to_bundle = defaultdict(list)
+    map_agent_name_to_bundle = {}
     for agent in agents:
         map_agent_name_to_bundle[agent] = []
-        for item,itemflow in flow[agent].items():
-            if itemflow==1:
+        for item in items:
+            agent_item_flow =  flow[agent_str(agent)].get(item_str(item),0)
+            if agent_item_flow==1:
                 map_agent_name_to_bundle[agent].append(item)
-            elif itemflow!=0:
+            elif agent_item_flow!=0:
                 raise ValueError(f"non-binary flow in network: agent={agent}, item={item}, flow={itemflow}.\n Entire flow: {flow}")
         map_agent_name_to_bundle[agent].sort()
     return map_agent_name_to_bundle
