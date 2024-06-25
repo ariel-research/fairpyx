@@ -290,24 +290,24 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, a
 
     # Add constraints for each agent-item combination
     constraints = []
+    delta = alloc_Y - alloc_X
+    logger.debug(f'Delta:\n%s',delta)
     for i in range(num_agents):
         for j in range(num_items):
-            delta = alloc_Y[i][j] - alloc_X[i][j]
-            logger.debug(f'Delta [{i}][{j}]: {delta}')
-
             # Constraint 1 - inequality (7) in the paper.
-            constraint1 = allocation_variables[i][j] + delta <= -1 + (2 * items_capacities[j]) * (1 - Z[i][j])
+            constraint1 = allocation_variables[i][j] + delta[i][j] <= -1 + (2 * items_capacities[j]) * (1 - Z[i][j])
             constraints.append(constraint1)
 
             # Constraint 2 - inequality (8) in the paper.
-            constraint2 = allocation_variables[i][j] + delta >= Z_bar[i][j] * (items_capacities[j] + 1)
+            constraint2 = allocation_variables[i][j] + delta[i][j] >= Z_bar[i][j] * (items_capacities[j] + 1)
             constraints.append(constraint2)
 
 
     # Add constraint for each agent that at least one item must change: inequality (9) in the paper.
 
-    cons = (cp.sum([Z[i][j] for i in range(num_agents) for j in range(num_items)]) +
-        cp.sum([Z_bar[i][j] for i in range(num_agents) for j in range(num_items)])) >= 1
+    cons = (
+        cp.sum([Z[i][j]+Z_bar[i][j] for i in range(num_agents) for j in range(num_items)])
+        ) >= 1
     constraints.append(cons)
 
     return constraints
