@@ -64,7 +64,7 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
     while alloc_X is not None:
         iteration_count += 1  # Increment counter on each iteration
         logging.info(f"Attempting envy-free allocation, iteration {iteration_count}")
-        logger.debug(f'The envy matrix of the allocation {calculate_envy_matrix(alloc, alloc_X)} ')
+        logger.debug(f'The value matrix of the allocation {calculate_envy_matrix(alloc, alloc_X)} ')
         alloc_Y = find_pareto_dominating_allocation(alloc, alloc_X)
         if alloc_Y is None:
             logger.info("No Pareto dominating allocation found, finalizing allocation:\n%s",alloc_X)
@@ -85,9 +85,9 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
             logger.info(f"allocation found after {iteration_count} iterations")
             return
         else:
-            logger.debug(f'The envy matrix of the Pareto dominating allocation {calculate_envy_matrix(alloc, alloc_Y)} ')
-            logger.debug(f'The values of the first allocation {calculate_values(alloc, alloc_X)} ')
-            logger.debug(f'The values of the Pareto dominating allocation {calculate_values(alloc, alloc_Y)}')
+            logger.debug(f'The value matrix of the Pareto dominating allocation:\n{calculate_envy_matrix(alloc, alloc_Y)} ')
+            logger.debug(f'The values of the first allocation:\n{calculate_values(alloc, alloc_X)} ')
+            logger.debug(f'The values of the Pareto dominating allocation:\n{calculate_values(alloc, alloc_Y)}')
 
             constraints_ilp.extend(create_more_constraints_ILP(alloc, alloc_X, alloc_Y, allocation_variables))
             alloc_X = find_envy_free_allocation(alloc, allocation_variables, constraints_ilp)
@@ -301,7 +301,7 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, a
             constraints.append(constraint7)
 
             # Constraint 8 - inequality (8) in the paper.
-            constraint8 = allocation_variables[i][j] + delta[i][j] >= Z_bar[i][j] * (items_capacities[j] + 1)
+            constraint8 = allocation_variables[i][j] + delta[i][j] >= -items_capacities[j]  + Z_bar[i][j] * (items_capacities[j] + items_capacities[j] +1)
             constraints.append(constraint8)
     # Add constraint for each agent that at least one item must change: inequality (9) in the paper.
 
@@ -349,7 +349,7 @@ def calculate_envy_matrix(alloc: AllocationBuilder, alloc_X: np.ndarray):
     Returns:
     - Dict : A dict of envy matrix.
     """
-    logger.info("Calculates nvy matrix")
+    logger.info("Calculating value matrix")
 
     # Define variables
     agents, items, items_capacities = get_agents_items_and_capacities(alloc, True)  # True to return only this tuple
