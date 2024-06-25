@@ -378,6 +378,17 @@ def instance_4_6():
     return Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
 
 
+def instance_4_6_elor():
+    agent_capacities = {'s1': 12, 's2': 12, 's3': 12, 's4': 12}
+    item_capacities = {'c1': 2, 'c2': 2, 'c3': 2, 'c4': 2, 'c5': 2, 'c6': 2}
+    valuations = {
+        's1': {'c1': 100, 'c2': 60, 'c3': 60, 'c4': 60, 'c5': 70, 'c6': 60},
+        's2': {'c1': 60, 'c2': 100, 'c3': 60, 'c4': 60, 'c5': 70, 'c6': 60},
+        's3': {'c1': 60, 'c2': 60, 'c3': 100, 'c4': 60, 'c5': 60, 'c6': 70},
+        's4': {'c1': 60, 'c2': 60, 'c3': 60, 'c4': 100, 'c5': 60, 'c6': 70}}
+    return Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+
+
 
 if __name__ == "__main__":
     import doctest
@@ -396,7 +407,7 @@ if __name__ == "__main__":
     #     normalized_sum_of_values=1000,
     #     random_seed=1)
     # print(instance)
-    divide(high_multiplicity_fair_allocation, instance_4_6())
+    # divide(high_multiplicity_fair_allocation, instance_4_6())
 
 
     # alloc = AllocationBuilder(instance)
@@ -412,3 +423,6 @@ if __name__ == "__main__":
     # alloc_X = np.array([[3, 2, 1], [0, 1, 2]])
     # pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
     # print(pareto_optimal_allocation)
+
+    divide(high_multiplicity_fair_allocation, instance_4_6_elor())
+    
