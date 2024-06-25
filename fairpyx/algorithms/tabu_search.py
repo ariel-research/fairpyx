@@ -723,40 +723,40 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
 if __name__ == "__main__":
     from fairpyx.adaptors import divide
 
-    # import doctest
+    import doctest
+
+    doctest.testmod()
+
+    # seed = random.randint(1, 10000)
+    # # seed = 2006
+    # # random.seed(seed)
+    # logger.debug(f"seed is {seed}")
     #
-    # doctest.testmod()
-
-    seed = random.randint(1, 10000)
-    # seed = 2006
-    # random.seed(seed)
-    logger.debug(f"seed is {seed}")
-
-    # Write the seed to a new file
-    with open('seed.txt', 'a') as file:
-        file.write(f"seed is {seed}\n")
-
-    # instance = Instance(valuations = {"ami": {"x": 4, "y": 3, "z": 2}, "tami": {"x": 5, "y": 1, "z": 2}}, agent_capacities = 2,
-    #     item_capacities = {"x": 1, "y": 2, "z": 3})
-    # initial_budgets = {"ami": 6, "tami": 4}
-    # beta = 6
-    # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={0.72})
-    # # "{ami:['x', 'y'], tami:['y', 'z']}"
-
-    # instance = Instance(valuations = {"ami": {"x": 4, "y": 3, "z": 2}, "tami": {"x": 5, "y": 1, "z": 2}},
-    #     agent_capacities = 2, item_capacities = {"x": 1, "y": 1, "z": 1})
-    # initial_budgets = {"ami": 5, "tami": 3}
-    # beta = 6
-    # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={0.91})
-    # # "{ami:['x', 'y'], tami:['z']}"
+    # # Write the seed to a new file
+    # with open('seed.txt', 'a') as file:
+    #     file.write(f"seed is {seed}\n")
     #
-    # Example run 3
-    # random.seed(1000)
-    instance = Instance(valuations = {"ami": {"x": 3, "y": 3, "z": 3}, "tami": {"x": 3, "y": 3, "z": 3}, "tzumi": {"x": 4, "y": 4, "z": 4}},
-        agent_capacities = 2, item_capacities = {"x": 1, "y": 2, "z": 2})
-    initial_budgets = {"ami": 4, "tami": 5, "tzumi": 2}
-    beta = 5
-    divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={0.34})
-    # "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}"
-
-
+    # # instance = Instance(valuations = {"ami": {"x": 4, "y": 3, "z": 2}, "tami": {"x": 5, "y": 1, "z": 2}}, agent_capacities = 2,
+    # #     item_capacities = {"x": 1, "y": 2, "z": 3})
+    # # initial_budgets = {"ami": 6, "tami": 4}
+    # # beta = 6
+    # # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={0.72})
+    # # # "{ami:['x', 'y'], tami:['y', 'z']}"
+    #
+    # # instance = Instance(valuations = {"ami": {"x": 4, "y": 3, "z": 2}, "tami": {"x": 5, "y": 1, "z": 2}},
+    # #     agent_capacities = 2, item_capacities = {"x": 1, "y": 1, "z": 1})
+    # # initial_budgets = {"ami": 5, "tami": 3}
+    # # beta = 6
+    # # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={0.91})
+    # # # "{ami:['x', 'y'], tami:['z']}"
+    # #
+    # # Example run 3
+    # # random.seed(1000)
+    # instance = Instance(valuations = {"ami": {"x": 3, "y": 3, "z": 3}, "tami": {"x": 3, "y": 3, "z": 3}, "tzumi": {"x": 4, "y": 4, "z": 4}},
+    #     agent_capacities = 2, item_capacities = {"x": 1, "y": 2, "z": 2})
+    # initial_budgets = {"ami": 4, "tami": 5, "tzumi": 2}
+    # beta = 5
+    # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={0.34})
+    # # "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}"
+    #
+    #
