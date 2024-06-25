@@ -13,7 +13,6 @@ cvxpy_base>=1.1.17
 
 pytest~=8.1.1
 fairpyx~=0.0.4
-coloredlogs~=15.0.1
 mip~=1.15.0
 setuptools~=65.5.0
 matplotlib~=3.8.2

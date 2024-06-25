@@ -8,7 +8,6 @@ Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
 Since: 2024-01
 """
 import logging
-import coloredlogs
 import random
 from itertools import combinations, product
 
@@ -21,17 +20,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.DEBUG)
 
-# Customizing the colors and format
-level_styles = {
-    'debug': {'color': 'green'},
-    'info': {'color': 'cyan'},
-    'warning': {'color': 'yellow'},
-    'error': {'color': 'red', 'bold': True},
-    'critical': {'color': 'red', 'bold': True, 'background': 'white'}
-}
 
-# Setup colored logs with custom format
-coloredlogs.install(level='DEBUG', logger=logger, fmt='%(message)s', level_styles=level_styles)
 
 
 # ---------------------The main function---------------------
@@ -726,8 +715,23 @@ if __name__ == "__main__":
 
     import doctest
 
-    doctest.testmod()
 
+    import coloredlogs
+
+    # Customizing the colors and format
+    level_styles = {
+        'debug': {'color': 'green'},
+        'info': {'color': 'cyan'},
+        'warning': {'color': 'yellow'},
+        'error': {'color': 'red', 'bold': True},
+        'critical': {'color': 'red', 'bold': True, 'background': 'white'}
+    }
+
+    # Setup colored logs with custom format
+    coloredlogs.install(level='DEBUG', logger=logger, fmt='%(message)s', level_styles=level_styles)
+
+
+    doctest.testmod()
     # seed = random.randint(1, 10000)
     # # seed = 2006
     # # random.seed(seed)
