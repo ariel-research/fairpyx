@@ -64,7 +64,7 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
     while alloc_X is not None:
         iteration_count += 1  # Increment counter on each iteration
         logging.info(f"Attempting envy-free allocation, iteration {iteration_count}")
-        logger.debug(f'The envy matrix of the allocation {calculate_envy_matrix(alloc, alloc_X)} ')
+        logger.debug(f'The value matrix of the allocation {calculate_envy_matrix(alloc, alloc_X)} ')
         alloc_Y = find_pareto_dominating_allocation(alloc, alloc_X)
         if alloc_Y is None:
             logger.info("No Pareto dominating allocation found, finalizing allocation:\n%s",alloc_X)
@@ -85,7 +85,7 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
             logger.info("Allocation complete.")
             return
         else:
-            logger.debug(f'The envy matrix of the Pareto dominating allocation {calculate_envy_matrix(alloc, alloc_Y)} ')
+            logger.debug(f'The value matrix of the Pareto dominating allocation {calculate_envy_matrix(alloc, alloc_Y)} ')
             logger.debug(f'The values of the first allocation {calculate_values(alloc, alloc_X)} ')
             logger.debug(f'The values of the Pareto dominating allocation {calculate_values(alloc, alloc_Y)}')
 
@@ -152,7 +152,7 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation_variables, co
     # Define the problem
     prob = cp.Problem(objective, item_capacity_constraints + agent_capacity_constraints +
                       envy_free_constraints + constraints_ilp)
-    logger.debug(f'Problem constraints {prob.constraints} ')
+    logger.debug(f'Problem constraints: {len(prob.constraints)} ')
     # Solve the problem
     try:
         prob.solve()
@@ -305,7 +305,7 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, a
         cp.sum([Z_bar[i][j] for i in range(num_agents) for j in range(num_items)])) >= 1)
 
     logger.info("Additional ILP constraints created successfully.")
-    logger.debug(f'the ILP constraints {constraints} ')
+    logger.debug(f'the ILP constraints: {len(constraints)} ')
 
     return constraints
 
@@ -347,7 +347,7 @@ def calculate_envy_matrix(alloc: AllocationBuilder, alloc_X: np.ndarray):
     Returns:
     - Dict : A dict of envy matrix.
     """
-    logger.info("Calculates nvy matrix")
+    logger.info("Calculating envy matrix")
 
     # Define variables
     agents, items, items_capacities = get_agents_items_and_capacities(alloc, True)  # True to return only this tuple
@@ -417,7 +417,7 @@ def instance_4_6():
 
 
 def instance2_4_6():
-    agent_capacities = {'s1': 12, 's2': 12, 's3': 12, 's4': 12}
+    agent_capacities = {'s1': 3, 's2': 3, 's3': 3, 's4': 3}
     item_capacities = {'c1': 2, 'c2': 2, 'c3': 2, 'c4': 2, 'c5': 2, 'c6': 2}
     valuations = {
          's1': {'c1': 100, 'c2': 60, 'c3': 60, 'c4': 60, 'c5': 70, 'c6': 60},
