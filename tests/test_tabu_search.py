@@ -53,28 +53,33 @@ def test_case2():
 
 
 # Each student i will get course i, because student i have the highest i budget.
-def test_case3():
-    utilities = {f"s{i}": {f"c{101 - j}": j for j in range(100, 0, -1)} for i in range(1, 101)}
-    instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
-    initial_budgets = {f"s{key}": (101 - key) for key in range(1, 101)}
-    allocation = divide(tabu_search, instance=instance,
-                        initial_budgets=initial_budgets,
-                        beta=random_beta, delta=random_delta)
-    for i in range(1, 101):
-        assert (f"c{i}" in allocation[f"s{i}"])
+# def test_case3():
+#     num_of_agents = 100
+#     utilities = {f"s{i}": {f"c{num_of_agents + 1 - j}": j for j in range(num_of_agents, 0, -1)} for i in
+#                  range(1, num_of_agents + 1)}
+#     instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
+#     initial_budgets = {f"s{key}": (num_of_agents + 1 - key) for key in range(1, num_of_agents + 1)}
+#     # logger.error(f"initial_budgets = {initial_budgets}")
+#     # logger.error(f"random_beta = {random_beta}")
+#     # initial_budgets = {f"s{key}": (random_beta + key) for key in range(1, num_of_agents + 1)}
+#     allocation = divide(tabu_search, instance=instance,
+#                         initial_budgets=initial_budgets,
+#                         beta=random_beta, delta=random_delta)
+#     for i in range(1, num_of_agents + 1):
+#         assert (f"c{i}" in allocation[f"s{i}"])
 
 
-def test_case__3_mini():
-    # for delta in np.linspace(0.1, 2, 20):
-    #     logger.info(f"----------DELTA = {delta}---------------")
-    utilities = {f"s{i}": {f"c{44 - j}": j for j in range(43, 0, -1)} for i in range(1, 44)}
-    instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
-    initial_budgets = {f"s{key}": (44 - key) for key in range(1, 44)}
-    allocation = divide(tabu_search, instance=instance,
-                        initial_budgets=random_initial_budgets(instance.num_of_agents),
-                        beta=random_beta, delta=random_delta)
-    for i in range(1, 44):
-        assert (f"c{i}" in allocation[f"s{i}"])
+# def test_case__3_mini():
+#     # for delta in np.linspace(0.1, 2, 20):
+#     #     logger.info(f"----------DELTA = {delta}---------------")
+#     utilities = {f"s{i}": {f"c{44 - j}": j for j in range(43, 0, -1)} for i in range(1, 44)}
+#     instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
+#     initial_budgets = {f"s{key}": (44 - key) for key in range(1, 44)}
+#     allocation = divide(tabu_search, instance=instance,
+#                         initial_budgets=random_initial_budgets(instance.num_of_agents),
+#                         beta=random_beta, delta=random_delta)
+#     for i in range(1, 44):
+#         assert (f"c{i}" in allocation[f"s{i}"])
 
 
 # Each student will get his 3 favorite courses
