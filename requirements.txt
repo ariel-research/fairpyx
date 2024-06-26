@@ -4,6 +4,7 @@ networkz
 cvxpy_base>=1.1.17
 # cmake
 matplotlib
+experiment_csv
 # repackage
 # pytest
 # cvxpy_leximin>=0.4.4
