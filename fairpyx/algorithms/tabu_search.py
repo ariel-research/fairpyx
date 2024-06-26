@@ -94,16 +94,15 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅")
     prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
     history = []
-    best_allocation = {student: [] for student in alloc.instance.agents}
-    best_prices = {course: 0 for course in alloc.instance.items}
-    best_norma = float("inf")
 
     logger.info("2) If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.")
-    # norma = 1
     max_utilities_allocations = student_best_bundles(prices.copy(), alloc.instance, initial_budgets)
     allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(alloc.instance, prices,
                                                                                max_utilities_allocations)
-    #check the branch --------------------------------&******-------
+    best_allocation = allocation
+    best_prices = prices
+    best_norma = norma
+
     while norma:
         logger.debug(f"min excess demand: {excess_demand_vector}")
         logger.debug(f"prices: {prices}")
@@ -730,8 +729,32 @@ if __name__ == "__main__":
     # Setup colored logs with custom format
     coloredlogs.install(level='DEBUG', logger=logger, fmt='%(message)s', level_styles=level_styles)
 
+    # doctest.testmod()
 
-    doctest.testmod()
+    random_delta = {random.uniform(0.1, 1)}
+    random_beta = random.uniform(1, 100)
+
+
+    def random_initial_budgets(num):
+        return {f"s{key}": random.uniform(1, 1 + random_beta) for key in range(1, num + 1)}
+
+
+    num_of_agents = 18
+    utilities = {f"s{i}": {f"c{j}": 1 if j == i else 0 for j in range(1, num_of_agents)} for i in
+                 range(1, num_of_agents)}
+    logger.error(f"utilities = {utilities}")
+
+    initial_budgets = {f"s{key}": (random_beta + 1) for key in range(1, num_of_agents)}
+    logger.error(f"initial_budgets = {initial_budgets}")
+
+    instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
+    allocation = divide(tabu_search, instance=instance,
+                        initial_budgets=initial_budgets,
+                        beta=random_beta, delta=random_delta)
+    for i in range(1, num_of_agents):
+        assert (f"c{i}" in allocation[f"s{i}"])
+
+
     # seed = random.randint(1, 10000)
     # # seed = 2006
     # # random.seed(seed)

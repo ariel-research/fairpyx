@@ -37,15 +37,18 @@ def test_case1():
             assert (item in allocation[agent])
 
 
-# TODO: not working: 2, 3
+# TODO: not working: 3
 # Each student i will get course i
 def test_case2():
-    utilities = {f"s{i}": {f"c{j}": 1 if j == i else 0 for j in range(1, 101)} for i in range(1, 101)}
+    num_of_agents = 100
+    utilities = {f"s{i}": {f"c{j}": 1 if j == i else 0 for j in range(1, num_of_agents)} for i in
+                 range(1, num_of_agents)}
+    initial_budgets = {f"s{key}": (random_beta + 1) for key in range(1, num_of_agents)}
     instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
     allocation = divide(tabu_search, instance=instance,
-                        initial_budgets=random_initial_budgets(instance.num_of_agents),
+                        initial_budgets=initial_budgets,
                         beta=random_beta, delta=random_delta)
-    for i in range(1, 101):
+    for i in range(1, num_of_agents):
         assert (f"c{i}" in allocation[f"s{i}"])
 
 
@@ -55,7 +58,7 @@ def test_case3():
     instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
     initial_budgets = {f"s{key}": (101 - key) for key in range(1, 101)}
     allocation = divide(tabu_search, instance=instance,
-                        initial_budgets=random_initial_budgets(instance.num_of_agents),
+                        initial_budgets=initial_budgets,
                         beta=random_beta, delta=random_delta)
     for i in range(1, 101):
         assert (f"c{i}" in allocation[f"s{i}"])
