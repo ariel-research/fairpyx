@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from fairpyx import divide, AgentBundleValueMatrix, Instance
 import fairpyx.algorithms.high_multiplicity_fair_allocation as high
 import fairpyx.algorithms.improved_high_multiplicity as imp
+import fairpyx.algorithms.second_improved_high_multiplicity as sec_imp
 
 import json
 from typing import *
@@ -21,7 +22,8 @@ TIME_LIMIT = 60
 
 # Define the specific algorithm you want to check
 algorithms = [high.high_multiplicity_fair_allocation,
-              imp.improved_high_multiplicity_fair_allocation
+              imp.improved_high_multiplicity_fair_allocation,
+              sec_imp.second_improved_high_multiplicity_fair_allocation
               ]
 
 
