@@ -142,23 +142,35 @@ class AllocationBuilder:
         self.remaining_conflicts = {(agent,item) for agent in self.remaining_agents() for item in self.instance.agent_conflicts(agent)}
         self.bundles = {agent: set() for agent in instance.agents}    # Each bundle is a set, since each agent can get at most one seat in each course
 
-    def effective_value(self, agent:any, item:any)->float:
+    def isdone(self)->bool:
         """
-        Returns the agent's value for the item, if there is no conflict;
-        otherwise, returns -infinity.
+        Return True if either all items or all agents have exhausted their capacity - so we are done.
         """
-        if (agent,item) in self.remaining_conflicts:
-            return FORBIDDEN_ALLOCATION
-        else:
-            return self.instance.agent_item_value(agent,item)
+        return len(self.remaining_item_capacities) == 0 or len(self.remaining_agent_capacities) == 0 
 
     def remaining_items(self)->list: 
+        """
+        Return the items with positive remaining capacity.
+        """
         return self.remaining_item_capacities.keys()
+    
+    def remaining_items_for_agent(self, agent)->list:
+        """
+        Return the items with positive remaining capacity, that are available for the agent
+        (== the agent does not already have them, and there are no item-conflicts or agent-conflicts)
+        """
+        return [item for item in self.remaining_items() if (agent,item) not in self.remaining_conflicts]
 
     def remaining_agents(self)->list: 
+        """
+        Return the agents with positive remaining capacity.
+        """
         return self.remaining_agent_capacities.keys()
 
     def remaining_instance(self)->Instance:
+        """
+        Construct a fresh input instance, based on the remaining agents and items.
+        """
         return Instance(
             valuations=self.instance.agent_item_value,                 # base valuations are the same as in the original instance
             agent_capacities=self.remaining_agent_capacities,          # agent capacities may be smaller than in the original instance 
@@ -168,24 +180,39 @@ class AllocationBuilder:
             item_capacities=self.remaining_item_capacities,            # item capacities may be smaller than in the original instance 
             item_conflicts=self.instance.item_conflicts,               # item conflicts are the same as in the original instance   
             items=self.remaining_items())                              # item list may be smaller than in the original instance 
+    
+    def agent_bundle_value(self, agent:any, bundle:list)->float:
+        return self.instance.agent_bundle_value(agent,bundle)
 
-    def remove_item(self, item:any):
+    def effective_value(self, agent:any, item:any)->float:
+        """
+        Return the agent's value for the item, if there is no conflict;
+        otherwise, returns -infinity.
+        """
+        if (agent,item) in self.remaining_conflicts:
+            return FORBIDDEN_ALLOCATION
+        else:
+            return self.instance.agent_item_value(agent,item)
+        
+    def remove_item_from_loop(self, item:any):
+        """
+        Remove the given item from further consideration by the allocation algorithm.
+        """
         del self.remaining_item_capacities[item]
 
-    def remove_agent(self, agent:any):
+    def remove_agent_from_loop(self, agent:any):
+        """
+        Remove the given agent from further consideration by the allocation algorithm (the agent keeps holding his items)
+        """
         del self.remaining_agent_capacities[agent]
-
-    def update_conflicts(self, agent:any, item:any):
-        self.remaining_conflicts.add( (agent,item) )
-        for conflicting_item in self.instance.item_conflicts(item):
-            self.remaining_conflicts.add( (agent,conflicting_item) )
-
 
     def give(self, agent:any, item:any, logger=None):
         if agent not in self.remaining_agent_capacities:
             raise ValueError(f"Agent {agent} has no remaining capacity for item {item}")
         if item not in self.remaining_item_capacities:
             raise ValueError(f"Item {item} has no remaining capacity for agent {agent}")
+        if (agent,item) in self.remaining_conflicts:
+            raise ValueError(f"Agent {agent} is not allowed to take item {item} due to a conflict")
         self.bundles[agent].add(item)
         if logger is not None:
             logger.info("Agent %s takes item %s with value %s", agent, item, self.instance.agent_item_value(agent, item))
@@ -193,16 +220,19 @@ class AllocationBuilder:
         # Update capacities:
         self.remaining_agent_capacities[agent] -= 1
         if self.remaining_agent_capacities[agent] <= 0:
-            self.remove_agent(agent)
+            self.remove_agent_from_loop(agent)
         self.remaining_item_capacities[item] -= 1
         if self.remaining_item_capacities[item] <= 0:
-            self.remove_item(item)
-        self.update_conflicts(agent,item)
+            self.remove_item_from_loop(item)
+        self._update_conflicts(agent,item)
 
 
     def give_bundle(self, agent:any, new_bundle:list, logger=None):
         for item in new_bundle:
-            self.give(agent, item, logger)
+            self.give(agent, item, logger=None)
+        if logger is not None:
+            logger.info("Agent %s takes bundle %s with value %s", agent, new_bundle, self.agent_bundle_value(agent, new_bundle))
+
 
     def give_bundles(self, new_bundles:dict, logger=None):
         """
@@ -221,7 +251,7 @@ class AllocationBuilder:
                 raise ValueError(f"Agent {agent} has no remaining capacity for {num_of_items} new items")
             self.remaining_agent_capacities[agent] -= num_of_items
             if self.remaining_agent_capacities[agent] <= 0:
-                self.remove_agent(agent)
+                self.remove_agent_from_loop(agent)
 
         for item,num_of_owners in map_item_to_num_of_owners.items():
             if num_of_owners==0: continue
@@ -229,20 +259,26 @@ class AllocationBuilder:
                 raise ValueError(f"Item {item} has no remaining capacity for {num_of_owners} new agents")
             self.remaining_item_capacities[item] -= num_of_owners
             if self.remaining_item_capacities[item] <= 0:
-                self.remove_item(item)
+                self.remove_item_from_loop(item)
 
         for agent,bundle in new_bundles.items():
             self.bundles[agent].update(bundle)
-            self.update_conflicts(agent,item)
+            self._update_conflicts(agent,item)
+
+
+    def _update_conflicts(self, receiving_agent:any, received_item:any):
+        """
+        Update the list of agent-item conflicts after giving `received_item` to `receiving_agent`:
+        * `receiving_agent` has a new conflict with `received_item`, as cannot get the same item twice.
+        * `receiving_agent` has a new conflict with any item in conflict with `received_item`, as cannot get both of them at the same time.
+        """
+        self.remaining_conflicts.add( (receiving_agent,received_item) )
+        for conflicting_item in self.instance.item_conflicts(received_item):
+            self.remaining_conflicts.add( (receiving_agent,conflicting_item) )
+
 
     def sorted(self):
-        # Each bundle is a set:
         return {agent: sorted(bundle) for agent,bundle in self.bundles.items()}
-    
-        # Old version - each bundle is a list:
-        for agent,bundle in self.bundles.items():
-            bundle.sort()
-        return self.bundles
 
 
 if __name__ == "__main__":

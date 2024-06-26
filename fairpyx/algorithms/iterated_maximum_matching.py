@@ -2,8 +2,9 @@
 
 The Iterated Maximum Matching algorithm for fair item allocation. Reference:
 
-    Johannes Brustle, Jack Dippel, Vishnu V. Narayan, Mashbat Suzuki, Adrian Vetta (2019).
+    Johannes Brustle, Jack Dippel, Vishnu V. Narayan, Mashbat Suzuki, Adrian Vetta (2020).
     ["One Dollar Each Eliminates Envy"](https://arxiv.org/abs/1912.02797).
+    Proceedings of the 21st ACM Conference on Economics and Computation. 2020
     * Algorithm 1.
 
 Programmer: Erel Segal-Halevi
@@ -50,6 +51,11 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
     >>> map_agent_name_to_bundle = divide(iterated_maximum_matching,instance=instance)
     >>> stringify(map_agent_name_to_bundle)
     "{avi:['x', 'y', 'z'], beni:['w', 'y', 'z']}"
+
+    ### Matrix of values:
+    >>> instance = Instance(valuations=[[5,4,3,2],[2,3,4,5]], agent_capacities=2, item_capacities=1)
+    >>> stringify(divide(iterated_maximum_matching, instance=instance))
+    '{0:[0, 1], 1:[2, 3]}'
     """
 
     TEXTS = {
@@ -100,10 +106,12 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
             agent_capacity=lambda _:1,
             agent_item_value=agent_item_value_with_bonus)
 
+        explanation_logger.debug("map_agent_to_bundle: %s", map_agent_to_bundle)
+
         agents_with_empty_bundles = [agent for agent,bundle in map_agent_to_bundle.items() if len(bundle)==0]
         for agent in agents_with_empty_bundles:
             explanation_logger.info(_("you_did_not_get_any"), agents=agent)
-            alloc.remove_agent(agent)
+            alloc.remove_agent_from_loop(agent)
             del map_agent_to_bundle[agent]
 
         map_agent_to_item = {agent: bundle[0] for agent,bundle in map_agent_to_bundle.items()}
@@ -118,7 +126,8 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
                 for agent in map_agent_to_item.keys()
             }
             for agent,item in map_agent_to_item.items():
-                alloc.give(agent,item)
+                if (agent,item) not in alloc.remaining_conflicts:
+                    alloc.give(agent,item)
             if alloc.remaining_items():
                 for agent,item in map_agent_to_item.items():
                     explanation_logger.info(_("your_course_this_iteration"), map_agent_to_max_possible_value[agent], item, map_agent_to_value[agent], agents=agent)
@@ -139,7 +148,7 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
                     explanation_logger.info("The maximum possible value you could get in this iteration is %g. You get course %s whose value for you is %g.", map_agent_to_max_possible_value[agent], item, map_agent_to_value[agent], agents=agent)
                 explanation_logger.info("\nThere are no more remaining courses!", agents=map_agent_to_item.keys())
 
-        else:
+        else:   # Simple algorithm: do not adjust utilities 
             for agent,item in map_agent_to_item.items():
                 explanation_logger.info("You get course %s", item, agents=agent)
                 alloc.give(agent,item)
@@ -155,13 +164,29 @@ def iterated_maximum_matching_unadjusted(alloc:AllocationBuilder, **kwargs):
 
 
 if __name__ == "__main__":
-    import doctest
-    print("\n",doctest.testmod(), "\n")
+    import doctest, sys
+    # print("\n",doctest.testmod(), "\n")
 
-    from fairpyx.adaptors import divide_random_instance
+    # sys.exit(0)
+
+    from fairpyx.adaptors import divide_random_instance, divide
     from fairpyx.explanations import ConsoleExplanationLogger, FilesExplanationLogger, StringsExplanationLogger
+
+    console_explanation_logger = ConsoleExplanationLogger()
+    files_explanation_logger = FilesExplanationLogger({
+        i: f"logs/s{i+1}.log"
+        for i in range(2)
+    }, mode='w', language="he")
+    string_explanation_logger = StringsExplanationLogger(f"s{i+1}" for i in range(2))
+
+    instance = Instance(valuations=[[5,4,3,2],[2,3,4,5]], agent_capacities=2, item_capacities=1)
+    print(divide(iterated_maximum_matching, instance=instance, explanation_logger=files_explanation_logger))
+
+    sys.exit()
+
     num_of_agents = 30
     num_of_items = 10
+
 
     console_explanation_logger = ConsoleExplanationLogger()
     files_explanation_logger = FilesExplanationLogger({

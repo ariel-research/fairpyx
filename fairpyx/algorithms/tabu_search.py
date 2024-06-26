@@ -8,7 +8,6 @@ Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
 Since: 2024-01
 """
 import logging
-import coloredlogs
 import random
 from itertools import combinations, product
 
@@ -21,17 +20,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.DEBUG)
 
-# Customizing the colors and format
-level_styles = {
-    'debug': {'color': 'green'},
-    'info': {'color': 'cyan'},
-    'warning': {'color': 'yellow'},
-    'error': {'color': 'red', 'bold': True},
-    'critical': {'color': 'red', 'bold': True, 'background': 'white'}
-}
 
-# Setup colored logs with custom format
-coloredlogs.install(level='DEBUG', logger=logger, fmt='%(message)s', level_styles=level_styles)
 
 
 # ---------------------The main function---------------------
@@ -114,8 +103,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     max_utilities_allocations = student_best_bundles(prices.copy(), alloc.instance, initial_budgets)
     allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(alloc.instance, prices,
                                                                                max_utilities_allocations)
-    #check the branch -------------------------------------------------------------
-    # _________
+    #check the branch --------------------------------&******-------
     while norma:
         logger.debug(f"min excess demand: {excess_demand_vector}")
         logger.debug(f"prices: {prices}")
@@ -727,8 +715,23 @@ if __name__ == "__main__":
 
     import doctest
 
-    doctest.testmod()
 
+    import coloredlogs
+
+    # Customizing the colors and format
+    level_styles = {
+        'debug': {'color': 'green'},
+        'info': {'color': 'cyan'},
+        'warning': {'color': 'yellow'},
+        'error': {'color': 'red', 'bold': True},
+        'critical': {'color': 'red', 'bold': True, 'background': 'white'}
+    }
+
+    # Setup colored logs with custom format
+    coloredlogs.install(level='DEBUG', logger=logger, fmt='%(message)s', level_styles=level_styles)
+
+
+    doctest.testmod()
     # seed = random.randint(1, 10000)
     # # seed = 2006
     # # random.seed(seed)

@@ -31,13 +31,13 @@ or run the tests:
 
 ## Usage
 
-To activate a fair division algorithm, first construct a `fairpyx.instance`:
+To activate a fair division algorithm, first construct a `fairpyx.Instance`, for example:
 
     import fairpyx
     valuations = {"Alice": {"w":11,"x":22,"y":44,"z":0}, "George": {"w":22,"x":11,"y":66,"z":33}}
     instance = fairpyx.Instance(valuations=valuations)
 
-An instance can have other fields, such as: agent capacities, item capacities, agent conflicts and item conflicts. These fields are used by some of the algorithms. See [instances.py](fairpyx/instances.py) for details.
+An instance can have other fields, such as: `agent_capacities`, `item_capacities`, `agent_conflicts` and `item_conflicts`. These fields are used by some of the algorithms. See [instances.py](fairpyx/instances.py) for details.
 
 Then, use the function `fairpyx.divide` to run an algorithm on the instance. For example:
 
@@ -53,7 +53,9 @@ Then, use the function `fairpyx.divide` to run an algorithm on the instance. For
 
 ## Contributing new algorithms
 
-1. Fork `fairpyx` and install your fork locally as follows:
+You are welcome to add fair allocation algorithms, including your published algorithms, to `fairpyx`. Please use the following steps to contribute:
+
+1. Fork the repository, then install your fork locally as follows:
 
     ```
     clone https://github.com/<your-username>/fairpyx.git
@@ -61,10 +63,20 @@ Then, use the function `fairpyx.divide` to run an algorithm on the instance. For
     pip install -e .
     ```
 
-2. Write a function that accepts a parameter of type `AllocationBuilder`, as well as any custom parameters your algorithm needs. The `AllocationBuilder` argument sent to your function is already initialized with an empty allocation. Your function has to modify this argument using the method `give`, which gives an item to an agent and updates the capacities. Your function need not return any value; the allocation is read from the modified parameter. See:
+2. Read the code at [algorithm_examples.py](fairpyx/algorithms/algorithm_examples.py) to see how the implementation works. 
 
-* [picking_sequence.py](fairpyx/algorithms/picking_sequence.py) and [iterated_maximum_matching.py](fairpyx/algorithms/iterated_maximum_matching.py) for examples of algorithms;
-* [allocations.py](fairpyx/allocations.py) for more details on the `AllocationBuilder` object.
+  * Note that the implementation does not use the `Instance` variable directly - it uses an `AllocationBuilder` variable, which tracks both the ongoing allocation and the remaining input (the remaining capacities of agents and items).
+
+3. Write a function that accepts a parameter of type `AllocationBuilder`, as well as any custom parameters your algorithm needs. 
+
+  * The `AllocationBuilder` argument sent to your function is already initialized with an empty allocation. 
+  Your function has to modify this argument using the methods `give` or `give_bundle`, which give an item or a set of items to an agent and update the capacities accordingly. 
+  * You can easily chain algorithms. For example, if the last phase of your algorithm is dividing the remaining items using round-robin, you can simply call `round_robin(alloc)` at the end of your function; the AllocationBundle object already tracks the remaining items for you.
+  * Your function need not return any value; the allocation is read from the `alloc`.
+  * The `divide` function is responsible for converting the `Instance` to an `AllocationBuilder` before your function starts, and extracting the allocation from the `AllocationBuilder` after your function ends, so you can focus on writing the algorithm itself.
+
+
+See [allocations.py](fairpyx/allocations.py) for more details on the `AllocationBuilder` object.
 
 ## See also
 
