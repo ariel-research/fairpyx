@@ -19,16 +19,16 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
     TTC (top trading-cycle) assigns one course in each round to each student, the winning students are defined based on the students’ bid values.
 
     :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents of the fair course allocation problem(CAP).
-    # >>> from fairpyx.adaptors import divide
-    # >>> s1 = {"c1": 50, "c2": 49, "c3": 1}
-    # >>> s2 = {"c1": 48, "c2": 46, "c3": 6}
-    # >>> agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
-    # >>> course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
-    # >>> valuations = {"s1": s1, "s2": s2}
-    # >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
-    # >>> divide(TTC_function, instance=instance)
-    # {'s1': ['c1'], 's2': ['c2']}
-    # """
+    >>> from fairpyx.adaptors import divide
+    >>> s1 = {"c1": 50, "c2": 49, "c3": 1}
+    >>> s2 = {"c1": 48, "c2": 46, "c3": 6}
+    >>> agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
+    >>> course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
+    >>> valuations = {"s1": s1, "s2": s2}
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    >>> divide(TTC_function, instance=instance)
+    {'s1': ['c1'], 's2': ['c2']}
+    """
     explanation_logger.info("\nAlgorithm TTC starts.\n")
 
     map_agent_to_best_item = {}               # dict of the max bids for each agent in specific iteration (from the article: max{i, b})
@@ -64,10 +64,10 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
                     [student for student in map_agent_to_best_item if map_agent_to_best_item[student] == course],
                     key=lambda student: alloc.effective_value(student,course),
                     reverse=True)  # sort the keys by their values (descending order)
-                remaining_capacity = alloc.remaining_item_capacities[course]  # the amount of seats left in the current course
+                remaining_capacity = int(alloc.remaining_item_capacities[course]) # the amount of seats left in the current course
                 # if not isinstance(remaining_capacity, int):
                 #     remaining_capacity = 0
-                logger.info("type(remaining_capacity) = %s", type(remaining_capacity))
+                logger.info("remaining_capacity = %s, type(remaining_capacity) = %s", remaining_capacity, type(remaining_capacity))
                 sorted_students_who_can_get_course = sorted_students_pointing_to_course[:remaining_capacity]  # list of the student that can get the course
                 for student in sorted_students_who_can_get_course:
                     alloc.give(student, course, logger)

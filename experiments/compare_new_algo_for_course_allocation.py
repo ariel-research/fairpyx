@@ -15,7 +15,7 @@ import numpy as np
 
 max_value = 1000
 normalized_sum_of_values = 1000
-TIME_LIMIT = 10000
+TIME_LIMIT = 300
 
 algorithms_to_check = [
     crs.iterated_maximum_matching_unadjusted,
@@ -110,7 +110,7 @@ def run_szws_experiment():
         "num_of_agents": [100,200,300],
         "num_of_items":  [25],                            # in SZWS: 25
         "agent_capacity": [5],                            # as in SZWS
-        "supply_ratio": [1.1, 1.25, 1.5],                    # as in SZWS
+        "supply_ratio": [1.1, 1.25, 1.5],                 # as in SZWS
         "num_of_popular_items": [6, 9],                   # as in SZWS
         "mean_num_of_favorite_items": [2.6, 3.85],        # as in SZWS code https://github.com/marketdesignresearch/Course-Match-Preference-Simulator/blob/main/preference_generator_demo.ipynb
         "favorite_item_value_bounds": [(50,100)],         # as in SZWS code https://github.com/marketdesignresearch/Course-Match-Preference-Simulator/blob/main/preference_generator.py
@@ -164,8 +164,14 @@ def run_ariel_experiment():
 if __name__ == "__main__":
     import logging, experiments_csv
     experiments_csv.logger.setLevel(logging.INFO)
+
+    from fairpyx.algorithms.Optimization_based_Mechanisms.TTC import logger as TTC_logger
+
+    TTC_logger.setLevel(logging.INFO)
+    TTC_logger.addHandler(logging.StreamHandler())
     # run_uniform_experiment()
     run_szws_experiment()
     # run_ariel_experiment()
 
-
+# Input: {'num_of_agents': 100, 'num_of_items': 25, 'agent_capacity': 5, 'supply_ratio': 1.1, 'num_of_popular_items': 6, 'mean_num_of_favorite_items': 2.6, 'favorite_item_value_bounds': (50, 100), 'nonfavorite_item_value_bounds': (0, 50), 'algorithm': 'TTC_function', 'random_seed': 0}
+# Input: {'num_of_agents': 100, 'num_of_items': 25, 'agent_capacity': 5, 'supply_ratio': 1.1, 'num_of_popular_items': 6, 'mean_num_of_favorite_items': 2.6, 'favorite_item_value_bounds': (50, 100), 'nonfavorite_item_value_bounds': (0, 50), 'algorithm': 'TTC_function', 'random_seed': 0}
