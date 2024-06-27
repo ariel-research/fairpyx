@@ -27,7 +27,7 @@ def remove_oversubscription(
     price_vector: dict,
     student_budgets: dict,
     epsilon: float = 0.1,
-    course_demands: callable = compute_surplus_demand_for_each_course,
+    compute_surplus_demand_for_each_course: callable = compute_surplus_demand_for_each_course,
 ):
     """
     Perform oversubscription elimination to adjust course prices.
@@ -76,7 +76,7 @@ def remove_oversubscription(
     >>> price_vector = {"c1": 1.2, "c2": 0.9, "c3": 1}
     >>> epsilon = 0.1
     >>> student_budgets = {"Alice": 2.2, "Bob": 2.1, "Tom": 2.0}
-    >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, course_demands)
+    >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, compute_surplus_demand_for_each_course)
     {'c1': 2.0421875000000003, 'c2': 1.1515624999999998, 'c3': 2.0562500000000004}
 
     >>> instance = Instance(
@@ -90,7 +90,7 @@ def remove_oversubscription(
     >>> price_vector = {"c1": 1.2, "c2": 0.9, "c3": 1}
     >>> epsilon = 0.1
     >>> student_budgets = {"Alice": 2.2, "Bob": 2.1, "Tom": 2.0}
-    >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, course_demands)
+    >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, compute_surplus_demand_for_each_course)
     {'c1': 1.2, 'c2': 0.9, 'c3': 1}
 
     >>> instance = Instance(
@@ -104,7 +104,7 @@ def remove_oversubscription(
     >>> price_vector = {"c1": 0, "c2": 0, "c3": 0}
     >>> epsilon = 0.1
     >>> student_budgets = {"Alice": 2.2, "Bob": 2.1, "Tom": 2.0}
-    >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, course_demands)
+    >>> remove_oversubscription(allocation, price_vector, student_budgets, epsilon, compute_surplus_demand_for_each_course)
     {'c1': 2.0125, 'c2': 0.21113281250000004, 'c3': 2.0125}
     """
     logger.info("Starting remove oversubscription algorithm")
@@ -127,7 +127,7 @@ def remove_oversubscription(
     )
     logger.info("Preferred schedule determined")
     while True:
-        excess_demands = course_demands(price_vector, allocation, student_budgets, preferred_schedule)
+        excess_demands = compute_surplus_demand_for_each_course(price_vector, allocation, student_budgets, preferred_schedule)
         highest_demand_course = max(excess_demands, key=excess_demands.get)
         highest_demand = excess_demands[highest_demand_course]
         logger.debug('Highest demand course: %s with demand %g', highest_demand_course, highest_demand)
@@ -143,7 +143,7 @@ def remove_oversubscription(
         while high_price - low_price >= epsilon:
             p_mid = (low_price + high_price) / 2
             price_vector[highest_demand_course] = p_mid
-            current_demand = course_demands(price_vector, allocation, student_budgets, preferred_schedule)[highest_demand_course]
+            current_demand = compute_surplus_demand_for_each_course(price_vector, allocation, student_budgets, preferred_schedule)[highest_demand_course]
             logger.debug('Mid price set to %g, current demand %g', p_mid, current_demand)
             if current_demand > d_star:
                 low_price = p_mid
@@ -194,4 +194,4 @@ if __name__ == "__main__":
         agent_conflicts,
     )
     # print(preferred_schedule)
-    # remove_oversubscription(allocation, price_vector, student_budgets, epsilon, course_demands)
+    # remove_oversubscription(allocation, price_vector, student_budgets, epsilon, compute_surplus_demand_for_each_course)
