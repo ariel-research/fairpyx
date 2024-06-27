@@ -8,6 +8,9 @@ import logging
 cimport numpy as np
 cimport cython
 
+# to run this code, you need to run the setup.py -> open cmd and type:
+# python setup.py build_ext --inplace
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def second_improved_high_multiplicity_fair_allocation(object alloc):
