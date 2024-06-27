@@ -3,7 +3,7 @@ from fairpyx.algorithms.heterogeneous_matroid_constraints_algorithms import *
 import experiments_csv
 import logging
 
-experiments_csv.logger.setLevel(logging.INFO)
+#experiments_csv.logger.setLevel(logging.INFO)
 #Experiment 1 : single  category friendly ->>[per_category_round_robin,capped_round_robin,per_category_capped_round_robin]
 expr1= experiments_csv.Experiment('results/', 'experiment1.csv')
 expr1.clear_previous_results()
