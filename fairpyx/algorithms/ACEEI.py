@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 # ---------------------The main function---------------------
 
-def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta: float, epsilon: float, t: Enum):
+def find_ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
     """
     ALGORITHM 1: find an A-CEEI with (contested) EF-TB property
 
@@ -123,6 +123,13 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, initial_budgets: dict, delta:
     # allocation = [[0 for _ in range(instance.num_of_agents)] for _ in range(instance.num_of_items)]
     # 1) init prices vector to be 0
     logger.info("START ACEEI")
+
+    initial_budgets = kwargs.get('initial_budgets')
+    delta = kwargs.get('delta')
+    epsilon = kwargs.get('epsilon')
+    t = kwargs.get('t')
+
+
     prices = {key: 0 for key in alloc.remaining_items()}
     clearing_error = 1
     new_budgets = {}

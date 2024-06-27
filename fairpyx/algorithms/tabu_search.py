@@ -24,7 +24,7 @@ logger.setLevel(logging.DEBUG)
 
 
 # ---------------------The main function---------------------
-def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, delta: set):
+def tabu_search(alloc: AllocationBuilder, **kwargs):
     """
     ALGORITHM 3: Tabu search
 
@@ -92,6 +92,10 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     """
     logger.info("START ALGORITHM")
     logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅")
+
+    initial_budgets = kwargs.get('initial_budgets')
+    beta = kwargs.get('beta')
+    delta = kwargs.get('delta')
 
     prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
     history = []
