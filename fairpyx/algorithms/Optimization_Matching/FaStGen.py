@@ -43,9 +43,14 @@ def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:d
     >>> divide(FaStGen, instance=instance, agents_valuations=U, items_valuations=V)
     {"c1" : ["s1","s2","s3","s4"], "c2" : ["s5"], "c3" : ["s6"], "c4" : ["s7"]}
     """
+    logger.info("Starting FaStGen algorithm")
+    
     S = alloc.instance.agents
     C = alloc.instance.items
     match = create_stable_matching(len(S), len(C))
+
+    logger.debug(f"Initial match: {match}")
+
     UpperFix = [C[1]]
     LowerFix = [C[len(C)]]
     SoftFix = []
@@ -59,8 +64,11 @@ def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:d
         down = min(valuations_sum for key, valuations_sum in matching_valuations_sum.items() if key in UnFixed)
         SoftFix = [pair for pair in SoftFix if not (pair[1] <= up < pair[0])]
         
+        logger.debug(f"UpperFix: {UpperFix}, LowerFix: {LowerFix}, SoftFix: {SoftFix}, UnFixed: {UnFixed}")
+
         if (len(match[up]) == 1) or (matching_valuations_sum[up] <= matching_valuations_sum[down]):
             LowerFix.append(up)
+            logger.info(f"Added {up} to LowerFix")
         else:
             #check the lowest-rank student who currently belongs to mu(c_{down-1})
             agant_to_demote = get_lowest_ranked_student(down-1, match, items_valuations)
@@ -70,23 +78,28 @@ def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:d
             if compare_leximin(match_leximin_tuple, _match_leximin_tuple):
                 match = _match  
                 matching_valuations_sum = update_matching_valuations_sum(match=match,items_valuations=items_valuations, agents=S, items=C)
+                logger.debug(f"Match updated: {match}")
             elif sourceDec(_match, match) == up:
                 LowerFix.append(up)
                 UpperFix.append(up + 1)
+                logger.info(f"Updated LowerFix and UpperFix with {up}")
             elif sourceDec(_match, match) in alloc.instance.agents:
                 t = match[sourceDec(_match, match)]
                 LowerFix.append(t)
                 UpperFix.append(t+1)
                 A = [j for j in UnFixed if (j > t + 1)]
                 SoftFix.extend((j, t+1) for j in A)
+                logger.info(f"Updated LowerFix and UpperFix with {t}")
             else:
                 match, LowerFix, UpperFix, SoftFix = LookAheadRoutine((S, C, agents_valuations, items_valuations), match, down, LowerFix, UpperFix, SoftFix)
+                logger.debug(f"LookAheadRoutine result: match={match}, LowerFix={LowerFix}, UpperFix={UpperFix}, SoftFix={SoftFix}")
     UnFixed = [
         j for j in alloc.instance.items 
         if (j not in UpperFix) or 
         any((j, _j) not in SoftFix for _j in alloc.instance.items if _j > j)
         ]
 
+    logger.info("Finished FaStGen algorithm")
     return match
 
 def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list, SoftFix:list)->tuple:
@@ -138,15 +151,23 @@ def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list
     UF = UpperFix.copy()
     _match = match.copy()
 
+    logger.info("Starting LookAheadRoutine")
+    logger.debug(f"Initial parameters - match: {match}, down: {down}, LowerFix: {LowerFix}, UpperFix: {UpperFix}, SoftFix: {SoftFix}")
+
     matching_valuations_sum = update_matching_valuations_sum(match=_match,items_valuations=items_valuations, agents=agents, items=items)
 
     while len(LF) + len([item for item in UF if item not in LF]) < len(items) - 1:
         up = min([j for j in items if j not in LowerFix])
+        logger.debug(f"Selected 'up': {up}")
+
         if (len(match[up]) == 1) or (matching_valuations_sum[up] <= matching_valuations_sum[down]):
             LF.append(up)
+            logger.info(f"Appended {up} to LowerFix")
         else:
             #check the lowest-rank student who currently belongs to mu(c_{down-1})
-            agant_to_demote = get_lowest_ranked_student(down-1, match)
+            agant_to_demote = get_lowest_ranked_student(down-1, match, items_valuations)
+            logger.debug(f"Agent to demote: {agant_to_demote}")
+            
             _match = Demote(_match, agant_to_demote, up, down)
             matching_valuations_sum = update_matching_valuations_sum(match=_match,items_valuations=items_valuations, agents=agents, items=items)
             _match_leximin_tuple = create_leximin_tuple(match=_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
@@ -155,17 +176,23 @@ def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list
                 match = _match
                 LowerFix = LF
                 UpperFix = UF
+                logger.info("Updated match and fixed LowerFix and UpperFix")
                 break
             elif sourceDec(_match, match) == up:
                 LF.append(up)
                 UF.append(up + 1)
+                logger.info(f"Appended {up} to LowerFix and {up+1} to UpperFix")
             elif sourceDec(_match, match) in agents:
                     t = _match[sourceDec(_match, match)]
                     if t == down:
                         UpperFix.append(down)
                     else:
                         SoftFix.append((down, t))
+                        logger.info(f"Appended {down} to UpperFix or SoftFix")
                     break
+            
+    logger.info("Completed LookAheadRoutine")
+    logger.debug(f"Final result - match: {match}, LowerFix: {LowerFix}, UpperFix: {UpperFix}, SoftFix: {SoftFix}")
     return (match, LowerFix, UpperFix, SoftFix)
 
 def create_leximin_tuple(match:dict, agents_valuations:dict, items_valuations:dict):
@@ -357,34 +384,33 @@ def create_stable_matching(agents_size, items_size):
 
     
 if __name__ == "__main__":
-    import doctest, sys
-    print(doctest.testmod())
+    # import doctest, sys
+    # print(doctest.testmod())
     # Define the instance
-    # S = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
-    # C = ["c1", "c2", "c3", "c4"]
-    # V = {       #the colleges valuations
-    #     "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
-    #     "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
-    #     "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
-    #     "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}
-    # }                               
-    # U = {       #the students valuations   
-    #     "s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, 
-    #     "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, 
-    #     "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, 
-    #     "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},
-    #     "s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, 
-    #     "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, 
-    #     "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}
-    # }     
+    S = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
+    C = ["c1", "c2", "c3", "c4"]
+    V = {       #the colleges valuations
+        "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
+        "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
+        "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
+        "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}
+    }                               
+    U = {       #the students valuations   
+        "s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, 
+        "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, 
+        "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, 
+        "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},
+        "s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, 
+        "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, 
+        "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}
+    }     
                           
     
-    # # Assuming `Instance` can handle student and course preferences directly
-    # instance = Instance(agents=S, items=C)
+    # Assuming `Instance` can handle student and course preferences directly
+    instance = Instance(agents=S, items=C)
 
-    # # Run the FaStGen algorithm
-    # allocation = FaStGen(instance, agents_valuations=U, items_valuations=V)
-    # print(allocation)
-    # # Define the expected allocation (this is hypothetical; you should set it based on the actual expected output)
-    # expected_allocation = {"c1" : ["s1","s2","s3","s4"], "c2" : ["s5"], "c3" : ["s6"], "c4" : ["s7"]}
-
+    # Run the FaStGen algorithm
+    allocation = FaStGen(instance, agents_valuations=U, items_valuations=V)
+    print(allocation)
+    # Define the expected allocation (this is hypothetical; you should set it based on the actual expected output)
+    expected_allocation = {"c1" : ["s1","s2","s3","s4"], "c2" : ["s5"], "c3" : ["s6"], "c4" : ["s7"]}
