@@ -92,6 +92,7 @@ def tabu_search(alloc: AllocationBuilder, initial_budgets: dict, beta: float, de
     """
     logger.info("START ALGORITHM")
     logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅")
+
     prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
     history = []
 
