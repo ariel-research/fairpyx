@@ -1,0 +1,25 @@
+equal_capacities,category_count,item_capacity_bounds,random_seed_num,binary_valuations,algorithm,allocation,runtime
+True,1,"(1, 100)",0,True,per_category_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.00042335299986
+True,1,"(1, 100)",0,True,capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0002438439987599
+True,1,"(1, 100)",0,True,per_category_capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.000377035999918
+True,1,"(1, 100)",0,True,iterated_priority_matching,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0029147120003472
+False,1,"(1, 100)",0,True,per_category_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0003840650006168
+False,1,"(1, 100)",0,True,capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0002425410002615
+False,1,"(1, 100)",0,True,per_category_capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0003704020000441
+False,1,"(1, 100)",0,True,iterated_priority_matching,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0030746199990971
+True,1,"(1, 100)",0,True,per_category_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0004672939994634
+True,1,"(1, 100)",0,True,capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0003118299991911
+True,1,"(1, 100)",0,True,per_category_capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0004175289996055
+True,1,"(1, 100)",0,True,iterated_priority_matching,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0029809219995513
+False,1,"(1, 100)",0,True,per_category_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0004667970006266
+False,1,"(1, 100)",0,True,capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0002358140009164
+False,1,"(1, 100)",0,True,per_category_capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0004209960006846
+False,1,"(1, 100)",0,True,iterated_priority_matching,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0031706070003565
+True,1,"(1, 100)",0,True,per_category_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0004075979995832313
+True,1,"(1, 100)",0,True,capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0003232969993405277
+True,1,"(1, 100)",0,True,per_category_capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0005364259995985776
+True,1,"(1, 100)",0,True,iterated_priority_matching,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0030010949994903058
+False,1,"(1, 100)",0,True,per_category_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.00037755199991806876
+False,1,"(1, 100)",0,True,capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.00022731599892722443
+False,1,"(1, 100)",0,True,per_category_capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.00040264900053443853
+False,1,"(1, 100)",0,True,iterated_priority_matching,"{'Agent1': {'m1'}, 'Agent2': {'m1'}, 'Agent3': {'m1'}, 'Agent4': {'m1'}, 'Agent5': {'m1'}, 'Agent6': {'m1'}}",0.0032725429991842248

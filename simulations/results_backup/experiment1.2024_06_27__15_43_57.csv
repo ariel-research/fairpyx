@@ -1,0 +1,4 @@
+equal_capacities,category_count,item_capacity_bounds,random_seed_num,algorithm,allocation,runtime
+True,1,"(1, 1)",0,per_category_round_robin,"{'Agent1': set(), 'Agent2': set(), 'Agent3': {'m1'}, 'Agent4': set(), 'Agent5': set(), 'Agent6': set()}",0.0013877599994884804
+True,1,"(1, 1)",0,capped_round_robin,"{'Agent1': {'m1'}, 'Agent2': set(), 'Agent3': set(), 'Agent4': set(), 'Agent5': set(), 'Agent6': set()}",0.00014883899893902708
+True,1,"(1, 1)",0,per_category_capped_round_robin,"{'Agent1': set(), 'Agent2': set(), 'Agent3': set(), 'Agent4': {'m1'}, 'Agent5': set(), 'Agent6': set()}",0.0002640729999257019
