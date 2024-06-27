@@ -11,9 +11,9 @@ Naama Shiponi and Ben Dabush
 import logging
 logger = logging.getLogger(__name__)
 from fairpyx.algorithms.CM.A_CEEI import (
-    course_demands,
+    compute_surplus_demand_for_each_course,
     find_best_schedule,
-    find_preferred_schedule,
+    find_preference_order_for_each_student,
 )
 from fairpyx.instances import Instance
 from fairpyx.allocations import AllocationBuilder
@@ -36,11 +36,11 @@ def reduce_undersubscription(allocation: AllocationBuilder, price_vector: dict, 
     """
     logger.info("Starting reduce undersubscription algorithm (algorithm 3).")
     item_conflicts, agent_conflicts = calculate_conflicts(allocation)
-    preferred_schedule = find_preferred_schedule(allocation.instance._valuations, allocation.instance._agent_capacities, item_conflicts, agent_conflicts)
+    preferred_schedule = find_preference_order_for_each_student(allocation.instance._valuations, allocation.instance._agent_capacities, item_conflicts, agent_conflicts)
     logger.debug('Preferred schedule calculated: %s', preferred_schedule)
 
     # Calculate the demand for each course based on the price vector and student budgets
-    course_demands_dict = course_demands(price_vector, allocation, student_budgets, preferred_schedule)  
+    course_demands_dict = compute_surplus_demand_for_each_course(price_vector, allocation, student_budgets, preferred_schedule)  
     logger.info('Course demands calculated: %s', course_demands_dict)
 
     # Identify undersubscribed courses (courses with negative demand)
@@ -217,7 +217,7 @@ def allocation_function(allocation: AllocationBuilder, student: str, student_all
     limited_student_valuations = filter_valuations_for_courses(allocation, student, student_allocation)
     item_conflicts, agent_conflicts = calculate_conflicts(allocation)
     agent_capacities = {student: allocation.instance._agent_capacities[student]}
-    preferred_schedule = find_preferred_schedule(limited_student_valuations, agent_capacities, item_conflicts, agent_conflicts)
+    preferred_schedule = find_preference_order_for_each_student(limited_student_valuations, agent_capacities, item_conflicts, agent_conflicts)
     limited_price_vector = {course: price for course, price in price_vector.items() if course in student_allocation}
     new_allocation = find_best_schedule(limited_price_vector, student_budget, preferred_schedule)
     new_allocation_dict = create_dictionary_of_schedules(new_allocation, student_allocation, agent_capacities.keys())

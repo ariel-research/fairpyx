@@ -14,8 +14,6 @@ import numpy as np
 from fairpyx import Instance, AllocationBuilder
 from itertools import combinations
 
-# Set up logging
-# logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 """
@@ -45,8 +43,8 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed =
     start_time = time.time()
     steps = [0.1, 0.2, 0.3, 0.4, 0.5]  # Example step sizes, can be adjusted
 
-    preferred_schedule = before_find_preferred_schedule(alloc)
-    logging.debug("Calling before_find_preferred_schedule %s",preferred_schedule)
+    preferred_schedule = find_preferred_schedule_adapter(alloc)
+    A_CEEI.logger.debug("Calling find_preferred_schedule_adapter %s",preferred_schedule)
     
     counter = 0
     while time.time() - start_time < time_limit :
@@ -54,22 +52,22 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed =
         price_vector = initialize_price_vector(budget)
         logging.debug("Initialized price vector: %s", price_vector)
 
-        search_error = alpha(course_demands(price_vector, alloc, budget, preferred_schedule))
+        search_error = alpha(compute_surplus_demand_for_each_course(price_vector, alloc, budget, preferred_schedule))
         logging.debug("Initial search error: %f", search_error)
 
         tabu_list = []
         c = 0
-        while c < 5:    
+        while c < 5:
             neighbors = find_neighbors(price_vector, alloc, budget, steps, preferred_schedule)
             logging.debug("Found %d neighbors : %s", len(neighbors), neighbors)
            
             while neighbors:
                 next_price_vector = neighbors.pop(0)
-                next_demands = course_demands(next_price_vector, alloc, budget, preferred_schedule)
+                next_demands = compute_surplus_demand_for_each_course(next_price_vector, alloc, budget, preferred_schedule)
 
                 if next_demands not in tabu_list:
                     break
-           
+ 
             if not neighbors: #if there are neighbors is empty
                 c = 5
             else:
@@ -91,13 +89,15 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed =
                     logging.info("New best price vector found with error: %f", best_error)
     logging.info("A-CEEI algorithm completed. Best price vector: %s with error: %f", best_price_vector, best_error)      
     return best_price_vector
-   
+
+A_CEEI.logger = logging.getLogger("A_CEEI")
 
 
-def find_preferred_schedule(valuations:dict, agent_capacities:dict, item_conflicts:dict, agent_conflicts:dict):
+def find_preference_order_for_each_student(valuations:dict, agent_capacities:dict, item_conflicts:dict, agent_conflicts:dict):
     """
-    Find the preferred schedule for each student.
-
+    Finds, for each student, the complete preference ordering on all possible schedules.
+    This is a pre-processing step: we compute all preference ordering once, and then use it to find the best schedule that fits the budget.
+    
     :param valuations: Dictionary of valuations.
     :param agent_capacities: Dictionary of agent capacities.
     :param item_conflicts: Dictionary of item conflicts.
@@ -110,33 +110,33 @@ def find_preferred_schedule(valuations:dict, agent_capacities:dict, item_conflic
     >>> item_conflicts = {"c1": ["c2"], "c2": ["c1"], "c3": []}
     >>> agent_conflicts = {"Alice": ["c2"], "Bob": [], "Tom": []}
     >>> valuations = {"Alice": {"c1": 90, "c2": 60, "c3": 50}, "Bob": {"c1": 50, "c2": 81, "c3": 60}, "Tom": {"c1": 100, "c2": 95, "c3": 30}}
-    >>> find_preferred_schedule(valuations, agent_capacities, item_conflicts, agent_conflicts)
+    >>> find_preference_order_for_each_student(valuations, agent_capacities, item_conflicts, agent_conflicts)
     {'Alice': [[1, 0, 1], [1, 0, 0], [0, 0, 1]], 'Bob': [[0, 1, 1], [1, 0, 1], [0, 1, 0], [0, 0, 1], [1, 0, 0]], 'Tom': [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}
     """
     
-    logging.info("Finding preferred schedule for each student")
+    logging.info("Finding preference order for each student")
+
     def is_valid_schedule(schedule, item_conflicts, agent_conflicts, agent):
         logging.debug("Checking if schedule is valid, schedule: %s , item_conflicts: %s, agent_conflicts: %s, agent: %s ", schedule, item_conflicts, agent_conflicts, agent)
         # Check item conflicts
         for item, conflicts in item_conflicts.items():
             # print(f"Item: {item}, Conflicts: {conflicts}")  # Debug print
             if schedule.get(item, 0) == 1:
-                for conflict in conflicts:
-                    if schedule.get(conflict, 0) == 1:
+                for conflicted_item in conflicts:
+                    if schedule.get(conflicted_item, 0) == 1:
                         return False
         # Check agent conflicts
-        for conflict in agent_conflicts.get(agent, []):
+        for conflicted_item in agent_conflicts.get(agent, []):
             # print(f"Agent: {agent}, Conflict: {conflict}")  # Debug print
-            if schedule.get(conflict, 0) == 1:
+            if schedule.get(conflicted_item, 0) == 1:
                 return False
         return True
     
     def generate_all_schedules(items, capacity):
             logging.debug("Generating all possible schedules for items: %s and capacity: %s", items, capacity)
-
             all_schedules = []
-            for i in range(1, capacity + 1):
-                for schedule in combinations(items, i):
+            for num_courses_per_agent in range(1, capacity + 1):
+                for schedule in combinations(items, num_courses_per_agent):
                     schedule_dict = {item: 1 if item in schedule else 0 for item in items}
                     all_schedules.append(schedule_dict)
             return all_schedules
@@ -149,7 +149,7 @@ def find_preferred_schedule(valuations:dict, agent_capacities:dict, item_conflic
         all_schedules = generate_all_schedules(items, capacity)
         valid_schedules = [schedule for schedule in all_schedules if is_valid_schedule(schedule, item_conflicts, agent_conflicts, agent)]
         logging.debug("Valid schedules for agent %s: %s", agent, valid_schedules)
-        
+
         # Calculate valuations for valid schedules
         schedule_valuations = {}
         for schedule in valid_schedules:
@@ -164,7 +164,7 @@ def find_preferred_schedule(valuations:dict, agent_capacities:dict, item_conflic
                 schedule_valuations[val] = sorted(schedule_valuations.get(val), key=lambda x: sum(x), reverse=True)
 
         # Collect sorted schedules
-        sorted_schedules = []     
+        sorted_schedules = []
 
         for val in sorted_valuations:
             for schedule in schedule_valuations.get(val):
@@ -177,12 +177,12 @@ def find_preferred_schedule(valuations:dict, agent_capacities:dict, item_conflic
 
 
 
-def course_demands(price_vector: dict ,alloc: AllocationBuilder,  budget : dict, preferred_schedule: dict):
+def compute_surplus_demand_for_each_course(price_vector: dict ,alloc: AllocationBuilder,  budget : dict, preferred_schedule: dict):
     """
     :param price_vector: List of prices.
     :param allocation: Allocation object.
     :param budget: Dictionary of budgets.
-    :param preferred_schedule: Dictionary of preferred schedules.
+    :param preferred_schedule: Dictionary that maps each student to his preference order on schedules.
 
     :return (dict) Dictionary of course demands.
 
@@ -199,11 +199,9 @@ def course_demands(price_vector: dict ,alloc: AllocationBuilder,  budget : dict,
     >>> allocation = AllocationBuilder(instance)
     >>> price_vector = {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
     >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
-    >>> preferred_schedule = before_find_preferred_schedule(allocation)
-    >>> course_demands(price_vector,allocation , budget, preferred_schedule)
+    >>> preferred_schedule = find_preferred_schedule_adapter(allocation)
+    >>> compute_surplus_demand_for_each_course(price_vector,allocation , budget, preferred_schedule)
     {'c1': 2, 'c2': -1, 'c3': 0}
-
-    
     """
     logging.info("Calculating course demands")
     best_schedules = find_best_schedule(price_vector, budget, preferred_schedule)
@@ -316,18 +314,18 @@ def find_neighbors(price_vector: dict ,alloc: AllocationBuilder, budget : dict, 
     >>> price_vector = {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
     >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
     >>> steps = [0.1, 0.2]
-    >>> preferred_schedule = before_find_preferred_schedule(allocation)
+    >>> preferred_schedule = find_preferred_schedule_adapter(allocation)
     >>> find_neighbors(price_vector, allocation, budget, steps, preferred_schedule)
     [{'c1': 1.2, 'c2': 0.9, 'c3': 1.0}, {'c1': 1.4, 'c2': 0.8, 'c3': 1.0}, {'c1': 1.1, 'c2': 1.0, 'c3': 1.0}, {'c1': 1.0, 'c2': 0.0, 'c3': 1.0}]
 
     """
     logging.info("Finding neighbors for price vector: %s", price_vector)
-    demands = course_demands(price_vector, alloc, budget, preferred_schedule)
+    demands = compute_surplus_demand_for_each_course(price_vector, alloc, budget, preferred_schedule)
     list_of_neighbors = generate_gradient_neighbors(price_vector, demands, steps)
     list_of_neighbors.extend(generate_individual_adjustment_neighbors(price_vector, alloc, demands, budget, preferred_schedule))
 
     #sort list_of_neighbors dict values by alpha
-    sorted_neighbors = sorted(list_of_neighbors, key=lambda neighbor: alpha(course_demands(neighbor, alloc, budget, preferred_schedule)))
+    sorted_neighbors = sorted(list_of_neighbors, key=lambda neighbor: alpha(compute_surplus_demand_for_each_course(neighbor, alloc, budget, preferred_schedule)))
     logging.debug("Sorted neighbors: %s", sorted_neighbors)
     return sorted_neighbors
 
@@ -357,7 +355,7 @@ def generate_individual_adjustment_neighbors(price_vector: dict, alloc: Allocati
     >>> allocation = AllocationBuilder(instance)
     >>> price_vector = {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
     >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
-    >>> preferred_schedule = before_find_preferred_schedule(allocation)
+    >>> preferred_schedule = find_preferred_schedule_adapter(allocation)
     >>> demands = {'c1': 2, 'c2': -1, 'c3': 0}
     >>> generate_individual_adjustment_neighbors(price_vector, allocation, demands, budget, preferred_schedule)
     [{'c1': 1.1, 'c2': 1.0, 'c3': 1.0}, {'c1': 1.0, 'c2': 0.0, 'c3': 1.0}]
@@ -377,7 +375,7 @@ def generate_individual_adjustment_neighbors(price_vector: dict, alloc: Allocati
             elif demands.get(k) < 0:
                 new_price_vector.update({k: 0.0})
                 break
-            new_demands = course_demands(new_price_vector, alloc, budget, preferred_schedule)
+            new_demands = compute_surplus_demand_for_each_course(new_price_vector, alloc, budget, preferred_schedule)
             counter+=1
         neighbors.append(new_price_vector.copy())  # Ensure to append a copy
 
@@ -423,32 +421,31 @@ def generate_gradient_neighbors(price_vector: dict, demands: dict, steps: list):
     neighbors = []
     for step in steps:
         new_price_vector = {}
-        for k in price_vector.keys():
-            if price_vector.get(k) + (step * demands.get(k))<=0:
-                new_price_vector.update({k: 0.0})
-            else:
-                new_price_vector.update({k: price_vector.get(k) + (step * demands.get(k))})
+        for k,p in price_vector.items():
+            new_price_vector[k] = max(0.0, p + (step * demands[k]))
 
         # new_price_vector = {k: price_vector.get(k) + (step * demands.get(k)) for k in price_vector.keys()}
         neighbors.append(new_price_vector)
         logging.debug("Gradient neighbors: %s", neighbors)
     return neighbors  
 
-def before_find_preferred_schedule(alloc: AllocationBuilder):
+def find_preferred_schedule_adapter(alloc: AllocationBuilder):
     logging.info("Preparing to find preferred schedule")
     item_conflicts={item:  alloc.instance.item_conflicts(item) for item in alloc.instance.items}
     agent_conflicts={agent:  alloc.instance.agent_conflicts(agent) for agent in alloc.instance.agents}
-    return find_preferred_schedule(alloc.instance._valuations , alloc.instance._agent_capacities , item_conflicts , agent_conflicts)
+    return find_preference_order_for_each_student(alloc.instance._valuations , alloc.instance._agent_capacities , item_conflicts , agent_conflicts)
     
 
 if __name__ == "__main__":
     import doctest
     print(doctest.testmod())
 
+    # logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
+
     # instance = Instance(
     #   agent_conflicts = {"Alice": [], "Bob": [], "Tom": []},
     #   item_conflicts = {"c1": [], "c2": [], "c3": []},
-    #   agent_capacities = {"Alice": 1, "Bob": 1, "Tom": 1}, 
+    #   agent_capacities = {"Alice": 1, "Bob": 2, "Tom": 3}, 
     #   item_capacities  = {"c1": 1, "c2": 1, "c3": 1},
     #   valuations = {"Alice": {"c1": 100, "c2": 0, "c3": 0},
     #                 "Bob": {"c1": 0, "c2": 100, "c3": 0},

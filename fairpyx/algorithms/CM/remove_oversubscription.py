@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 from fairpyx.instances import Instance
 from fairpyx.allocations import AllocationBuilder
 from fairpyx.algorithms.CM.A_CEEI import (
-    course_demands,
+    compute_surplus_demand_for_each_course,
     find_best_schedule,
-    find_preferred_schedule,
+    find_preference_order_for_each_student,
 )
 
 """
@@ -27,7 +27,7 @@ def remove_oversubscription(
     price_vector: dict,
     student_budgets: dict,
     epsilon: float = 0.1,
-    course_demands: callable = course_demands,
+    course_demands: callable = compute_surplus_demand_for_each_course,
 ):
     """
     Perform oversubscription elimination to adjust course prices.
@@ -119,7 +119,7 @@ def remove_oversubscription(
         for agent in allocation.instance.agents
     }
 
-    preferred_schedule = find_preferred_schedule(
+    preferred_schedule = find_preference_order_for_each_student(
         allocation.instance._valuations,
         allocation.instance._agent_capacities,
         item_conflicts,
@@ -187,7 +187,7 @@ if __name__ == "__main__":
         for agent in allocation.instance.agents
     }
 
-    preferred_schedule = find_preferred_schedule(
+    preferred_schedule = find_preference_order_for_each_student(
         allocation.instance._valuations,
         allocation.instance._agent_capacities,
         item_conflicts,
