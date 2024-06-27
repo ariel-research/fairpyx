@@ -53,7 +53,6 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                             equal_capacities: bool = False
                             , equal_valuations: bool = False
                             ) -> tuple[Instance, dict, dict, list]:
-    np.random.seed(random_seed)
     #logger.info(f'{np.random.randint(100)}') works fine gives same number !
     result_instance = Instance.random_uniform(num_of_agents=num_of_agents,
                                               num_of_items=num_of_items,
@@ -66,7 +65,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                                               item_name_template=item_name_template,
                                               random_seed=random_seed)
     initial_agent_order = [agent for agent in result_instance.agents]
-    random.shuffle(initial_agent_order) # randomizing initial_agent_order#✅
+    np.random.shuffle(initial_agent_order) # randomizing initial_agent_order#✅
 
     category_string_template = "c{cat}"
     categories = {category_string_template.format(cat=cat+1): [] for cat in range(num_of_categories)}
