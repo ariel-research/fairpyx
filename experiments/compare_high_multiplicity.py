@@ -5,29 +5,39 @@ Programmer: Naor Ladani & Elor Israeli
 Since: 2024-06
 """
 import experiments_csv
-import pandas as pd
+from pandas import read_csv
 import matplotlib.pyplot as plt
 from fairpyx import divide, AgentBundleValueMatrix, Instance
 import fairpyx.algorithms.high_multiplicity_fair_allocation as high
 import fairpyx.algorithms.improved_high_multiplicity as imp
 import fairpyx.algorithms.second_improved_high_multiplicity as sec_imp
-
 import json
 from typing import *
 import numpy as np
-
+# from eefpy import Objective, EnvyNotion
+# from eefpy import solve as solve
 max_value = 100
 normalized_sum_of_values = 100
 TIME_LIMIT = 60
 
 # Define the specific algorithm you want to check
-algorithms = [high.high_multiplicity_fair_allocation,
-              imp.improved_high_multiplicity_fair_allocation,
-              sec_imp.second_improved_high_multiplicity_fair_allocation
+# algorithms = [solve,
+#               high.high_multiplicity_fair_allocation,
+#               imp.improved_high_multiplicity_fair_allocation
+#               ]
+algorithms = [
+              high.high_multiplicity_fair_allocation,
+              imp.improved_high_multiplicity_fair_allocation
               ]
 
-
 def evaluate_algorithm_on_instance(algorithm, instance):
+    # if algorithm is solve:
+    #     allocation = solve(solve(num_agents=instance.num_of_agents
+    #                              ,num_types=instance.num_of_items
+    #                              ,agent_utils=instance.agents,
+    #                              items=instance.items,
+    #                              envy=EnvyNotion.EF, obj=Objective.NONE))
+    # else:
     allocation = divide(algorithm, instance)
     matrix = AgentBundleValueMatrix(instance, allocation)
     matrix.use_normalized_values()
@@ -103,11 +113,11 @@ def course_allocation_with_random_instance_sample(
 
 def run_naor_experiment():
     # Run on Ariel sample data:z
-    experiment = experiments_csv.Experiment("results/", "results/course_allocation_naor.csv", backup_folder="results/backup/")
+    experiment = experiments_csv.Experiment("results/", "course_allocation_naor.csv", backup_folder="results/backup/")
     input_ranges = {
         "max_total_agent_capacity": [12],  # in reality: 1115
         "algorithm": algorithms,
-        "random_seed": range(13),
+        "random_seed": range(1),
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_sample, input_ranges, time_limit=TIME_LIMIT)
 
@@ -115,7 +125,7 @@ def run_naor_experiment():
 def create_plot_naor_experiment():
     # קריאת הנתונים מקובץ CSV
     csv_file = 'results/course_allocation_naor.csv'  # החלף בשם הקובץ שלך
-    data = pd.read_csv(csv_file)
+    data = read_csv(csv_file)
 
     # הצגת כמה שורות ראשונות של הנתונים כדי להבין את המבנה שלהם
     print(data.head())
@@ -155,7 +165,7 @@ def create_plot_naor_experiment():
 def create_plot_uniform():
     # קריאת הנתונים מקובץ CSV
     csv_file = 'results/high_multi.csv'  # החלף בשם הקובץ שלך
-    data = pd.read_csv(csv_file)
+    data = read_csv(csv_file)
 
     # הצגת כמה שורות ראשונות של הנתונים כדי להבין את המבנה שלהם
     print(data.head())
