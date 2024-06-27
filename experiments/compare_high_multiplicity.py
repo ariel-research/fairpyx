@@ -27,7 +27,8 @@ TIME_LIMIT = 60
 #               ]
 algorithms = [
               high.high_multiplicity_fair_allocation,
-              imp.improved_high_multiplicity_fair_allocation
+              imp.improved_high_multiplicity_fair_allocation,
+              sec_imp.second_improved_high_multiplicity_fair_allocation
               ]
 
 def evaluate_algorithm_on_instance(algorithm, instance):
