@@ -17,7 +17,6 @@ import pandas as pd
 import ast
 import seaborn as sns
 
-
 max_value = 1000
 normalized_sum_of_values = 1000
 TIME_LIMIT = 100
@@ -71,7 +70,8 @@ def evaluate_algorithm_on_instance(algorithm, instance):
 def create_initial_budgets(num_of_agents: int, beta: float) -> dict:
     # Create initial budgets for each agent, uniformly distributed in the range [1, 1 + beta]
     initial_budgets = np.random.uniform(1, 1 + beta, num_of_agents)
-    return {f's{agent + 1 }': initial_budgets[agent] for agent in range(num_of_agents)}
+    return {f's{agent + 1}': initial_budgets[agent] for agent in range(num_of_agents)}
+
 
 def evaluate_algorithm_on_instance(algorithm, instance, beta, delta):
     initial_budgets = create_initial_budgets(instance.num_of_agents, beta)
@@ -90,15 +90,16 @@ def evaluate_algorithm_on_instance(algorithm, instance, beta, delta):
         "num_with_top_3": matrix.count_agents_with_top_rank(3),
     }
 
+
 ######### EXPERIMENT WITH UNIFORMLY-RANDOM DATA ##########
 
 def course_allocation_with_random_instance_uniform(
-        num_of_agents:int, num_of_items:int,
-        value_noise_ratio:float,
-        beta:float, delta:List[float],
-        algorithm:Callable,
+        num_of_agents: int, num_of_items: int,
+        value_noise_ratio: float,
+        beta: float, delta: List[float],
+        algorithm: Callable,
         random_seed: int):
-    agent_capacity_bounds =  [6, 6]
+    agent_capacity_bounds = [6, 6]
     item_capacity_bounds = [40, 40]
     np.random.seed(random_seed)
     instance = Instance.random_uniform(
@@ -112,7 +113,11 @@ def course_allocation_with_random_instance_uniform(
     return evaluate_algorithm_on_instance(algorithm, instance, beta, delta)
 
 
+######### COMPARING BETA AND DELTA PERFORMANCE ##########
+
 RESULTS_BETA_DELTA_FILE = "results/course_allocation_beta_delta.csv"
+
+
 def run_beta_delta_experiment():
     # Remove existing results file if it exists
     if os.path.exists(RESULTS_BETA_DELTA_FILE):
@@ -131,18 +136,6 @@ def run_beta_delta_experiment():
         "algorithm": [crs.tabu_search],  # only the tabu_search algorithm
         "random_seed": range(5),
     }
-
-    # input_ranges = {
-    #     "num_of_agents": [5],
-    #     "num_of_items": [2],
-    #     "value_noise_ratio": [0.2],
-    #     "beta": [0.1],  # example values for beta
-    #     "delta": [{0.5}],
-    #     # example values for delta
-    #     "algorithm": [crs.tabu_search],  # only the tabu_search algorithm
-    #     "random_seed": range(5),
-    # }
-
     experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges, time_limit=TIME_LIMIT)
 
 
@@ -202,23 +195,7 @@ def plot_speed_vs_beta_and_delta(df):
     plt.tight_layout()
     plt.show()
 
-
-# def plot_performance(df):
-#     # Prepare the data for plotting
-#     df['delta'] = df['delta'].apply(ast.literal_eval)  # Convert string back to set
-#     df['delta'] = df['delta'].apply(lambda x: next(iter(x)))  # Take the first element in the set for simplicity
-#
-#     # Create the plot
-#     plt.figure(figsize=(12, 8))
-#     sns.scatterplot(data=df, x='beta', y='delta', size='max_envy', hue='max_envy', palette='viridis', sizes=(20, 200))
-#     plt.title('Performance Comparison of Algorithm by Beta and Delta')
-#     plt.xlabel('Beta')
-#     plt.ylabel('Delta')
-#     plt.legend(title='Max Envy', bbox_to_anchor=(1.05, 1), loc='upper left')
-#     plt.tight_layout()
-#     plt.show()
-
-
+###########################
 def run_uniform_experiment():
     # Run on uniformly-random data:
     experiment = experiments_csv.Experiment("results/", "course_allocation_uniform.csv",
@@ -318,6 +295,7 @@ def run_ariel_experiment():
         "random_seed": range(10),
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_sample, input_ranges, time_limit=TIME_LIMIT)
+
 
 # def run_check_performance_of_history():
 #     num_of_agents_values = [10, 20]
