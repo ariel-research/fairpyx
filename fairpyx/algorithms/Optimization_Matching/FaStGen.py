@@ -12,7 +12,7 @@ from FaSt import Demote
 import logging
 logger = logging.getLogger(__name__)
 
-def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:dict)->dict:
+def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
     """
     Algorithem 3-FaSt-Gen: finding a match for the general ranked valuations setting.
     
@@ -47,21 +47,26 @@ def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:d
     
     S = alloc.instance.agents
     C = alloc.instance.items
-    match = create_stable_matching(len(S), len(C))
+    agents_valuations = alloc.instance._valuations
+    match = create_stable_matching(S, C)
 
     logger.debug(f"Initial match: {match}")
 
-    UpperFix = [C[1]]
-    LowerFix = [C[len(C)]]
+    UpperFix = [C[0]]
+    LowerFix = [C[len(C)-1]]
     SoftFix = []
     UnFixed = [item for item in C if item not in UpperFix]
 
+    print(set(match))
     #creating a dictionary of vj(µ) = Pi∈µ(cj) for each j in C
     matching_valuations_sum = update_matching_valuations_sum(match=match,items_valuations=items_valuations, agents=S, items=C)
 
     while len(LowerFix) + len([item for item in UpperFix if item not in LowerFix]) < len(C):
         up = min([j for j in C if j not in LowerFix])
-        down = min(valuations_sum for key, valuations_sum in matching_valuations_sum.items() if key in UnFixed)
+        down = min(UnFixed, key=lambda j: matching_valuations_sum[j])
+        print("up: " + up)
+        print("down: " + down)
+        #removing from SoftFix thr pairs (j, j') that meet the requirment j' <= up < j
         SoftFix = [pair for pair in SoftFix if not (pair[1] <= up < pair[0])]
         
         logger.debug(f"UpperFix: {UpperFix}, LowerFix: {LowerFix}, SoftFix: {SoftFix}, UnFixed: {UnFixed}")
@@ -71,11 +76,12 @@ def FaStGen(alloc: AllocationBuilder, agents_valuations:dict, items_valuations:d
             logger.info(f"Added {up} to LowerFix")
         else:
             #check the lowest-rank student who currently belongs to mu(c_{down-1})
-            agant_to_demote = get_lowest_ranked_student(down-1, match, items_valuations)
-            _match = Demote(_match, agant_to_demote, up, down)
+            agant_to_demote = int(get_lowest_ranked_student(str(int(down)-1), match, items_valuations))
+            _match = Demote(match, agant_to_demote, up, down)
+            #creating for each match it's leximin tuple
             _match_leximin_tuple = create_leximin_tuple(match=_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
             match_leximin_tuple = create_leximin_tuple(match=match, agents_valuations=agents_valuations, items_valuations=items_valuations)
-            if compare_leximin(match_leximin_tuple, _match_leximin_tuple):
+            if is_bigger_leximin(match_leximin_tuple, _match_leximin_tuple):
                 match = _match  
                 matching_valuations_sum = update_matching_valuations_sum(match=match,items_valuations=items_valuations, agents=S, items=C)
                 logger.debug(f"Match updated: {match}")
@@ -170,9 +176,10 @@ def LookAheadRoutine(I:tuple, match:dict, down:str, LowerFix:list, UpperFix:list
             
             _match = Demote(_match, agant_to_demote, up, down)
             matching_valuations_sum = update_matching_valuations_sum(match=_match,items_valuations=items_valuations, agents=agents, items=items)
+            #creating for each match it's leximin tuple
             _match_leximin_tuple = create_leximin_tuple(match=_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
             match_leximin_tuple = create_leximin_tuple(match=match, agents_valuations=agents_valuations, items_valuations=items_valuations)
-            if compare_leximin(match_leximin_tuple, _match_leximin_tuple):
+            if is_bigger_leximin(match_leximin_tuple, _match_leximin_tuple):
                 match = _match
                 LowerFix = LF
                 UpperFix = UF
@@ -235,7 +242,7 @@ def create_leximin_tuple(match:dict, agents_valuations:dict, items_valuations:di
     leximin_tuple.sort(key = lambda x: x[1]) 
     return leximin_tuple
 
-def compare_leximin(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->bool:
+def is_bigger_leximin(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->bool:
     """
     Determine whether the leximin tuple of the new match is greater or equal to the leximin tuple of the old match.
 
@@ -357,7 +364,7 @@ def update_matching_valuations_sum(match:dict, items_valuations:dict, agents:lis
         }
     return matching_valuations_sum
 
-def create_stable_matching(agents_size, items_size):
+def create_stable_matching(agents, items):
     """
     Create a stable matching of agents to items.
 
@@ -376,41 +383,44 @@ def create_stable_matching(agents_size, items_size):
     matching = {}
 
     # Assign the first m-1 students to c1
-    matching['c1'] = {f's{i}' for i in range(1, agents_size - items_size + 2)}
+    matching[items[0]] = {agents[i] for i in range(0, len(agents) - len(items) + 1)}
 
     # Assign the remaining students to cj for j >= 2
-    for j in range(2, items_size + 1):
-        matching[f'c{j}'] = {f's{agents_size - (items_size - j)}'}
+    for j in range(1, len(items)):
+        matching[items[j]] = {agents[len(agents) - (len(items) - j)]}
+    
+    return matching
 
     
 if __name__ == "__main__":
     # import doctest, sys
     # print(doctest.testmod())
     # Define the instance
-    S = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
-    C = ["c1", "c2", "c3", "c4"]
+    S = ["1", "2", "3", "4", "5", "6", "7"]
+    C = ["1", "2", "3", "4"]
     V = {       #the colleges valuations
-        "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
-        "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
-        "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
-        "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}
+        "1" : {"1":50,"2":23,"3":21,"4":13,"5":10,"6":6,"7":5}, 
+        "2" : {"1":45,"2":40,"3":32,"4":29,"5":26,"6":11,"7":4}, 
+        "3" : {"1":90,"2":79,"3":60,"4":35,"5":28,"6":20,"7":15},
+        "4" : {"1":80,"2":48,"3":36,"4":29,"5":15,"6":6,"7":1}
     }                               
     U = {       #the students valuations   
-        "s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, 
-        "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, 
-        "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, 
-        "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},
-        "s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, 
-        "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, 
-        "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}
+        "1" : {"1":16,"2":10,"3":6,"4":5}, 
+        "2" : {"1":36,"2":20,"3":10,"4":1}, 
+        "3" : {"1":29,"2":24,"3":12,"4":10}, 
+        "4" : {"1":41,"2":24,"3":5,"4":3},
+        "5" : {"1":36,"2":19,"3":9,"4":6}, 
+        "6" :{"1":39,"2":30,"3":18,"4":7}, 
+        "7" : {"1":40,"2":29,"3":6,"4":1}
     }     
                           
     
     # Assuming `Instance` can handle student and course preferences directly
-    instance = Instance(agents=S, items=C)
+    instance = Instance(agents=S, items=C, valuations=U)
 
+    allocation = AllocationBuilder(instance)
     # Run the FaStGen algorithm
-    allocation = FaStGen(instance, agents_valuations=U, items_valuations=V)
-    print(allocation)
+    match = FaStGen(allocation, items_valuations=V)
+    print(match)
     # Define the expected allocation (this is hypothetical; you should set it based on the actual expected output)
     expected_allocation = {"c1" : ["s1","s2","s3","s4"], "c2" : ["s5"], "c3" : ["s6"], "c4" : ["s7"]}
