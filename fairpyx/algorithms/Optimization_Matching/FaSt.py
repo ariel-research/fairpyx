@@ -12,35 +12,41 @@ logger = logging.getLogger(__name__)
 
 
 
-def Demote(matching, student_index, down, up):
+def Demote(matching:dict, student_index:int, down_index:int, up_index:int)-> dict:
     """
-    Perform the demote operation to maintain stability.
+    Demote algorithm: Adjust the matching by moving a student to a lower-ranked college
+    while maintaining the invariant of a complete stable matching.
+    The Demote algorithm is a helper function used within the FaSt algorithm to adjust the matching while maintaining stability.
 
-    :param matching: The current matching dictionary
-    :param student_index: The student being demoted
-    :param down: The current college of the student
-    :param up: The new college for the student
-    """
+    :param matching: the matchinf of the students with colleges.
+    :param student_index: Index of the student to move.
+    :param down_index: Index of the college to move the student to.
+    :param up_index: Index of the upper bound college.
+
+        # The test is the same as the running example we gave in Ex2.
+#    ...   valuations       = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}},
+
+    >>> matching = {1: [1, 6], 2: [2, 3],3: [4, 5]}
+    >>> UP = 1
+    >>> DOWN = 3
+    >>> I = 2
+    >>> Demote(matching, I, DOWN, UP)
+    {1: [6], 2: [3, 1], 3: [4, 5, 2]}"""
     # Move student to college 'down' while reducing the number of students in 'up'
     # Set t to student_index
     t = student_index
     # Set p to 'down'
-    p = down
-    # Check if the student 't' is in college 'Cp-1'
-    print( "Now demote student", t)
-    print ("t ",t)
-    print( "p " , p)
-    print ("matching[p - 1]: ", matching[p - 1])
+    p = down_index
+
     if t not in matching[p - 1]:
         raise ValueError(f"Student {t} should be in matching to college {p - 1}")
-    # Check that all colleges have at least one student
+        # Check that all colleges have at least one students
     for college, students in matching.items():
         if len(students) < 1:
             raise ValueError(f"All colleges must contain at least 1 student. College number {college} has only {len(students)} students.")
 
     # While p > up
-    while p > up:
-        print ("while loop")
+    while p > up_index:
         # Remove student 't' from college 'cp-1'
         matching[p - 1].remove(t)
         # Add student 't' to college 'cp'
@@ -48,9 +54,157 @@ def Demote(matching, student_index, down, up):
         # Decrement t and p
         t -= 1
         p -= 1
-        print (matching)
 
-    return matching
+    return matching #Return the matching after the change
+
+
+def get_leximin_tuple(matching, V):
+    """
+    Generate the leximin tuple based on the given matching and evaluations,
+    including the sum of valuations for each college.
+
+    :param matching: The current matching dictionary
+    :param V: The evaluations matrix
+    :return: Leximin tuple
+    """
+    leximin_tuple = []
+    college_sums = []
+
+    # Iterate over each college in the matching
+    for college, students in matching.items():
+        college_sum = 0
+        # For each student in the college, append their valuation for the college to the leximin tuple
+        for student in students:
+            valuation = V[student - 1][college - 1]
+            leximin_tuple.append(valuation)
+            college_sum += valuation
+        college_sums.append(college_sum)
+    # Append the college sums to the leximin tuple
+    leximin_tuple.extend(college_sums)
+
+    # Sort the leximin tuple in descending order
+    leximin_tuple.sort(reverse=False)
+
+    return leximin_tuple
+
+
+def get_unsorted_leximin_tuple(matching, V):
+    """
+        Generate the leximin tuple based on the given matching and evaluations,
+        including the sum of valuations for each college.
+
+        :param matching: The current matching dictionary
+        :param V: The evaluations matrix
+        :return: UNSORTED Leximin tuple
+        """
+    leximin_tuple = []
+    college_sums = []
+
+    # Iterate over each college in the matching
+    for college, students in matching.items():
+        college_sum = 0
+        # For each student in the college, append their valuation for the college to the leximin tuple
+        for student in students:
+            valuation = V[student - 1][college - 1]
+            leximin_tuple.append(valuation)
+            college_sum += valuation
+        college_sums.append(college_sum)
+    # Append the college sums to the leximin tuple
+    leximin_tuple.extend(college_sums)
+    return leximin_tuple
+
+
+def build_pos_array(matching, V):
+    """
+    Build the pos array based on the leximin tuple and the matching.
+
+    :param leximin_tuple: The leximin tuple
+    :param matching: The current matching dictionary
+    :param V: The evaluations matrix
+    :return: Pos array
+    """
+    pos = []  # Initialize pos array
+    student_index = 0
+    college_index = 0
+    leximin_unsorted_tuple = get_unsorted_leximin_tuple(matching, V)
+    leximin_sorted_tuple = sorted(leximin_unsorted_tuple)
+    while student_index < len(V):
+        pos_value = leximin_sorted_tuple.index(leximin_unsorted_tuple[student_index])
+        pos.append(pos_value)
+        student_index += 1
+    while college_index < len(matching):
+        pos_value = leximin_sorted_tuple.index(leximin_unsorted_tuple[student_index + college_index])
+        pos.append(pos_value)
+        college_index += 1
+    return pos
+
+
+def create_L(matching):
+    """
+            Create the L list based on the matching.
+        :param matching: The current matching
+        :return: L list
+        """
+    L = []
+
+    # Create a list of tuples (college, student)
+    for college, students in matching.items():
+        for student in students:
+            L.append((college, student))
+
+    return L
+
+
+def build_college_values(matching, V):
+    """
+       Build the college_values dictionary that sums the students' valuations for each college.
+
+       :param matching: The current matching dictionary
+       :param V: The evaluations matrix
+       :return: College values dictionary
+       """
+    college_values = {}
+
+    # Iterate over each college in the matching
+    for college, students in matching.items():
+        college_sum = sum(V[student - 1][college - 1] for student in students)
+        college_values[college] = college_sum
+
+    return college_values
+
+
+def initialize_matching(n, m):
+    """
+       Initialize the first stable matching.
+
+       :param n: Number of students
+       :param m: Number of colleges
+       :return: Initial stable matching
+       """
+    initial_matching = {k: [] for k in range(1, m + 1)}  # Create a dictionary for the matching
+    # Assign the first (n - m + 1) students to the first college (c1)
+    for student in range(1, n - m + 2):
+        initial_matching[1].append(student)
+    # Assign each remaining student to the subsequent colleges (c2, c3, ...)
+    for j in range(2, m + 1):
+        initial_matching[j].append(n - m + j)
+    return initial_matching
+
+def convert_valuations_to_matrix(valuations):
+    """
+    Convert the dictionary of valuations to a matrix format.
+
+    :param valuations: Dictionary of valuations
+    :return: Matrix of valuations
+    """
+    students = sorted(valuations.keys())  # Sort student keys to maintain order
+    colleges = sorted(valuations[students[0]].keys())  # Sort college keys to maintain order
+
+    V = []
+    for student in students:
+        V.append([valuations[student][college] for college in colleges])
+
+    return V
 
 def FaSt(alloc: AllocationBuilder)-> dict:
     """
@@ -61,141 +215,107 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     # We asked to change it to be with 3 courses and 7 students, like in algorithm 3 (FaSt-Gen algo).
 
     >>> from fairpyx.adaptors import divide
-    >>> S = {"s1", "s2", "s3", "s4", "s5", "s6", "s7"} #Student set
-    >>> C = {"c1", "c2", "c3"} #College set
-    >>> V = {
-    ...     "s1": {"c1": 1, "c3": 2, "c2": 3},
-    ...     "s2": {"c2": 1, "c1": 2, "c3": 3},
-    ...     "s3": {"c1": 1, "c3": 2, "c2": 3},
-    ...     "s4": {"c3": 1, "c2": 2, "c1": 3},
-    ...     "s5": {"c2": 1, "c3": 2, "c1": 3},
-    ...     "s6": {"c3": 1, "c1": 2, "c2": 3},
-    ...     "s7": {"c1": 1, "c2": 2, "c3": 3}
-    ... } # V[i][j] is the valuation of Si for matching with Cj
-    >>> instance = Instance(agents=S, items=C, _valuations=V)
-    >>> divide(FaSt, instance=instance)
-    {'s1': ['c1'], 's2': ['c2'], 's3': ['c1'], 's4': ['c3'], 's5': ['c3'], 's6': ['c3'], 's7': ['c2']}
-    """
+    >>> agents = {"s1", "s2", "s3", "s4", "s5", "s6", "s7"} #Student set=S
+    >>> items = {"c1", "c2", "c3"} #College set=C
+    >>> valuation= {"S1": {"c1": 9, "c2": 8, "c3": 7},
+    ... "S2": {"c1": 8, "c2": 7, "c3":6},
+    ... "S3": {"c1": 7, "c2": 6, "c3":5},
+    ... "S4": {"c1": 6, "c2": 5, "c3":4},
+    ... "S5": {"c1": 5, "c2": 4, "c3":3},
+    ... "S6": {"c1": 4, "c2": 3, "c3":2},
+    ... "S7": {"c1": 3, "c2": 2, "c3":1}}# V[i][j] is the valuation of Si for matching with Cj
+    >>> ins = Instance(agents=agents, items=items, valuations=valuation)
+    >>> alloc = AllocationBuilder(instance=ins)
+    >>> FaSt(alloc=alloc)
+    {1: [1,2,3], 2: [5, 4], 3: [7, 6]}"""
+
     S = alloc.instance.agents
     C = alloc.instance.items
     V = alloc.instance._valuations
     # Now V look like this:
     # "Alice": {"c1":2, "c2": 3, "c3": 4},
     # "Bob": {"c1": 4, "c2": 5, "c3": 6}
+    n=len(S)# number of students
+    m = len(C)  # number of colleges
+    i = n - 1  # start from the last student
+    j = m - 1  # start from the last college
+    # Initialize the first stable matching
+    initial_matching = initialize_matching(n, m)
+    # Convert Valuations to only numerical matrix
+    V= convert_valuations_to_matrix(V)
 
-    # Initialize a stable matching
-    matching = initialize_stable_matching(S, C, V)
-    # Compute the initial leximin value and position array
-    leximin_value, pos = compute_leximin_value(matching, V)
+    lex_tupl=get_leximin_tuple(initial_matching,V)
 
-    # Iterate to find leximin optimal stable matching
-    for i in range(len(S) - 1, -1, -1):
-        for j in range(len(C) - 1, 0, -1):
-            # Check if moving student i to college j improves the leximin value
-            if can_improve_leximin(S[i], C[j], V, leximin_value):
-                # If it does improve - perform the demote operation to maintain stability
-                Demote(matching, S[i], C[j-1], C[j])
-                # Recompute the leximin value and position array after the demotion
-                leximin_value, pos = compute_leximin_value(matching, V)
+# Initialize the leximin tuple L and position array pos
+    pos= build_pos_array(initial_matching, V)
 
-    # Return the final stable matching
-    return matching
+    L=create_L(initial_matching)
 
+    college_values=build_college_values(initial_matching,V)
+    print("i: ", i)
+    print("j: ", j)
+    index = 1
+    while i > j - 1 and j > 0:
 
-def can_improve_leximin(student, college, V, leximin_value)-> bool:
-    """
-    Check if moving the student to the college improves the leximin value.
+        print("******** Iteration number ", index, "********")
+        print("i: ", i)
+        print("j: ", j)
+        print("college_values[j+1]: ", college_values[j + 1])
+        print("V[i-1][j]: ", V[i - 1][j])
+        print("college_values: ", college_values)
+        if college_values[j + 1] >= V[i - 1][j]:  ###need to update after each iteration
+            j -= 1
+        else:
+            if college_values[j + 1] < V[i - 1][j]:
+                print("V[i-1][j]:", V[i - 1][j])
+                # if V[i][j - 1] > L[j - 1]:
+                initial_matching = Demote(initial_matching, i, j + 1, 1)
+                print("initial_matching after demote:", initial_matching)
+            else:
+                if V[i][j - 1] < college_values[j]:
+                    j -= 1
+                else:
+                    # Lookahead
+                    k = i
+                    t = pos[i]
+                    µ_prime = initial_matching.copy()
+                    while k > j - 1:
+                        if V[k][j - 1] > L[t - 1]:
+                            i = k
+                            initial_matching = Demote(µ_prime, k, j, 1)
+                            break
+                        elif V[k][j - 1] < college_values[j]:
+                            j -= 1
+                            break
+                        else:
+                            µ_prime = Demote(µ_prime, k, j, 1)
+                            k -= 1
+                            t += 1
+                    if k == j - 1 and initial_matching != µ_prime:
+                        j -= 1
+        # Updates
+        college_values = build_college_values(initial_matching, V)  # Update the college values
+        lex_tupl = get_leximin_tuple(initial_matching, V)
+        print("lex_tupl: ", lex_tupl)
+        L = create_L(initial_matching)
+        print("L:", L)  ################todo : update POS
+        pos = build_pos_array(initial_matching, V)
+        print("pos:", pos)
 
-    :param student: The student being considered for reassignment
-    :param college: The college being considered for the student's reassignment
-    :param V: Valuation matrix where V[i][j] is the valuation of student i for college j
-    :param leximin_value: The current leximin value
-    :return: True if the new leximin value is an improvement, otherwise False
-    """
-    # Get the current value of the student for the new college
-    current_value = V[student - 1][college - 1]  # assuming students and colleges are 1-indexed
-    # Create a copy of the current leximin values
-    new_values = leximin_value[:]
-    # Remove the current value of the student in their current college from the leximin values
-    new_values.remove(current_value)
-    # Add the current value of the student for the new college to the leximin values
-    new_values.append(current_value)
-    # Sort the new leximin values to form the new leximin tuple
-    new_values.sort()
-    # Return True if the new leximin tuple is lexicographically greater than the current leximin tuple
-    return new_values > leximin_value
+        i -= 1
+        index += 1
+        print("END while :")
+        print("i: ", i)
+        print("j: ", j)
 
-
-def update_leximin_value(matching, V)-> list:
-    # Update the leximin value after demotion
-    values = []
-    for college, students in matching.items():
-        for student in students:
-            student_index = student - 1  # assuming students are 1-indexed
-            college_index = college - 1  # assuming colleges are 1-indexed
-            values.append(V[student_index][college_index])
-    values.sort()
-    return values
-
-
-def compute_leximin_value(matching, V)-> tuple:
-    """
-        Compute the leximin value of the current matching.
-
-        This function calculates the leximin value of the current matching by evaluating the
-        valuations of students for their assigned colleges. The leximin value is the sorted
-        list of these valuations. It also returns the position array that tracks the positions
-        of the valuations in the sorted list.
-
-        :param matching: A dictionary representing the current matching where each college is a key and the value is a list of assigned students
-        :param V: Valuation matrix where V[i][j] is the valuation of student i for college j
-        :return: A tuple (values, pos) where values is the sorted list of valuations (leximin value) and pos is the position array
-        """
-
-    values = []# Initialize an empty list to store the valuations
-    for college, students in matching.items():# Iterate over each college and its assigned students in the matching
-        for student in students:# Iterate over each student assigned to the current college
-            student_index = student - 1  # assuming students are 1-indexed
-            college_index = college - 1  # assuming colleges are 1-indexed
-            # Append the student's valuation for the current college to the values list
-            values.append(V[student_index][college_index])
-    # Sort the valuations in non-decreasing order to form the leximin tuple
-    values.sort()
-    pos = [0] * len(values)# Initialize the position array to track the positions of the valuations
-    # Populate the position array with the index of each valuation
-    for idx, value in enumerate(values):
-        pos[idx] = idx
-    # Return the sorted leximin values and the position array
-    return values, pos
+    return initial_matching
 
 
-def initialize_stable_matching(S, C, V)-> dict:
-    """
-       Initialize a student optimal stable matching.
-       This function creates an initial stable matching by assigning students to colleges based on
-       their preferences. The first n - m + 1 students are assigned to the highest-ranked college,
-       and the remaining students are assigned to the other colleges in sequence.
 
-       :param S: List of students
-       :param C: List of colleges
-       :param V: Valuation matrix where V[i][j] is the valuation of student i for college j
-       :return: A dictionary representing the initial stable matching where each college is a key and the value is a list of assigned students
-       """
-    # Get the number of students and colleges
-    n = len(S)
-    m = len(C)
-    # Create an empty matching dictionary where each college has an empty list of assigned students
-    matching = {c: [] for c in C}
 
-    # Assign the first n - m + 1 students to the highest ranked college (C1)
-    for i in range(n - m + 1):
-        matching[C[0]].append(S[i])
 
-    # Assign the remaining students to the other colleges in sequence
-    for j in range(1, m):
-        matching[C[j]].append(S[n - m + j])
 
-    return matching# Return the initialized stable matching
+
 
 
 if __name__ == "__main__":
