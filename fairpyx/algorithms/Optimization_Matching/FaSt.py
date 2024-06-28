@@ -12,11 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 
-def Demote(matching:dict, student_index:int, down_index:int, up_index:int)-> dict:
+def Demote(matching, student_index, down, up):
     """
-    Demote algorithm: Adjust the matching by moving a student to a lower-ranked college
-    while maintaining the invariant of a complete stable matching.
-    The Demote algorithm is a helper function used within the FaSt algorithm to adjust the matching while maintaining stability.
+    Perform the demote operation to maintain stability.
 
     :param matching: the matchinf of the students with colleges.
     :param student_index: Index of the student to move.
@@ -24,19 +22,34 @@ def Demote(matching:dict, student_index:int, down_index:int, up_index:int)-> dic
     :param up_index: Index of the upper bound college.
 
         # The test is the same as the running example we gave in Ex2.
-#    ...   valuations       = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}},
 
-    >>> matching = {1: [1, 6], 2: [2, 3],3: [4, 5]}
-    >>> UP = 1
-    >>> DOWN = 3
-    >>> I = 2
-    >>> Demote(matching, I, DOWN, UP)
-    {1: [6], 2: [3, 1], 3: [4, 5, 2]}"""
+    >>> from fairpyx import AllocationBuilder
+    >>> alloc = AllocationBuilder(agent_capacities={"s1": 1, "s2": 1, "s3": 1, "s4": 1, "s5": 1}, item_capacities={"c1": 1, "c2": 2, "c3": 2})
+    >>> alloc.add_allocation(0, 0)  # s1 -> c1
+    >>> alloc.add_allocation(1, 1)  # s2 -> c2
+    >>> alloc.add_allocation(2, 1)  # s3 -> c2
+    >>> alloc.add_allocation(3, 2)  # s4 -> c3
+    >>> alloc.add_allocation(4, 2)  # s5 -> c3
+    >>> Demote(alloc, 2, 2, 1)
+    >>> alloc.get_allocation()
+    {'s1': ['c1'], 's2': ['c2'], 's3': ['c3'], 's4': ['c3'], 's5': ['c2']}
+    """
     # Move student to college 'down' while reducing the number of students in 'up'
     # Set t to student_index
     t = student_index
     # Set p to 'down'
-    p = down_index
+    p = down
+    # Check if the student 't' is in college 'Cp-1'
+    print( "Now demote student", t)
+    print ("t ",t)
+    print( "p " , p)
+    print ("matching[p - 1]: ", matching[p - 1])
+    if t not in matching[p - 1]:
+        raise ValueError(f"Student {t} should be in matching to college {p - 1}")
+    # Check that all colleges have at least one student
+    for college, students in matching.items():
+        if len(students) < 1:
+            raise ValueError(f"All colleges must contain at least 1 student. College number {college} has only {len(students)} students.")
 
     if t not in matching[p - 1]:
         raise ValueError(f"Student {t} should be in matching to college {p - 1}")
@@ -46,7 +59,8 @@ def Demote(matching:dict, student_index:int, down_index:int, up_index:int)-> dic
             raise ValueError(f"All colleges must contain at least 1 student. College number {college} has only {len(students)} students.")
 
     # While p > up
-    while p > up_index:
+    while p > up:
+        print ("while loop")
         # Remove student 't' from college 'cp-1'
         matching[p - 1].remove(t)
         # Add student 't' to college 'cp'
@@ -54,8 +68,9 @@ def Demote(matching:dict, student_index:int, down_index:int, up_index:int)-> dic
         # Decrement t and p
         t -= 1
         p -= 1
+        print (matching)
 
-    return matching #Return the matching after the change
+    return matching
 
 
 def get_leximin_tuple(matching, V):
