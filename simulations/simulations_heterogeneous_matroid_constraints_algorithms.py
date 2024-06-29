@@ -32,7 +32,7 @@ def experiment1(equal_capacities: bool, category_count: int, item_capacity_bound
 
 
 expr1.run_with_time_limit(experiment1,input_ranges,time_limit=60)
-experiments_csv.single_plot_results('results/experiment1.csv',filter={},x_field='num_of_agents',y_field='runtime',z_field='algorithm',save_to_file='results/experiment1.png')
+#experiments_csv.single_plot_results('results/experiment1.csv',filter={},x_field='num_of_agents',y_field='runtime',z_field='algorithm',save_to_file='results/experiment1.png')
 
 
 # Experiment 2 : many cateogry friendly(minimum 2 , assuming algo 2 handles it)  ->> [capped_round_robin,two_categories_capped_round_robin,per_category_capped_round_robin]
