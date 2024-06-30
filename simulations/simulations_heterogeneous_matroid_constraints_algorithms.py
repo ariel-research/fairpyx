@@ -215,7 +215,7 @@ def experiment2_2(equal_capacities: bool, category_count: int, item_capacity_bou
     return {'allocation': alloc.bundles}
 
 #expr2_1.run_with_time_limit(experiment2_1,input_ranges,time_limit=60)
-experiments_csv.single_plot_results('results/experiment2_1.csv',filter={},x_field='num_of_items',y_field='runtime',z_field='algorithm',save_to_file='results/experiment2_1.png')
+experiments_csv.single_plot_results('results/experiment2_2.csv',filter={},x_field='num_of_items',y_field='runtime',z_field='algorithm',save_to_file='results/experiment2_1.png')
 
 
 
