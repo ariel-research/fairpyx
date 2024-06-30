@@ -324,9 +324,6 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     return initial_matching
 
 
-
-
-
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
