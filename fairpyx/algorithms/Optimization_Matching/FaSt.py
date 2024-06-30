@@ -23,7 +23,7 @@ def Demote(matching:dict, student_index:int, down_index:int, up_index:int)-> dic
     :param down_index: Index of the college to move the student to.
     :param up_index: Index of the upper bound college.
 
-        # The test is the same as the running example we gave in Ex2.
+        #*** The test is the same as the running example we gave in Ex2.***
 #    ...   valuations       = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}},
 
     >>> matching = {1: [1, 6], 2: [2, 3],3: [4, 5]}
@@ -38,9 +38,10 @@ def Demote(matching:dict, student_index:int, down_index:int, up_index:int)-> dic
     # Set p to 'down'
     p = down_index
 
+    # Check if student 't' is in college 'Cp-1'
     if t not in matching[p - 1]:
         raise ValueError(f"Student {t} should be in matching to college {p - 1}")
-        # Check that all colleges have at least one students
+    # Check that all colleges have at least one students
     for college, students in matching.items():
         if len(students) < 1:
             raise ValueError(f"All colleges must contain at least 1 student. College number {college} has only {len(students)} students.")
@@ -77,6 +78,7 @@ def get_leximin_tuple(matching, V):
         for student in students:
             valuation = V[student - 1][college - 1]
             leximin_tuple.append(valuation)
+            # Sum to add the valuations of colleges in the end of the tuple (according to Ex2)
             college_sum += valuation
         college_sums.append(college_sum)
     # Append the college sums to the leximin tuple
@@ -117,6 +119,10 @@ def get_unsorted_leximin_tuple(matching, V):
 def build_pos_array(matching, V):
     """
     Build the pos array based on the leximin tuple and the matching.
+    For example:
+    Leximin Tuple: [**9**, 8, 7, 6, 5, 3, 1, 35, 3, 1] -> V of S1 is 9
+    Sorted Leximin Tuple: [1, 1, 3, 3, 5, 6, 7, 8, 9,35]-> 9 is in index 8
+    pos=[8,7, 6,5,4,3,1,9,2,0]
 
     :param leximin_tuple: The leximin tuple
     :param matching: The current matching dictionary
@@ -126,12 +132,16 @@ def build_pos_array(matching, V):
     pos = []  # Initialize pos array
     student_index = 0
     college_index = 0
+    # Get the unsorted leximin tuple
     leximin_unsorted_tuple = get_unsorted_leximin_tuple(matching, V)
+    # Get the sorted leximin tuple
     leximin_sorted_tuple = sorted(leximin_unsorted_tuple)
+    # Build pos array for students
     while student_index < len(V):
         pos_value = leximin_sorted_tuple.index(leximin_unsorted_tuple[student_index])
         pos.append(pos_value)
         student_index += 1
+    # Build pos array for colleges
     while college_index < len(matching):
         pos_value = leximin_sorted_tuple.index(leximin_unsorted_tuple[student_index + college_index])
         pos.append(pos_value)
@@ -158,7 +168,10 @@ def create_L(matching):
 def build_college_values(matching, V):
     """
        Build the college_values dictionary that sums the students' valuations for each college.
-
+        For example:
+        c1: [9, 8, 7, 6, 5] =35
+        c2: [3] =3
+        c3: [1] =1
        :param matching: The current matching dictionary
        :param V: The evaluations matrix
        :return: College values dictionary
@@ -186,7 +199,7 @@ def initialize_matching(n, m):
     for student in range(1, n - m + 2):
         initial_matching[1].append(student)
     # Assign each remaining student to the subsequent colleges (c2, c3, ...)
-    for j in range(2, m + 1):
+    for j in range(2, m + 1):# 2 because we started from C2
         initial_matching[j].append(n - m + j)
     return initial_matching
 
@@ -298,7 +311,7 @@ def FaSt(alloc: AllocationBuilder)-> dict:
         lex_tupl = get_leximin_tuple(initial_matching, V)
         print("lex_tupl: ", lex_tupl)
         L = create_L(initial_matching)
-        print("L:", L)  ################todo : update POS
+        print("L:", L)
         pos = build_pos_array(initial_matching, V)
         print("pos:", pos)
 
