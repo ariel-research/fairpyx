@@ -166,7 +166,7 @@ if __name__ == "__main__":
     import logging, experiments_csv
     experiments_csv.logger.setLevel(logging.INFO)
     run_uniform_experiment()
-    run_szws_experiment()
-    run_ariel_experiment()
-
+    # run_szws_experiment()
+    # run_ariel_experiment()
+    #
 
