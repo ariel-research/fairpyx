@@ -17,6 +17,8 @@ import pandas as pd
 import ast
 import seaborn as sns
 
+from fairpyx.algorithms.ACEEI import EFTBStatus
+
 max_value = 1000
 normalized_sum_of_values = 1000
 TIME_LIMIT = 100
@@ -67,15 +69,35 @@ def evaluate_algorithm_on_instance(algorithm, instance):
 #     return evaluate_algorithm_on_instance(algorithm, instance)
 
 
-def create_initial_budgets(num_of_agents: int, beta: float) -> dict:
+def create_initial_budgets(num_of_agents: int, beta: float = 100) -> dict:
     # Create initial budgets for each agent, uniformly distributed in the range [1, 1 + beta]
     initial_budgets = np.random.uniform(1, 1 + beta, num_of_agents)
     return {f's{agent + 1}': initial_budgets[agent] for agent in range(num_of_agents)}
 
 
-def evaluate_algorithm_on_instance(algorithm, instance, beta, delta):
-    initial_budgets = create_initial_budgets(instance.num_of_agents, beta)
-    allocation = divide(algorithm, instance, initial_budgets=initial_budgets, beta=beta, delta=set(delta))
+def evaluate_algorithm_on_instance(algorithm, instance, **kwargs):
+    print(f"--------algorithm = {algorithm}")
+    algorithm_name = algorithm.__name__ if callable(algorithm) else algorithm
+    if algorithm_name == 'find_ACEEI_with_EFTB':
+        if all(key in kwargs for key in ('delta', 'epsilon', 't')):
+            delta = kwargs['delta']
+            epsilon = kwargs['epsilon']
+            t = kwargs['t']
+            initial_budgets = create_initial_budgets(instance.num_of_agents)
+            allocation = divide(algorithm, instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon, t=t)
+        else:
+            raise ValueError("Missing parameters for algorithm1. Required: delta, epsilon, t")
+    elif algorithm_name == 'tabu_search':
+        if all(key in kwargs for key in ('beta', 'delta')):
+            beta = kwargs['beta']
+            delta = kwargs['delta']
+            initial_budgets = create_initial_budgets(instance.num_of_agents, beta)
+            allocation = divide(algorithm, instance, initial_budgets=initial_budgets, beta=beta, delta=set(delta))
+        else:
+            raise ValueError("Missing parameters for algorithm2. Required: beta, delta")
+    else:
+        raise ValueError("Unknown algorithm")
+
     matrix = AgentBundleValueMatrix(instance, allocation)
     matrix.use_normalized_values()
     return {
@@ -96,9 +118,9 @@ def evaluate_algorithm_on_instance(algorithm, instance, beta, delta):
 def course_allocation_with_random_instance_uniform(
         num_of_agents: int, num_of_items: int,
         value_noise_ratio: float,
-        beta: float, delta: List[float],
+        # beta: float, delta: List[float],
         algorithm: Callable,
-        random_seed: int):
+        random_seed: int, **kwargs):
     agent_capacity_bounds = [6, 6]
     item_capacity_bounds = [40, 40]
     np.random.seed(random_seed)
@@ -110,38 +132,79 @@ def course_allocation_with_random_instance_uniform(
         item_base_value_bounds=[1, max_value],
         item_subjective_ratio_bounds=[1 - value_noise_ratio, 1 + value_noise_ratio]
     )
-    return evaluate_algorithm_on_instance(algorithm, instance, beta, delta)
+    return evaluate_algorithm_on_instance(algorithm, instance, **kwargs)
 
 
-######### COMPARING BETA AND DELTA PERFORMANCE ##########
+######### COMPARING DELTA AND EPSILON PERFORMANCE - ACEEI ##########
 
-RESULTS_BETA_DELTA_FILE = "results/course_allocation_beta_delta.csv"
+RESULTS_BETA_DELTA_FILE_ACEEI = "results/compering_delta_epsilon_ACEEI.csv"
 
 
-def run_beta_delta_experiment():
+def run_delta_epsilon_experiment_ACEEI():
     # Remove existing results file if it exists
-    if os.path.exists(RESULTS_BETA_DELTA_FILE):
-        os.remove(RESULTS_BETA_DELTA_FILE)
+    if os.path.exists(RESULTS_BETA_DELTA_FILE_ACEEI):
+        os.remove(RESULTS_BETA_DELTA_FILE_ACEEI)
 
     # Run on uniformly-random data with beta and delta parameters:
-    experiment = experiments_csv.Experiment("results/", "course_allocation_beta_delta.csv",
+    experiment = experiments_csv.Experiment("results/", "compering_delta_epsilon_ACEEI.csv",
                                             backup_folder="results/backup/")
     input_ranges = {
-        "num_of_agents": [10],
-        "num_of_items": [4],
+        "num_of_agents": [10, 20],
+        "num_of_items": [4, 8],
+        "value_noise_ratio": [0, 0.2, 0.4, 0.8, 1],
+        "delta": [0.001, 0.34, 0.5, 0.8, 0.9],
+        "epsilon": [0.3, 0.9, 1.2, 1.7, 3, 10],
+        "t": [EFTBStatus.NO_EF_TB, EFTBStatus.EF_TB, EFTBStatus.CONTESTED_EF_TB],
+        "algorithm": [crs.find_ACEEI_with_EFTB],
+        "random_seed": range(5),
+    }
+    experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges, time_limit=TIME_LIMIT)
+
+
+def analyze_experiment_results_ACEEI():
+    # Load the results from the CSV file
+    df = pd.read_csv(RESULTS_BETA_DELTA_FILE_ACEEI)
+
+    best_row = df.loc[df['runtime'].idxmin()]
+
+    # Extract the best beta and delta values
+    best_delta = best_row['delta']  # Assuming delta is already in the correct format
+    best_epsilon = best_row['epsilon']
+
+    print(f"Best delta: {best_delta}")
+    print(f"Best epsilon: {best_epsilon}")
+
+    return df
+
+
+######### COMPARING BETA AND DELTA PERFORMANCE - TABU-SEARCH ##########
+
+RESULTS_BETA_DELTA_FILE_TABU_SEARCH = "results/compering_beta_delta_tabu_search.csv"
+
+
+def run_beta_delta_experiment_tabu_search():
+    # Remove existing results file if it exists
+    if os.path.exists(RESULTS_BETA_DELTA_FILE_TABU_SEARCH):
+        os.remove(RESULTS_BETA_DELTA_FILE_TABU_SEARCH)
+
+    # Run on uniformly-random data with beta and delta parameters:
+    experiment = experiments_csv.Experiment("results/", "compering_beta_delta_tabu_search.csv",
+                                            backup_folder="results/backup/")
+    input_ranges = {
+        "num_of_agents": [10, 20],
+        "num_of_items": [4, 8],
         "value_noise_ratio": [0, 0.2, 0.4, 0.8, 1],
         "beta": [0.001, 0.1, 0.3, 0.5, 3, 5],  # example values for beta
-        "delta": [{0.001}, {0.34}, {0.5}, {0.8}, {0.9}],
-        # example values for delta
+        "delta": [{0.001}, {0.34}, {0.5}, {0.8}, {0.9}],  # example values for delta
         "algorithm": [crs.tabu_search],  # only the tabu_search algorithm
         "random_seed": range(5),
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges, time_limit=TIME_LIMIT)
 
 
-def analyze_experiment_results():
+def analyze_experiment_results_tabu_search():
     # Load the results from the CSV file
-    df = pd.read_csv(RESULTS_BETA_DELTA_FILE)
+    df = pd.read_csv(RESULTS_BETA_DELTA_FILE_TABU_SEARCH)
 
     best_row = df.loc[df['runtime'].idxmin()]
 
@@ -155,47 +218,41 @@ def analyze_experiment_results():
     return df
 
 
-def plot_speed_vs_beta(df):
+def plot_speed_vs_param(df, param, algorithm_name):
+    avg_runtime = df.groupby(param)['runtime'].mean().reset_index()
+
     plt.figure(figsize=(10, 6))
-    sns.lineplot(data=df, x='beta', y='runtime', marker='o', err_style=None)
-    plt.title('Algorithm Speed vs. Beta')
-    plt.xlabel('Beta')
-    plt.ylabel('Runtime (seconds)')
+    sns.lineplot(data=avg_runtime, x=param, y='runtime', marker='o', err_style=None)
+    plt.title(f'Algorithm Speed vs. {param.capitalize()} for {algorithm_name}')
+    plt.xlabel(param.capitalize())
+    plt.ylabel('Average Runtime (seconds)')
     plt.grid(True)
     plt.tight_layout()
     plt.show()
 
 
-def plot_speed_vs_delta(df):
-    plt.figure(figsize=(10, 6))
-    sns.lineplot(data=df, x='delta', y='runtime', marker='o', err_style=None)
-    plt.title('Algorithm Speed vs. Delta')
-    plt.xlabel('Delta')
-    plt.ylabel('Runtime (seconds)')
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
-
-
-def plot_speed_vs_beta_and_delta(df):
+def plot_speed_vs_params(df, param1, param2, algorithm_name):
     fig = plt.figure(figsize=(10, 6))
     ax = fig.add_subplot(111, projection='3d')
 
-    beta_values = df['beta']
-    delta_values = df['delta'].apply(
-        lambda x: float(list(ast.literal_eval(x))[0]))  # Assuming delta is a set and we take the first element
+    param1_values = df[param1]
+    param2_values = df[param2].apply(
+        lambda x: float(list(ast.literal_eval(x))[0]) if isinstance(x, str) else x)  # Convert if necessary
     runtime_values = df['runtime']
 
-    ax.scatter(beta_values, delta_values, runtime_values, c='b', marker='o')
-    ax.set_title('Algorithm Speed vs. Beta and Delta')
-    ax.set_xlabel('Beta')
-    ax.set_ylabel('Delta')
+    ax.scatter(param1_values, param2_values, runtime_values, c='b', marker='o')
+    ax.set_title(f'Algorithm Speed vs. {param1.capitalize()} and {param2.capitalize()} for {algorithm_name}')
+    ax.set_xlabel(param1.capitalize())
+    ax.set_ylabel(param2.capitalize())
     ax.set_zlabel('Runtime (seconds)')
 
     plt.tight_layout()
     plt.show()
 
+
 ###########################
+
+
 def run_uniform_experiment():
     # Run on uniformly-random data:
     experiment = experiments_csv.Experiment("results/", "course_allocation_uniform.csv",
@@ -355,8 +412,17 @@ if __name__ == "__main__":
     # max_agents_true, max_agents_false = run_check_performance_of_history()
     # print(f'Max number of agents handled in 60 seconds with check_history=True: {max_agents_true}')
     # print(f'Max number of agents handled in 60 seconds with check_history=False: {max_agents_false}')
-    run_beta_delta_experiment()
-    df = analyze_experiment_results()
-    plot_speed_vs_delta(df)
-    plot_speed_vs_beta(df)
-    plot_speed_vs_beta_and_delta(df)
+
+    ######### COMPARING BETA AND DELTA PERFORMANCE - TABU-SEARCH ##########
+    run_beta_delta_experiment_tabu_search()
+    df = analyze_experiment_results_tabu_search()
+    plot_speed_vs_param(df, 'beta', 'Tabu Search')
+    plot_speed_vs_param(df, 'delta', 'Tabu Search')
+    plot_speed_vs_params(df, 'beta', 'delta', 'Tabu Search')
+
+    ######### COMPARING DELTA AND EPSILON PERFORMANCE - ACEEI ##########
+    run_delta_epsilon_experiment_ACEEI()
+    df = analyze_experiment_results_ACEEI()
+    plot_speed_vs_param(df, 'delta', 'ACEEI')
+    plot_speed_vs_param(df, 'epsilon', 'ACEEI')
+    plot_speed_vs_params(df, 'delta', 'epsilon', 'ACEEI')
