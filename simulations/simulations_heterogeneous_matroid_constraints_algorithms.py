@@ -31,7 +31,7 @@ def experiment1(equal_capacities: bool, category_count: int, item_capacity_bound
     return {'allocation': alloc.bundles}
 
 
-expr1.run_with_time_limit(experiment1,input_ranges,time_limit=60)
+#expr1.run_with_time_limit(experiment1,input_ranges,time_limit=60)
 #experiments_csv.single_plot_results('results/experiment1.csv',filter={},x_field='num_of_agents',y_field='runtime',z_field='algorithm',save_to_file='results/experiment1.png')
 
 
@@ -59,7 +59,7 @@ def experiment2(equal_capacities: bool, category_count: int, item_capacity_bound
     algorithm(**kawrgs)
     return {'allocation': alloc.bundles}
 
-expr2.run_with_time_limit(experiment2,input_ranges,time_limit=60)
+#expr2.run_with_time_limit(experiment2,input_ranges,time_limit=60)
 #experiments_csv.single_plot_results('results/experiment2.csv',filter={},x_field='category_count',y_field='runtime',z_field='algorithm',save_to_file='results/experiment2.png')
 
 
@@ -73,13 +73,14 @@ input_ranges = {
     'random_seed_num': [0],
     'binary_valuations':[True],
     'num_of_agents':range(1,150),
+    'equal_valuations':[True],# for the sake of : per_category_capped_round_robin
     'algorithm': [per_category_round_robin,capped_round_robin,per_category_capped_round_robin,iterated_priority_matching]
 }
 
 
 def experiment3(equal_capacities: bool, category_count: int, item_capacity_bounds: any, random_seed_num: int,
-                algorithm: callable,binary_valuations:bool,num_of_agents:int):
-    instance, agent_category_capacities, categories, initial_agent_order = random_instance( binary_valuations=binary_valuations,
+                algorithm: callable,binary_valuations:bool,num_of_agents:int,equal_valuations:bool):
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance( equal_valuations=equal_valuations,binary_valuations=binary_valuations,
         equal_capacities=equal_capacities,
         category_count=category_count,
         item_capacity_bounds=(1,item_capacity_bounds), random_seed_num=random_seed_num,num_of_agents=num_of_agents)
@@ -91,7 +92,7 @@ def experiment3(equal_capacities: bool, category_count: int, item_capacity_bound
     algorithm(**kawrgs)
     return {'allocation': alloc.bundles}
 
-expr3.run_with_time_limit(experiment3,input_ranges,60)
+#expr3.run_with_time_limit(experiment3,input_ranges,60)
 #experiments_csv.single_plot_results('results/experiment3.csv',filter={},x_field='num_of_agents',y_field='runtime',z_field='algorithm',save_to_file='results/experiment3.png')
 
 
@@ -104,11 +105,12 @@ input_ranges = {
     'item_capacity_bounds': range(1,1+1),#[(1, 100)],
     'random_seed_num': [0],
     'binary_valuations':[True],
+    'equal_valuations':[True],
     'algorithm': [capped_round_robin,two_categories_capped_round_robin,per_category_capped_round_robin,iterated_priority_matching]
 }
-def experiment4(equal_capacities: bool, category_count: int, item_capacity_bounds: any, random_seed_num: int,
+def experiment4(equal_valuations:bool,equal_capacities: bool, category_count: int, item_capacity_bounds: any, random_seed_num: int,
                 algorithm: callable,binary_valuations:bool):
-    instance, agent_category_capacities, categories, initial_agent_order = random_instance( binary_valuations=binary_valuations,
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance( equal_valuations=equal_valuations,binary_valuations=binary_valuations,
         equal_capacities=equal_capacities,
         category_count=category_count,
         item_capacity_bounds=(1,item_capacity_bounds), random_seed_num=random_seed_num)
@@ -119,9 +121,101 @@ def experiment4(equal_capacities: bool, category_count: int, item_capacity_bound
     algorithm(**kawrgs)
     return {'allocation': alloc.bundles}
 
-expr4.run_with_time_limit(experiment4,input_ranges,time_limit=30)
+#expr4.run_with_time_limit(experiment4,input_ranges,time_limit=30)
 #experiments_csv.single_plot_results('results/experiment4.csv',filter={},x_field='category_count',y_field='runtime',z_field='algorithm',save_to_file='results/experiment4.png')
+# TODO experiments in which each experiment concentrates only on 1 variable substitution[number of agents/number of categories/number of capacities(item/agent/number of items]
+#Experiment 1.1 : single  category friendly,AND variable number of items,fixed number of agents->>[per_category_round_robin,capped_round_robin,per_category_capped_round_robin]
+expr1_1= experiments_csv.Experiment('results/', 'experiment1_1.csv') # TODO there is a problem with the seed , it doesnt give the same set of examples !
+expr1_1.clear_previous_results()
+input_ranges = {
+    'equal_capacities': [True],
+    'category_count': [1],
+    'item_capacity_bounds':range(1,1+1),
+    'random_seed_num': [0],
+    'num_of_agents':[1000],
+    'num_of_items':range(1,1000),
+    'equal_valuations':[True],
+    'algorithm': [per_category_round_robin, capped_round_robin,
+                  per_category_capped_round_robin]
+}
 
+
+def experiment1_1(equal_valuations:bool,equal_capacities: bool, category_count: int, item_capacity_bounds: any, random_seed_num: int,
+                algorithm: callable,num_of_agents: int,num_of_items: int,):
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(
+        equal_capacities=equal_capacities,
+        category_count=category_count,
+        item_capacity_bounds=(1,item_capacity_bounds), random_seed_num=random_seed_num,num_of_agents=num_of_agents,num_of_items=num_of_items,equal_valuations=equal_valuations)
+    alloc = AllocationBuilder(instance)
+    kawrgs = {'alloc': alloc, 'agent_category_capacities': agent_category_capacities, 'item_categories': categories,
+              'initial_agent_order': initial_agent_order}
+    algorithm(**kawrgs)
+    return {'allocation': alloc.bundles}
+
+
+#expr1_1.run_with_time_limit(experiment1_1,input_ranges,time_limit=60)
+#experiments_csv.single_plot_results('results/experiment1_1.csv',filter={},x_field='num_of_items',y_field='runtime',z_field='algorithm',save_to_file='results/experiment1_1.png')
+
+# Experiment 2_1 : many categories , variable number of agents  ->> [capped_round_robin,two_categories_capped_round_robin,per_category_capped_round_robin]
+expr2_1 = experiments_csv.Experiment('results/', 'experiment2_1.csv')
+expr2_1.clear_previous_results()
+input_ranges = {
+    'equal_capacities': [True,False],
+    'equal_valuations':[True],# for the respect of algorithm per_category_capped_round_robin
+    'category_count': [1000],
+    'item_capacity_bounds': range(1, 1+1),
+    'random_seed_num': [0],
+    'num_of_agents':range(1,1000),
+    'algorithm': [capped_round_robin,two_categories_capped_round_robin,per_category_capped_round_robin]
+}
+
+#
+def experiment2_1(equal_capacities: bool, category_count: int, item_capacity_bounds: any, random_seed_num: int,
+                algorithm: callable,num_of_agents: int,equal_valuations:bool):
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(
+        equal_capacities=equal_capacities,
+        equal_valuations=equal_valuations,
+        category_count=category_count,
+        item_capacity_bounds=(1,item_capacity_bounds), random_seed_num=random_seed_num,num_of_agents=num_of_agents)
+    alloc = AllocationBuilder(instance)
+    kawrgs = {'alloc': alloc, 'agent_category_capacities': agent_category_capacities, 'item_categories': categories,
+              'initial_agent_order': initial_agent_order}
+    algorithm(**kawrgs)
+    return {'allocation': alloc.bundles}
+
+#expr2_1.run_with_time_limit(experiment2_1,input_ranges,time_limit=60)
+experiments_csv.single_plot_results('results/experiment2_1.csv',filter={},x_field='num_of_agents',y_field='runtime',z_field='algorithm',save_to_file='results/experiment2_1.png')
+
+# Experiment 2_2 : many categories , variable number of items, fixed categories fixed agents  ->> [capped_round_robin,two_categories_capped_round_robin,per_category_capped_round_robin]
+expr2_2 = experiments_csv.Experiment('results/', 'experiment2_2.csv')
+expr2_2.clear_previous_results()
+input_ranges = {
+    'equal_capacities': [True,False],
+    'equal_valuations':[True],# for the respect of algorithm per_category_capped_round_robin
+    'category_count': [1000],
+    'item_capacity_bounds': range(1, 1+1),
+    'random_seed_num': [0],
+    'num_of_agents':[1000],
+    'num_of_items':range(1,1000),
+    'algorithm': [capped_round_robin,two_categories_capped_round_robin,per_category_capped_round_robin]
+}
+
+#
+def experiment2_2(equal_capacities: bool, category_count: int, item_capacity_bounds: any, random_seed_num: int,
+                algorithm: callable,num_of_agents: int,equal_valuations:bool,num_of_items:int):
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(
+        equal_capacities=equal_capacities,
+        equal_valuations=equal_valuations,
+        category_count=category_count,
+        item_capacity_bounds=(1,item_capacity_bounds), random_seed_num=random_seed_num,num_of_agents=num_of_agents,num_of_items=num_of_items)
+    alloc = AllocationBuilder(instance)
+    kawrgs = {'alloc': alloc, 'agent_category_capacities': agent_category_capacities, 'item_categories': categories,
+              'initial_agent_order': initial_agent_order}
+    algorithm(**kawrgs)
+    return {'allocation': alloc.bundles}
+
+#expr2_1.run_with_time_limit(experiment2_1,input_ranges,time_limit=60)
+experiments_csv.single_plot_results('results/experiment2_1.csv',filter={},x_field='num_of_items',y_field='runtime',z_field='algorithm',save_to_file='results/experiment2_1.png')
 
 
 
