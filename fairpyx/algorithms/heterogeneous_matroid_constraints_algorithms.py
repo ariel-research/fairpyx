@@ -955,8 +955,7 @@ def helper_priority_matching(agent_item_bipartite_graph:nx.Graph, current_order:
                     del remaining_category_agent_capacities[match[1]]
 
 
-def helper_create_agent_item_bipartite_graph(agents, items, valuation_func,
-                                             ):
+def helper_create_agent_item_bipartite_graph(agents, items, valuation_func):
     """
     Creates an agent-item bipartite graph with edges weighted based on agent preferences.
 
