@@ -54,7 +54,7 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed =
         return {k: random.uniform(0, max(budget.values())) for k in alloc.instance.items}
     
     best_error = float('inf')
-    best_price_vector = None
+    best_price_vector = dict()
     start_time = time.time()
     steps = [0.1, 0.2, 0.3, 0.4, 0.5]  # Example step sizes, can be adjusted
 
@@ -155,21 +155,20 @@ def find_preference_order_for_each_student(valuations:dict, agent_capacities:dic
             for num_courses_per_agent in range(1, capacity + 1):
                 for schedule in combinations(items, num_courses_per_agent):
                     schedule_dict = {item: 1 if item in schedule else 0 for item in items}
-                    all_schedules.append(schedule_dict)
+                    if is_valid_schedule(schedule_dict, item_conflicts, agent_conflicts, agent):
+                        all_schedules.append(schedule_dict)
             return all_schedules
     
-    preferred_schedules = {}
+    preferred_schedules = dict()
 
     for agent in agent_capacities.keys():
         items = valuations[agent].keys()
         capacity = agent_capacities[agent]
         all_schedules = generate_all_schedules(items, capacity)
-        valid_schedules = [schedule for schedule in all_schedules if is_valid_schedule(schedule, item_conflicts, agent_conflicts, agent)]
-        logging.debug("Valid schedules for agent %s: %s", agent, valid_schedules)
-
+        logging.debug("All schedules for agent %s: %s", agent, all_schedules)
         # Calculate valuations for valid schedules
-        schedule_valuations = {}
-        for schedule in valid_schedules:
+        schedule_valuations = dict()
+        for schedule in all_schedules:
             total_valuation = sum(valuations[agent][item] for item in schedule if schedule[item] == 1)
             schedule_valuations[total_valuation] = schedule_valuations.get(total_valuation, [])
             schedule_valuations[total_valuation].append([schedule[item] for item in items])
@@ -216,7 +215,9 @@ def compute_surplus_demand_for_each_course(price_vector: dict ,alloc: Allocation
     >>> allocation = AllocationBuilder(instance)
     >>> price_vector = {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
     >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
-    >>> preferred_schedule = find_preferred_schedule_adapter(allocation)
+    >>> preferred_schedule = {'Alice': [[1, 0, 1], [0, 1, 1], [0, 0, 1], [1, 1, 0], [1, 0, 0], [0, 1, 0]], 
+    ...                     'Bob': [[1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1]], 
+    ...                     'Tom': [[1, 0, 1], [1, 1, 0], [0, 1, 1], [1, 0, 0], [0, 0, 1], [0, 1, 0]]}
     >>> compute_surplus_demand_for_each_course(price_vector,allocation , budget, preferred_schedule)
     {'c1': 2, 'c2': -1, 'c3': 0}
     """
@@ -331,7 +332,9 @@ def find_neighbors(price_vector: dict ,alloc: AllocationBuilder, budget : dict, 
     >>> price_vector = {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
     >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
     >>> steps = [0.1, 0.2]
-    >>> preferred_schedule = find_preferred_schedule_adapter(allocation)
+    >>> preferred_schedule = {'Alice': [[1, 0, 1], [0, 1, 1], [0, 0, 1], [1, 1, 0], [1, 0, 0], [0, 1, 0]], 
+    ...                     'Bob': [[1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1]], 
+    ...                     'Tom': [[1, 0, 1], [1, 1, 0], [0, 1, 1], [1, 0, 0], [0, 0, 1], [0, 1, 0]]}
     >>> find_neighbors(price_vector, allocation, budget, steps, preferred_schedule)
     [{'c1': 1.2, 'c2': 0.9, 'c3': 1.0}, {'c1': 1.4, 'c2': 0.8, 'c3': 1.0}, {'c1': 1.1, 'c2': 1.0, 'c3': 1.0}, {'c1': 1.0, 'c2': 0.0, 'c3': 1.0}]
 
@@ -372,29 +375,33 @@ def generate_individual_adjustment_neighbors(price_vector: dict, alloc: Allocati
     >>> allocation = AllocationBuilder(instance)
     >>> price_vector = {'c1': 1.0, 'c2': 1.0, 'c3': 1.0}
     >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}
-    >>> preferred_schedule = find_preferred_schedule_adapter(allocation)
+    >>> preferred_schedule = {'Alice': [[1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1]], 
+    ...                     'Bob': [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0], [0, 0, 1], [1, 0, 0]], 
+    ...                     'Tom': [[1, 0, 1], [0, 1, 1], [1, 1, 0], [0, 0, 1], [1, 0, 0], [0, 1, 0]]}
     >>> demands = {'c1': 2, 'c2': -1, 'c3': 0}
     >>> generate_individual_adjustment_neighbors(price_vector, allocation, demands, budget, preferred_schedule)
     [{'c1': 1.1, 'c2': 1.0, 'c3': 1.0}, {'c1': 1.0, 'c2': 0.0, 'c3': 1.0}]
 
     """
     logging.info("Generating individual adjustment neighbors")
+    limit_loop = 100000
+    step=0.1
     neighbors = []
     for k in demands.keys():
-        if demands.get(k) == 0:
+        if demands[k] == 0:
             continue
         new_price_vector = price_vector.copy()
         new_demands= demands.copy()
         counter=0
-        while (demands == new_demands) and counter<100000 :
-            if demands.get(k) > 0:
-                new_price_vector.update({k: new_price_vector.get(k) + 0.1})
-            elif demands.get(k) < 0:
-                new_price_vector.update({k: 0.0})
-                break
-            new_demands = compute_surplus_demand_for_each_course(new_price_vector, alloc, budget, preferred_schedule)
-            counter+=1
-        neighbors.append(new_price_vector.copy())  # Ensure to append a copy
+        if demands[k] > 0:
+            while (demands == new_demands) and counter < limit_loop :
+                new_price_vector.update({k: new_price_vector[k] + step})
+                new_demands = compute_surplus_demand_for_each_course(new_price_vector, alloc, budget, preferred_schedule)
+                counter+=1
+        elif demands[k] < 0:
+            new_price_vector.update({k: 0.0})
+        if counter < limit_loop:
+            neighbors.append(new_price_vector.copy())  # Ensure to append a copy
 
     logging.debug("Individual adjustment neighbors: %s", neighbors)
     return neighbors
@@ -437,7 +444,7 @@ def generate_gradient_neighbors(price_vector: dict, demands: dict, steps: list):
     logging.info("Generating gradient neighbors")
     neighbors = []
     for step in steps:
-        new_price_vector = {}
+        new_price_vector = dict()
         for k,p in price_vector.items():
             new_price_vector[k] = max(0.0, p + (step * demands[k]))
 
