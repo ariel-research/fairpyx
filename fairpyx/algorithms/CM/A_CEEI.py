@@ -31,15 +31,30 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed =
     :param time (float): Time limit for the search.
 
     :return (dict) best price vector.
+    
+    :example
+    
+    >>> instance = Instance(
+    ... agent_conflicts = {"Alice": [], "Bob": [], "Tom": []},
+    ... item_conflicts = {"c1": [], "c2": [], "c3": []},
+    ... agent_capacities = {"Alice": 1, "Bob": 1, "Tom": 1}, 
+    ... item_capacities  = {"c1": 1, "c2": 1, "c3": 1},
+    ... valuations = {"Alice": {"c1": 100, "c2": 0, "c3": 0},
+    ...         "Bob": {"c1": 0, "c2": 100, "c3": 0},
+    ...         "Tom": {"c1": 0, "c2": 0, "c3": 100}
+    ... })
+    >>> budget = {"Alice": 1.0, "Bob": 1.1, "Tom": 1.3}    
+    >>> allocation = AllocationBuilder(instance)
+    >>> {k: round(v) for k, v in A_CEEI(allocation, budget, 10, 60).items()}
+    {'c1': 1, 'c2': 1, 'c3': 1}
 
 
     """
     logging.info("Starting A-CEEI algorithm with budget: %s and time limit: %s seconds", budget, time_limit)
 
-    if seed:
-        random.seed(seed)
-    def initialize_price_vector(budget):
-        return {k: random.uniform(0, 1)*max(budget.values()) for k in alloc.instance.items}
+   
+    def initialize_price_vector(budget,seed):
+        return {k: random.uniform(0, max(budget.values())) for k in alloc.instance.items}
     
     best_error = float('inf')
     best_price_vector = None
@@ -51,8 +66,10 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed =
     
     counter = 0
     while time.time() - start_time < time_limit :
-        
-        price_vector = initialize_price_vector(budget)
+        if seed:
+            seed+=1        
+            random.seed(seed)
+        price_vector = initialize_price_vector(budget,seed)
         logging.debug("Initialized price vector: %s", price_vector)
 
         search_error = alpha(course_demands(price_vector, alloc, budget, preferred_schedule))
@@ -373,7 +390,7 @@ def generate_individual_adjustment_neighbors(price_vector: dict, alloc: Allocati
         new_price_vector = price_vector.copy()
         new_demands= demands.copy()
         counter=0
-        while (demands == new_demands) and counter<100 :
+        while (demands == new_demands) and counter<100000 :
             if demands.get(k) > 0:
                 new_price_vector.update({k: new_price_vector.get(k) + 0.1})
             elif demands.get(k) < 0:
@@ -445,16 +462,3 @@ def before_find_preferred_schedule(alloc: AllocationBuilder):
 
 import doctest
 doctest.testmod()
-
-    # instance = Instance(
-    #   agent_conflicts = {"Alice": [], "Bob": [], "Tom": []},
-    #   item_conflicts = {"c1": [], "c2": [], "c3": []},
-    #   agent_capacities = {"Alice": 1, "Bob": 1, "Tom": 1}, 
-    #   item_capacities  = {"c1": 1, "c2": 1, "c3": 1},
-    #   valuations = {"Alice": {"c1": 100, "c2": 0, "c3": 0},
-    #                 "Bob": {"c1": 0, "c2": 100, "c3": 0},
-    #                 "Tom": {"c1": 0, "c2": 0, "c3": 100}
-    # })
-    # budget = {"Alice": 1.0, "Bob": 1.1, "Tom": 1.3}    
-    # allocation = AllocationBuilder(instance)
-    # print(A_CEEI(allocation, budget, 60, 45))
