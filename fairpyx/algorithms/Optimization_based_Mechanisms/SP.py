@@ -93,7 +93,7 @@ def SP_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
                         [student for student in map_agent_to_best_item if map_agent_to_best_item[student] == course],
                         key=lambda student: map_student_to_his_sum_bids[student],
                         reverse=True)  # sort the keys by their values (descending order)
-                    remaining_capacity = alloc.remaining_item_capacities[course]  # the amount of seats left in the current course
+                    remaining_capacity = int(alloc.remaining_item_capacities[course])  # the amount of seats left in the current course
                     sorted_students_who_can_get_course = sorted_students_pointing_to_course[:remaining_capacity]  # list of the student that can get the course
                     price = 0  # the course price (0 if evert student that want the course this round can get it)
                     if len(sorted_students_pointing_to_course) > remaining_capacity:
@@ -122,8 +122,8 @@ if __name__ == "__main__":
     print("\n", doctest.testmod(), "\n")
     # sys.exit(1)
 
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
+    #logger.addHandler(logging.StreamHandler())
+    #logger.setLevel(logging.INFO)
 
     from fairpyx.adaptors import divide
     s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
