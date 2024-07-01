@@ -14,7 +14,7 @@ from fairpyx.algorithms.CM import A_CEEI
 from fairpyx.algorithms.CM import remove_oversubscription
 from fairpyx.algorithms.CM import reduce_undersubscription
 
-def course_match_algorithm(alloc: AllocationBuilder, budget: dict):
+def course_match_algorithm(alloc: AllocationBuilder, budget: dict, time : int = 60):
     """
     Perform the Course Match algorithm to find the best course allocations.
     
@@ -48,12 +48,12 @@ def course_match_algorithm(alloc: AllocationBuilder, budget: dict):
     ... })
     >>> budget = {"Alice": 2.0, "Bob": 2.1, "Tom": 2.3}    
     >>> allocation = AllocationBuilder(instance)
-    >>> course_match_algorithm(allocation, budget)
+    >>> course_match_algorithm(allocation, budget, 15)
     {'Alice': ['c1', 'c2'], 'Bob': ['c2', 'c3'], 'Tom': ['c1', 'c3']}
-    
+
     """
 
-    price_vector = A_CEEI.A_CEEI(alloc,budget,15)
+    price_vector = A_CEEI.A_CEEI(alloc,budget,time)
     price_vector = remove_oversubscription.remove_oversubscription(alloc, price_vector, budget)
     reduce_undersubscription.reduce_undersubscription(alloc, price_vector, budget)
 
@@ -67,4 +67,15 @@ def course_match_algorithm(alloc: AllocationBuilder, budget: dict):
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
+    # instance = Instance(
+    #   agent_conflicts = {"Alice": [], "Bob": []},
+    #   item_conflicts = {"c1": [], "c2": [], "c3": []},
+    #   agent_capacities = {"Alice": 2, "Bob": 1},
+    #   item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
+    #   valuations = {"Alice": {"c1": 100, "c2": 60, "c3": 0},
+    #                 "Bob": {"c1": 0, "c2": 100, "c3": 0},
+    # })
+    # allocation = AllocationBuilder(instance)
+    # budget = {"Alice": 3.0, "Bob": 1.0}    
+    # print(course_match_algorithm(allocation, budget))
 
