@@ -66,24 +66,21 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order=order)
     {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3'], 'Agent4': ['m4']}
     """
-    logger.info(f"alloc -> {alloc} \n item_categories -> {item_categories} \n agent_category_capacities -> {agent_category_capacities} \n -> initial_agent_order are -> {initial_agent_order}\n ")
+    logger.info(f"Running per_category_round_robin with alloc -> {alloc.bundles} \n item_categories -> {item_categories} \n agent_category_capacities -> {agent_category_capacities} \n -> initial_agent_order are -> {initial_agent_order}\n ")
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
 
     for category in item_categories.keys():
-        logger.info(f'current category -> {category}')
-        logger.info(f'Envy graph before  RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
-        helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities, category)
+        logger.info(f'\nCurrent category -> {category}')
+        logger.info(f'Envy graph before RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
+        helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories[category], agent_category_capacities, category)
         helper_update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
         logger.info(f'Envy graph after  RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
         if not nx.is_directed_acyclic_graph(envy_graph):
-            logger.info(
-                f"Cycle removal started ")
-
+            logger.info("Cycle removal started ")
             helper_remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
-            logger.info(
-                f'cycle removal ended successfully ')
+            logger.info('cycle removal ended successfully ')
         current_order = list(nx.topological_sort(envy_graph))
         logger.info(f"Topological sort -> {current_order} \n***************************** ")
     logger.info(f'alloc after termination of algorithm ->{alloc}')
@@ -151,7 +148,7 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     # no need for envy graphs whatsoever
     current_order = initial_agent_order
     logger.info(f'initial_agent_order -> {initial_agent_order}')
-    helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
+    helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories[target_category], agent_category_capacities,
                                                     target_category=target_category)  # this is RR without wrapper
     logger.info(f'alloc after CRR -> {alloc}')
 
@@ -221,12 +218,12 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             """
     current_order = initial_agent_order
     logger.info(f'initial_agent_order -> {current_order}')
-    helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
+    helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories[target_category_pair[0]], agent_category_capacities,
                                                     target_category=target_category_pair[0])  #calling CRR on first category
     logger.info(f'alloc after CRR#{target_category_pair[0]} ->{alloc}')
     current_order.reverse()  #reversing order
     logger.info(f'reversed initial_agent_order -> {current_order}')
-    helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities,
+    helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories[target_category_pair[1]], agent_category_capacities,
                                                     target_category=target_category_pair[1])  # calling CRR on second category
     logger.info(f'alloc after CRR#{target_category_pair[1]} ->{alloc}')
 
@@ -283,7 +280,7 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
     logger.info(f'initial_agent_order->{initial_agent_order}')
     for category in item_categories.keys():
         helper_categorization_friendly_picking_sequence(alloc=alloc, agent_order=current_order,
-                                                        item_categories=item_categories,
+                                                        items_to_allocate=item_categories[category],
                                                         agent_category_capacities=agent_category_capacities,
                                                         target_category=category)
         helper_update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
@@ -391,7 +388,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
         logger.info(f'remaining_category_agent_capacities of agents capable of carrying arbitrary item ->{remaining_category_agent_capacities}')
         logger.info(f'current_item_list that were not allocated in the priority matching ->{current_item_list}')
 
-        helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories, agent_category_capacities={agent:{category:remaining_category_agent_capacities[agent]} for agent in remaining_category_agent_capacities.keys()}, target_category=category)
+        helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories[category], agent_category_capacities={agent:{category:remaining_category_agent_capacities[agent]} for agent in remaining_category_agent_capacities.keys()}, target_category=category)
     logger.info(f'FINAL ALLOCATION IS -> {alloc.bundles}')
 
 
@@ -504,7 +501,7 @@ def helper_envy(source: str, target: str, bundles: dict[str, set or list], val_f
     logger.info(f'does {source} envy {target} ? -> {target_bundle_val > source_bundle_val}')
     return target_bundle_val > source_bundle_val
 
-def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, agent_order:list, item_categories:dict, agent_category_capacities:dict,
+def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, agent_order:list, items_to_allocate:list, agent_category_capacities:dict,
                                                     target_category:str='c1'):
     """
     This is Round Robin algorithm with respect to categorization (works on each category separately when called)
@@ -524,7 +521,7 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
     >>> agent_category_capacities={'agent1': {'c1': 2}, 'agent2': {'c1': 1}, 'agent3': {'c1': 0}}
     >>> target_category='c1'
     >>> alloc=AllocationBuilder(instance=Instance(valuations=valuations,items=items))
-    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category)
+    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories[target_category],agent_category_capacities,target_category)
     >>> alloc.sorted()
     {'agent1': ['m1', 'm3'], 'agent2': ['m2'], 'agent3': []}
 
@@ -536,7 +533,7 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
     >>> agent_category_capacities={'agent1': {'c1': 1}, 'agent2': {'c1': 2}, 'agent3': {'c1': 1}}
     >>> target_category='c1'
     >>> alloc=AllocationBuilder(instance=Instance(valuations=valuations,items=items))
-    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category)
+    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories[target_category],agent_category_capacities,target_category)
     >>> alloc.sorted()
     {'agent1': ['m3'], 'agent2': ['m1'], 'agent3': ['m2']}
 
@@ -548,10 +545,10 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
     >>> agent_category_capacities={'agent1': {'c1': 3,'c2':0,'c3':0,'c4':1}, 'agent2': {'c1': 2,'c2':0,'c3':0,'c4':1}, 'agent3': {'c1': 1,'c2':2,'c3':1,'c4':1}}
     >>> target_category='c1'
     >>> alloc=AllocationBuilder(instance=Instance(valuations=valuations,items=items))
-    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category)
-    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category='c2')
-    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category='c3')
-    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories,agent_category_capacities,target_category='c4')
+    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories[target_category],agent_category_capacities,target_category)
+    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories['c2'],agent_category_capacities,target_category='c2')
+    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories['c3'],agent_category_capacities,target_category='c3')
+    >>> helper_categorization_friendly_picking_sequence(alloc,agent_order,item_categories['c4'],agent_category_capacities,target_category='c4')
     >>> alloc.sorted()
     {'agent1': ['m3', 'm7'], 'agent2': ['m1'], 'agent3': ['m2', 'm4', 'm5', 'm6']}
     """
@@ -562,23 +559,22 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
                                            agent_category_capacities.keys() if
                                            agent_category_capacities[agent][target_category] != 0} # all the agents with non zero capacities in our category
     logger.info(f"agent_category_capacities-> {agent_category_capacities}")
-    remaining_category_items = helper_update_category_items(alloc, item_categories, target_category)
-    active_agents=agent_order.copy()
+    remaining_category_items = [x for x in alloc.remaining_items() if x in items_to_allocate]
+    logger.info(f'remaining_category_items -> {remaining_category_items} & remaining agent capacities {remaining_category_agent_capacities}')
+    logger.info(f"Agent order is -> {agent_order}")
     for agent in cycle(agent_order):
-        logger.info(f"agent order is -> {agent_order}")
-        logger.info('looping agent {}'.format(agent))
-        logger.info(f"remaining_category_agent_capacities -> {remaining_category_agent_capacities}")
-        if len(remaining_category_agent_capacities) == 0 or len(remaining_category_items) == 0:
-            break
+        logger.info("Looping agent %s, remaining capacity %s", agent, remaining_category_agent_capacities[agent] )
         if agent not in remaining_category_agent_capacities:
             continue# pass to the other agent
         potential_items_for_agent = set(remaining_category_items).difference(alloc.bundles[agent]) # in case difference is empty means already has item / there is no items left
         if len(potential_items_for_agent) == 0:
-            logger.info(f'no potential items for agent {agent}')
+            logger.info(f'No potential items for agent {agent}')
             # either no items left / or agent already has items (conflicted)
             if remaining_category_agent_capacities[agent]>0:# need to remove agent from our loop
                 del remaining_category_agent_capacities[agent]
-                logger.info(f"current agent order is -> {agent_order}")
+                if len(remaining_category_agent_capacities) == 0:
+                    logger.info(f'No more agents with capacity')
+                    break
                 continue
         # safe to assume agent has capacity & has the best item to pick
         best_item_for_agent = max(potential_items_for_agent, key=lambda item: alloc.instance.agent_item_value(agent, item))
@@ -587,65 +583,15 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
         remaining_category_agent_capacities[agent] -= 1
         if remaining_category_agent_capacities[agent] <= 0:
             del remaining_category_agent_capacities[agent]
-        remaining_category_items = helper_update_category_items(alloc, item_categories, target_category) # in case an item is out of capacity the list is updated !
+            if len(remaining_category_agent_capacities) == 0:
+                logger.info(f'No more agents with capacity')
+                break
+        remaining_category_items = [x for x in alloc.remaining_items() if x in items_to_allocate]
+        if len(remaining_category_items) == 0:
+            logger.info(f'No more items in category')
+            break
         logger.info(f'remaining_category_items -> {remaining_category_items} & remaining agents {remaining_category_agent_capacities}')
 
-
-def helper_update_category_items(alloc:AllocationBuilder, item_categories:dict, target_category:str):
-    """
-        This function verifies that items in a specific category are synced with allocationbuilder, when item reaches capacity 0 its removed
-        @param alloc: AllocationBuilder instance
-        @param item_categories: Dictionary of item_categories
-        @param target_category: Target category
-        @return: Updated item_categories
-        Examples
-        >>> # example 1 : 1 remainder per each
-        >>> items=['m1', 'm2', 'm3', 'm4', 'm5', 'm6']
-        >>> item_categories={'c1':['m1','m2','m3'],'c2':['m4','m5','m6']}
-        >>> valuations={'agent1':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1}}
-        >>> alloc=AllocationBuilder(instance=Instance(items=items,valuations=valuations))
-        >>> alloc.remaining_item_capacities={'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1}
-        >>> alloc.give('agent1','m1')
-        >>> alloc.give('agent1','m2')
-        >>> alloc.give('agent1','m4')
-        >>> alloc.give('agent1','m5')
-        >>> helper_update_category_items(alloc,item_categories,target_category='c1')
-        ['m3']
-        >>> helper_update_category_items(alloc,item_categories,target_category='c2')
-        ['m6']
-
-        >>> # example 2 : empty lists
-        >>> items=['m1', 'm2', 'm3', 'm4', 'm5', 'm6']
-        >>> item_categories={'c1':['m1','m2','m3'],'c2':['m4','m5','m6']}
-        >>> valuations={'agent1':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1}}
-        >>> alloc=AllocationBuilder(instance=Instance(items=items,valuations=valuations))
-        >>> alloc.remaining_item_capacities={'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1}
-        >>> alloc.give('agent1','m1')
-        >>> alloc.give('agent1','m2')
-        >>> alloc.give('agent1','m3')
-        >>> alloc.give('agent1','m4')
-        >>> alloc.give('agent1','m5')
-        >>> alloc.give('agent1','m6')
-        >>> helper_update_category_items(alloc,item_categories,target_category='c1')
-        []
-        >>> helper_update_category_items(alloc,item_categories,target_category='c2')
-        []
-
-        >>> # example 3 : running RR
-        >>> items=['m1', 'm2', 'm3', 'm4', 'm5', 'm6']
-        >>> item_categories={'c1':['m1','m2','m3'],'c2':['m4','m5','m6']}
-        >>> valuations={'agent1':{'m1':1,'m2':1,'m3':1,'m4':1,'m5':10,'m6':10}}
-        >>> alloc=AllocationBuilder(instance=Instance(items=items,valuations=valuations))
-        >>> alloc.remaining_item_capacities={'m1':1,'m2':1,'m3':1,'m4':1,'m5':1,'m6':1}
-        >>> per_category_round_robin(alloc,item_categories,agent_category_capacities={'agent1':{'c1':3,'c2':2}},initial_agent_order=['agent1'])
-        >>> helper_update_category_items(alloc,item_categories,target_category='c1')
-        []
-        >>> helper_update_category_items(alloc,item_categories,target_category='c2')
-        ['m4']
-    """
-    remaining_category_items = [x for x in alloc.remaining_items() if x in item_categories[target_category]]
-    logger.info(f'remaining_category_items -> {remaining_category_items}')
-    return remaining_category_items
 
 
 def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph, item_categories: dict,
@@ -1064,5 +1010,18 @@ def helper_create_agent_item_bipartite_graph(agents, items, valuation_func,
 
 if __name__ == "__main__":
     import doctest, sys
+    # print("\n", doctest.testmod(), "\n")
 
-    print("\n", doctest.testmod(), "\n")
+    print("\nAlgorithm 1: per_category_round_robin\n")
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler())
+
+    order=['Agent1','Agent2','Agent3','Agent4']
+    items=['m1','m2','m3','m4']
+    item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
+    agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
+    valuations = {'Agent1':{'m1':2,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':2,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':2,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
+    sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
+    instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
+    divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
+
