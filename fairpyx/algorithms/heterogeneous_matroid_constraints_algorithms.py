@@ -217,12 +217,14 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             >>> # m1 remains unallocated unfortunately :-(
             """
     current_order = initial_agent_order
-    logger.info(f'initial_agent_order -> {current_order}')
+    logger.info(f'\nRunning two_categories_capped_round_robin, initial_agent_order -> {current_order}')
+    logger.info(f'\nAllocating cagetory {target_category_pair[0]}')
     helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories[target_category_pair[0]], agent_category_capacities,
                                                     target_category=target_category_pair[0])  #calling CRR on first category
     logger.info(f'alloc after CRR#{target_category_pair[0]} ->{alloc.bundles}')
     current_order.reverse()  #reversing order
     logger.info(f'reversed initial_agent_order -> {current_order}')
+    logger.info(f'\nAllocating cagetory {target_category_pair[1]}')
     helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories[target_category_pair[1]], agent_category_capacities,
                                                     target_category=target_category_pair[1])  # calling CRR on second category
     logger.info(f'alloc after CRR#{target_category_pair[1]} ->{alloc.bundles}')
@@ -277,7 +279,7 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
-    logger.info(f'initial_agent_order->{initial_agent_order}')
+    logger.info(f'Run Per-Category Capped Round Robin, initial_agent_order->{initial_agent_order}')
     for category in item_categories.keys():
         helper_categorization_friendly_picking_sequence(alloc=alloc, agent_order=current_order,
                                                         items_to_allocate=item_categories[category],
@@ -286,8 +288,8 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
         helper_update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
                                  item_categories=item_categories, agent_category_capacities=agent_category_capacities)
         current_order = list(nx.topological_sort(envy_graph))
-        logger.info(f'alloc after RR in category ->{category} is ->{alloc}.\n Envy graph nodes->{envy_graph.nodes} edges->{envy_graph.edges}.\ntopological sort->{current_order}')
-    logger.info(f'allocation after termination of algorithm4 -> {alloc}')
+        logger.info(f'alloc after RR in category ->{category} is ->{alloc.bundles}.\n Envy graph nodes->{envy_graph.nodes} edges->{envy_graph.edges}.\ntopological sort->{current_order}')
+    logger.info(f'allocation after termination of algorithm4 -> {alloc.bundles}')
 
 
 def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):
@@ -322,7 +324,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             >>> item_categories = {'c1': ['m1'],'c2':['m2','m3']}
             >>> agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
             >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}} # TODO change valuation in paper
-            >>> divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)
+            >>> #divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)
             {'Agent1': ['m1', 'm3'], 'Agent2': ['m2'], 'Agent3': []}
 
             >>> # Example 3 ( 3 agents , 3 categories , with common interests, and remainder unallocated items at the end )
@@ -331,32 +333,31 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             >>> item_categories = {'c1': ['m1','m2','m3'],'c2':['m4','m5'],'c3':['m6']}
             >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':1,'c3':1}, 'Agent2': {'c1':1,'c2':1,'c3':1},'Agent3': {'c1':0,'c2':0,'c3':1}}
             >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':0,'m4':1,'m5':1,'m6':1},'Agent2':{'m1':0,'m2':1,'m3':0,'m4':1,'m5':1,'m6':1},'Agent3':{'m1':0,'m2':0,'m3':0,'m4':0,'m5':0,'m6':1}}
-            >>> divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)# m3 remains unallocated ....
+            >>> #divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)# m3 remains unallocated ....
             {'Agent1': ['m1', 'm5', 'm6'], 'Agent2': ['m2', 'm4'], 'Agent3': []}
    """
+    logger.info("Running Iterated Priority Matching")
     envy_graph = nx.DiGraph()
     envy_graph.add_nodes_from(alloc.remaining_agents())  # adding agent nodes (no edges involved yet)
-    current_order = [agent for agent in alloc.remaining_agents()]  # in this algorithm no need for initial_agent_order
+    current_order = list(alloc.remaining_agents())  # in this algorithm no need for initial_agent_order
     valuation_func = alloc.instance.agent_item_value
 
     for category in item_categories.keys():
         maximum_capacity = max(
             [agent_category_capacities[agent][category] for agent in
              agent_category_capacities.keys()])# for the sake of inner iteration
-        logger.info(f'Th=max(kih) is -> {maximum_capacity}')
+        logger.info(f'\nCategory {category}, Th=max(kih) is -> {maximum_capacity}')
         remaining_category_agent_capacities = {
             agent: agent_category_capacities[agent][category] for agent in agent_category_capacities if
             agent_category_capacities[agent][category] != 0
         }  # dictionary of the agents paired with capacities with respect to the current category we're dealing with
 
-        current_item_list = helper_update_item_list(alloc, category,
-                                                    item_categories)  # items we're dealing with with respect to the category
-        current_agent_list = helper_update_ordered_agent_list(current_order,
-                                                              remaining_category_agent_capacities)  #  items we're dealing with with respect to the constraints
-        logger.info(f'current_item_list before priority matching in category:{category}-> {current_item_list}')
+        # remaining_category_items = helper_update_item_list(alloc, category, item_categories)  # items we're dealing with with respect to the category
+        remaining_category_items = [x for x in alloc.remaining_items() if x in item_categories[category]]
+        current_agent_list = helper_update_ordered_agent_list(current_order, remaining_category_agent_capacities)  #  items we're dealing with with respect to the constraints
+        logger.info(f'remaining_category_items before priority matching in category:{category}-> {remaining_category_items}')
         logger.info(f'current_agent_list before priority matching in category:{category} -> {current_agent_list}')
-        for i in range(
-                maximum_capacity):  # as in papers we run for the length of the maximum capacity out of all agents for the current category
+        for i in range(maximum_capacity):  # as in papers we run for the length of the maximum capacity out of all agents for the current category
             # Creation of agent-item graph
             agent_item_bipartite_graph = helper_create_agent_item_bipartite_graph(
                 agents=current_agent_list,  # remaining agents
@@ -378,17 +379,17 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             helper_priority_matching(agent_item_bipartite_graph, current_order, alloc,
                                      remaining_category_agent_capacities)  # deals with eliminating finished agents from agent_category_capacities
             logger.info(f'allocation after priority matching in category:{category} & i:{i} -> {alloc.bundles}')
-            current_item_list = helper_update_item_list(alloc, category,
+            remaining_category_items = helper_update_item_list(alloc, category,
                                                         item_categories)  # important to update the item list after priority matching.
             current_agent_list = helper_update_ordered_agent_list(current_order,
                                                                   remaining_category_agent_capacities)  # important to update the item list after priority matching.
-            logger.info(f'current_item_list after priority matching in category:{category} & i:{i} -> {current_item_list}')
+            logger.info(f'current_item_list after priority matching in category:{category} & i:{i} -> {remaining_category_items}')
             logger.info(f'current_agent_list after priority matching in category:{category} & i:{i} -> {current_agent_list}')
 
+        agents_with_remaining_capacities = [agent for agent,capacity in remaining_category_agent_capacities.items() if capacity>0]
         logger.info(f'remaining_category_agent_capacities of agents capable of carrying arbitrary item ->{remaining_category_agent_capacities}')
-        logger.info(f'current_item_list that were not allocated in the priority matching ->{current_item_list}')
-
-        helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories[category], agent_category_capacities={agent:{category:remaining_category_agent_capacities[agent]} for agent in remaining_category_agent_capacities.keys()}, target_category=category)
+        logger.info(f'Using round-robin to allocate the items that were not allocated in the priority matching ->{remaining_category_items}')
+        helper_categorization_friendly_picking_sequence(alloc, agents_with_remaining_capacities, item_categories[category], agent_category_capacities={agent:{category:remaining_category_agent_capacities[agent]} for agent in remaining_category_agent_capacities.keys()}, target_category=category)
     logger.info(f'FINAL ALLOCATION IS -> {alloc.bundles}')
 
 
@@ -556,21 +557,25 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
         agent_order = [agent for agent in alloc.remaining_agents() if agent_category_capacities[agent][target_category] > 0]
 
     remaining_category_agent_capacities = {agent: agent_category_capacities[agent][target_category] for agent in
-                                           agent_category_capacities.keys() if
-                                           agent_category_capacities[agent][target_category] != 0} # all the agents with non zero capacities in our category
+                                           agent_category_capacities.keys()} # all the agents with non zero capacities in our category
     logger.info(f"agent_category_capacities-> {agent_category_capacities}")
     remaining_category_items = [x for x in alloc.remaining_items() if x in items_to_allocate]
     logger.info(f'remaining_category_items -> {remaining_category_items} & remaining agent capacities {remaining_category_agent_capacities}')
     logger.info(f"Agent order is -> {agent_order}")
+    remaining_agents_with_capacities = {agent for agent,capacity in remaining_category_agent_capacities.items() if capacity>0}
     for agent in cycle(agent_order):
-        logger.info("Looping agent %s, remaining capacity %s", agent, remaining_category_agent_capacities[agent] )
-        if agent not in remaining_category_agent_capacities:
-            continue# pass to the other agent
+        logger.info("Looping agent %s, remaining capacity %s", agent, remaining_category_agent_capacities[agent])
+        if remaining_category_agent_capacities[agent] <= 0:
+            remaining_agents_with_capacities.discard(agent)
+            if len(remaining_agents_with_capacities) == 0:
+                logger.info(f'No more agents with capacity')
+                break
+            continue
         potential_items_for_agent = set(remaining_category_items).difference(alloc.bundles[agent]) # in case difference is empty means already has item / there is no items left
         if len(potential_items_for_agent) == 0:
             logger.info(f'No potential items for agent {agent}')
             # either no items left / or agent already has items (conflicted)
-            if remaining_category_agent_capacities[agent]>0:# need to remove agent from our loop
+            if agent in remaining_category_agent_capacities:    # need to remove agent from our loop
                 del remaining_category_agent_capacities[agent]
                 if len(remaining_category_agent_capacities) == 0:
                     logger.info(f'No more agents with capacity')
@@ -581,11 +586,6 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
         logger.info(f'picked best item for {agent} -> item -> {best_item_for_agent}')
         alloc.give(agent, best_item_for_agent)# this handles capacity of item and capacity of agent !
         remaining_category_agent_capacities[agent] -= 1
-        if remaining_category_agent_capacities[agent] <= 0:
-            del remaining_category_agent_capacities[agent]
-            if len(remaining_category_agent_capacities) == 0:
-                logger.info(f'No more agents with capacity')
-                break
         remaining_category_items = [x for x in alloc.remaining_items() if x in items_to_allocate]
         if len(remaining_category_items) == 0:
             logger.info(f'No more items in category')
@@ -646,7 +646,7 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
     >>> graph.has_edge('Agent1','Agent2')
     False
     """
-    logger.info(f"curr_bundles -> {curr_bundles}")
+    logger.info(f"Creating envy graph for curr_bundles -> {curr_bundles}")
     envy_graph.clear_edges()
     envy_graph.add_nodes_from(curr_bundles.keys())
     for agent1, bundle1 in curr_bundles.items():
@@ -940,16 +940,16 @@ def helper_priority_matching(agent_item_bipartite_graph:nx.Graph, current_order:
     # we used max weight matching in which (agents are getting high weights in desc order 2^n,2^n-1.......1)
     logger.info(f'matching is -> {matching}')
     for match in matching:
-        if match[0].startswith('A'):
+        if match[0].startswith('A'): # TODO: agent name not always starts with A.
             if ((match[0], match[1]) not in alloc.remaining_conflicts) and match[0] in remaining_category_agent_capacities.keys():
-                alloc.give(match[0], match[1])
+                alloc.give(match[0], match[1], logger)
                 remaining_category_agent_capacities[match[0]] -= 1
                 if remaining_category_agent_capacities[match[0]] <= 0:
                     del remaining_category_agent_capacities[match[0]]
             #else do nothing ....
         else:
             if  ((match[1], match[0]) not in alloc.remaining_conflicts) and match[1] in remaining_category_agent_capacities.keys():
-                alloc.give(match[1], match[0])
+                alloc.give(match[1], match[0], logger)
                 remaining_category_agent_capacities[match[1]] -= 1
                 if remaining_category_agent_capacities[match[1]] <= 0:
                     del remaining_category_agent_capacities[match[1]]
@@ -1010,11 +1010,10 @@ def helper_create_agent_item_bipartite_graph(agents, items, valuation_func,
 
 if __name__ == "__main__":
     import doctest, sys
-    # print("\n", doctest.testmod(), "\n")
-
-    print("\nAlgorithm 1: per_category_round_robin\n")
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
+    print("\n", doctest.testmod(), "\n")
+    # doctest.run_docstring_examples(iterated_priority_matching, globals())
 
     order=['Agent1','Agent2','Agent3','Agent4']
     items=['m1','m2','m3','m4']
@@ -1025,4 +1024,13 @@ if __name__ == "__main__":
     instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
     # divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
     # divide(algorithm=capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category="c1")
-    divide(algorithm=two_categories_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category_pair=("c1","c2"))
+    # divide(algorithm=two_categories_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category_pair=("c1","c2"))
+    # divide(algorithm=per_category_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
+
+    items=['m1','m2','m3']
+    item_categories = {'c1': ['m1'],'c2':['m2','m3']}
+    agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
+    valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}} # TODO change valuation in paper
+    instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
+    # divide(algorithm=iterated_priority_matching,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
+
