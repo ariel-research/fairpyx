@@ -30,7 +30,7 @@ def random_instance(equal_capacities: bool = False, equal_valuations: bool = Fal
         agent_capacity_bounds=(1, 20),
         item_capacity_bounds=(1, random_num_of_agents) if item_capacity_bounds == (-1,-1) else item_capacity_bounds,
         item_base_value_bounds=item_base_value_bounds,
-        item_subjective_ratio_bounds=(0.5, 1.5),
+        item_subjective_ratio_bounds=(1, 2),
         agent_name_template="Agent{index}",
         item_name_template="m{index}",
         normalized_sum_of_values=100,

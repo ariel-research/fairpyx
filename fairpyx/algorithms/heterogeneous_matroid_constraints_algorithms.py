@@ -940,7 +940,7 @@ def helper_priority_matching(agent_item_bipartite_graph:nx.Graph, current_order:
     # we used max weight matching in which (agents are getting high weights in desc order 2^n,2^n-1.......1)
     logger.info(f'matching is -> {matching}')
     for match in matching:
-        if match[0].startswith('A'): # TODO: agent name not always starts with A.
+        if match[0].startswith('A'): # TODO: agent name not always starts with A. do different check
             if ((match[0], match[1]) not in alloc.remaining_conflicts) and match[0] in remaining_category_agent_capacities.keys():
                 alloc.give(match[0], match[1], logger)
                 remaining_category_agent_capacities[match[0]] -= 1
@@ -1008,28 +1008,28 @@ def helper_create_agent_item_bipartite_graph(agents, items, valuation_func):
 
 
 if __name__ == "__main__":
-    import doctest, sys
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.StreamHandler())
-    print("\n", doctest.testmod(), "\n")
-    # doctest.run_docstring_examples(iterated_priority_matching, globals())
-
-    order=['Agent1','Agent2','Agent3','Agent4']
-    items=['m1','m2','m3','m4']
-    item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
-    agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
-    valuations = {'Agent1':{'m1':2,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':2,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':2,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
-    sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
-    instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
-    # divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
-    # divide(algorithm=capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category="c1")
-    # divide(algorithm=two_categories_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category_pair=("c1","c2"))
-    # divide(algorithm=per_category_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
-
-    items=['m1','m2','m3']
-    item_categories = {'c1': ['m1'],'c2':['m2','m3']}
-    agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
-    valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}} # TODO change valuation in paper
-    instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
-    # divide(algorithm=iterated_priority_matching,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
-
+    # import doctest, sys
+    # logger.setLevel(logging.DEBUG)
+    # logger.addHandler(logging.StreamHandler())
+    # print("\n", doctest.testmod(), "\n")
+    # # doctest.run_docstring_examples(iterated_priority_matching, globals())
+    #
+    # order=['Agent1','Agent2','Agent3','Agent4']
+    # items=['m1','m2','m3','m4']
+    # item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
+    # agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
+    # valuations = {'Agent1':{'m1':2,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':2,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':2,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
+    # sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
+    # instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
+    # # divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
+    # # divide(algorithm=capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category="c1")
+    # # divide(algorithm=two_categories_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category_pair=("c1","c2"))
+    # # divide(algorithm=per_category_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
+    #
+    # items=['m1','m2','m3']
+    # item_categories = {'c1': ['m1'],'c2':['m2','m3']}
+    # agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
+    # valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}} # TODO change valuation in paper
+    # instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
+    # # divide(algorithm=iterated_priority_matching,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
+    pass

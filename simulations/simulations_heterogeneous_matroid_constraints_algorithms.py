@@ -2,8 +2,7 @@ from tests.test_heterogeneous_matroid_constraints_algorithms import random_insta
 from fairpyx.algorithms.heterogeneous_matroid_constraints_algorithms import *
 import experiments_csv
 import logging
-
-experiments_csv.logger.setLevel(logging.INFO)
+#experiments_csv.logger.setLevel(logging.INFO)
 #Experiment 1 : single  category friendly ->>[per_category_round_robin,capped_round_robin,per_category_capped_round_robin]
 expr1= experiments_csv.Experiment('results/', 'experiment1.csv') # TODO there is a problem with the seed , it doesnt give the same set of examples !
 #expr1.clear_previous_results()
@@ -16,8 +15,8 @@ input_ranges = {
     'algorithm': [per_category_round_robin, capped_round_robin,
                   per_category_capped_round_robin]
 }
-
-
+# TODO iterated maximum matching
+#   comparison based on egalitarian and utilitarian values (in the plot)
 def experiment1(equal_capacities: bool, category_count: int, item_capacity_bounds: any, random_seed_num: int,
                 algorithm: callable,num_of_agents: int):
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(
@@ -192,11 +191,11 @@ expr2_2.clear_previous_results()
 input_ranges = {
     'equal_capacities': [True,False],
     'equal_valuations':[True],# for the respect of algorithm per_category_capped_round_robin
-    'category_count': [1000],
+    'category_count': [50],
     'item_capacity_bounds': range(1, 1+1),
     'random_seed_num': [0],
-    'num_of_agents':[1000],
-    'num_of_items':range(1,1000),
+    'num_of_agents':[50],
+    'num_of_items':range(1,500),
     'algorithm': [capped_round_robin,two_categories_capped_round_robin,per_category_capped_round_robin]
 }
 
@@ -214,8 +213,8 @@ def experiment2_2(equal_capacities: bool, category_count: int, item_capacity_bou
     algorithm(**kawrgs)
     return {'allocation': alloc.bundles}
 
-#expr2_1.run_with_time_limit(experiment2_1,input_ranges,time_limit=60)
-experiments_csv.single_plot_results('results/experiment2_2.csv',filter={},x_field='num_of_items',y_field='runtime',z_field='algorithm',save_to_file='results/experiment2_1.png')
+expr2_2.run_with_time_limit(experiment2_2,input_ranges,time_limit=60)
+experiments_csv.single_plot_results('results/experiment2_2.csv',filter={},x_field='num_of_items',y_field='runtime',z_field='algorithm',save_to_file='results/experiment2_2.png')
 
 
 
