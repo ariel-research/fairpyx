@@ -37,13 +37,12 @@ def Demote(matching:dict, student_index:int, down_index:int, up_index:int)-> dic
     t = student_index
     # Set p to 'down'
     p = down_index
-
     if t not in matching[p - 1]:
         raise ValueError(f"Student {t} should be in matching to college {p - 1}")
         # Check that all colleges have at least one students
-    for college, students in matching.items():
-        if len(students) < 1:
-            raise ValueError(f"All colleges must contain at least 1 student. College number {college} has only {len(students)} students.")
+    # for college, students in matching.items():
+    #     if len(students) < 1:
+    #         raise ValueError(f"All colleges must contain at least 1 student. College number {college} has only {len(students)} students.")
 
     # While p > up
     while p > up_index:
@@ -309,13 +308,6 @@ def FaSt(alloc: AllocationBuilder)-> dict:
         print("j: ", j)
 
     return initial_matching
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":
