@@ -130,6 +130,7 @@ if __name__ == '__main__':
 
     experiments_csv.logger.setLevel(logging.INFO)
     #compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian()
-    #experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms.csv',filter={},x_field='num_of_agents',y_field='ratio_egalitarian',z_field='algorithm',save_to_file='results/egalitarian_comparison_heterogeneous_constraints_algorithms.png')
-    experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms.csv',filter={},x_field='num_of_agents',y_field='ratio_utilitarian',z_field='algorithm',save_to_file='results/utilitarian_comparison_heterogeneous_constraints_algorithms.png')
+    #experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms.csv',filter={},x_field='num_of_agents',y_field='ratio_egalitarian',z_field='algorithm',save_to_file='results/egalitarian_comparison_heterogeneous_constraints_algorithms.png') # egalitarian ratio plot
+    #experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms.csv',filter={},x_field='num_of_agents',y_field='ratio_utilitarian',z_field='algorithm',save_to_file='results/utilitarian_comparison_heterogeneous_constraints_algorithms.png') # utilitarian ratio plot
+    #experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms.csv',filter={},x_field='num_of_agents',y_field='runtime',z_field='algorithm',save_to_file='results/runtime_comparison_heterogeneous_constraints_algorithms.png') # runtime plot
 
