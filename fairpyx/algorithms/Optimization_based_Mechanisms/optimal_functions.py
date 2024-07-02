@@ -107,3 +107,4 @@ def sumOnRankMat(alloc, rank_mat, var):
                    for j, course in enumerate(alloc.remaining_items())
                    for i, student in enumerate(alloc.remaining_agents())
                    if (student, course) not in alloc.remaining_conflicts])
+

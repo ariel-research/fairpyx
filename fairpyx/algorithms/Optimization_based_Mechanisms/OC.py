@@ -152,3 +152,4 @@ if __name__ == "__main__":
         item_subjective_ratio_bounds=[0.5, 1.5]
     )
     allocation = divide(OC_function, instance=instance)
+

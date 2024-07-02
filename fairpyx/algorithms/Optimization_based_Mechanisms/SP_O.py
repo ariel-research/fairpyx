@@ -194,3 +194,4 @@ if __name__ == "__main__":
     allocation = divide(SP_O_function, instance=instance)
     print(allocation)
 
+
