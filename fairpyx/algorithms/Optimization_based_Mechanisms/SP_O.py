@@ -10,6 +10,9 @@ import cvxpy as cp
 import logging
 import fairpyx.algorithms.Optimization_based_Mechanisms.optimal_functions as optimal
 import fairpyx.algorithms.Optimization_based_Mechanisms.TTC_O as TTC_O
+import time
+import concurrent.futures
+
 logger = logging.getLogger(__name__)
 
 # global dict
@@ -62,7 +65,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
     #>>> divide(SP_O_function, instance=instance)
     {'s1': ['c1', 'c2'], 's2': ['c1', 'c3'], 's3': ['c3', 'c4'], 's4': ['c1', 'c4'], 's5': ['c2']}
     """
-
+    startime = time.time()
     explanation_logger.info("\nAlgorithm SP-O starts.\n")
     global map_student_to_his_sum_bids
 
@@ -72,6 +75,8 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
 
     # the amount of bids agent have from all the courses he got before
     map_student_to_his_sum_bids = {s: 0 for s in alloc.remaining_agents()}
+
+    #with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
 
     for iteration in range(max_iterations):
         logger.info("\nIteration number: %d", iteration+1)
@@ -148,9 +153,11 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
                         logger.info("student %s payed: %f", student, p_values[j])
                         logger.info("student %s have in dict: %f", student, map_student_to_his_sum_bids[student])
             optimal.give_items_according_to_allocation_matrix(alloc, x, logger)
+            #optimal.give_items_according_to_allocation_matrix_threaded(alloc, x, logger, executor, num_threads=4)
 
             optimal_value = problem.value
             logger.info("Optimal Objective Value: %d", optimal_value)
+            logger.info("time: %s", time.time()-startime)
             # Now you can use this optimal value for further processing
         else:
             logger.info("Solver failed to find a solution or the problem is infeasible/unbounded.")

@@ -6,10 +6,12 @@
 """
 
 import cvxpy
-
+import concurrent.futures
+import time
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import logging
 import cvxpy as cp
+import numpy as np
 import fairpyx.algorithms.Optimization_based_Mechanisms.optimal_functions as optimal
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,7 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     # {'s1': ['c1', 'c3'], 's2': ['c1', 'c2']}
     # """
 
+    startime = time.time()
     explanation_logger.info("\nAlgorithm OC starts.\n")
 
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
@@ -71,6 +74,8 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     logger.info("alloc.remaining_conflicts = %s ", alloc.remaining_conflicts)
     logger.info("alloc.remaining_instance().item_conflicts(c1) = %s ", alloc.remaining_instance().item_conflicts("c1"))
 
+    #with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+
     for course in alloc.remaining_items():
         list_of_conflict = alloc.remaining_instance().item_conflicts(course)
 
@@ -88,6 +93,7 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
         # Check if the optimization problem was successfully solved
         if result_Z2 is not None:
             optimal.give_items_according_to_allocation_matrix(alloc, x, logger)
+            #optimal.give_items_according_to_allocation_matrix_threaded(alloc, x, logger, executor, num_threads=4)
 
             optimal_value = problem.value
             explanation_logger.info("Optimal Objective Value:", optimal_value)
@@ -101,6 +107,8 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
         logger.error("An error occurred: %s", str(e))
         raise
 
+    logger.info("time: %s", time.time()-startime)
+
 if __name__ == "__main__":
     import doctest, sys
     print("\n", doctest.testmod(), "\n")
@@ -108,7 +116,7 @@ if __name__ == "__main__":
 
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
-
+    import fairpyx
     from fairpyx.adaptors import divide
     # s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
     # s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}
@@ -122,15 +130,25 @@ if __name__ == "__main__":
     # )
     # divide(OC_function, instance=instance)
 
-    s1 = {"c1": 400, "c2": 150, "c3": 230, "c4": 200, "c5": 20}
-    s2 = {"c1": 245, "c2": 252, "c3": 256, "c4": 246, "c5": 1}
-    s3 = {"c1": 243, "c2": 230, "c3": 240, "c4": 245, "c5": 42}
-    s4 = {"c1": 251, "c2": 235, "c3": 242, "c4": 201, "c5": 71}
-    instance = Instance(
-        agent_capacities={"s1": 3, "s2": 3, "s3": 3, "s4": 3},
-        item_capacities={"c1": 2, "c2": 3, "c3": 3, "c4": 2, "c5": 2},
-        item_conflicts={"c1": ['c4'], "c4": ['c1']},
-        valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4}
-    )
+    #s1 = {"c1": 400, "c2": 150, "c3": 230, "c4": 200, "c5": 20}
+    #s2 = {"c1": 245, "c2": 252, "c3": 256, "c4": 246, "c5": 1}
+    #s3 = {"c1": 243, "c2": 230, "c3": 240, "c4": 245, "c5": 42}
+    #s4 = {"c1": 251, "c2": 235, "c3": 242, "c4": 201, "c5": 71}
+    #instance = Instance(
+    #    agent_capacities={"s1": 3, "s2": 3, "s3": 3, "s4": 3},
+    #    item_capacities={"c1": 2, "c2": 3, "c3": 3, "c4": 2, "c5": 2},
+    #    item_conflicts={"c1": ['c4'], "c4": ['c1']},
+    #    valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4}
+    #)
 
-    divide(OC_function, instance=instance)
+    #divide(OC_function, instance=instance)
+
+    np.random.seed(2)
+    instance = fairpyx.Instance.random_uniform(
+        num_of_agents=70, num_of_items=10, normalized_sum_of_values=100,
+        agent_capacity_bounds=[2, 6],
+        item_capacity_bounds=[20, 40],
+        item_base_value_bounds=[1, 1000],
+        item_subjective_ratio_bounds=[0.5, 1.5]
+    )
+    allocation = divide(OC_function, instance=instance)
