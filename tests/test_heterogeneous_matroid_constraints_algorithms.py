@@ -285,7 +285,7 @@ def test_algorithm_2(run):
     # logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.capped_round_robin, instance=instance,
                    item_categories=categories, agent_category_capacities=agent_category_capacities,
-                   initial_agent_order=initial_agent_order)
+                   initial_agent_order=initial_agent_order,target_category='c1')
     logger.info(
         f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
     logger.info(f"allocation is ------------->: {alloc}")
@@ -307,7 +307,7 @@ def test_algorithm_3(run):
     alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin,
                    instance=instance,
                    item_categories=categories, agent_category_capacities=agent_category_capacities,
-                   initial_agent_order=initial_agent_order)
+                   initial_agent_order=initial_agent_order,target_category_pair=('c1', 'c2'))
     logger.info(
         f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
     logger.info(f"allocation is ------------->: {alloc}")
