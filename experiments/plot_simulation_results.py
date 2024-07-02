@@ -24,8 +24,8 @@ def plot_course_allocation_results_szws():
      filter={"num_of_agents": 100, "num_of_items": 25}
      y_fields=["utilitarian_value","egalitarian_value", "max_envy", "mean_envy",  "mean_deficit", "max_deficit", "num_with_top_1", "num_with_top_2", "num_with_top_3","runtime"]
      multi_multi_plot_results(
-          results_csv_file="results/course_allocation_szws.csv", 
-          save_to_file_template="results/course_allocation_szws_{}.png",
+          results_csv_file="results/more_algo_for_course_allocation_szws.csv",
+          save_to_file_template="results/more_algo_for_course_allocation_szws_{}.png",
           filter=filter, 
           x_field="supply_ratio", y_fields=y_fields, z_field="algorithm", mean=True,
           subplot_field="num_of_popular_items", subplot_rows=2, subplot_cols=1, sharey=True, sharex=True,
@@ -36,8 +36,8 @@ def plot_course_allocation_results_szws():
 def plot_course_allocation_results_ariel():
      y_fields=["utilitarian_value","egalitarian_value", "max_envy", "mean_envy",  "mean_deficit", "max_deficit", "num_with_top_1", "num_with_top_2", "num_with_top_3","runtime"]
      multi_multi_plot_results(
-          results_csv_file="results/course_allocation_szws.csv", 
-          save_to_file_template="results/course_allocation_szws_{}.png",
+          results_csv_file="results/course_allocation_ariel.csv",
+          save_to_file_template="results/more_algo_for_course_allocation_ariel_{}.png",
           filter=filter, 
           x_field="supply_ratio", y_fields=y_fields, z_field="algorithm", mean=True,
           subplot_field="num_of_popular_items", subplot_rows=2, subplot_cols=1, sharey=True, sharex=True,
@@ -57,8 +57,8 @@ def plot_course_allocation_results_uniform():
                ]}
      y_fields=["utilitarian_value","egalitarian_value", "max_envy", "mean_envy",  "mean_deficit", "max_deficit", "num_with_top_1", "num_with_top_2", "num_with_top_3","runtime"]
      multi_multi_plot_results(
-          results_csv_file="results/course_allocation_uniform.csv", 
-          save_to_file_template="results/course_allocation_uniform_{}.png",
+          results_csv_file="results/more_algo_for_course_allocation_uniform.csv",
+          save_to_file_template="results/more_algo_for_course_allocation_uniform_{}.png",
           filter=filter, 
           x_field="value_noise_ratio", y_fields=y_fields, z_field="algorithm", mean=True,
           subplot_field = "num_of_agents", subplot_rows=2, subplot_cols=2, sharey=True, sharex=True,
@@ -66,8 +66,9 @@ def plot_course_allocation_results_uniform():
           )
 
 
-# plot_course_allocation_results_uniform()
-plot_course_allocation_results_szws()
+plot_course_allocation_results_uniform()
+#plot_course_allocation_results_szws()
+#plot_course_allocation_results_ariel()
 
 
 
