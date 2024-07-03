@@ -4,6 +4,7 @@
   link to the article: https://arxiv.org/pdf/2305.11406
   ALGORITHM 2: Find a profitable manipulation for a student
 
+  
 
 Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
 Since: 2024-05
