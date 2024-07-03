@@ -715,14 +715,11 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
 
 
 if __name__ == "__main__":
-    from fairpyx.adaptors import divide
-
-    import doctest
-
-
+    import doctest, sys
+    print(doctest.testmod())
+    sys.exit(0)
+    
     import coloredlogs
-
-    # Customizing the colors and format
     level_styles = {
         'debug': {'color': 'green'},
         'info': {'color': 'cyan'},
@@ -730,12 +727,10 @@ if __name__ == "__main__":
         'error': {'color': 'red', 'bold': True},
         'critical': {'color': 'red', 'bold': True, 'background': 'white'}
     }
-
-    # Setup colored logs with custom format
     coloredlogs.install(level='DEBUG', logger=logger, fmt='%(message)s', level_styles=level_styles)
 
-    # doctest.testmod()
 
+    from fairpyx.adaptors import divide
     random_delta = {random.uniform(0.1, 1)}
     random_beta = random.uniform(1, 100)
 

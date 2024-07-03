@@ -271,13 +271,12 @@ def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict
     return new_budgets, clearing_error, map_student_to_best_bundle_per_budget, excess_demand_per_course
 
 if __name__ == "__main__":
-    import doctest
+    import doctest, sys
+    print(doctest.testmod())
+    sys.exit(0)
+
     from fairpyx.adaptors import divide
 
-    # doctest.testmod()
-
-    # from fairpyx.adaptors import divide
-    #
     # from fairpyx.utils.test_utils import stringify
 
     # print(doctest.run_docstring_examples(find_ACEEI_with_EFTB, globals()))
