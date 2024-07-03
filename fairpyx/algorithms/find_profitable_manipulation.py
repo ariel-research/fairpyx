@@ -405,10 +405,10 @@ def criteria_randomness(mechanism: callable, student: str, utility: dict, instan
 
 
 if __name__ == '__main__':
-    from fairpyx.algorithms import ACEEI
     import doctest
-    doctest.testmod()
+    print(doctest.testmod())
 
+    # from fairpyx.algorithms import ACEEI
     # mechanism = find_ACEEI_with_EFTB
     # student = "moti"
     # utility = {"x": 1, "y": 2, "z": 4}
