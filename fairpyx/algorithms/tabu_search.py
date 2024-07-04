@@ -718,7 +718,7 @@ if __name__ == "__main__":
     import doctest, sys
     print(doctest.testmod())
     sys.exit(0)
-    
+
     import coloredlogs
     level_styles = {
         'debug': {'color': 'green'},
