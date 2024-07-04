@@ -10,36 +10,52 @@ import matplotlib.pyplot as plt
 from fairpyx import divide, AgentBundleValueMatrix, Instance
 import fairpyx.algorithms.high_multiplicity_fair_allocation as high
 import fairpyx.algorithms.improved_high_multiplicity as imp
-import fairpyx.algorithms.second_improved_high_multiplicity as sec_imp
-import json
+import fairpyx.algorithms.second_improved_high_multiplicity as sec
 from typing import *
 import numpy as np
-# from eefpy import Objective, EnvyNotion
-# from eefpy import solve as solve
+from eefpy import Objective, EnvyNotion
+from eefpy import solve as solve
+
 max_value = 100
 normalized_sum_of_values = 100
 TIME_LIMIT = 60
 
 # Define the specific algorithm you want to check
-# algorithms = [solve,
-#               high.high_multiplicity_fair_allocation,
-#               imp.improved_high_multiplicity_fair_allocation
-#               ]
 algorithms = [
-              high.high_multiplicity_fair_allocation,
-              imp.improved_high_multiplicity_fair_allocation,
-              sec_imp.second_improved_high_multiplicity_fair_allocation
-              ]
+    high.high_multiplicity_fair_allocation,
+    solve,
+    # imp.improved_high_multiplicity_fair_allocation,
+    # sec.second_improved_high_multiplicity_fair_allocation
+]
+
+
+######### EXPERIMENT WITH UNIFORMLY-RANDOM DATA ##########
+
 
 def evaluate_algorithm_on_instance(algorithm, instance):
-    # if algorithm is solve:
-    #     allocation = solve(solve(num_agents=instance.num_of_agents
-    #                              ,num_types=instance.num_of_items
-    #                              ,agent_utils=instance.agents,
-    #                              items=instance.items,
-    #                              envy=EnvyNotion.EF, obj=Objective.NONE))
-    # else:
-    allocation = divide(algorithm, instance)
+
+    if algorithm is solve:
+        agent_valuations = [[int(instance.agent_item_value(agent, item)) for item in instance.items] for agent in
+                            instance.agents]
+        items = [instance.item_capacity(item) for item in instance.items]
+
+        alloc = solve(num_agents=instance.num_of_agents
+                      , num_types=instance.num_of_items
+                      , agent_utils=agent_valuations,
+                      items=items,
+                      envy=EnvyNotion.EF, obj=Objective.NONE)
+        allocation = {}
+        for i, agent in enumerate(instance.agents):
+            allocation[agent] = []
+            for j, item in enumerate(instance.items):
+                if alloc == []:
+                    allocation[agent] = []
+                else:
+                    for sum in range(alloc[i][j]):
+                        allocation[agent].append(item)
+
+    else:
+        allocation = divide(algorithm, instance)
     matrix = AgentBundleValueMatrix(instance, allocation)
     matrix.use_normalized_values()
     return {
@@ -48,8 +64,6 @@ def evaluate_algorithm_on_instance(algorithm, instance):
 
     }
 
-
-######### EXPERIMENT WITH UNIFORMLY-RANDOM DATA ##########
 
 def course_allocation_with_random_instance_uniform(
         num_of_agents: int, num_of_items: int,
@@ -64,7 +78,7 @@ def course_allocation_with_random_instance_uniform(
         normalized_sum_of_values=normalized_sum_of_values,
         agent_capacity_bounds=agent_capacity_bounds,
         item_capacity_bounds=item_capacity_bounds,
-        item_base_value_bounds=[1, max_value],
+        item_base_value_bounds=[0, max_value],
         item_subjective_ratio_bounds=[1 - value_noise_ratio, 1 + value_noise_ratio]
     )
     return evaluate_algorithm_on_instance(algorithm, instance)
@@ -72,18 +86,19 @@ def course_allocation_with_random_instance_uniform(
 
 def run_uniform_experiment():
     # Run on uniformly-random data:
-    experiment = experiments_csv.Experiment("results/", "results/high_multi.csv", backup_folder="results/backup/")
+    experiment = experiments_csv.Experiment("results/", "high_multi.csv", backup_folder="results/backup/")
     input_ranges = {
         "num_of_agents": [2, 3, 4, 5],
         "num_of_items": [2, 3, 5, 6],
-        "value_noise_ratio": [0, 0.5, 1.5],
+        "value_noise_ratio": [0],
         "algorithm": algorithms,
         "random_seed": range(5),
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges, time_limit=TIME_LIMIT)
 
 
-######### EXPERIMENT WITH DATA SAMPLED FROM ARIEL 5783 DATA ##########
+######### EXPERIMENT WITH DATA SAMPLED FROM naor input DATA ##########
+
 
 import json
 
@@ -124,16 +139,12 @@ def run_naor_experiment():
 
 
 def create_plot_naor_experiment():
-    # קריאת הנתונים מקובץ CSV
-    csv_file = 'results/course_allocation_naor.csv'  # החלף בשם הקובץ שלך
+    csv_file = 'results/course_allocation_naor.csv'
     data = read_csv(csv_file)
 
-    # הצגת כמה שורות ראשונות של הנתונים כדי להבין את המבנה שלהם
     print(data.head())
-    # הפרדה לפי האלגוריתם
     algorithms_for_plot = data['algorithm'].unique()
 
-    # יצירת גרפים משווים
     fig, axes = plt.subplots(1, 3, figsize=(21, 6))
 
     for algorithm in algorithms_for_plot:
@@ -142,7 +153,6 @@ def create_plot_naor_experiment():
         axes[1].plot(df_algo['egalitarian_value'], marker='o', linestyle='-', label=algorithm)
         axes[2].plot(df_algo['runtime'], marker='o', linestyle='-', label=algorithm)
 
-    # הוספת כותרות לגרף
     axes[0].set_title('Utilitarian Value Comparison')
     axes[0].set_xlabel('Random Seed')
     axes[0].set_ylabel('Utilitarian Value')
@@ -159,21 +169,16 @@ def create_plot_naor_experiment():
     axes[2].legend()
 
     plt.tight_layout()
-    # שמירת התמונה
     plt.savefig('results/naor_and_elor_plot.png')
 
 
 def create_plot_uniform():
-    # קריאת הנתונים מקובץ CSV
-    csv_file = 'results/high_multi.csv'  # החלף בשם הקובץ שלך
+    csv_file = 'results/high_multi.csv'
     data = read_csv(csv_file)
 
-    # הצגת כמה שורות ראשונות של הנתונים כדי להבין את המבנה שלהם
     print(data.head())
-    # הפרדה לפי האלגוריתם
     algorithms_for_plot = data['algorithm'].unique()
 
-    # יצירת גרפים משווים
     fig, axes = plt.subplots(1, 3, figsize=(21, 6))
 
     for algorithm in algorithms_for_plot:
@@ -182,7 +187,6 @@ def create_plot_uniform():
         axes[1].plot(df_algo['egalitarian_value'], marker='o', linestyle='-', label=algorithm)
         axes[2].plot(df_algo['runtime'], marker='o', linestyle='-', label=algorithm)
 
-    # הוספת כותרות לגרף
     axes[0].set_title('Utilitarian Value Comparison')
     axes[0].set_xlabel('Random Seed')
     axes[0].set_ylabel('Utilitarian Value')
@@ -200,7 +204,6 @@ def create_plot_uniform():
 
     plt.tight_layout()
 
-    # שמירת התמונה
     plt.savefig('results/high_multiplicity_uniforn_plot.png')
 
 
@@ -209,8 +212,9 @@ def create_plot_uniform():
 
 if __name__ == "__main__":
     import logging
+
     logging.basicConfig(level=logging.INFO)
-    run_naor_experiment()
-   # run_uniform_experiment()
-    create_plot_naor_experiment()
-   # create_plot_uniform()
+    # run_naor_experiment()
+    run_uniform_experiment()
+    # create_plot_naor_experiment()
+    create_plot_uniform()

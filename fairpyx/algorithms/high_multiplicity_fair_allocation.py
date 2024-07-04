@@ -449,7 +449,7 @@ if __name__ == "__main__":
     #     normalized_sum_of_values=1000,
     #     random_seed=1)
     # print(instance)
-    divide(high_multiplicity_fair_allocation, instance_4_6())
+    divide(high_multiplicity_fair_allocation, instance_4_3())
 
 
     # alloc = AllocationBuilder(instance)
