@@ -44,6 +44,7 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
     rank_mat = optimal.createRankMat(alloc,logger)
     sum_rank = optimal.sumOnRankMat(alloc, rank_mat, x)
+
     objective_Z1 = cp.Maximize(sum_rank)
 
     constraints_Z1 = optimal.notExceedtheCapacity(x,alloc) + optimal.numberOfCourses(x, alloc, alloc.remaining_agent_capacities)
@@ -52,8 +53,10 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     result_Z1 = problem.solve()
     logger.info("result_Z1 - the optimum ranking: %d", result_Z1)
 
+
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)  # Is there a func which zero all the matrix?
     sum_rank = optimal.sumOnRankMat(alloc, rank_mat, x)
+
     objective_Z2 = cp.Maximize(cp.sum([alloc.effective_value(student, course) * x[j, i]
                                         for j, course in enumerate(alloc.remaining_items())
                                         for i, student in enumerate(alloc.remaining_agents())
@@ -110,12 +113,18 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 if __name__ == "__main__":
     import doctest, sys
     print("\n", doctest.testmod(), "\n")
-    # sys.exit(1)
 
+<<<<<<<<< Temporary merge branch 1
+    #logger.addHandler(logging.StreamHandler())
+    #logger.setLevel(logging.INFO)
+
+    #from fairpyx.adaptors import divide
+=========
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
     import fairpyx
     from fairpyx.adaptors import divide
+>>>>>>>>> Temporary merge branch 2
     # s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
     # s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}
     # s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}
@@ -138,28 +147,20 @@ if __name__ == "__main__":
     #    item_conflicts={"c1": ['c4'], "c4": ['c1']},
     #    valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4}
     #)
+<<<<<<<<< Temporary merge branch 1
+    #divide(OC_function, instance=instance)
+=========
 
     #divide(OC_function, instance=instance)
 
-    # np.random.seed(2)
-    # instance = fairpyx.Instance.random_uniform(
-    #     num_of_agents=70, num_of_items=10, normalized_sum_of_values=100,
-    #     agent_capacity_bounds=[2, 6],
-    #     item_capacity_bounds=[20, 40],
-    #     item_base_value_bounds=[1, 1000],
-    #     item_subjective_ratio_bounds=[0.5, 1.5]
-    # )
-    # allocation = divide(OC_function, instance=instance)
-
-    s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
-    s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}
-    s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}
-    s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}
-    s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}
-    instance = fairpyx.Instance(
-        agent_capacities={"s1": 2, "s2": 2, "s3": 2, "s4": 2, "s5": 2},
-        item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2},
-        valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
+    np.random.seed(2)
+    instance = fairpyx.Instance.random_uniform(
+        num_of_agents=70, num_of_items=10, normalized_sum_of_values=100,
+        agent_capacity_bounds=[2, 6],
+        item_capacity_bounds=[20, 40],
+        item_base_value_bounds=[1, 1000],
+        item_subjective_ratio_bounds=[0.5, 1.5]
     )
     allocation = divide(OC_function, instance=instance)
 
+>>>>>>>>> Temporary merge branch 2

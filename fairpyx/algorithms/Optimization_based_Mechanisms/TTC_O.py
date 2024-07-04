@@ -78,26 +78,26 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
     logger.info("Max iterations: %d", max_iterations)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+    # with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
 
-        for iteration in range(max_iterations):
-            logger.info("\nIteration number: %d", iteration+1)
-            if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
-                logger.info("There are no more agents (%d) or items(%d) ", len(alloc.remaining_agent_capacities),len(alloc.remaining_item_capacities))
-                break
+    for iteration in range(max_iterations):
+        logger.info("\nIteration number: %d", iteration+1)
+        if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
+            logger.info("There are no more agents (%d) or items(%d) ", len(alloc.remaining_agent_capacities),len(alloc.remaining_item_capacities))
+            break
 
-            result_Zt1, result_Zt2, var, problem , rank_mat = roundTTC_O(alloc, logger, alloc.effective_value, 0)
+        result_Zt1, result_Zt2, var, problem , rank_mat = roundTTC_O(alloc, logger, alloc.effective_value, 0)
 
-            # Check if the optimization problem was successfully solved
-            if result_Zt2 is not None:
-                optimal.give_items_according_to_allocation_matrix(alloc, var, logger)
-                #optimal.give_items_according_to_allocation_matrix_threaded(alloc, var, logger, executor, num_threads=4)
-                logger.info("time = %s", time.time()-startime)
-                optimal_value = problem.value
-                logger.info("Optimal Objective Value: %s", optimal_value)
-                # Now you can use this optimal value for further processing
-            else:
-                logger.info("Solver failed to find a solution or the problem is infeasible/unbounded.")
+        # Check if the optimization problem was successfully solved
+        if result_Zt2 is not None:
+            optimal.give_items_according_to_allocation_matrix(alloc, var, logger)
+            #optimal.give_items_according_to_allocation_matrix_threaded(alloc, var, logger, executor, num_threads=4)
+            logger.info("time = %s", time.time()-startime)
+            optimal_value = problem.value
+            logger.info("Optimal Objective Value: %s", optimal_value)
+            # Now you can use this optimal value for further processing
+        else:
+            logger.info("Solver failed to find a solution or the problem is infeasible/unbounded.")
 
 if __name__ == "__main__":
     import doctest, sys, numpy as np
