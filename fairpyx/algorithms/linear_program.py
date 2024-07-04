@@ -16,9 +16,7 @@ import os
 from fairpyx import Instance
 from fairpyx.algorithms import ACEEI
 
-
-logging.basicConfig(level=logging.INFO, stream=sys.stdout, format='%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 # ---------------------The main function---------------------
