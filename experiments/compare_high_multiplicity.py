@@ -16,7 +16,7 @@ import numpy as np
 from eefpy import Objective, EnvyNotion
 from eefpy import solve as solve
 
-max_value = 100
+max_value = 1000
 normalized_sum_of_values = 100
 TIME_LIMIT = 60
 
@@ -37,6 +37,7 @@ def evaluate_algorithm_on_instance(algorithm, instance):
     if algorithm is solve:
         agent_valuations = [[int(instance.agent_item_value(agent, item)) for item in instance.items] for agent in
                             instance.agents]
+        print(f' agent valuations:  {agent_valuations}')
         items = [instance.item_capacity(item) for item in instance.items]
 
         alloc = solve(num_agents=instance.num_of_agents
@@ -78,7 +79,7 @@ def course_allocation_with_random_instance_uniform(
         normalized_sum_of_values=normalized_sum_of_values,
         agent_capacity_bounds=agent_capacity_bounds,
         item_capacity_bounds=item_capacity_bounds,
-        item_base_value_bounds=[0, max_value],
+        item_base_value_bounds=[1, max_value],
         item_subjective_ratio_bounds=[1 - value_noise_ratio, 1 + value_noise_ratio]
     )
     return evaluate_algorithm_on_instance(algorithm, instance)
@@ -90,7 +91,7 @@ def run_uniform_experiment():
     input_ranges = {
         "num_of_agents": [2, 3, 4, 5],
         "num_of_items": [2, 3, 5, 6],
-        "value_noise_ratio": [0],
+        "value_noise_ratio": [0, 0.2, 0.5, 0.8, 1],
         "algorithm": algorithms,
         "random_seed": range(5),
     }
