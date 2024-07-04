@@ -122,8 +122,8 @@ if __name__ == "__main__":
     print("\n", doctest.testmod(), "\n")
     # sys.exit(1)
 
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
+    #logger.addHandler(logging.StreamHandler())
+    #logger.setLevel(logging.INFO)
 
     from fairpyx.adaptors import divide
     s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}

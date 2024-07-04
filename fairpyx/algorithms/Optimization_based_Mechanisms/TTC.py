@@ -79,8 +79,8 @@ if __name__ == "__main__":
     print("\n", doctest.testmod(), "\n")
     # sys.exit(1)
 
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.DEBUG)
+    #logger.addHandler(logging.StreamHandler())
+    #logger.setLevel(logging.DEBUG)
 
     from fairpyx.adaptors import divide
 
