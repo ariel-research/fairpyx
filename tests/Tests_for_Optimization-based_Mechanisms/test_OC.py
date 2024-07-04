@@ -59,11 +59,11 @@ def test_same_order_of_course():
     assert fairpyx.divide(fairpyx.algorithms.OC_function, instance=instance) == {'s1': ['c2', 'c3'], 's2': ['c1', 'c4'], 's3': ['c3', 'c4'], 's4': ['c1', 'c2'], 's5': ['c1']}, "ERROR"
 
 def test_big_example():
-    s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
-    s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}
-    s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}
-    s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}
-    s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}
+    s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}  # c1: 4 ,c2: 2, c3: 1, c4: 3
+    s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}    # c1: 2 ,c2: 3, c3: 4, c4: 1
+    s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}   # c1: 1 ,c2: 2, c3: 3, c4: 4
+    s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}   # c1: 3 ,c2: 1, c3: 2, c4: 4
+    s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}     # c1: 3 ,c2: 4, c3: 2, c4: 1
     instance = fairpyx.Instance(
         agent_capacities={"s1": 2, "s2": 2, "s3": 2, "s4": 2, "s5": 2},
         item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2},

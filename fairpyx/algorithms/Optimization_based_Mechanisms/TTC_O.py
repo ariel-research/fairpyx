@@ -29,7 +29,7 @@ def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func):
 
     # Write and solve new program for Zt2 (10)(11)(7)(8)
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
-
+    sum_rank = optimal.sumOnRankMat(alloc, rank_mat, x)
     objective_Zt2 = cp.Maximize(cp.sum(
         [agent_item_value_func(student, course) * x[j, i] if flag_if_use_alloc_in_func == 0 else agent_item_value_func(alloc, student, course) * x[j, i]
          for j, course in enumerate(alloc.remaining_items())
