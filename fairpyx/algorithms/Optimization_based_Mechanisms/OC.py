@@ -26,16 +26,16 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents of
      the fair course allocation problem(CAP).
 
-    # >>> from fairpyx.adaptors import divide
-    # >>> s1 = {"c1": 44, "c2": 39, "c3": 17}
-    # >>> s2 = {"c1": 50, "c2": 45, "c3": 5}
-    # >>> agent_capacities = {"s1": 2, "s2": 2}                                 # 4 seats required
-    # >>> course_capacities = {"c1": 2, "c2": 1, "c3": 2}                       # 5 seats available
-    # >>> valuations = {"s1": s1, "s2": s2}
-    # >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
-    # >>> divide(OC_function, instance=instance)
-    # {'s1': ['c1', 'c3'], 's2': ['c1', 'c2']}
-    # """
+    >>> from fairpyx.adaptors import divide
+    >>> s1 = {"c1": 44, "c2": 39, "c3": 17}
+    >>> s2 = {"c1": 50, "c2": 45, "c3": 5}
+    >>> agent_capacities = {"s1": 2, "s2": 2}                                 # 4 seats required
+    >>> course_capacities = {"c1": 2, "c2": 1, "c3": 2}                       # 5 seats available
+    >>> valuations = {"s1": s1, "s2": s2}
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    >>> divide(OC_function, instance=instance)
+    {'s1': ['c1', 'c3'], 's2': ['c1', 'c2']}
+    """
 
     startime = time.time()
     explanation_logger.info("\nAlgorithm OC starts.\n")
@@ -43,7 +43,6 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
 
     rank_mat = optimal.createRankMat(alloc,logger)
-
     sum_rank = optimal.sumOnRankMat(alloc, rank_mat, x)
 
     objective_Z1 = cp.Maximize(sum_rank)
@@ -54,7 +53,9 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     result_Z1 = problem.solve()
     logger.info("result_Z1 - the optimum ranking: %d", result_Z1)
 
+
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)  # Is there a func which zero all the matrix?
+    # sum_rank = optimal.sumOnRankMat(alloc, rank_mat, x)
 
     objective_Z2 = cp.Maximize(cp.sum([alloc.effective_value(student, course) * x[j, i]
                                         for j, course in enumerate(alloc.remaining_items())
