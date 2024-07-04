@@ -24,8 +24,8 @@ TIME_LIMIT = 60
 algorithms = [
     high.high_multiplicity_fair_allocation,
     solve,
-    # imp.improved_high_multiplicity_fair_allocation,
-    # sec.second_improved_high_multiplicity_fair_allocation
+    imp.improved_high_multiplicity_fair_allocation,
+    sec.second_improved_high_multiplicity_fair_allocation
 ]
 
 
