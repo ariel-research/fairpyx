@@ -39,7 +39,7 @@ def validate_allocation(instance:Instance, allocation:dict, title:str=""):
     ValueError: : Wasteful allocation:
     Item c2 has remaining capacity: 2>['Bob'].
     Agent Alice has remaining capacity: 2>['c1'].
-    Agent Alice values Item c2 at 22.    
+    Agent Alice values Item c2 at 22.
     """
 
     ### validate agent capacity and uniqueness:
