@@ -43,26 +43,26 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
      the fair course allocation problem(CAP).
 
 
-    #>>> from fairpyx.adaptors import divide
-    #>>> s1 = {"c1": 50, "c2": 49, "c3": 1}
-    #>>> s2 = {"c1": 48, "c2": 46, "c3": 6}
-    #>>> agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
-    #>>> course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
-    #>>> valuations = {"s1": s1, "s2": s2}
-    #>>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
-    #>>> divide(SP_O_function, instance=instance)
+    >>> from fairpyx.adaptors import divide
+    >>> s1 = {"c1": 50, "c2": 49, "c3": 1}
+    >>> s2 = {"c1": 48, "c2": 46, "c3": 6}
+    >>> agent_capacities = {"s1": 1, "s2": 1}                                 # 2 seats required
+    >>> course_capacities = {"c1": 1, "c2": 1, "c3": 1}                       # 3 seats available
+    >>> valuations = {"s1": s1, "s2": s2}
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    >>> divide(SP_O_function, instance=instance)
     {'s1': ['c2'], 's2': ['c1']}
 
-    #>>> s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}   #{c1: 40, c4: 30, c2:20, c3: 10}
-    #>>> s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}     #{c3: 70, c2: 20, c1:6, c4: 4}
-    #>>> s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}    #{c4: 50, c3: 21, c2:20, c1: 9}
-    #>>> s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}    #{c4: 55, c1: 25, c3:15, c2: 5}
-    #>>> s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}      #{c2: 90, c1: 5, c3:3, c4: 2}
-    #>>> agent_capacities={"s1": 2, "s2": 2, "s3": 2, "s4": 2, "s5": 2}
-    #>>> item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2}
-    #>>> valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
-    #>>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
-    #>>> divide(SP_O_function, instance=instance)
+    >>> s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}   #{c1: 40, c4: 30, c2:20, c3: 10}
+    >>> s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}     #{c3: 70, c2: 20, c1:6, c4: 4}
+    >>> s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}    #{c4: 50, c3: 21, c2:20, c1: 9}
+    >>> s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}    #{c4: 55, c1: 25, c3:15, c2: 5}
+    >>> s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}      #{c2: 90, c1: 5, c3:3, c4: 2}
+    >>> agent_capacities={"s1": 2, "s2": 2, "s3": 2, "s4": 2, "s5": 2}
+    >>> item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2}
+    >>> valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+    >>> divide(SP_O_function, instance=instance)
     {'s1': ['c1', 'c2'], 's2': ['c1', 'c3'], 's3': ['c3', 'c4'], 's4': ['c1', 'c4'], 's5': ['c2']}
     """
     startime = time.time()
@@ -175,8 +175,9 @@ if __name__ == "__main__":
         item_capacities={"c1": 1},
         valuations={"s1": s1, "s2": s2}
     )
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
+
+    #logger.addHandler(logging.StreamHandler())
+    #logger.setLevel(logging.INFO)
     allocation = divide(SP_O_function, instance=instance)
     print(allocation,"\n\n\n")
 

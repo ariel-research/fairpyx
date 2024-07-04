@@ -43,6 +43,7 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
 
     rank_mat = optimal.createRankMat(alloc,logger)
+
     sum_rank = optimal.sumOnRankMat(alloc, rank_mat, x)
 
     objective_Z1 = cp.Maximize(sum_rank)
@@ -52,7 +53,6 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     problem = cp.Problem(objective_Z1, constraints=constraints_Z1)
     result_Z1 = problem.solve()
     logger.info("result_Z1 - the optimum ranking: %d", result_Z1)
-
 
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)  # Is there a func which zero all the matrix?
     sum_rank = optimal.sumOnRankMat(alloc, rank_mat, x)
