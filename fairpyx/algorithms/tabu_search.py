@@ -17,8 +17,6 @@ from fairpyx import Instance, AllocationBuilder
 
 # Setup logger and colored logs
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.DEBUG)
 
 
 
@@ -718,6 +716,9 @@ if __name__ == "__main__":
     import doctest, sys
     print(doctest.testmod())
     sys.exit(0)
+
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.DEBUG)
 
     import coloredlogs
     level_styles = {

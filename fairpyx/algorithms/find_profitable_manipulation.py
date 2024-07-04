@@ -30,9 +30,8 @@ NUMBER_OF_ITERATIONS = 10
 # ---------------------The main function---------------------
 
 def find_profitable_manipulation(mechanism: callable, student: str, true_student_utility: dict,
-                                 criteria: Enum, neu: float, instance: Instance, delta: float, epsilon: float, t: Enum,
-                                 initial_budgets: dict,
-                                 beta: float):
+                                 criteria:criteria_for_profitable_manipulation, 
+                                 neu: float, instance: Instance, initial_budgets: dict, beta: float, **kwargs):
     """
     ALGORITHM 2: Find a profitable manipulation for a student
 
@@ -45,20 +44,13 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     :param neu: a local update coefficient neu
     :param alloc: a fair-course-allocation instance
     :param initial_budgets: Students' initial budgets
-    :param delta: The step size
-    :param epsilon: maximum budget perturbation
-    :param t: type 𝑡 of the EF-TB constraint,
-              0 for no EF-TB constraint,
-              1 for EF-TB constraint,
-              2 for contested EF-TB
+    :param kwargs: additional keyword arguments sent to the mechanism.
     :param beta: a parameter that determines the distribution of the initial budgets
 
     return: The profitable manipulation
 
     >>> from fairpyx.algorithms.ACEEI import find_ACEEI_with_EFTB
     >>> from fairpyx.algorithms import ACEEI, tabu_search
-    >>> logger.addHandler(logging.StreamHandler())
-    >>> logger.setLevel(logging.INFO)
 
     Example run 1
     >>> mechanism = find_ACEEI_with_EFTB
@@ -75,7 +67,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, initial_budgets, beta, delta=delta, epsilon=epsilon, t=t)
     {'x': 1, 'y': 2, 'z': 4}
 
     Example run 2
@@ -93,7 +85,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.EF_TB
-    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, initial_budgets, beta, delta=delta, epsilon=epsilon, t=t)
     {'x': 1, 'y': 2, 'z': 4}
 
 
@@ -112,7 +104,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, initial_budgets, beta, delta=delta, epsilon=epsilon, t=t)
     {'x': 6, 'y': 2}
 
     # Example run 5
@@ -129,7 +121,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, initial_budgets, beta, delta=delta, epsilon=epsilon, t=t)
     {'x': 1, 'y': 2, 'z': 5}
 
    """
@@ -147,12 +139,9 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
         #              argmax𝑣∈𝑉∪{𝑣0} E𝒖−𝑖∼U−𝑖, 𝒓∼R[𝑢𝑖(𝑴𝑖([𝑣𝑗, 𝒖−𝑖], 𝒄, 𝒓))] resampled population.
 
         if criteria == criteria_for_profitable_manipulation.population:
-            new_best_manipulation = criteria_population(mechanism, student, true_student_utility, instance, delta, epsilon, beta,
-                                                            t, misreports)
+            new_best_manipulation = criteria_population(mechanism, student, true_student_utility, instance, beta, misreports, **kwargs)
         else:  # criteria == criteria_for_profitable_manipulation.randomness
-            new_best_manipulation = criteria_randomness(mechanism, student, true_student_utility, instance, delta, epsilon, t,
-                                                            initial_budgets,
-                                                            misreports, beta)
+            new_best_manipulation = criteria_randomness(mechanism, student, true_student_utility, instance, beta, misreports, initial_budgets, **kwargs)
         if current_best_manipulation == new_best_manipulation:
             break
         else:
@@ -236,8 +225,7 @@ def get_random_utilities(instance: Instance):
 
 
 def expected_value_of_specific_report_for_population(random_utilities: list[dict], random_budgets: list[dict], mechanism: callable,
-                                      instance: Instance, student: str, delta: float, epsilon: float, t: Enum,
-                                      report: dict):
+                                      instance: Instance, student: str, report: dict, **kwargs):
     """
     Calculate the expected value of a student given a random utilities.
 
@@ -246,26 +234,15 @@ def expected_value_of_specific_report_for_population(random_utilities: list[dict
     :param mechanism: A randomized mechanism M for course-allocation
     :param instance: a fair-course-allocation instance
     :param student: The student who is being tested to see if he can manipulate
-    :param delta: The step size
-    :param epsilon: maximum budget perturbation
-    :param t: type 𝑡 of the EF-TB constraint,
-              0 for no EF-TB constraint,
-              1 for EF-TB constraint,
-              2 for contested EF-TB
     :param report: our student's utility
-
-
     """
-
     sum_utilities = 0
     for budgets, valuations in zip(random_budgets, random_utilities):
         # todo: ask erel how to test it
         utilities = {agent: (report if agent == student else utility) for agent,utility in valuations.items()}
 
         new_instance = Instance(valuations=utilities, agent_capacities=instance.agent_capacity, item_capacities=instance.item_capacity)
-        allocation = divide(mechanism, instance=new_instance, initial_budgets=budgets, delta=delta,
-                            epsilon=epsilon,
-                            t=t)  # todo: change to kwargs
+        allocation = divide(mechanism, instance=new_instance, initial_budgets=budgets, **kwargs)  # todo: change to kwargs
         current_utility_found = instance.agent_bundle_value(student, allocation[student])
         sum_utilities += current_utility_found
     return sum_utilities / NUMBER_OF_ITERATIONS
@@ -274,8 +251,7 @@ def expected_value_of_specific_report_for_population(random_utilities: list[dict
 
 
 def expected_value_of_specific_report_for_randomness(random_utilities: dict, random_budgets: list[dict], mechanism: callable,
-                                                     instance: Instance, student: str, delta: float, epsilon: float, t: Enum,
-                                                     report: dict):
+                                                     instance: Instance, student: str, report: dict, **kwargs):
     """
     Calculate the expected value of a student given a random utilities.
 
@@ -305,7 +281,7 @@ def expected_value_of_specific_report_for_randomness(random_utilities: dict, ran
     >>> epsilon = 0.5
     >>> t = EFTBStatus.NO_EF_TB
     >>> report = {"x":5, "y":5, "z":5}
-    >>> expected_value_of_specific_report_for_randomness(random_utilities, random_budgets, mechanism, instance, student, delta, epsilon, t,report)
+    >>> expected_value_of_specific_report_for_randomness(random_utilities, random_budgets, mechanism, instance, student, report, delta=delta, epsilon=epsilon, t=t)
     2.0
 
     """
@@ -315,16 +291,14 @@ def expected_value_of_specific_report_for_randomness(random_utilities: dict, ran
         utilities = {agent: (report if agent == student else utility) for agent, utility in random_utilities.items()}
 
         new_instance = Instance(valuations=utilities, agent_capacities=instance.agent_capacity, item_capacities=instance.item_capacity)
-        allocation = divide(mechanism, instance=new_instance, initial_budgets=random_budgets[iteration], delta=delta,
-                            epsilon=epsilon,
-                            t=t)
+        allocation = divide(mechanism, instance=new_instance, initial_budgets=random_budgets[iteration], **kwargs)
         # print(allocation)
         current_utility_found = instance.agent_bundle_value(student, allocation[student])
         sum_utilities += current_utility_found
     return sum_utilities / NUMBER_OF_ITERATIONS
 
-def criteria_population(mechanism: callable, student: str, current_best_manipulation: dict, instance: Instance, delta: float,
-                        epsilon: float, beta: float, t: Enum, misreports: list):
+def criteria_population(mechanism: callable, student: str, current_best_manipulation: dict, instance: Instance,
+                        beta: float, misreports: list, **kwargs):
     """
     Run algorithm 1 when initial budgets and other students utilities are Unknown.
 
@@ -333,12 +307,6 @@ def criteria_population(mechanism: callable, student: str, current_best_manipula
     :param current_best_manipulation: The student's utility
     :param instance: a fair-course-allocation instance
     :param initial_budgets: Students' initial budgets
-    :param delta: The step size
-    :param epsilon: maximum budget perturbation
-    :param t: type 𝑡 of the EF-TB constraint,
-              0 for no EF-TB constraint,
-              1 for EF-TB constraint,
-              2 for contested EF-TB
     :param misreports: List of misreports for the students
 
     :return best manipulation that found for our student - the report that gives him the most benefit
@@ -350,11 +318,11 @@ def criteria_population(mechanism: callable, student: str, current_best_manipula
 
     # run for original utility
     max_expected_value = expected_value_of_specific_report_for_population(random_utilities, random_budgets, mechanism,
-                                                                          instance, student, delta, epsilon, t, current_best_manipulation)
+                                                                          instance, student, current_best_manipulation, **kwargs)
 
     for misreport in misreports:
         current_expected_value = expected_value_of_specific_report_for_population(random_utilities, random_budgets, mechanism,
-                                                                   instance, student, delta, epsilon, t, misreport)
+                                                                   instance, student, misreport, **kwargs)
         if current_expected_value > max_expected_value:
             max_expected_value = current_expected_value
             best_manipulation_found = misreport
@@ -363,8 +331,7 @@ def criteria_population(mechanism: callable, student: str, current_best_manipula
     return best_manipulation_found
 
 
-def criteria_randomness(mechanism: callable, student: str, utility: dict, instance: Instance, delta: float,
-                        epsilon: float, t: Enum, initial_budgets: dict, misreports: list, beta: float):
+def criteria_randomness(mechanism: callable, student: str, utility: dict, instance: Instance, beta: float, misreports: list, initial_budgets: dict, **kwargs):
     """
     Run algorithm 1 when initial budgets are Unknown.
 
@@ -373,12 +340,6 @@ def criteria_randomness(mechanism: callable, student: str, utility: dict, instan
     :param utility: The student's utility
     :param instance: a fair-course-allocation instance
     :param initial_budgets: Students' initial budgets
-    :param delta: The step size
-    :param epsilon: maximum budget perturbation
-    :param t: type 𝑡 of the EF-TB constraint,
-              0 for no EF-TB constraint,
-              1 for EF-TB constraint,
-              2 for contested EF-TB
     :param misreports: List of misreports for the students
 
     :return best manipulation that found for our student - the report that gives him the most benefit
@@ -389,12 +350,12 @@ def criteria_randomness(mechanism: callable, student: str, utility: dict, instan
 
     # run for original utility
     max_expected_value = expected_value_of_specific_report_for_randomness(instance._valuations, random_budgets, mechanism,
-                                                           instance, student, delta, epsilon, t, utility)
+                                                           instance, student, utility, **kwargs)
 
 
     for misreport in misreports:
         current_expected_value = expected_value_of_specific_report_for_randomness(instance._valuations, random_budgets, mechanism,
-                                                                   instance, student, delta, epsilon, t, misreport)
+                                                                   instance, student, misreport, **kwargs)
         if current_expected_value > max_expected_value:
             max_expected_value = current_expected_value
             best_manipulation_found = misreport
@@ -422,8 +383,7 @@ if __name__ == '__main__':
     # delta = 0.5
     # epsilon = 0.5
     # t = ACEEI.EFTBStatus.NO_EF_TB
-    # find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t,
-    #                                   initial_budgets, beta)
+    # find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, initial_budgets, beta, delta=delta, epsilon=epsilon, t=t)
 
     #
     # mechanism = find_ACEEI_with_EFTB
@@ -439,4 +399,4 @@ if __name__ == '__main__':
     # delta = 0.5
     # epsilon = 0.5
     # t = ACEEI.EFTBStatus.NO_EF_TB
-    # find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    # find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, initial_budgets, beta, delta=delta, epsilon=epsilon, t=t)
