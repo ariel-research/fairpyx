@@ -6,11 +6,10 @@ from fairpyx.algorithms.heterogeneous_matroid_constraints_algorithms import *
 from fairpyx.utils.test_utils import stringify
 from tests.test_heterogeneous_matroid_constraints_algorithms import *
 from fairpyx.algorithms.fractional_egalitarian import *
-
 def compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian():  #egalitarian: prioritizes the poor
     """
     we have 5 algorithms , for the sake of common support we give an input range respected by all algorithms
-    meaning : single category , binary valuations , equal valuations , equal capacities
+    meaning : single category/two , binary valuations , equal valuations , equal capacities
     we make number of items/number of agents variable
     """
     expr=experiments_csv.Experiment('results/', 'egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms.csv')
@@ -23,9 +22,10 @@ def compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian
         'category_count': [2],
         'item_capacity_bounds': range(1, 1 + 1),
         'random_seed_num': [0],
-        'num_of_agents': range(10,20),
+        'num_of_agents': range(10,100),
         'algorithm': [per_category_round_robin, capped_round_robin,
-                      per_category_capped_round_robin, two_categories_capped_round_robin, iterated_priority_matching]
+                      per_category_capped_round_robin, two_categories_capped_round_robin, iterated_priority_matching,
+        ]
     }
     input_ranges_2 = {
         'equal_capacities': [True],
@@ -35,9 +35,10 @@ def compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian
         'category_count': [2],
         'item_capacity_bounds': range(1, 1 + 1),
         'random_seed_num': [0],
-        'num_of_agents': range(10,20),
+        'num_of_agents': range(10,100),
         'algorithm': [per_category_round_robin, capped_round_robin
-                      , two_categories_capped_round_robin]
+                      , two_categories_capped_round_robin,
+        ]
     } # equal capacities for the sake of the compatibility of input with the implemented egalitarian and utilitarian algorithms
     # we also need to consider giving each agent a capacity which is >= number of items
     input_ranges_3 = {
@@ -48,7 +49,7 @@ def compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian
         'category_count': [2],
         'item_capacity_bounds': range(1, 1 + 1),
         'random_seed_num': [0],
-        'num_of_agents': range(10,20),
+        'num_of_agents': range(10,100),
         'algorithm': [
                       per_category_capped_round_robin]
     }
@@ -63,7 +64,7 @@ def run_experiment(equal_capacities:bool,equal_valuations:bool,binary_valuations
                              'initial_agent_order', 'target_category'},
         two_categories_capped_round_robin: {'alloc', 'item_categories', 'agent_category_capacities', 'initial_agent_order','target_category_pair'},
         per_category_capped_round_robin: {'alloc', 'item_categories', 'agent_category_capacities', 'initial_agent_order'},
-        iterated_priority_matching: {'alloc', 'item_categories', 'agent_category_capacities'},
+        iterated_priority_matching: {'alloc', 'item_categories', 'agent_category_capacities'}
     }
 
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(
@@ -100,16 +101,14 @@ def run_experiment(equal_capacities:bool,equal_valuations:bool,binary_valuations
     current_algorithm_bundle_sum=sum(alloc.agent_bundle_value(agent,bundle)for agent,bundle in alloc.bundles.items())
     #experiments_csv.logger.info(f'utilitarian algorithm bundle sum is ->{utilitarian_bundle_sum} \n current algorithm {algorithm.__name__} bundle sum is ->{current_algorithm_bundle_sum}')
 
-
-
-
     return {'egalitarian_algorithm_min_value':min_egalitarian_algorithm_value,'current_algorithm_min_value':min_algorithm_bundle_value,'ratio_egalitarian':min_algorithm_bundle_value/min_egalitarian_algorithm_value_denominator,'utilitarian_algorithm_sum':utilitarian_bundle_sum,'current_algorithm_sum':current_algorithm_bundle_sum,'ratio_utilitarian':current_algorithm_bundle_sum/utilitarian_bundle_sum_denominator}
 
 if __name__ == '__main__':
     #experiments_csv.logger.setLevel(logging.INFO)
-    #compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian()
+    compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian()
     #experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms.csv',filter={},x_field='num_of_agents',y_field='ratio_egalitarian',z_field='algorithm',save_to_file='results/egalitarian_comparison_heterogeneous_constraints_algorithms.png') # egalitarian ratio plot
     #experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms.csv',filter={},x_field='num_of_agents',y_field='ratio_utilitarian',z_field='algorithm',save_to_file='results/utilitarian_comparison_heterogeneous_constraints_algorithms.png') # utilitarian ratio plot
     #experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms.csv',filter={},x_field='num_of_agents',y_field='runtime',z_field='algorithm',save_to_file='results/runtime_comparison_heterogeneous_constraints_algorithms.png') # runtime plot
     pass
+#
 
