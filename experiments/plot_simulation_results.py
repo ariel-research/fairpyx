@@ -48,13 +48,7 @@ def plot_course_allocation_results_ariel():
 
 
 def plot_course_allocation_results_uniform():
-     filter={"num_of_items": 20, 
-          "algorithm": [
-               "yekta_day", 
-               "iterated_maximum_matching_unadjusted","iterated_maximum_matching_adjusted",
-               "almost_egalitarian_without_donation","almost_egalitarian_with_donation",
-               "round_robin", "bidirectional_round_robin"
-               ]}
+     filter={}
      y_fields=["utilitarian_value","egalitarian_value", "max_envy", "mean_envy",  "mean_deficit", "max_deficit", "num_with_top_1", "num_with_top_2", "num_with_top_3","runtime"]
      multi_multi_plot_results(
           results_csv_file="results/more_algo_for_course_allocation_uniform.csv",
@@ -66,8 +60,8 @@ def plot_course_allocation_results_uniform():
           )
 
 
-plot_course_allocation_results_uniform()
-#plot_course_allocation_results_szws()
+# plot_course_allocation_results_uniform()
+plot_course_allocation_results_szws()
 #plot_course_allocation_results_ariel()
 
 
