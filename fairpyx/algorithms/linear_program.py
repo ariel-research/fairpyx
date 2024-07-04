@@ -37,10 +37,10 @@ def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instan
 
         :return final courses prices, final budgets, final allocation
 
-
-        Example run 6 iteration 5
         >>> from fairpyx import Instance
         >>> from fairpyx.algorithms import ACEEI
+
+        Example run 6 iteration 5
         >>> instance = Instance(
         ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
         ...     agent_capacities=2,
@@ -51,10 +51,21 @@ def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instan
         >>> t = ACEEI.EFTBStatus.EF_TB
         >>> optimize_model(map_student_to_best_bundle_per_budget,instance,prices,t,initial_budgets)
         ({'Alice': (3, ('x', 'z')), 'Bob': (2, ('y', 'z'))}, 0.0, {'x': 0.0, 'y': 0.0, 'z': 0.0})
+
+        Example with a student with no bundle
+        >>> instance = Instance(
+        ...     valuations={"avi":{"x":5}, "beni":{"x":5}},
+        ...     agent_capacities=1,
+        ...     item_capacities={"x":1})
+        >>> map_student_to_best_bundle_per_budget = {'avi': {1.3: ('x',)}, 'beni': {}}
+        >>> initial_budgets = {"avi": 1.1, "beni": 1}
+        >>> prices = {"x": 1.3}
+        >>> t = ACEEI.EFTBStatus.EF_TB
+        >>> optimize_model(map_student_to_best_bundle_per_budget,instance,prices,t,initial_budgets)
+        ({'Alice': (3, ('x', 'z')), 'Bob': (2, ('y', 'z'))}, 0.0, {'x': 0.0, 'y': 0.0, 'z': 0.0})
     """
 
-    logger.info("\n----START LINEAR_PROGRAM")
-    logger.info("a = %s", map_student_to_best_bundle_per_budget)
+    logger.info("\n----START LINEAR_PROGRAM: a = %s, p = %s, t = %s, initial_budgets = %s", map_student_to_best_bundle_per_budget, prices, t, initial_budgets)
 
     model = Model("allocations")
     courses_names = list(instance.items)
@@ -125,8 +136,10 @@ def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instan
 
     if model.num_solutions:
         excess_demand_per_course = {course: y[course].x for course in courses_names}
+        logger.debug("model.optimize found %s solutions. excess_demand_per_course=%s", model.num_solutions, excess_demand_per_course)
     else:
         excess_demand_per_course = model.status
+        logger.debug("model.optimize found no solutions.")
 
     new_budgets = {}
     for (student, bundle), var in x.items():
@@ -301,8 +314,9 @@ def get_envy_constraints(instance: Instance, initial_budgets: dict, a: dict, t: 
 
 if __name__ == "__main__":
     import doctest
+    print(doctest.testmod())
 
-    doctest.testmod()
+
     # instance = Instance(
     #     valuations={"Alice": {"x": 5, "y": 4, "z": 1, "w": 6}, "Bob": {"x": 4, "y": 6, "z": 3, "w": 1}},
     #     agent_capacities=2,

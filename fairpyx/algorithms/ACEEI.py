@@ -45,9 +45,6 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
 
     >>> from fairpyx.utils.test_utils import stringify
 
-    >>> logger.addHandler(logging.StreamHandler())
-    >>> logger.setLevel(logging.INFO)
-
     >>> instance = Instance(
     ...     valuations={"avi":{"x":1, "y":2, "z":4}, "beni":{"x":2, "y":3, "z":1}},
     ...     agent_capacities=2,
@@ -135,10 +132,13 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
     new_budgets = {}
     while clearing_error:
         # 2) 𝜖-budget perturbation
-        new_budgets, clearing_error, allocation, excess_demand_per_course = find_budget_perturbation(initial_budgets,
-                                                                                                     epsilon, prices,
-                                                                                                     alloc.instance, t)
+        new_budgets, clearing_error, allocation, excess_demand_per_course = find_budget_perturbation(
+            initial_budgets, epsilon, prices, alloc.instance, t)
+        
+        if clearing_error is None:
+            raise ValueError("Clearing error is None")
         # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
+        logger.debug("Clearing error %s", clearing_error)
         if np.allclose(clearing_error, 0):
             break
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
@@ -265,25 +265,41 @@ def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict
     # return: new_budgets, norma, allocation, excess_demand
     logger.info("START find_budget_perturbation")
     map_student_to_best_bundle_per_budget = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
-    new_budgets, clearing_error, excess_demand_per_course = lp.optimize_model(map_student_to_best_bundle_per_budget,
-                                                                              instance, prices, t, initial_budgets)
+    new_budgets, clearing_error, excess_demand_per_course = lp.optimize_model(
+        map_student_to_best_bundle_per_budget, instance, prices, t, initial_budgets)
+    if clearing_error is None:
+        raise ValueError("Clearing error is None")
     # logger.info(f"new_budgets in find_budget_perturbation: {new_budgets}")
     return new_budgets, clearing_error, map_student_to_best_bundle_per_budget, excess_demand_per_course
 
 if __name__ == "__main__":
-    import doctest, sys
-    print(doctest.testmod())
+    from fairpyx.adaptors import divide
+
+    logger.setLevel(logging.DEBUG)
+    lp.logger.setLevel(logging.DEBUG)
+
+    instance = Instance(
+        valuations={"avi":{"x":2}, "beni":{"x":3}},
+        agent_capacities=1,
+        item_capacities = {"x":1})
+    initial_budgets = {"avi":1.1, "beni":1}
+    delta = 0.1
+    epsilon = 0.2
+    t = EFTBStatus.EF_TB
+    divide(find_ACEEI_with_EFTB, instance=instance,
+            initial_budgets=initial_budgets,delta=delta, epsilon=epsilon, t=t)
+
     sys.exit(0)
 
-    from fairpyx.adaptors import divide
+
+    import doctest, sys
+    print(doctest.testmod())
+
 
     # from fairpyx.utils.test_utils import stringify
 
     # print(doctest.run_docstring_examples(find_ACEEI_with_EFTB, globals()))
     #
-    # logger.addHandler(logging.StreamHandler())
-    # logger.setLevel(logging.INFO)
-    # logging.basicConfig(level=logging.WARNING)
 
     # instance = Instance(
     #     valuations={"alice": {"CS161": 5, "ECON101": 3, "IR": 6},
