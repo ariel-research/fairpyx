@@ -31,23 +31,6 @@ algorithms_to_check = [
 ]
 
 
-def evaluate_algorithm_on_instance(algorithm, instance):
-    allocation = divide(algorithm, instance)
-    matrix = AgentBundleValueMatrix(instance, allocation)
-    matrix.use_normalized_values()
-    return {
-        "utilitarian_value": matrix.utilitarian_value(),
-        "egalitarian_value": matrix.egalitarian_value(),
-        "max_envy": matrix.max_envy(),
-        "mean_envy": matrix.mean_envy(),
-        "max_deficit": matrix.max_deficit(),
-        "mean_deficit": matrix.mean_deficit(),
-        "num_with_top_1": matrix.count_agents_with_top_rank(1),
-        "num_with_top_2": matrix.count_agents_with_top_rank(2),
-        "num_with_top_3": matrix.count_agents_with_top_rank(3),
-    }
-
-
 ######### EXPERIMENT WITH UNIFORMLY-RANDOM DATA ##########
 
 # def course_allocation_with_random_instance_uniform(
@@ -80,19 +63,15 @@ def evaluate_algorithm_on_instance(algorithm, instance, **kwargs):
     algorithm_name = algorithm.__name__ if callable(algorithm) else algorithm
     if algorithm_name == 'find_ACEEI_with_EFTB':
         if all(key in kwargs for key in ('delta', 'epsilon', 't')):
-            delta = kwargs['delta']
-            epsilon = kwargs['epsilon']
-            t = kwargs['t']
             initial_budgets = create_initial_budgets(instance.num_of_agents)
-            allocation = divide(algorithm, instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon, t=t)
+            allocation = divide(algorithm, instance, initial_budgets=initial_budgets, **kwargs)
         else:
             raise ValueError("Missing parameters for algorithm1. Required: delta, epsilon, t")
     elif algorithm_name == 'tabu_search':
         if all(key in kwargs for key in ('beta', 'delta')):
             beta = kwargs['beta']
-            delta = kwargs['delta']
             initial_budgets = create_initial_budgets(instance.num_of_agents, beta)
-            allocation = divide(algorithm, instance, initial_budgets=initial_budgets, beta=beta, delta=set(delta))
+            allocation = divide(algorithm, instance, initial_budgets=initial_budgets, **kwargs)
         else:
             raise ValueError("Missing parameters for algorithm2. Required: beta, delta")
     else:
@@ -357,14 +336,14 @@ def run_ariel_experiment():
 RESULTS_CACHE_FILE = "results/comparing_cache_Tabu_Search.csv"
 def run_cache_experiment_Tabu():
     # Remove existing results file if it exists
-    if os.path.exists(RESULTS_CACHE_FILE):
-        os.remove(RESULTS_CACHE_FILE)
+    # if os.path.exists(RESULTS_CACHE_FILE):
+    #     os.remove(RESULTS_CACHE_FILE)
 
     # Run on uniformly-random data with beta and delta parameters:
     experiment = experiments_csv.Experiment("results/", "comparing_cache_Tabu_Search.csv",
                                             backup_folder="results/backup/")
     input_ranges = {
-        "num_of_agents": [30, 40, 45],
+        "num_of_agents": range(20,30),
         "num_of_items": [8, 12],
         "value_noise_ratio": [0, 0.2, 0.4, 0.8, 1],
         "beta": [0.001],
@@ -373,7 +352,7 @@ def run_cache_experiment_Tabu():
         "algorithm": [crs.tabu_search],
         "random_seed": range(5),
     }
-    experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges, time_limit=0.9)
+    experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges, time_limit=5)
 
 
 def analyze_experiment_results_cache():
