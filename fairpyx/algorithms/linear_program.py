@@ -22,8 +22,24 @@ logger = logging.getLogger()
 
 
 # ---------------------The main function---------------------
-def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_budgets: dict):
+def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instance, prices: dict, t: Enum, initial_budgets: dict):
     """
+        This function calculates a linear program whose goal is to find the distribution
+        and budgets that meet the constraints.
+        It is used in Algorithm 1.
+
+        :param map_student_to_best_bundle_per_budget: a dictionary that maps each student to his best bundle per budget.
+        :param instance: a fair-course-allocation instance
+        :param prices: the prices of courses
+        :param t: type 𝑡 of the EF-TB constraint,
+              0 for no EF-TB constraint,
+              1 for EF-TB constraint,
+              2 for contested EF-TB
+        :param initial_budgets: Students' initial budgets
+
+        :return final courses prices, final budgets, final allocation
+
+
         Example run 6 iteration 5
         >>> from fairpyx import Instance
         >>> from fairpyx.algorithms import ACEEI
@@ -35,12 +51,12 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
         >>> initial_budgets = {"Alice": 5, "Bob": 4}
         >>> prices = {"x": 1.5, "y": 2, "z": 0}
         >>> t = ACEEI.EFTBStatus.EF_TB
-        >>> optimize_model(a,instance,prices,t,initial_budgets)
+        >>> optimize_model(map_student_to_best_bundle_per_budget,instance,prices,t,initial_budgets)
         ({'Alice': (3, ('x', 'z')), 'Bob': (2, ('y', 'z'))}, 0.0, {'x': 0.0, 'y': 0.0, 'z': 0.0})
     """
 
     logger.info("\n----START LINEAR_PROGRAM")
-    logger.info("a = %s", a)
+    logger.info("a = %s", map_student_to_best_bundle_per_budget)
 
     model = Model("allocations")
     courses_names = list(instance.items)
@@ -48,7 +64,7 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
 
     # Decision variables
     x = {(student, bundle): model.add_var(var_type=BINARY) for student in students_names for bundle in
-         a[student].values()}
+         map_student_to_best_bundle_per_budget[student].values()}
 
     z = {course: model.add_var(var_type=CONTINUOUS, lb=-instance.item_capacity(course)) for course in courses_names}
     y = {course: model.add_var(var_type=CONTINUOUS) for course in courses_names}
@@ -77,19 +93,19 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
         if prices[course] > 0:
             model += xsum(
                 x[student, bundle] * (1 if course in bundle else 0) for student in students_names for bundle in
-                a[student].values()) == instance.item_capacity(course) + z[course]
+                map_student_to_best_bundle_per_budget[student].values()) == instance.item_capacity(course) + z[course]
 
         # constraint 2: ∑     ∑(𝑥_𝑖ℓ · 𝑎_𝑖ℓ𝑗) ≤ 𝑐𝑗 + 𝑧𝑗 ∀𝑗 ∈ [𝑚], 𝑝𝑗 = 0
         #  𝑖∈[𝑛] ℓ∈[𝑘_𝑖]
         else:
             model += xsum(
                 x[student, bundle] * (1 if course in bundle else 0) for student in students_names for bundle in
-                a[student].values()) <= instance.item_capacity(course) + z[course]
+                map_student_to_best_bundle_per_budget[student].values()) <= instance.item_capacity(course) + z[course]
 
     # constraint 3: ∑𝑥_𝑖ℓ = 1  ∀𝑖 ∈ [𝑛]
     #               ℓ∈[𝑘_𝑖]
     for student in students_names:
-        model += xsum(x[student, bundle] for bundle in a[student].values()) == 1
+        model += xsum(x[student, bundle] for bundle in map_student_to_best_bundle_per_budget[student].values()) == 1
 
     # Add EF-TB constraints based on parameter t
     if t == ACEEI.EFTBStatus.NO_EF_TB:
@@ -97,7 +113,7 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
 
     elif t == ACEEI.EFTBStatus.EF_TB or t == ACEEI.EFTBStatus.CONTESTED_EF_TB:
         # Add EF-TB constraints here
-        envy_constraints = get_envy_constraints(instance, initial_budgets, a, t, prices)
+        envy_constraints = get_envy_constraints(instance, initial_budgets, map_student_to_best_bundle_per_budget, t, prices)
         for constraint in envy_constraints:
             model += x[constraint[0]] + x[constraint[1]] <= 1
 
@@ -117,8 +133,8 @@ def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_b
     new_budgets = {}
     for (student, bundle), var in x.items():
         if var.x == 1:  # Check if the decision variable is set to 1
-            price = list(a[student].keys())[
-                list(a[student].values()).index(bundle)]  # Extract the price from dictionary a
+            price = list(map_student_to_best_bundle_per_budget[student].keys())[
+                list(map_student_to_best_bundle_per_budget[student].values()).index(bundle)]  # Extract the price from dictionary a
             new_budgets[student] = (price, bundle)
 
     # print("New budgets:", new_budgets)
