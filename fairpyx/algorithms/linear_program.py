@@ -1,3 +1,12 @@
+"""
+"Practical algorithms and experimentally validated incentives for equilibrium-based fair division (A-CEEI)"
+    by ERIC BUDISH, RUIQUAN GAO, ABRAHAM OTHMAN, AVIAD RUBINSTEIN, QIANFAN ZHANG. (2023)
+    link to the article: https://arxiv.org/pdf/2305.11406
+    Linear programming that used in algorithm 1
+
+Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
+Since: 2024-01
+"""
 from mip import *
 import sys
 import logging
@@ -7,18 +16,123 @@ import os
 from fairpyx import Instance
 from fairpyx.algorithms import ACEEI
 
-# from fairpyx.algorithms.ACEEI import EFTBStatus
 
-
-
-# Configure logging
 logging.basicConfig(level=logging.INFO, stream=sys.stdout, format='%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger()
 
 
-# a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
-# a = {'Alice': {3.5: (1, 1, 0), 3: (1, 0, 1)}
-# initial_budgets = {"Alice": 5, "Bob": 4}
+# ---------------------The main function---------------------
+def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_budgets: dict):
+    """
+        Example run 6 iteration 5
+        >>> from fairpyx import Instance
+        >>> from fairpyx.algorithms import ACEEI
+        >>> instance = Instance(
+        ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
+        ...     agent_capacities=2,
+        ...     item_capacities={"x":1, "y":1, "z":2})
+        >>> a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
+        >>> initial_budgets = {"Alice": 5, "Bob": 4}
+        >>> prices = {"x": 1.5, "y": 2, "z": 0}
+        >>> t = ACEEI.EFTBStatus.EF_TB
+        >>> optimize_model(a,instance,prices,t,initial_budgets)
+        ({'Alice': (3, ('x', 'z')), 'Bob': (2, ('y', 'z'))}, 0.0, {'x': 0.0, 'y': 0.0, 'z': 0.0})
+    """
+
+    logger.info("\n----START LINEAR_PROGRAM")
+    logger.info("a = %s", a)
+
+    model = Model("allocations")
+    courses_names = list(instance.items)
+    students_names = list(instance.agents)
+
+    # Decision variables
+    x = {(student, bundle): model.add_var(var_type=BINARY) for student in students_names for bundle in
+         a[student].values()}
+
+    z = {course: model.add_var(var_type=CONTINUOUS, lb=-instance.item_capacity(course)) for course in courses_names}
+    y = {course: model.add_var(var_type=CONTINUOUS) for course in courses_names}
+
+    # Define binary variables δ
+    delta = {course: model.add_var(var_type=BINARY) for course in courses_names}
+    # Big-M value, should be large enough to cover the range of z
+    M = 1e6
+
+    # Objective function
+    objective_expr = xsum(y[course] for course in courses_names)
+    model.objective = minimize(objective_expr)
+
+    for course in courses_names:
+        # Add constraints to define y based on the value of z
+        model += y[course] <= z[course] + M * (1 - delta[course])
+        model += y[course] >= z[course]
+        model += y[course] <= M * delta[course]
+        model += z[course] <= M * delta[course]
+        model += z[course] >= 0 - M * (1 - delta[course])
+
+    # Course allocation constraints
+    for course in courses_names:
+        # constraint 1: ∑  ∑(𝑥_𝑖ℓ · 𝑎_𝑖ℓ𝑗) = 𝑐_𝑗 + 𝑧_𝑗  ∀𝑗 ∈ [𝑚], 𝑝_𝑗 > 0
+        #            𝑖∈[𝑛] ℓ ∈ [𝑘_𝑖]
+        if prices[course] > 0:
+            model += xsum(
+                x[student, bundle] * (1 if course in bundle else 0) for student in students_names for bundle in
+                a[student].values()) == instance.item_capacity(course) + z[course]
+
+        # constraint 2: ∑     ∑(𝑥_𝑖ℓ · 𝑎_𝑖ℓ𝑗) ≤ 𝑐𝑗 + 𝑧𝑗 ∀𝑗 ∈ [𝑚], 𝑝𝑗 = 0
+        #  𝑖∈[𝑛] ℓ∈[𝑘_𝑖]
+        else:
+            model += xsum(
+                x[student, bundle] * (1 if course in bundle else 0) for student in students_names for bundle in
+                a[student].values()) <= instance.item_capacity(course) + z[course]
+
+    # constraint 3: ∑𝑥_𝑖ℓ = 1  ∀𝑖 ∈ [𝑛]
+    #               ℓ∈[𝑘_𝑖]
+    for student in students_names:
+        model += xsum(x[student, bundle] for bundle in a[student].values()) == 1
+
+    # Add EF-TB constraints based on parameter t
+    if t == ACEEI.EFTBStatus.NO_EF_TB:
+        pass  # No EF-TB constraints, no need to anything
+
+    elif t == ACEEI.EFTBStatus.EF_TB or t == ACEEI.EFTBStatus.CONTESTED_EF_TB:
+        # Add EF-TB constraints here
+        envy_constraints = get_envy_constraints(instance, initial_budgets, a, t, prices)
+        for constraint in envy_constraints:
+            model += x[constraint[0]] + x[constraint[1]] <= 1
+
+    # Redirect solver output to null device
+    model.verbose = 0
+
+    # Optimize the model
+    with open(os.devnull, 'w') as devnull:
+        with redirect_stdout(devnull):
+            model.optimize()
+
+    if model.num_solutions:
+        excess_demand_per_course = {course: y[course].x for course in courses_names}
+    else:
+        excess_demand_per_course = model.status
+
+    new_budgets = {}
+    for (student, bundle), var in x.items():
+        if var.x == 1:  # Check if the decision variable is set to 1
+            price = list(a[student].keys())[
+                list(a[student].values()).index(bundle)]  # Extract the price from dictionary a
+            new_budgets[student] = (price, bundle)
+
+    # print("New budgets:", new_budgets)
+    # print("Objective Value:", model.objective_value)
+    # print("Excess Demand:", excess_demand)
+    logging.info("\nNew budgets: %s\nObjective Value: %s\nExcess Demand: %s", new_budgets, model.objective_value,
+                 excess_demand_per_course)
+    logger.info("FINISH LINEAR_PROGRAM\n")
+
+    return new_budgets, model.objective_value, excess_demand_per_course
+
+
+# ---------------------helper functions:---------------------
+
 def check_envy(instance: Instance, student: str, other_student: str, a: dict, t: Enum, prices: dict):
     """
         The function accepts a pair of students, and returns pairs of courses for which envy exists.
@@ -169,134 +283,6 @@ def get_envy_constraints(instance: Instance, initial_budgets: dict, a: dict, t: 
                             envy_constraints.append(((student, i), (other_student, j)))
                             # logger.info(f"student {student} bundle {i} envy student {other_student} bundle {j}")
     return envy_constraints
-
-
-def optimize_model(a: dict, instance: Instance, prices: dict, t: Enum, initial_budgets: dict):
-    """
-        Example run 6 iteration 5
-        >>> from fairpyx import Instance
-        >>> from fairpyx.algorithms import ACEEI
-        >>> instance = Instance(
-        ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
-        ...     agent_capacities=2,
-        ...     item_capacities={"x":1, "y":1, "z":2})
-        >>> a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
-        >>> initial_budgets = {"Alice": 5, "Bob": 4}
-        >>> prices = {"x": 1.5, "y": 2, "z": 0}
-        >>> t = ACEEI.EFTBStatus.EF_TB
-        >>> optimize_model(a,instance,prices,t,initial_budgets)
-        ({'Alice': (3, ('x', 'z')), 'Bob': (2, ('y', 'z'))}, 0.0, {'x': 0.0, 'y': 0.0, 'z': 0.0})
-    """
-
-    logger.info("\n----START LINEAR_PROGRAM")
-    logger.info("a = %s", a)
-
-    model = Model("allocations")
-    courses_names = list(instance.items)
-    students_names = list(instance.agents)
-
-    # Decision variables
-    x = {(student, bundle): model.add_var(var_type=BINARY) for student in students_names for bundle in
-         a[student].values()}
-
-    z = {course: model.add_var(var_type=CONTINUOUS, lb=-instance.item_capacity(course)) for course in courses_names}
-    y = {course: model.add_var(var_type=CONTINUOUS) for course in courses_names}
-
-    # Define binary variables δ
-    delta = {course: model.add_var(var_type=BINARY) for course in courses_names}
-    # Big-M value, should be large enough to cover the range of z
-    M = 1e6
-
-    # Objective function
-    objective_expr = xsum(y[course] for course in courses_names)
-    model.objective = minimize(objective_expr)
-
-    # # Add constraints for absolute value of excess demand
-    # for course in courses_names:
-    #     model += y[course] >= z[course]
-    #     model += y[course] >= -z[course]
-    # TODO: tell erel that we solved the bug in algo 1 like this
-    for course in courses_names:
-        # Add constraints to define y based on the value of z
-        model += y[course] <= z[course] + M * (1 - delta[course])
-        model += y[course] >= z[course]
-        model += y[course] <= M * delta[course]
-        model += z[course] <= M * delta[course]
-        model += z[course] >= 0 - M * (1 - delta[course])
-
-
-
-
-    # Course allocation constraints
-    for course in courses_names:
-        # constraint 1: ∑  ∑(𝑥_𝑖ℓ · 𝑎_𝑖ℓ𝑗) = 𝑐_𝑗 + 𝑧_𝑗  ∀𝑗 ∈ [𝑚], 𝑝_𝑗 > 0
-        #            𝑖∈[𝑛] ℓ ∈ [𝑘_𝑖]
-        if prices[course] > 0:
-            model += xsum(
-                x[student, bundle] * (1 if course in bundle else 0) for student in students_names for bundle in
-                a[student].values()) == instance.item_capacity(course) + z[course]
-
-        # constraint 2: ∑     ∑(𝑥_𝑖ℓ · 𝑎_𝑖ℓ𝑗) ≤ 𝑐𝑗 + 𝑧𝑗 ∀𝑗 ∈ [𝑚], 𝑝𝑗 = 0
-        #  𝑖∈[𝑛] ℓ∈[𝑘_𝑖]
-        else:
-            model += xsum(
-                x[student, bundle] * (1 if course in bundle else 0) for student in students_names for bundle in
-                a[student].values()) <= instance.item_capacity(course) + z[course]
-
-    # constraint 3: ∑𝑥_𝑖ℓ = 1  ∀𝑖 ∈ [𝑛]
-    #               ℓ∈[𝑘_𝑖]
-    for student in students_names:
-        model += xsum(x[student, bundle] for bundle in a[student].values()) == 1
-
-    # Add EF-TB constraints based on parameter t
-    if t == ACEEI.EFTBStatus.NO_EF_TB:
-        pass  # No EF-TB constraints, no need to anything
-
-    elif t == ACEEI.EFTBStatus.EF_TB or t == ACEEI.EFTBStatus.CONTESTED_EF_TB:
-        # Add EF-TB constraints here
-        envy_constraints = get_envy_constraints(instance, initial_budgets, a, t, prices)
-        for constraint in envy_constraints:
-            model += x[constraint[0]] + x[constraint[1]] <= 1
-
-    # Redirect solver output to null device
-    model.verbose = 0
-
-    # Optimize the model
-    with open(os.devnull, 'w') as devnull:
-        with redirect_stdout(devnull):
-            model.optimize()
-
-    if model.num_solutions:
-        excess_demand_per_course = {course: y[course].x for course in courses_names}
-    else:
-        excess_demand_per_course = model.status
-
-    new_budgets = {}
-    for (student, bundle), var in x.items():
-        if var.x == 1:  # Check if the decision variable is set to 1
-            price = list(a[student].keys())[
-                list(a[student].values()).index(bundle)]  # Extract the price from dictionary a
-            new_budgets[student] = (price, bundle)
-
-    # print("New budgets:", new_budgets)
-    # print("Objective Value:", model.objective_value)
-    # print("Excess Demand:", excess_demand)
-    logging.info("\nNew budgets: %s\nObjective Value: %s\nExcess Demand: %s", new_budgets, model.objective_value,
-                 excess_demand_per_course)
-    logger.info("FINISH LINEAR_PROGRAM\n")
-
-    # # Process and print results
-    # if model.num_solutions:
-    #     print("Objective Value:", model.objective_value)
-    #     for student in students_names:
-    #         for l in a[student].values():
-    #             print(f"x_{student}{l} =", x[student, l].x)
-    #     for course in courses_names:
-    #         print(f"|z_{course}|=y_{course} =", y[course].x)
-    # else:
-    #     print("Optimization was not successful. Status:", model.status)
-
-    return new_budgets, model.objective_value, excess_demand_per_course
 
 
 if __name__ == "__main__":
