@@ -169,8 +169,8 @@ if __name__ == "__main__":
 
     TTC_logger.setLevel(logging.INFO)
     TTC_logger.addHandler(logging.StreamHandler())
-    # run_uniform_experiment()
-    run_szws_experiment()
+    run_uniform_experiment()
+    # run_szws_experiment()
     # run_ariel_experiment()
 
 # Input: {'num_of_agents': 100, 'num_of_items': 25, 'agent_capacity': 5, 'supply_ratio': 1.1, 'num_of_popular_items': 6, 'mean_num_of_favorite_items': 2.6, 'favorite_item_value_bounds': (50, 100), 'nonfavorite_item_value_bounds': (0, 50), 'algorithm': 'TTC_function', 'random_seed': 0}
