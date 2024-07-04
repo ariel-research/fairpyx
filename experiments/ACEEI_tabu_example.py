@@ -118,7 +118,6 @@ def evaluate_algorithm_on_instance(algorithm, instance, **kwargs):
 def course_allocation_with_random_instance_uniform(
         num_of_agents: int, num_of_items: int,
         value_noise_ratio: float,
-        # beta: float, delta: List[float],
         algorithm: Callable,
         random_seed: int, **kwargs):
     agent_capacity_bounds = [6, 6]
@@ -353,53 +352,58 @@ def run_ariel_experiment():
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_sample, input_ranges, time_limit=TIME_LIMIT)
 
+######### Tabu Search - COMPARING USING THREADS IN student_best_bundle ##########
 
-# def run_check_performance_of_history():
-#     num_of_agents_values = [10, 20]
-#     beta = 0.5
-#     delta = [0.1, 0.2]
-#     value_noise_ratio = 0.5
-#     num_of_items = 25
-#     random_seed = 42
-#     algorithm = crs.tabu_search
-#
-#     times_true = []
-#     times_false = []
-#     max_agents_within_60s_true = 0
-#     max_agents_within_60s_false = 0
-#
-#     for num_of_agents in num_of_agents_values:
-#         start_time = time.time()
-#         course_allocation_with_random_instance_uniform(num_of_agents, num_of_items, value_noise_ratio, beta, delta, algorithm, random_seed, check_history=True)
-#         end_time = time.time()
-#         elapsed_time = end_time - start_time
-#         times_true.append(elapsed_time)
-#         if elapsed_time < 60:
-#             max_agents_within_60s_true = num_of_agents
-#
-#         start_time = time.time()
-#         course_allocation_with_random_instance_uniform(num_of_agents, num_of_items, value_noise_ratio, beta, delta, algorithm, random_seed, check_history=False)
-#         end_time = time.time()
-#         elapsed_time = end_time - start_time
-#         times_false.append(elapsed_time)
-#         if elapsed_time < 60:
-#             max_agents_within_60s_false = num_of_agents
-#
-#     plt.figure(figsize=(10, 6))
-#     plt.plot(num_of_agents_values, times_true, label='check_history=True', marker='o')
-#     plt.plot(num_of_agents_values, times_false, label='check_history=False', marker='o')
-#     plt.xlabel('Number of Agents')
-#     plt.ylabel('Run Time (seconds)')
-#     plt.title('Run Time vs Number of Agents for Tabu Search')
-#     plt.legend()
-#     plt.grid(True)
-#     plt.savefig('check_history_performance.png')
-#     plt.show()
-#
-#     return max_agents_within_60s_true, max_agents_within_60s_false
+RESULTS_CACHE_FILE = "results/comparing_cache_Tabu_Search.csv"
+def run_cache_experiment_Tabu():
+    # Remove existing results file if it exists
+    if os.path.exists(RESULTS_CACHE_FILE):
+        os.remove(RESULTS_CACHE_FILE)
+
+    # Run on uniformly-random data with beta and delta parameters:
+    experiment = experiments_csv.Experiment("results/", "comparing_cache_Tabu_Search.csv",
+                                            backup_folder="results/backup/")
+    input_ranges = {
+        "num_of_agents": [30, 40, 45],
+        "num_of_items": [8, 12],
+        "value_noise_ratio": [0, 0.2, 0.4, 0.8, 1],
+        "beta": [0.001],
+        "delta": [{0.34}],
+        "use_cache": [False, True],
+        "algorithm": [crs.tabu_search],
+        "random_seed": range(5),
+    }
+    experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges, time_limit=0.9)
 
 
-######### MAIN PROGRAM ##########
+def analyze_experiment_results_cache():
+    # Load the results from the CSV file
+    df = pd.read_csv(RESULTS_CACHE_FILE)
+
+    best_row = df.loc[df['runtime'].idxmin()]
+
+    # Extract relevant columns or parameters
+    best_use_cache_value = best_row['use_cache']
+    best_runtime = best_row['runtime']
+
+    print(f"Best use_cache: {best_use_cache_value}")
+    print(f"Corresponding Runtime: {best_runtime} seconds")
+
+    return df
+
+def plot_runtime_vs_cache(df, algorithm_name):
+    plt.figure(figsize=(12, 8))
+
+    # Plotting runtime vs. num_of_agents for each use_threads value
+    sns.lineplot(data=df, x='num_of_agents', y='runtime', hue='use_cache', marker='o')
+
+    plt.title(f'Runtime vs. Number of Agents for {algorithm_name}')
+    plt.xlabel('Number of Agents')
+    plt.ylabel('Runtime (seconds)')
+    plt.grid(True)
+    plt.legend(title='Use Cache', labels=['False: Average runtime', 'Markers False', 'True: Average runtime', 'Markers True'])
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == "__main__":
     import logging, experiments_csv
@@ -413,16 +417,21 @@ if __name__ == "__main__":
     # print(f'Max number of agents handled in 60 seconds with check_history=True: {max_agents_true}')
     # print(f'Max number of agents handled in 60 seconds with check_history=False: {max_agents_false}')
 
-    ######### COMPARING BETA AND DELTA PERFORMANCE - TABU-SEARCH ##########
-    run_beta_delta_experiment_tabu_search()
-    df = analyze_experiment_results_tabu_search()
-    plot_speed_vs_param(df, 'beta', 'Tabu Search')
-    plot_speed_vs_param(df, 'delta', 'Tabu Search')
-    plot_speed_vs_params(df, 'beta', 'delta', 'Tabu Search')
+    # ######### COMPARING BETA AND DELTA PERFORMANCE - TABU-SEARCH ##########
+    # run_beta_delta_experiment_tabu_search()
+    # df = analyze_experiment_results_tabu_search()
+    # plot_speed_vs_param(df, 'beta', 'Tabu Search')
+    # plot_speed_vs_param(df, 'delta', 'Tabu Search')
+    # plot_speed_vs_params(df, 'beta', 'delta', 'Tabu Search')
+    #
+    # ######### COMPARING DELTA AND EPSILON PERFORMANCE - ACEEI ##########
+    # run_delta_epsilon_experiment_ACEEI()
+    # df = analyze_experiment_results_ACEEI()
+    # plot_speed_vs_param(df, 'delta', 'ACEEI')
+    # plot_speed_vs_param(df, 'epsilon', 'ACEEI')
+    # plot_speed_vs_params(df, 'delta', 'epsilon', 'ACEEI')
 
-    ######### COMPARING DELTA AND EPSILON PERFORMANCE - ACEEI ##########
-    run_delta_epsilon_experiment_ACEEI()
-    df = analyze_experiment_results_ACEEI()
-    plot_speed_vs_param(df, 'delta', 'ACEEI')
-    plot_speed_vs_param(df, 'epsilon', 'ACEEI')
-    plot_speed_vs_params(df, 'delta', 'epsilon', 'ACEEI')
+    ######### Tabu Search - COMPARING USING THREADS IN student_best_bundle ##########
+    run_cache_experiment_Tabu()
+    df = analyze_experiment_results_cache()
+    plot_runtime_vs_cache(df, 'Tabu Search')
