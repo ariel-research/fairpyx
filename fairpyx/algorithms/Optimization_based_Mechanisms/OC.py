@@ -44,7 +44,6 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
     rank_mat = optimal.createRankMat(alloc,logger)
     sum_rank = optimal.sumOnRankMat(alloc, rank_mat, x)
-    logger.info("sum_rank 1: %s", sum_rank)
     objective_Z1 = cp.Maximize(sum_rank)
 
     constraints_Z1 = optimal.notExceedtheCapacity(x,alloc) + optimal.numberOfCourses(x, alloc, alloc.remaining_agent_capacities)
@@ -53,10 +52,8 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     result_Z1 = problem.solve()
     logger.info("result_Z1 - the optimum ranking: %d", result_Z1)
 
-    logger.info("sum_rank 2: %s", sum_rank)
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)  # Is there a func which zero all the matrix?
     sum_rank = optimal.sumOnRankMat(alloc, rank_mat, x)
-    logger.info("sum_rank 3: %s", sum_rank)
     objective_Z2 = cp.Maximize(cp.sum([alloc.effective_value(student, course) * x[j, i]
                                         for j, course in enumerate(alloc.remaining_items())
                                         for i, student in enumerate(alloc.remaining_agents())
