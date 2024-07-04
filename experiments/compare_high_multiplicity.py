@@ -93,7 +93,7 @@ def run_uniform_experiment():
         "num_of_items": [2, 3, 5, 6],
         "value_noise_ratio": [0, 0.2, 0.5, 0.8, 1],
         "algorithm": algorithms,
-        "random_seed": range(5),
+        "random_seed": range(2),
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges, time_limit=TIME_LIMIT)
 
@@ -134,7 +134,7 @@ def run_naor_experiment():
     input_ranges = {
         "max_total_agent_capacity": [12],  # in reality: 1115
         "algorithm": algorithms,
-        "random_seed": range(1),
+        "random_seed": range(2),
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_sample, input_ranges, time_limit=TIME_LIMIT)
 
@@ -214,8 +214,6 @@ def create_plot_uniform():
 if __name__ == "__main__":
     import logging
 
-    logging.basicConfig(level=logging.INFO)
-    # run_naor_experiment()
+    experiments_csv.logger.setLevel(logging.DEBUG)
     run_uniform_experiment()
-    # create_plot_naor_experiment()
     create_plot_uniform()
