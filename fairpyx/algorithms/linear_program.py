@@ -47,7 +47,7 @@ def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instan
         ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
         ...     agent_capacities=2,
         ...     item_capacities={"x":1, "y":1, "z":2})
-        >>> a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
+        >>> map_student_to_best_bundle_per_budget = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
         >>> initial_budgets = {"Alice": 5, "Bob": 4}
         >>> prices = {"x": 1.5, "y": 2, "z": 0}
         >>> t = ACEEI.EFTBStatus.EF_TB
