@@ -22,6 +22,7 @@ def second_improved_high_multiplicity_fair_allocation(object alloc):
     agents = list(alloc.remaining_agents())
     items = list(alloc.remaining_items())
     constraints_ilp = []
+
     agent_capacities = sum([alloc.remaining_item_capacities[item] for item in alloc.remaining_items()])
     alloc.remaining_agent_capacities = {agent: agent_capacities for agent in alloc.remaining_agents()}
 
