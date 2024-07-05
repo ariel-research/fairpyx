@@ -16,6 +16,7 @@ VERSION = (HERE / NAME / "VERSION").read_text().strip()
 # See https://packaging.python.org/en/latest/guides/single-sourcing-package-version/
 
 packages = setuptools.find_packages()
+packages.append('fairpyx.zalternatives.yekta_day_impl')
 print ("packages: ", packages)
 
 # Define Cython extensions
