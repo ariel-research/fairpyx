@@ -183,9 +183,12 @@ class AllocationBuilder:
             agent_entitlements=self.instance.agent_entitlement,        # agent entitlement is the same as in the original instance
             agent_conflicts=self.instance.agent_conflicts,             # agent conflicts are the same as in the original instance
             agents=self.remaining_agents(),                            # agent list may be smaller than in the original instance
-            item_capacities=self.remaining_item_capacities,            # item capacities may be smaller than in the original instance
-            item_conflicts=self.instance.item_conflicts,               # item conflicts are the same as in the original instance
-            items=self.remaining_items())                              # item list may be smaller than in the original instance
+            item_capacities=self.remaining_item_capacities,            # item capacities may be smaller than in the original instance 
+            item_conflicts=self.instance.item_conflicts,               # item conflicts are the same as in the original instance   
+            items=self.remaining_items())                              # item list may be smaller than in the original instance 
+    
+    def agent_bundle_value(self, agent:any, bundle:list)->float:
+        return self.instance.agent_bundle_value(agent,bundle)
 
     def effective_value(self, agent:any, item:any)->float:
         """
@@ -196,7 +199,7 @@ class AllocationBuilder:
             return FORBIDDEN_ALLOCATION
         else:
             return self.instance.agent_item_value(agent,item)
-
+        
     def remove_item_from_loop(self, item:any):
         """
         Remove the given item from further consideration by the allocation algorithm.
@@ -235,7 +238,10 @@ class AllocationBuilder:
 
     def give_bundle(self, agent:any, new_bundle:list, logger=None):
         for item in new_bundle:
-            self.give(agent, item, logger)
+            self.give(agent, item, logger=None)
+        if logger is not None:
+            logger.info("Agent %s takes bundle %s with value %s", agent, new_bundle, self.agent_bundle_value(agent, new_bundle))
+
 
     def give_bundles(self, new_bundles:dict, logger=None):
         """
