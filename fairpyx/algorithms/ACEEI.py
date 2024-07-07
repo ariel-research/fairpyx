@@ -274,6 +274,7 @@ def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict
     return new_budgets, clearing_error, map_student_to_best_bundle_per_budget, excess_demand_per_course
 
 if __name__ == "__main__":
+    import doctest, sys
     from fairpyx.adaptors import divide
     import doctest, sys
 
