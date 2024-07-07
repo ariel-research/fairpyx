@@ -14,6 +14,7 @@ from itertools import combinations, product
 import numpy as np
 
 from fairpyx import Instance, AllocationBuilder
+from fairpyx.algorithms.calculate_combinations import get_combinations_courses_sorted
 
 # Setup logger and colored logs
 logger = logging.getLogger(__name__)
@@ -297,13 +298,8 @@ def student_best_bundles(prices: dict, instance: Instance, initial_budgets: dict
     all_combinations = {student: [] for student in instance.agents}
 
     for student in instance.agents:
-        combinations_courses_list = []
-        capacity = instance.agent_capacity(student)
-        for r in range(1, capacity + 1):
-            combinations_courses_list.extend(combinations(instance.items, r))
-
+        combinations_courses_sorted = get_combinations_courses_sorted(instance, student)
         valuation_function = lambda combination: instance.agent_bundle_value(student, combination)
-        combinations_courses_sorted = sorted(combinations_courses_list, key=valuation_function, reverse=True)
 
         max_valuation = -1
         for combination in combinations_courses_sorted:
