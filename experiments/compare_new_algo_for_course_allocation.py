@@ -52,7 +52,7 @@ def course_allocation_with_random_instance_uniform(
     value_noise_ratio:float,
     algorithm:Callable,
     random_seed: int,):
-    agent_capacity_bounds =  [6,6]
+    agent_capacity_bounds = [6,6]
     item_capacity_bounds = [40,40]
     np.random.seed(random_seed)
     instance = Instance.random_uniform(

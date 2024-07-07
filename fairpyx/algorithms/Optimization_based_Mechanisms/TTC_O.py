@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 # if flag_if_use_alloc_in_func == 0 then using alloc.effective_value for TTC-O
 # if flag_if_use_alloc_in_func == 1 then using effective_value_with_price for SP-O
-def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func, rank_mat):
+def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func, rank_mat, solver=None):
     # rank_mat = optimal.createRankMat(alloc, logger)
 
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
@@ -22,7 +22,10 @@ def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func, 
     constraints_Zt1 = optimal.notExceedtheCapacity(x, alloc) + optimal.numberOfCourses(x, alloc, 1)
 
     problem = cp.Problem(objective_Zt1, constraints=constraints_Zt1)
-    result_Zt1 = problem.solve()  # This is the optimal value of program (6)(7)(8)(9).
+    if solver != None:
+        result_Zt1 = problem.solve(solver=solver)  # This is the optimal value of program (6)(7)(8)(9).
+    else:
+        result_Zt1 = problem.solve()
     logger.info("result_Zt1 - the optimum ranking: %d", result_Zt1)
 
     # Write and solve new program for Zt2 (10)(11)(7)(8)
@@ -40,7 +43,10 @@ def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func, 
 
     try:
         problem = cp.Problem(objective_Zt2, constraints=constraints_Zt2)
-        result_Zt2 = problem.solve()
+        if solver != None:
+            result_Zt2 = problem.solve(solver=solver)
+        else:
+            result_Zt2 = problem.solve()
         logger.info("result_Zt2 - the optimum bids: %d", result_Zt2)
 
     except Exception as e:
@@ -50,7 +56,7 @@ def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func, 
 
     return result_Zt1, result_Zt2, x, problem
 
-def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger()):
+def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger(), solver=None):
     """
     Algorithm 3: Allocate the given items to the given agents using the TTC-O protocol.
 
@@ -83,7 +89,7 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
             break
 
 
-        result_Zt1, result_Zt2, var, problem = roundTTC_O(alloc, logger, alloc.effective_value, 0, rank_mat)
+        result_Zt1, result_Zt2, var, problem = roundTTC_O(alloc, logger, alloc.effective_value, 0, rank_mat, solver)
 
         # Check if the optimization problem was successfully solved
         if result_Zt2 is not None:
@@ -113,6 +119,7 @@ if __name__ == "__main__":
         item_base_value_bounds=[1, 1000],
         item_subjective_ratio_bounds=[0.5, 1.5]
     )
-    allocation = divide(TTC_O_function, instance=instance)
+    solver = None
+    allocation = divide(TTC_O_function, instance=instance, solver=solver)
     fairpyx.validate_allocation(instance, allocation, title=f"Seed {5}, TTC_O_function")
 
