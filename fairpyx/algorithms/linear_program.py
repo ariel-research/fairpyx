@@ -57,12 +57,13 @@ def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instan
         ...     valuations={"avi":{"x":5}, "beni":{"x":5}},
         ...     agent_capacities=1,
         ...     item_capacities={"x":1})
-        >>> map_student_to_best_bundle_per_budget = {'avi': {1.3: ('x',)}, 'beni': {}}
+        >>> map_student_to_best_bundle_per_budget = {'avi': {1.3: ('x',)}, 'beni': {0: ()}}
         >>> initial_budgets = {"avi": 1.1, "beni": 1}
         >>> prices = {"x": 1.3}
         >>> t = ACEEI.EFTBStatus.EF_TB
         >>> optimize_model(map_student_to_best_bundle_per_budget,instance,prices,t,initial_budgets)
-        ({'Alice': (3, ('x', 'z')), 'Bob': (2, ('y', 'z'))}, 0.0, {'x': 0.0, 'y': 0.0, 'z': 0.0})
+        ({'avi': (1.3, ('x',)), 'beni': (0, ())}, 0.0, {'x': 0.0})
+
     """
 
     logger.info("\n----START LINEAR_PROGRAM: a = %s, p = %s, t = %s, initial_budgets = %s", map_student_to_best_bundle_per_budget, prices, t, initial_budgets)

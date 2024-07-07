@@ -30,7 +30,7 @@ NUMBER_OF_ITERATIONS = 10
 # ---------------------The main function---------------------
 
 def find_profitable_manipulation(mechanism: callable, student: str, true_student_utility: dict,
-                                 criteria: Enum, neu: float, instance: Instance, delta: float, epsilon: float, t: Enum,
+                                 criteria: criteria_for_profitable_manipulation, eta: float, instance: Instance, delta: float, epsilon: float, t: Enum,
                                  initial_budgets: dict,
                                  beta: float):
     """
@@ -42,7 +42,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     :param criteria: The type of criteria for profitable manipulation
                                                  0 for resampled randomness
                                                  1 for population
-    :param neu: a local update coefficient neu
+    :param eta: a local update coefficient neu
     :param alloc: a fair-course-allocation instance
     :param initial_budgets: Students' initial budgets
     :param delta: The step size
@@ -57,15 +57,14 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
 
     >>> from fairpyx.algorithms.ACEEI import find_ACEEI_with_EFTB
     >>> from fairpyx.algorithms import ACEEI, tabu_search
-    >>> logger.addHandler(logging.StreamHandler())
-    >>> logger.setLevel(logging.INFO)
+
 
     Example run 1
     >>> mechanism = find_ACEEI_with_EFTB
     >>> student = "moti"
     >>> true_student_utility = {"x":1, "y":2, "z":4}
     >>> criteria = criteria_for_profitable_manipulation.randomness
-    >>> neu = 2
+    >>> eta = 2
     >>> instance = Instance(
     ...     valuations={"avi":{"x":3, "y":5, "z":1}, "beni":{"x":2, "y":3, "z":1}, "moti": {"x":1, "y":2, "z":4}},
     ...     agent_capacities=2,
@@ -75,7 +74,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, eta, instance, delta, epsilon, t, initial_budgets, beta)
     {'x': 1, 'y': 2, 'z': 4}
 
     Example run 2
@@ -83,7 +82,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> student = "moti"
     >>> true_student_utility = {"x":1, "y":2, "z":4}
     >>> criteria = criteria_for_profitable_manipulation.randomness
-    >>> neu = 2
+    >>> eta = 2
     >>> instance = Instance(
     ...     valuations={"avi":{"x":3, "y":5, "z":1}, "beni":{"x":2, "y":3, "z":1}, "moti": {"x":1, "y":2, "z":4}},
     ...     agent_capacities=2,
@@ -93,7 +92,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.EF_TB
-    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, eta, instance, delta, epsilon, t, initial_budgets, beta)
     {'x': 1, 'y': 2, 'z': 4}
 
 
@@ -102,7 +101,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> student = "moti"
     >>> true_student_utility = {"x":6, "y":2}
     >>> criteria = criteria_for_profitable_manipulation.randomness
-    >>> neu = 2
+    >>> eta = 2
     >>> instance = Instance(
     ...     valuations={"avi":{"x":5, "y":3}, "moti": {"x":6, "y":2}},
     ...     agent_capacities=2,
@@ -112,7 +111,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, eta, instance, delta, epsilon, t, initial_budgets, beta)
     {'x': 6, 'y': 2}
 
     # Example run 5
@@ -120,7 +119,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> student = "moti"
     >>> true_student_utility = {"x":1, "y":2, "z":5}
     >>> criteria = criteria_for_profitable_manipulation.population
-    >>> neu = 2
+    >>> eta = 2
     >>> instance = Instance(valuations={"avi":{"x":5, "y":4, "z":1}, "beni":{"x":4, "y":6, "z":3}, "moti":{"x":1, "y":2, "z":5}},
     ...            agent_capacities=2,
     ...            item_capacities={"x":1, "y":2, "z":3})
@@ -129,7 +128,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> delta = 0.5
     >>> epsilon = 0.5
     >>> t = ACEEI.EFTBStatus.NO_EF_TB
-    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, neu, instance, delta, epsilon, t, initial_budgets, beta)
+    >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, eta, instance, delta, epsilon, t, initial_budgets, beta)
     {'x': 1, 'y': 2, 'z': 5}
 
    """
@@ -141,7 +140,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     while True:
         # (2) Try to  increase or decrease the weight 𝑤𝑗 for each course 𝑗 in 𝑣0 to obtain new misreports
         #      𝑉 = {𝑣𝑗,±1}𝑗∈[𝑚]}
-        misreports = create_misreports(current_best_manipulation, neu)
+        misreports = create_misreports(current_best_manipulation, eta)
 
         # (3) Let 𝑣∗ = argmax𝑣∈𝑉∪{𝑣0} E𝒓∼R[𝑢𝑖(𝑴𝑖([𝑣𝑗, 𝒖−𝑖], 𝒄, 𝒓))] resampled randomness,
         #              argmax𝑣∈𝑉∪{𝑣0} E𝒖−𝑖∼U−𝑖, 𝒓∼R[𝑢𝑖(𝑴𝑖([𝑣𝑗, 𝒖−𝑖], 𝒄, 𝒓))] resampled population.
@@ -407,7 +406,8 @@ def criteria_randomness(mechanism: callable, student: str, utility: dict, instan
 if __name__ == '__main__':
     import doctest
     print(doctest.testmod())
-
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
     # from fairpyx.algorithms import ACEEI
     # mechanism = find_ACEEI_with_EFTB
     # student = "moti"

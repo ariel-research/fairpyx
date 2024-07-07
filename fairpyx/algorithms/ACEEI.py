@@ -265,6 +265,7 @@ def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict
     # return: new_budgets, norma, allocation, excess_demand
     logger.info("START find_budget_perturbation")
     map_student_to_best_bundle_per_budget = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
+    # TODO: make sure student get empty bundle when necessary and pass it to optimize_model
     new_budgets, clearing_error, excess_demand_per_course = lp.optimize_model(
         map_student_to_best_bundle_per_budget, instance, prices, t, initial_budgets)
     if clearing_error is None:
@@ -274,6 +275,7 @@ def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict
 
 if __name__ == "__main__":
     from fairpyx.adaptors import divide
+    import doctest, sys
 
     logger.setLevel(logging.DEBUG)
     lp.logger.setLevel(logging.DEBUG)
@@ -292,7 +294,6 @@ if __name__ == "__main__":
     sys.exit(0)
 
 
-    import doctest, sys
     print(doctest.testmod())
 
 
