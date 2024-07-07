@@ -89,52 +89,42 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
     >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={0.34}))
     "{ami:['x', 'y'], tami:['y', 'z'], tzumi:['z']}"
     """
-    logger.info("START ALGORITHM")
-    logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅")
-
     initial_budgets = kwargs.get('initial_budgets')
     beta = kwargs.get('beta')
     delta = kwargs.get('delta')
+    logger.info("Tabu search: initial budgets = %s, beta = %s, delta = %s", initial_budgets, beta, delta)
 
     prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
+    logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅: p = %s", prices)
     history = []
 
-    logger.info("2) If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.")
-    max_utilities_allocations = student_best_bundles(prices.copy(), alloc.instance, initial_budgets)
-    allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(alloc.instance, prices,
-                                                                               max_utilities_allocations)
-    best_allocation = allocation
-    best_prices = prices
-    best_norma = norma
+    while True:
+        max_utilities_allocations = student_best_bundles(prices.copy(), alloc.instance, initial_budgets)
+        allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(alloc.instance, prices, max_utilities_allocations)
+        logger.info("\nprices=%s, excess demand=%s, best bundle=%s, norma=%s", prices, excess_demand_vector, allocation, norma)
 
-    while norma:
-        logger.debug(f"min excess demand: {excess_demand_vector}")
-        logger.debug(f"prices: {prices}")
-        logger.debug(f"best bundle: {allocation}")
-        logger.debug(f"----------NORMA {norma}-----------------")
-
-        logger.info("   If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑")
+        best_allocation, best_prices, best_norma = allocation, prices, norma
         if np.allclose(norma, 0):
+            logger.info("2) ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0: terminate with 𝒑∗ = 𝒑.")
             break
 
-        logger.info("3) Otherwise, include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑}")
+        logger.info("3) Include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑}")
         equivalent_prices = find_all_equivalent_prices(alloc.instance, initial_budgets, allocation)
         history.append(equivalent_prices)
-        neighbors = find_all_neighbors(alloc.instance, history, prices, delta, excess_demand_vector,
-                                       initial_budgets,
-                                       allocation)
+        neighbors = find_all_neighbors(
+            alloc.instance, history, prices, delta, excess_demand_vector, initial_budgets, allocation)
+        logger.info("Found %d neighbors", len(neighbors))
         if len(neighbors) == 0:
-            logger.info("\n-- NO OPTIMAL SOLUTION --")
+            logger.info("--- No new neighbors to price-vector - no optimal solution")
             break
 
         logger.info("   update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
-        allocation, excess_demand_vector, norma, prices = find_min_error_prices(alloc.instance, neighbors,
-                                                                                initial_budgets)
+        allocation, excess_demand_vector, norma, prices = find_min_error_prices(
+            alloc.instance, neighbors, initial_budgets)
 
         if norma < best_norma:
-            best_allocation = allocation
-            best_prices = prices
-            best_norma = norma
+            logger.info("   Found a better norma")
+            best_allocation, best_prices, best_norma = allocation, prices, norma
 
     logger.info(f"\nfinal prices p* = {best_prices}")
     logger.info(f"allocation is: {best_allocation}")
@@ -710,11 +700,11 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
 
 if __name__ == "__main__":
     import doctest, sys
-    print(doctest.testmod())
-    sys.exit(0)
+    print("\n", doctest.testmod(), "\n")
+    # sys.exit(0)
 
     logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     import coloredlogs
     level_styles = {
@@ -731,11 +721,10 @@ if __name__ == "__main__":
     random_delta = {random.uniform(0.1, 1)}
     random_beta = random.uniform(1, 100)
 
-
     def random_initial_budgets(num):
         return {f"s{key}": random.uniform(1, 1 + random_beta) for key in range(1, num + 1)}
 
-    num_of_agents = 100
+    num_of_agents = 3
     utilities = {f"s{i}": {f"c{num_of_agents + 1 - j}": j for j in range(num_of_agents, 0, -1)} for i in
                  range(1, num_of_agents + 1)}
     instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
