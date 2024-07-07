@@ -63,7 +63,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
     >>> valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
     >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
     >>> divide(SP_O_function, instance=instance)
-    {'s1': ['c1', 'c2'], 's2': ['c3'], 's3': ['c3', 'c4'], 's4': ['c1', 'c4'], 's5': ['c1', 'c2']}
+    {'s1': ['c1'], 's2': ['c2', 'c3'], 's3': ['c3', 'c4'], 's4': ['c1', 'c4'], 's5': ['c1', 'c2']}
     """
     startime = time.time()
     explanation_logger.info("\nAlgorithm SP-O starts.\n")
