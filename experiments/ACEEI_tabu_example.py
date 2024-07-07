@@ -344,7 +344,7 @@ def run_cache_experiment_Tabu():
                                             backup_folder="results/backup/")
     input_ranges = {
         "num_of_agents": range(20,30),
-        "num_of_items": [8, 12],
+        "num_of_items": [8, 10],
         "value_noise_ratio": [0, 0.2, 0.4, 0.8, 1],
         "beta": [0.001],
         "delta": [{0.34}],
