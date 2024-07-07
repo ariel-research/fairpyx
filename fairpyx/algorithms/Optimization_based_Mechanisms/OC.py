@@ -6,8 +6,6 @@
 """
 
 import cvxpy
-import concurrent.futures
-import time
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import logging
 import cvxpy as cp
@@ -37,7 +35,7 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     {'s1': ['c1', 'c3'], 's2': ['c1', 'c2']}
     """
 
-    startime = time.time()
+
     explanation_logger.info("\nAlgorithm OC starts.\n")
 
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
@@ -72,7 +70,6 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     logger.info("alloc.remaining_conflicts = %s ", alloc.remaining_conflicts)
     logger.info("alloc.remaining_instance().item_conflicts(c1) = %s ", alloc.remaining_instance().item_conflicts("c1"))
 
-    #with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
 
     for course in alloc.remaining_items():
         list_of_conflict = alloc.remaining_instance().item_conflicts(course)
@@ -91,7 +88,6 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
         # Check if the optimization problem was successfully solved
         if result_Z2 is not None:
             optimal.give_items_according_to_allocation_matrix(alloc, x, logger)
-            #optimal.give_items_according_to_allocation_matrix_threaded(alloc, x, logger, executor, num_threads=4)
 
             optimal_value = problem.value
             explanation_logger.info("Optimal Objective Value:", optimal_value)
@@ -105,7 +101,6 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
         logger.error("An error occurred: %s", str(e))
         raise
 
-    logger.info("time: %s", time.time()-startime)
 
 if __name__ == "__main__":
     import doctest, sys

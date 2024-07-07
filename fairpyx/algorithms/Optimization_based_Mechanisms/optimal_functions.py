@@ -23,46 +23,9 @@ def numberOfCourses(var, alloc, less_then):
             constraints.append(cp.sum(var[:, i]) <= less_then[student])
     return constraints
 
-def allocate_course_to_student(student_idx_range, alloc, allocation_matrix, logger, remaining_items_list,remaining_agents_list):
-    x_values = allocation_matrix.value
-    logger.info("Thread handling students in range: %s", student_idx_range)
-
-    logger.info("Number of remaining agents: %d", len(remaining_agents_list))
-    logger.info("Number of remaining items: %d", len(remaining_items_list))
-
-    for i in student_idx_range:
-        logger.info("i: %d, len(remaining_agents_list): %s",i, len(remaining_agents_list))
-
-        if i >= len(remaining_agents_list):
-            logger.error("Index out of range: %d", i)
-            continue
-        student = remaining_agents_list[i]
-        for j, course in enumerate(remaining_items_list):
-            if x_values[j, i] == 1:
-                alloc.give(student, course, logger)
-
-def give_items_according_to_allocation_matrix_threaded(alloc, allocation_matrix, logger, executor, num_threads=4):
-    num_students = len(alloc.remaining_agents())
-    logger.info("num_students = %d", num_students)
-    chunk_size = (num_students + num_threads - 1) // num_threads  # Ceiling division
-    logger.info("chunk_size = %d", chunk_size)
-
-    remaining_agents_list = list(alloc.remaining_agents())
-    remaining_items_list = list(alloc.remaining_items())
-
-    futures = []
-    for i in range(0, num_students, chunk_size):
-        student_idx_range = range(i, min(i + chunk_size, num_students))
-        futures.append(executor.submit(allocate_course_to_student, student_idx_range, alloc, allocation_matrix, logger, remaining_items_list,remaining_agents_list))
-
-    # Wait for all futures to complete
-    concurrent.futures.wait(futures)
-
-    for future in concurrent.futures.as_completed(futures):
-        future.result()  # Ensure any exceptions are raised
 
 # allocation course to student according the result of the linear programing
-def give_items_according_to_allocation_matrix(alloc, allocation_matrix, logger):
+def give_items_according_to_allocation_matrix(alloc, allocation_matrix, logger, rank_mat):
     # Extract the optimized values of x
     x_values = allocation_matrix.value
     logger.info("x_values - the optimum allocation:\n%s", x_values)
@@ -76,14 +39,36 @@ def give_items_according_to_allocation_matrix(alloc, allocation_matrix, logger):
     # Iterate over students and courses to populate the lists
     for i, student in enumerate(remaining_agents_list):
         for j, course in enumerate(remaining_items_list):
-            logger.debug("x[%d,%d]=%s", j, i, x_values[j, i])
+            logger.info("x[%d,%d]=%s", j, i, x_values[j, i])
             if x_values[j, i] > 0.5:
                 assign_map_courses_to_student[student].append(course)
+
+    logger.info("assign_map_courses_to_student: %s", assign_map_courses_to_student)
 
     # Assign the courses to students based on the dictionary
     for student, courses in assign_map_courses_to_student.items():
         for course in courses:
+            # change the rank mat
+            # before the last place in a course in given, remove the course from the rank_mat
+            # otherwise change the rank of this course to 0
+            if alloc.remaining_item_capacities[course] == 1:
+                for j, course2 in enumerate(alloc.remaining_items()):
+                    if course == course2:
+                        del rank_mat[j]
+                        break
+            else:
+                for j, course2 in enumerate(alloc.remaining_items()):
+                    if course == course2:
+                        break
+                for i, student2 in enumerate(alloc.remaining_agents()):
+                    if student == student2:
+                        rank_mat[j][i] = 0
+
             alloc.give(student, course, logger)
+
+    logger.info("after alloc Rank matrix:\n%s", rank_mat)
+    return rank_mat
+
 
 # creating the rank matrix for the linear programing ((6) (17) in the article) using for TTC-O, SP-O and OC
 def createRankMat(alloc, logger):
@@ -100,6 +85,7 @@ def createRankMat(alloc, logger):
                 rank_mat[j][i] = sorted_courses.index(course) + 1
 
     logger.debug("Rank matrix:\n%s", rank_mat)
+
     return rank_mat
 
 # sum the optimal rank to be sure the optimal bids agree with the optimal rank (6) (10) (17) (19)

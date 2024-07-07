@@ -10,8 +10,6 @@ import cvxpy as cp
 import logging
 import fairpyx.algorithms.Optimization_based_Mechanisms.optimal_functions as optimal
 import fairpyx.algorithms.Optimization_based_Mechanisms.TTC_O as TTC_O
-import time
-import concurrent.futures
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +63,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
     >>> divide(SP_O_function, instance=instance)
     {'s1': ['c1'], 's2': ['c2', 'c3'], 's3': ['c3', 'c4'], 's4': ['c1', 'c4'], 's5': ['c1', 'c2']}
     """
-    startime = time.time()
+
     explanation_logger.info("\nAlgorithm SP-O starts.\n")
     global map_student_to_his_sum_bids
 
@@ -76,8 +74,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
     # the amount of bids agent have from all the courses he got before
     map_student_to_his_sum_bids = {s: 0 for s in alloc.remaining_agents()}
 
-    #with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-
+    rank_mat = optimal.createRankMat(alloc, logger)
     for iteration in range(max_iterations):
         logger.info("\nIteration number: %d", iteration+1)
         if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
@@ -85,8 +82,10 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
             break
 
         logger.info("map_student_to_his_sum_bids : " + str(map_student_to_his_sum_bids))
-        result_Zt1, result_Zt2, x, problem, rank_mat = TTC_O.roundTTC_O(alloc, logger, effective_value_with_price, 1)  # This is the TTC-O round.
 
+        result_Zt1, result_Zt2, x, problem = TTC_O.roundTTC_O(alloc, logger, effective_value_with_price, 1, rank_mat)  # This is the TTC-O round.
+
+        logger.info("Rank matrix:\n%s", rank_mat)
         optimal_value = problem.value
         logger.info("Optimal Objective Value: %d", optimal_value)
 
@@ -152,12 +151,10 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
                         map_student_to_his_sum_bids[student] -= p_values[j]
                         logger.info("student %s payed: %f", student, p_values[j])
                         logger.info("student %s have in dict: %f", student, map_student_to_his_sum_bids[student])
-            optimal.give_items_according_to_allocation_matrix(alloc, x, logger)
-            #optimal.give_items_according_to_allocation_matrix_threaded(alloc, x, logger, executor, num_threads=4)
+            rank_mat = optimal.give_items_according_to_allocation_matrix(alloc, x, logger, rank_mat)
 
             optimal_value = problem.value
             logger.info("Optimal Objective Value: %d", optimal_value)
-            logger.info("time: %s", time.time()-startime)
             # Now you can use this optimal value for further processing
         else:
             logger.info("Solver failed to find a solution or the problem is infeasible/unbounded.")
@@ -176,10 +173,10 @@ if __name__ == "__main__":
         valuations={"s1": s1, "s2": s2}
     )
 
-    #logger.addHandler(logging.StreamHandler())
-    #logger.setLevel(logging.INFO)
-    allocation = divide(SP_O_function, instance=instance)
-    print(allocation,"\n\n\n")
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+    # allocation = divide(SP_O_function, instance=instance)
+    # print(allocation,"\n\n\n")
 
 
     s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
@@ -192,7 +189,18 @@ if __name__ == "__main__":
         item_capacities={"c1": 3, "c2": 2, "c3": 2, "c4": 2},
         valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
     )
+    # allocation = divide(SP_O_function, instance=instance)
+
+
+    s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}  # {c1: 40, c4: 30, c2:20, c3: 10}
+    s2 = {"c1": 6, "c2": 20, "c3": 70, "c4": 4}  # {c3: 70, c2: 20, c1:6, c4: 4}
+    s3 = {"c1": 9, "c2": 20, "c3": 21, "c4": 50}  # {c4: 50, c3: 21, c2:20, c1: 9}
+    s4 = {"c1": 25, "c2": 5, "c3": 15, "c4": 55}  # {c4: 55, c1: 25, c3:15, c2: 5}
+    s5 = {"c1": 5, "c2": 90, "c3": 3, "c4": 2}  # {c2: 90, c1: 5, c3:3, c4: 2}
+    agent_capacities = {"s1": 2, "s2": 2, "s3": 2, "s4": 2, "s5": 2}
+    item_capacities = {"c1": 3, "c2": 2, "c3": 2, "c4": 2}
+    valuations = {"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
+    instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
     allocation = divide(SP_O_function, instance=instance)
     print(allocation)
-
 

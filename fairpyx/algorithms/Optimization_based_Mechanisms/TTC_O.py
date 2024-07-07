@@ -2,18 +2,16 @@ import cvxpy
 import numpy as np
 import fairpyx
 import fairpyx.algorithms.Optimization_based_Mechanisms.optimal_functions as optimal
-import concurrent.futures
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import logging
 import cvxpy as cp
-import time
 
 logger = logging.getLogger(__name__)
 
 # if flag_if_use_alloc_in_func == 0 then using alloc.effective_value for TTC-O
 # if flag_if_use_alloc_in_func == 1 then using effective_value_with_price for SP-O
-def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func):
-    rank_mat = optimal.createRankMat(alloc, logger)
+def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func, rank_mat):
+    # rank_mat = optimal.createRankMat(alloc, logger)
 
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
 
@@ -50,7 +48,7 @@ def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func):
         logger.error("An error occurred: %s", str(e))
         raise
 
-    return result_Zt1, result_Zt2, x, problem, rank_mat
+    return result_Zt1, result_Zt2, x, problem
 
 def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger()):
     """
@@ -74,25 +72,23 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
     """
     logger.info("\nAlgorithm TTC-O starts.\n")
 
-    startime = time.time()
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
     logger.info("Max iterations: %d", max_iterations)
 
-    # with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-
+    rank_mat = optimal.createRankMat(alloc, logger)
     for iteration in range(max_iterations):
         logger.info("\nIteration number: %d", iteration+1)
         if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
             logger.info("There are no more agents (%d) or items(%d) ", len(alloc.remaining_agent_capacities),len(alloc.remaining_item_capacities))
             break
 
-        result_Zt1, result_Zt2, var, problem , rank_mat = roundTTC_O(alloc, logger, alloc.effective_value, 0)
+
+        result_Zt1, result_Zt2, var, problem = roundTTC_O(alloc, logger, alloc.effective_value, 0, rank_mat)
 
         # Check if the optimization problem was successfully solved
         if result_Zt2 is not None:
-            optimal.give_items_according_to_allocation_matrix(alloc, var, logger)
-            #optimal.give_items_according_to_allocation_matrix_threaded(alloc, var, logger, executor, num_threads=4)
-            logger.info("time = %s", time.time()-startime)
+            rank_mat = optimal.give_items_according_to_allocation_matrix(alloc, var, logger, rank_mat)
+
             optimal_value = problem.value
             logger.info("Optimal Objective Value: %s", optimal_value)
             # Now you can use this optimal value for further processing
