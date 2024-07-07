@@ -259,6 +259,9 @@ def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict
 
 if __name__ == "__main__":
     import doctest, sys
+    print("\n", doctest.testmod(), "\n")
+    sys.exit(0)
+
     from fairpyx.adaptors import divide
     import doctest, sys
 
@@ -276,10 +279,8 @@ if __name__ == "__main__":
     divide(find_ACEEI_with_EFTB, instance=instance,
             initial_budgets=initial_budgets,delta=delta, epsilon=epsilon, t=t)
 
-    sys.exit(0)
 
 
-    print(doctest.testmod())
 
 
     # from fairpyx.utils.test_utils import stringify
