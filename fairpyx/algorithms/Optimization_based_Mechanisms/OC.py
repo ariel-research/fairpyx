@@ -87,7 +87,7 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
         # Check if the optimization problem was successfully solved
         if result_Z2 is not None:
-            optimal.give_items_according_to_allocation_matrix(alloc, x, logger)
+            optimal.give_items_according_to_allocation_matrix(alloc, x, logger, rank_mat)
 
             optimal_value = problem.value
             explanation_logger.info("Optimal Objective Value:", optimal_value)
