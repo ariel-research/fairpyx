@@ -16,7 +16,7 @@ import numpy as np
 from fairpyx import Instance, AllocationBuilder
 from functools import lru_cache
 
-from fairpyx.algorithms.calculate_combinations import get_combinations_courses_sorted
+from fairpyx.utils.calculate_combinations import get_combinations_courses_sorted
 
 # Setup logger and colored logs
 logger = logging.getLogger(__name__)
@@ -816,8 +816,6 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
 
 if __name__ == "__main__":
     from fairpyx.adaptors import divide
-
-    import doctest
 
     import coloredlogs
 
