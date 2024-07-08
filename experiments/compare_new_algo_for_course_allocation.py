@@ -31,7 +31,10 @@ algorithms_with_none_solver = [
 ]
 
 def evaluate_algorithm_on_instance(algorithm, instance, solver):
-    allocation = divide(algorithm, instance, solver)
+    if algorithm in algorithms_with_none_solver:
+        allocation = divide(algorithm, instance)
+    else:
+        allocation = divide(algorithm, instance, solver=solver)
     matrix = AgentBundleValueMatrix(instance, allocation)
     matrix.use_normalized_values()
     return {
