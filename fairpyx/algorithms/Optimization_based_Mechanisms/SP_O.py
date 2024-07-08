@@ -30,7 +30,7 @@ def conditions_14(alloc, v,p):
     return constraints
 
 
-def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger()):
+def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger(),  solver=None):
     """
     Algorithm 4: Allocate the given items to the given agents using the SP-O protocol.
 
@@ -83,7 +83,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
 
         logger.info("map_student_to_his_sum_bids : " + str(map_student_to_his_sum_bids))
 
-        result_Zt1, result_Zt2, x, problem = TTC_O.roundTTC_O(alloc, logger, effective_value_with_price, 1, rank_mat)  # This is the TTC-O round.
+        result_Zt1, result_Zt2, x, problem = TTC_O.roundTTC_O(alloc, logger, effective_value_with_price, 1, rank_mat, solver)  # This is the TTC-O round.
 
         logger.info("Rank matrix:\n%s", rank_mat)
         optimal_value = problem.value
@@ -116,7 +116,8 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
         constraints_Wt1 += condition_14
 
         problem = cp.Problem(objective_Wt1, constraints=constraints_Wt1)
-        result_Wt1 = problem.solve()  # This is the optimal value of program (12)(13)(14).
+        logger.info("solver: %s", solver)
+        result_Wt1 = problem.solve(solver=solver)  # This is the optimal value of program (12)(13)(14).
 
         logger.info("result_Wt1 - the optimum Wt1: %s", result_Wt1)
 
@@ -130,7 +131,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
         constraints_Wt2 += condition_14
 
         problem = cp.Problem(objective_Wt2, constraints=constraints_Wt2)
-        result_Wt2 = problem.solve()  # This is the optimal price
+        result_Wt2 = problem.solve(solver=solver)  # This is the optimal price
 
         logger.info("result_Wt2 - the optimum Wt2: %s", result_Wt2)
 
@@ -201,6 +202,7 @@ if __name__ == "__main__":
     item_capacities = {"c1": 3, "c2": 2, "c3": 2, "c4": 2}
     valuations = {"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
     instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
-    allocation = divide(SP_O_function, instance=instance)
+    solver = None
+    allocation = divide(SP_O_function, instance=instance, solver=solver)
     print(allocation)
 

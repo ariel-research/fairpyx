@@ -22,10 +22,8 @@ def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func, 
     constraints_Zt1 = optimal.notExceedtheCapacity(x, alloc) + optimal.numberOfCourses(x, alloc, 1)
 
     problem = cp.Problem(objective_Zt1, constraints=constraints_Zt1)
-    if solver != None:
-        result_Zt1 = problem.solve(solver=solver)  # This is the optimal value of program (6)(7)(8)(9).
-    else:
-        result_Zt1 = problem.solve()
+    logger.info("solver : %s", solver)
+    result_Zt1 = problem.solve(solver=solver)  # This is the optimal value of program (6)(7)(8)(9).
     logger.info("result_Zt1 - the optimum ranking: %d", result_Zt1)
 
     # Write and solve new program for Zt2 (10)(11)(7)(8)
@@ -43,10 +41,7 @@ def roundTTC_O(alloc, logger, agent_item_value_func, flag_if_use_alloc_in_func, 
 
     try:
         problem = cp.Problem(objective_Zt2, constraints=constraints_Zt2)
-        if solver != None:
-            result_Zt2 = problem.solve(solver=solver)
-        else:
-            result_Zt2 = problem.solve()
+        result_Zt2 = problem.solve(solver=solver)
         logger.info("result_Zt2 - the optimum bids: %d", result_Zt2)
 
     except Exception as e:

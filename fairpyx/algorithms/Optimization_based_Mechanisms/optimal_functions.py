@@ -39,7 +39,7 @@ def give_items_according_to_allocation_matrix(alloc, allocation_matrix, logger, 
     # Iterate over students and courses to populate the lists
     for i, student in enumerate(remaining_agents_list):
         for j, course in enumerate(remaining_items_list):
-            logger.info("x[%d,%d]=%s", j, i, x_values[j, i])
+            # logger.info("x[%d,%d]=%s", j, i, x_values[j, i])
             if x_values[j, i] > 0.5:
                 assign_map_courses_to_student[student].append(course)
 

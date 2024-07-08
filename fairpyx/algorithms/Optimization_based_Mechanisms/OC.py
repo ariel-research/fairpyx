@@ -14,7 +14,7 @@ import fairpyx.algorithms.Optimization_based_Mechanisms.optimal_functions as opt
 logger = logging.getLogger(__name__)
 
 
-def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger()):
+def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger = ExplanationLogger(), solver=None):
     """
     Algorethem 5: Allocate the given items to the given agents using the OC protocol.
 
@@ -47,7 +47,8 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     constraints_Z1 = optimal.notExceedtheCapacity(x,alloc) + optimal.numberOfCourses(x, alloc, alloc.remaining_agent_capacities)
 
     problem = cp.Problem(objective_Z1, constraints=constraints_Z1)
-    result_Z1 = problem.solve()
+    logger.info("solver: %s", solver)
+    result_Z1 = problem.solve(solver=solver)
     logger.info("\nRank optimization: result_Z1 = %s, x = \n%s", result_Z1, x.value)
 
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)  # Is there a func which zero all the matrix?
@@ -82,7 +83,7 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
     try:
         problem = cp.Problem(objective_Z2, constraints=constraints_Z2)
-        result_Z2 = problem.solve()
+        result_Z2 = problem.solve(solver=solver)
         logger.info("\nValue optimization: result_Z2 = %s, x = \n%s", result_Z2, x.value)
 
         # Check if the optimization problem was successfully solved
@@ -122,7 +123,8 @@ if __name__ == "__main__":
     agent_capacities = {'s1': 3, 's2': 3, 's3': 3, 's4': 3, 's5': 3}
     item_capacities = {'c1': 5, 'c2': 5, 'c3': 5, 'c4': 5, 'c5': 5}
     instance = fairpyx.Instance(valuations=valuations, agent_capacities=agent_capacities, item_capacities=item_capacities)
-    allocation = fairpyx.divide(OC_function, instance=instance)
+    solver = None
+    allocation = fairpyx.divide(OC_function, instance=instance, solver=solver)
     fairpyx.validate_allocation(instance, allocation, title=f"OC_function")
 
 
