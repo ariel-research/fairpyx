@@ -13,9 +13,8 @@ import logging
 import numpy as np
 
 from fairpyx import Instance, AllocationBuilder
-from itertools import combinations
-from fairpyx.algorithms import linear_program as lp
-from calculate_combinations import get_combinations_courses_sorted
+from fairpyx.utils import linear_program as lp
+from fairpyx.utils.calculate_combinations import get_combinations_courses_sorted
 
 
 class EFTBStatus(Enum):
@@ -218,9 +217,9 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     logger.info("START student_best_bundle_per_budget")
     best_bundle_per_budget = {student: {} for student in instance.agents}
     # logger.info("START combinations")
-    for student in instance.agents:
-        combinations_courses_sorted = get_combinations_courses_sorted(instance, student)
+    combinations_courses_sorted = get_combinations_courses_sorted(instance)
 
+    for student in instance.agents:
         # Setting the min and max budget according to the definition
         min_budget = initial_budgets[student] - epsilon
         max_budget = initial_budgets[student] + epsilon
@@ -230,7 +229,7 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
         # could be taken in that budget.
         min_price = float('inf')
 
-        for combination in combinations_courses_sorted:
+        for combination in combinations_courses_sorted[student]:
             price_combination = sum(prices[course] for course in combination)
 
             if price_combination <= max_budget:
@@ -258,9 +257,8 @@ def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict
     return new_budgets, clearing_error, map_student_to_best_bundle_per_budget, excess_demand_per_course
 
 if __name__ == "__main__":
-    import doctest, sys
     from fairpyx.adaptors import divide
-    import doctest, sys
+    import sys
 
     logger.setLevel(logging.DEBUG)
     lp.logger.setLevel(logging.DEBUG)
