@@ -309,6 +309,7 @@ def random_initial_budgets(num_of_agents: int) -> dict:
     return {f's{agent + 1}': initial_budgets[agent] for agent in range(num_of_agents)}
 
 
+
 if __name__ == "__main__":
     import doctest, sys
 

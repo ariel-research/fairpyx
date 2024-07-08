@@ -576,7 +576,8 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
     >>> excess_demand_vector = {"x":0,"y":2,"z":-2}
     >>> initial_budgets = {"ami":5,"tami":4,"tzumi":3}
     >>> allocation = {"ami":('x','y'),"tami":('x','y'),"tzumi":('y','z')}
-    >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation)
+    >>> combinations_courses_sorted = {'ami': [('x', 'y'), ('y', 'z'), ('x', 'z'), ('y',), ('x',), ('z',)], 'tami': [('x', 'y'), ('x', 'z'), ('y', 'z'), ('x',), ('y',), ('z',)], 'tzumi': [('y', 'z'), ('x', 'y'), ('x', 'z'), ('y',), ('z',), ('x',)]}
+    >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation, combinations_courses_sorted)
     [{'x': 1, 'y': 2.7071067811865475, 'z': 1}]
 
 
@@ -591,7 +592,8 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
     >>> excess_demand_vector = {"x":1,"y":0,"z":0}
     >>> initial_budgets = {"ami":5,"tami":4,"tzumi":3}
     >>> allocation = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
-    >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation)
+    >>> combinations_courses_sorted = {'ami': [('x', 'y'), ('y', 'z'), ('x', 'z'), ('y',), ('x',), ('z',)], 'tami': [('x', 'y'), ('x', 'z'), ('y', 'z'), ('x',), ('y',), ('z',)], 'tzumi': [('y', 'z'), ('x', 'y'), ('x', 'z'), ('y',), ('z',), ('x',)]}
+    >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation, combinations_courses_sorted)
     [{'x': 1.7071067811865475, 'y': 4, 'z': 0}, {'x': 2.414213562373095, 'y': 4, 'z': 0}]
 
 
@@ -610,7 +612,8 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
     >>> excess_demand_vector = {'x': 1, 'y': -2, 'z': 1, 'w': -1}
     >>> initial_budgets = {"ami": 4, "tami": 5, "tzumi": 2}
     >>> allocation = {'ami': ('x', 'z'), 'tami': ('x', 'z'), 'tzumi': 'z'}
-    >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation)
+    >>> combinations_courses_sorted = {'ami': [('x', 'y'), ('x', 'z'), ('x', 'w'), ('y', 'z'), ('y', 'w'), ('z', 'w'), ('x',), ('y',), ('z',), ('w',)], 'tami': [('x', 'y'), ('x', 'z'), ('x', 'w'), ('y', 'z'), ('y', 'w'), ('z', 'w'), ('x',), ('y',), ('z',), ('w',)], 'tzumi': [('x', 'y'), ('x', 'z'), ('x', 'w'), ('y', 'z'), ('y', 'w'), ('z', 'w'), ('x',), ('y',), ('z',), ('w',)]}
+    >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation, combinations_courses_sorted)
     [{'x': 2.6124658024539347, 'y': 0, 'z': 1.1604071365185367, 'w': 5.930224022321449}, {'x': 2.6124658024539347, 'y': 4.138416343413373, 'z': 1.1604071365185367, 'w': 0}]
     """
     new_neighbors = []
@@ -684,7 +687,8 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     ... item_capacities={"x":2, "y":1, "z":3})
     >>> neighbors = [{"x":1, "y":4, "z":0}, {"x":1, "y":3, "z":1}]
     >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
-    >>> find_min_error_prices(instance, neighbors, initial_budgets)
+    >>> combinations_courses_sorted = {'ami': [('x', 'y'), ('y', 'z'), ('x', 'z'), ('y',), ('x',), ('z',)], 'tami': [('x', 'y'), ('x', 'z'), ('y', 'z'), ('x',), ('y',), ('z',)], 'tzumi': [('y', 'z'), ('x', 'y'), ('x', 'z'), ('y',), ('z',), ('x',)]}
+    >>> find_min_error_prices(instance, neighbors, initial_budgets, combinations_courses_sorted)
     ({'ami': ('x', 'y'), 'tami': ('x', 'z'), 'tzumi': ('x', 'z')}, {'x': 1, 'y': 0, 'z': 0}, 1.0, {'x': 1, 'y': 4, 'z': 0})
 
      Example run 1 iteration 2
@@ -694,7 +698,8 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     ... item_capacities={"x":2, "y":1, "z":3})
     >>> neighbors = [{"x":2, "y":4, "z":0}, {"x":3, "y":4, "z":0}]
     >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
-    >>> find_min_error_prices(instance, neighbors, initial_budgets)
+    >>> combinations_courses_sorted = {'ami': [('x', 'y'), ('y', 'z'), ('x', 'z'), ('y',), ('x',), ('z',)], 'tami': [('x', 'y'), ('x', 'z'), ('y', 'z'), ('x',), ('y',), ('z',)], 'tzumi': [('y', 'z'), ('x', 'y'), ('x', 'z'), ('y',), ('z',), ('x',)]}
+    >>> find_min_error_prices(instance, neighbors, initial_budgets, combinations_courses_sorted)
     ({'ami': ('y', 'z'), 'tami': ('x', 'z'), 'tzumi': ('x', 'z')}, {'x': 0, 'y': 0, 'z': 0}, 0.0, {'x': 2, 'y': 4, 'z': 0})
     """
     errors = []  # tuple of (allocation, excess_demand, norm, price)
@@ -711,6 +716,17 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
 
     min_error_tuple = min(errors, key=lambda x: x[2])
     return min_error_tuple
+
+
+def run_tabu_search(alloc: AllocationBuilder, **kwargs):
+    beta = 0.001
+    initial_budgets = random_initial_budgets(alloc.instance.num_of_agents, beta)
+    return tabu_search(alloc, initial_budgets=initial_budgets, beta=beta, delta={0.34}, **kwargs)
+
+def random_initial_budgets(num_of_agents: int, beta: float = 100) -> dict:
+    # Create initial budgets for each agent, uniformly distributed in the range [1, 1 + beta]
+    initial_budgets = np.random.uniform(1, 1 + beta, num_of_agents)
+    return {f's{agent + 1}': initial_budgets[agent] for agent in range(num_of_agents)}
 
 
 if __name__ == "__main__":
@@ -739,23 +755,23 @@ if __name__ == "__main__":
     random_beta = random.uniform(1, 100)
 
 
-    def random_initial_budgets(num):
-        return {f"s{key}": random.uniform(1, 1 + random_beta) for key in range(1, num + 1)}
-
-
-    num_of_agents = 3
-    utilities = {f"s{i}": {f"c{num_of_agents + 1 - j}": j for j in range(num_of_agents, 0, -1)} for i in
-                 range(1, num_of_agents + 1)}
-    instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
-    initial_budgets = {f"s{key}": (num_of_agents + 1 - key) for key in range(1, num_of_agents + 1)}
-    logger.error(f"initial_budgets = {initial_budgets}")
-    logger.error(f"random_beta = {random_beta}")
-    # initial_budgets = {f"s{key}": (random_beta + key) for key in range(1, num_of_agents + 1)}
-    allocation = divide(tabu_search, instance=instance,
-                        initial_budgets=initial_budgets,
-                        beta=random_beta, delta=random_delta)
-    for i in range(1, num_of_agents + 1):
-        assert (f"c{i}" in allocation[f"s{i}"])
+    # def random_initial_budgets(num):
+    #     return {f"s{key}": random.uniform(1, 1 + random_beta) for key in range(1, num + 1)}
+    #
+    #
+    # num_of_agents = 3
+    # utilities = {f"s{i}": {f"c{num_of_agents + 1 - j}": j for j in range(num_of_agents, 0, -1)} for i in
+    #              range(1, num_of_agents + 1)}
+    # instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
+    # initial_budgets = {f"s{key}": (num_of_agents + 1 - key) for key in range(1, num_of_agents + 1)}
+    # logger.error(f"initial_budgets = {initial_budgets}")
+    # logger.error(f"random_beta = {random_beta}")
+    # # initial_budgets = {f"s{key}": (random_beta + key) for key in range(1, num_of_agents + 1)}
+    # allocation = divide(tabu_search, instance=instance,
+    #                     initial_budgets=initial_budgets,
+    #                     beta=random_beta, delta=random_delta)
+    # for i in range(1, num_of_agents + 1):
+    #     assert (f"c{i}" in allocation[f"s{i}"])
 
     # seed = random.randint(1, 10000)
     # # seed = 2006

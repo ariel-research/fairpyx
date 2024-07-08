@@ -53,6 +53,15 @@ def get_combinations_courses_sorted(instance: Instance):
     ...     item_capacities={"x":1})
     >>> get_combinations_courses_sorted(instance)
     {'avi': [('x',)], 'beni': [('x',)]}
+
+    >>> instance = Instance(
+    ... valuations={"ami":{"x":3, "y":4, "z":2}, "tami":{"x":4, "y":3, "z":2}, "tzumi":{"x":2, "y":4, "z":3}},
+    ... agent_capacities=2,
+    ... item_capacities={"x":2, "y":1, "z":3})
+    >>> get_combinations_courses_sorted(instance)
+    {'ami': [('x', 'y'), ('y', 'z'), ('x', 'z'), ('y',), ('x',), ('z',)], 'tami': [('x', 'y'), ('x', 'z'), ('y', 'z'), ('x',), ('y',), ('z',)], 'tzumi': [('y', 'z'), ('x', 'y'), ('x', 'z'), ('y',), ('z',), ('x',)]}
+
+
     """
     combinations_courses = {student: [] for student in instance.agents}
     for student in instance.agents:

@@ -74,9 +74,6 @@ def course_allocation_with_random_instance_uniform(
 
 RESULTS_CACHE_TABU_SEARCH = "results/compering_using_cache_tabu_search.csv"
 
-from fairpyx.algorithms.tabu_search import student_best_bundles
-
-
 def run_cache_experiment_tabu_search():
     # Run on uniformly-random data with beta and delta parameters:
     experiment = experiments_csv.Experiment("results/", "compering_using_cache_tabu_search.csv",
@@ -96,22 +93,6 @@ def run_cache_experiment_tabu_search():
     experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges, time_limit=TIME_LIMIT)
 
 
-# def plot_runtime_comparison(file_path):
-#     # Load the data from CSV
-#     data = pd.read_csv(file_path)
-#
-#     # Group by number of agents and function to calculate mean runtime
-#     grouped_data = data.groupby(['num_of_agents', 'function'])['runtime'].mean().unstack()
-#
-#     # Plotting
-#     plt.figure(figsize=(10, 6))
-#     grouped_data.plot(marker='o')
-#     plt.xlabel('Number of Students')
-#     plt.ylabel('Average Runtime (seconds)')
-#     plt.title('Comparison of Runtime for student_best_bundles and student_best_bundles_without_cache')
-#     plt.legend(title='Function')
-#     plt.grid(True)
-#     plt.show()
 
 def analyze_experiment_results_cache():
     # Load the results from the CSV file
@@ -127,33 +108,6 @@ def analyze_experiment_results_cache():
     print(f"Corresponding Runtime: {best_runtime} seconds")
 
     return df
-
-def plot_runtime_vs_cache(df, algorithm_name):
-    plt.figure(figsize=(12, 8))
-
-    # Plotting runtime vs. num_of_agents for each use_cache value
-    sns.lineplot(data=df[df['use_cache'] == True], x='num_of_agents', y='runtime', marker='o',
-                 label='Use Cache = True')
-    sns.lineplot(data=df[df['use_cache'] == False], x='num_of_agents', y='runtime', marker='o',
-                 label='Use Cache = False')
-
-    plt.title(f'Runtime vs. Number of Agents for {algorithm_name}')
-    plt.xlabel('Number of Agents')
-    plt.ylabel('Runtime (seconds)')
-    plt.grid(True)
-
-    # Customizing the legend
-    legend_labels = {
-        'Use Cache = True': 'blue',  # Blue line and markers for Use Cache = True
-        'Use Cache = False': 'orange'  # Orange line and markers for Use Cache = False
-    }
-
-    handles = [plt.Line2D([0, 0], [0, 0], color=color, marker='o', linestyle='') for color in legend_labels.values()]
-    labels = legend_labels.keys()
-    plt.legend(handles, labels, title='Legend')
-
-    plt.tight_layout()
-    plt.show()
 
 
 ##### PLOT #######
@@ -190,36 +144,33 @@ def plot_speed_vs_params(df, param1, param2, algorithm_name):
     plt.show()
 
 
-# def plot_runtime_vs_cache(df, function_name):
-#     # Load the data from CSV
-#     file_path = "results/comparing_using_cache_tabu_search.csv"
-#     data = pd.read_csv(file_path)
-#
-#     # Group by number of agents and function to calculate mean runtime
-#     grouped_data = data.groupby(['num_of_agents', 'function'])['runtime'].mean().unstack()
-#
-#     # Plotting
-#     plt.figure(figsize=(10, 6))
-#     grouped_data.plot(marker='o')
-#     plt.xlabel('Number of Students')
-#     plt.ylabel('Average Runtime (seconds)')
-#     plt.title('Comparison of Runtime for student_best_bundles and student_best_bundles_without_cache')
-#     plt.legend(title='Function')
-#     plt.grid(True)
-#     plt.show()
+def plot_runtime_vs_cache(df, algorithm_name):
+    plt.figure(figsize=(12, 8))
 
-    # plt.figure(figsize=(12, 8))
-    #
-    # # Plotting runtime vs. num_of_agents for each use_threads value
-    # sns.lineplot(data=df, x='num_of_agents', y='runtime', hue='use_cache', marker='o')
-    #
-    # plt.title(f'Runtime vs. Number of Agents for {function_name}')
-    # plt.xlabel('Number of Agents')
-    # plt.ylabel('Runtime (seconds)')
-    # plt.grid(True)
-    # plt.legend(title='Use Cache', labels=['False: Average runtime', 'Markers False', 'True: Average runtime', 'Markers True'])
-    # plt.tight_layout()
-    # plt.show()
+    # Plotting runtime vs. num_of_agents for each use_cache value
+    sns.lineplot(data=df[df['use_cache'] == True], x='num_of_agents', y='runtime', marker='o',
+                 label='Use Cache = True')
+    sns.lineplot(data=df[df['use_cache'] == False], x='num_of_agents', y='runtime', marker='o',
+                 label='Use Cache = False')
+
+    plt.title(f'Runtime vs. Number of Agents for {algorithm_name}')
+    plt.xlabel('Number of Agents')
+    plt.ylabel('Runtime (seconds)')
+    plt.grid(True)
+
+    # Customizing the legend
+    legend_labels = {
+        'Use Cache = True': 'blue',  # Blue line and markers for Use Cache = True
+        'Use Cache = False': 'orange'  # Orange line and markers for Use Cache = False
+    }
+
+    handles = [plt.Line2D([0, 0], [0, 0], color=color, marker='o', linestyle='') for color in legend_labels.values()]
+    labels = legend_labels.keys()
+    plt.legend(handles, labels, title='Legend')
+
+    plt.tight_layout()
+    plt.show()
+
 
 
 ###########################
