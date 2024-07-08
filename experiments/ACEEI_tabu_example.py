@@ -74,7 +74,7 @@ def course_allocation_with_random_instance_uniform(
 
 RESULTS_CACHE_TABU_SEARCH = "results/compering_using_cache_tabu_search.csv"
 
-from fairpyx.algorithms.tabu_search import student_best_bundles_without_cache, student_best_bundles
+from fairpyx.algorithms.tabu_search import student_best_bundles
 
 
 def run_cache_experiment_tabu_search():

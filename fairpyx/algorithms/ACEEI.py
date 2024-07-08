@@ -187,7 +187,8 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     >>> initial_budgets = {"Alice": 5, "Bob": 4}
     >>> epsilon = 2
     >>> prices = {"x": 2.5, "y": 0, "z": 0}
-    >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets)
+    >>> combinations_courses_sorted = {'Alice': [('x', 'y'), ('x', 'z'), ('y', 'z'), ('x',), ('y',), ('z',)], 'Bob': [('x', 'y'), ('y', 'z'), ('x', 'z'), ('y',), ('x',), ('z',)]}
+    >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets, combinations_courses_sorted)
     {'Alice': {3: ('x', 'y')}, 'Bob': {2.5: ('x', 'y'), 2: ('y', 'z')}}
 
     # Alice: 3-7: (10, [x,y] , p=2.5) (6, [x,z] p=2.5) (6, [y,z] p=0)
@@ -201,7 +202,8 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     >>> initial_budgets = {"Alice": 5, "Bob": 4}
     >>> epsilon = 2
     >>> prices = {"x": 1.5, "y": 2, "z": 0}
-    >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets)
+    >>> combinations_courses_sorted = {'Alice': [('x', 'y'), ('x', 'z'), ('y', 'z'), ('x',), ('y',), ('z',)], 'Bob': [('x', 'y'), ('y', 'z'), ('x', 'z'), ('y',), ('x',), ('z',)]}
+    >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets, combinations_courses_sorted)
     {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
 
     # Alice: 3-7 -> (9, [x,y], p=3.5) (6, [x,z], p=1.5) (5, [y,z], p=2) (5 , x , p=1.5) (4, y, p=2) (1, z, p=0)
@@ -215,7 +217,8 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     >>> initial_budgets = {"Alice": 5}
     >>> epsilon = 0.1
     >>> prices = {"x": 2, "y": 2, "z": 5}
-    >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets)
+    >>> combinations_courses_sorted = {'Alice': [('x', 'z'), ('y', 'z'), ('x', 'y'), ('z',), ('x',), ('y',)]}
+    >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets, combinations_courses_sorted)
     {'Alice': {4.9: ('x', 'y')}}
 
     Example with a student with no bundle
@@ -226,7 +229,8 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     >>> initial_budgets = {"avi": 1.1, "beni": 1}
     >>> epsilon = 0.2
     >>> prices = {"x": 1.3}
-    >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets)
+    >>> combinations_courses_sorted = {'avi': [('x',)], 'beni': [('x',)]}
+    >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets, combinations_courses_sorted)
     {'avi': {1.3: ('x',)}, 'beni': {0: ()}}
     """
 
@@ -235,7 +239,6 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     best_bundle_per_budget = {student: {} for student in instance.agents}
 
     # logger.info("START combinations")
-    combinations_courses_sorted = get_combinations_courses_sorted(instance)
     for student in instance.agents:
         # Setting the min and max budget according to the definition
         min_budget = initial_budgets[student] - epsilon
@@ -282,6 +285,30 @@ def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict
     return new_budgets, clearing_error, map_student_to_best_bundle_per_budget, excess_demand_per_course
 
 
+def ACEEI_without_EFTB(alloc: AllocationBuilder, **kwargs):
+    initial_budgets = random_initial_budgets(alloc.instance.num_of_agents)
+    return find_ACEEI_with_EFTB(alloc, initial_budgets=initial_budgets, delta=0.5, epsilon=3.0, t=EFTBStatus.NO_EF_TB,
+                                **kwargs)
+
+
+def ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
+    initial_budgets = random_initial_budgets(alloc.instance.num_of_agents)
+    return find_ACEEI_with_EFTB(alloc, initial_budgets=initial_budgets, delta=0.5, epsilon=3.0, t=EFTBStatus.EF_TB,
+                                **kwargs)
+
+
+def ACEEI_with_contested_EFTB(alloc: AllocationBuilder, **kwargs):
+    initial_budgets = random_initial_budgets(alloc.instance.num_of_agents)
+    return find_ACEEI_with_EFTB(alloc, initial_budgets=initial_budgets, delta=0.5, epsilon=3.0,
+                                t=EFTBStatus.CONTESTED_EF_TB, **kwargs)
+
+
+def random_initial_budgets(num_of_agents: int) -> dict:
+    # Create initial budgets for each agent, uniformly distributed in the range [0, 1)
+    initial_budgets = np.random.rand(num_of_agents)
+    return {f's{agent + 1}': initial_budgets[agent] for agent in range(num_of_agents)}
+
+
 if __name__ == "__main__":
     import doctest, sys
 
@@ -324,14 +351,14 @@ if __name__ == "__main__":
     # print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
     #              t=t))
 
-    instance = Instance(
-        valuations={"alice": {"CS161": 5, "ECON101": 3, "IR": 6}, "bob": {"CS161": 3, "ECON101": 5, "IR": 0},
-                    "eve": {"CS161": 1, "ECON101": 10, "IR": 0}},
-        agent_capacities=2,
-        item_capacities={"CS161": 1, "ECON101": 1, "IR": 100000})
-    initial_budgets = {"alice": 2, "bob": 1, "eve": 4}
-    delta = 0.5
-    epsilon = 0.5
-    t = EFTBStatus.EF_TB
-    print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
-                 t=t))
+    # instance = Instance(
+    #     valuations={"alice": {"CS161": 5, "ECON101": 3, "IR": 6}, "bob": {"CS161": 3, "ECON101": 5, "IR": 0},
+    #                 "eve": {"CS161": 1, "ECON101": 10, "IR": 0}},
+    #     agent_capacities=2,
+    #     item_capacities={"CS161": 1, "ECON101": 1, "IR": 100000})
+    # initial_budgets = {"alice": 2, "bob": 1, "eve": 4}
+    # delta = 0.5
+    # epsilon = 0.5
+    # t = EFTBStatus.EF_TB
+    # print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
+    #              t=t))

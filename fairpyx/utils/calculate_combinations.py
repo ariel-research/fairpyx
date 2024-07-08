@@ -25,6 +25,34 @@ def get_combinations_courses_sorted(instance: Instance):
     ...     item_capacities={"x":1, "y":2, "z":2, "w":1})
     >>> get_combinations_courses_sorted(instance)
     {'Alice': [('x', 'y'), ('x', 'z'), ('x', 'w'), ('y', 'z'), ('y', 'w'), ('z', 'w'), ('x',), ('y',), ('z',), ('w',)], 'Bob': [('x', 'y'), ('x', 'z'), ('x', 'w'), ('y', 'z'), ('y', 'w'), ('z', 'w'), ('x',), ('y',), ('z',), ('w',)], 'Eve': [('x', 'y'), ('x', 'z'), ('x', 'w'), ('y', 'z'), ('y', 'w'), ('z', 'w'), ('x',), ('y',), ('z',), ('w',)]}
+
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":5, "y":5, "z":1}, "Bob":{"x":4, "y":6, "z":4}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":2, "z":2})
+    >>> get_combinations_courses_sorted(instance)
+    {'Alice': [('x', 'y'), ('x', 'z'), ('y', 'z'), ('x',), ('y',), ('z',)], 'Bob': [('x', 'y'), ('y', 'z'), ('x', 'z'), ('y',), ('x',), ('z',)]}
+
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":1, "z":2})
+    >>> get_combinations_courses_sorted(instance)
+    {'Alice': [('x', 'y'), ('x', 'z'), ('y', 'z'), ('x',), ('y',), ('z',)], 'Bob': [('x', 'y'), ('y', 'z'), ('x', 'z'), ('y',), ('x',), ('z',)]}
+
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":1, "y":1, "z":3}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":1, "z":2})
+    >>> get_combinations_courses_sorted(instance)
+    {'Alice': [('x', 'z'), ('y', 'z'), ('x', 'y'), ('z',), ('x',), ('y',)]}
+
+    >>> instance = Instance(
+    ...     valuations={"avi":{"x":5}, "beni":{"x":5}},
+    ...     agent_capacities=1,
+    ...     item_capacities={"x":1})
+    >>> get_combinations_courses_sorted(instance)
+    {'avi': [('x',)], 'beni': [('x',)]}
     """
     combinations_courses = {student: [] for student in instance.agents}
     for student in instance.agents:
