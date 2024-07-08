@@ -213,6 +213,16 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
     >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets)
     {'Alice': {4.9: ('x', 'y')}}
 
+    Example with a student with no bundle
+    >>> instance = Instance(
+    ...     valuations={"avi":{"x":5}, "beni":{"x":5}},
+    ...     agent_capacities=1,
+    ...     item_capacities={"x":1})
+    >>> initial_budgets = {"avi": 1.1, "beni": 1}
+    >>> epsilon = 0.2
+    >>> prices = {"x": 1.3}
+    >>> student_best_bundle_per_budget(prices, instance, epsilon,initial_budgets)
+    {'avi': {1.3: ('x',)}, 'beni': {0: ()}}
     """
 
     logger.debug("    student_best_bundle_per_budget for initial budgets = %s, prices = %s, epsilon = %s", initial_budgets, prices, epsilon)
@@ -242,23 +252,22 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
             if price_of_combination < min_price:
                 min_price = price_of_combination
                 best_bundle_per_budget[student][price_of_combination] = combination
+        if best_bundle_per_budget[student] == {}:
+            best_bundle_per_budget[student][0] = ()
         logger.debug("    for student %s, the best bundles are %s", student, best_bundle_per_budget[student])
 
     return best_bundle_per_budget
 
 
 def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict, instance: Instance, t: Enum):
-    # return: new_budgets, norma, allocation, excess_demand
     logger.debug("  find_budget_perturbation for initial budgets = %s, prices = %s, epsilon = %s", initial_budgets, prices, epsilon)
     map_student_to_best_bundle_per_budget = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
-    # TODO: make sure student get empty bundle when necessary and pass it to optimize_model
     new_budgets, clearing_error, excess_demand_per_course = lp.optimize_model(
         map_student_to_best_bundle_per_budget, instance, prices, t, initial_budgets)
     logger.debug("  Budget perturbation with lowest clearing error: new_budgets = %s, clearing_error = %s, excess_demand_per_course = %s",
                  new_budgets, clearing_error, excess_demand_per_course)
     if clearing_error is None:
         raise ValueError("Clearing error is None")
-    # logger.info(f"new_budgets in find_budget_perturbation: {new_budgets}")
     return new_budgets, clearing_error, map_student_to_best_bundle_per_budget, excess_demand_per_course
 
 if __name__ == "__main__":
