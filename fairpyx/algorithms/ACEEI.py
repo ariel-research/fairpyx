@@ -119,12 +119,13 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
     """
     # allocation = [[0 for _ in range(instance.num_of_agents)] for _ in range(instance.num_of_items)]
     # 1) init prices vector to be 0
-    logger.info("START ACEEI")
 
     initial_budgets = kwargs.get('initial_budgets')
     delta = kwargs.get('delta')
     epsilon = kwargs.get('epsilon')
     t = kwargs.get('t')
+
+    logger.info("ACEEI algorithm with initial budgets = %s, delta = %s, epsilon = %s, t = %s", initial_budgets, delta, epsilon, t)
 
 
     prices = {key: 0 for key in alloc.remaining_items()}
@@ -144,7 +145,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
         for key in prices:
             prices[key] += delta * excess_demand_per_course[key]
-        logger.info("UPDATE PRICES: %s", prices)
+        logger.info("Update prices to %s\n", prices)
 
     logger.info("Clearing error 0!")
     for student, (price, bundle) in new_budgets.items():
@@ -214,9 +215,8 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
 
     """
 
-    logger.info("START student_best_bundle_per_budget")
+    logger.debug("    student_best_bundle_per_budget for initial budgets = %s, prices = %s, epsilon = %s", initial_budgets, prices, epsilon)
     best_bundle_per_budget = {student: {} for student in instance.agents}
-    # logger.info("START combinations")
     combinations_courses_sorted = get_combinations_courses_sorted(instance)
 
     for student in instance.agents:
@@ -230,38 +230,46 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
         min_price = float('inf')
 
         for combination in combinations_courses_sorted[student]:
-            price_combination = sum(prices[course] for course in combination)
+            price_of_combination = sum(prices[course] for course in combination)
 
-            if price_combination <= max_budget:
-                if price_combination <= min_budget:
-                    best_bundle_per_budget.setdefault(student, {})[min_budget] = combination
-                    break
+            if price_of_combination > max_budget:
+                continue   # bundle is too expensive for student - irrelevant
 
-                if price_combination < min_price:
-                    min_price = price_combination
-                    best_bundle_per_budget.setdefault(student, {})[price_combination] = combination
+            if price_of_combination <= min_budget:
+                best_bundle_per_budget[student][min_budget] = combination
+                break
+
+            if price_of_combination < min_price:
+                min_price = price_of_combination
+                best_bundle_per_budget[student][price_of_combination] = combination
+        logger.debug("    for student %s, the best bundles are %s", student, best_bundle_per_budget[student])
 
     return best_bundle_per_budget
 
 
 def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict, instance: Instance, t: Enum):
     # return: new_budgets, norma, allocation, excess_demand
-    logger.info("START find_budget_perturbation")
+    logger.debug("  find_budget_perturbation for initial budgets = %s, prices = %s, epsilon = %s", initial_budgets, prices, epsilon)
     map_student_to_best_bundle_per_budget = student_best_bundle_per_budget(prices, instance, epsilon, initial_budgets)
     # TODO: make sure student get empty bundle when necessary and pass it to optimize_model
     new_budgets, clearing_error, excess_demand_per_course = lp.optimize_model(
         map_student_to_best_bundle_per_budget, instance, prices, t, initial_budgets)
+    logger.debug("  Budget perturbation with lowest clearing error: new_budgets = %s, clearing_error = %s, excess_demand_per_course = %s",
+                 new_budgets, clearing_error, excess_demand_per_course)
     if clearing_error is None:
         raise ValueError("Clearing error is None")
     # logger.info(f"new_budgets in find_budget_perturbation: {new_budgets}")
     return new_budgets, clearing_error, map_student_to_best_bundle_per_budget, excess_demand_per_course
 
 if __name__ == "__main__":
+    import doctest, sys
+    print("\n", doctest.testmod(), "\n")
+    # sys.exit(0)
+
     from fairpyx.adaptors import divide
-    import sys
 
     logger.setLevel(logging.DEBUG)
-    lp.logger.setLevel(logging.DEBUG)
+    lp.logger.setLevel(logging.WARNING)
 
     instance = Instance(
         valuations={"avi":{"x":2}, "beni":{"x":3}},
@@ -274,10 +282,8 @@ if __name__ == "__main__":
     divide(find_ACEEI_with_EFTB, instance=instance,
             initial_budgets=initial_budgets,delta=delta, epsilon=epsilon, t=t)
 
-    sys.exit(0)
 
 
-    print(doctest.testmod())
 
 
     # from fairpyx.utils.test_utils import stringify
