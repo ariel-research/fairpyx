@@ -234,6 +234,8 @@ def student_best_bundle_per_budget(prices: dict, instance: Instance, epsilon: an
                  initial_budgets, prices, epsilon)
     best_bundle_per_budget = {student: {} for student in instance.agents}
 
+    # logger.info("START combinations")
+    combinations_courses_sorted = get_combinations_courses_sorted(instance)
     for student in instance.agents:
         # Setting the min and max budget according to the definition
         min_budget = initial_budgets[student] - epsilon
@@ -291,17 +293,8 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     lp.logger.setLevel(logging.WARNING)
 
-    instance = Instance(
-        valuations={"avi": {"x": 2}, "beni": {"x": 3}},
-        agent_capacities=1,
-        item_capacities={"x": 1})
-    initial_budgets = {"avi": 1.1, "beni": 1}
-    delta = 0.1
-    epsilon = 0.2
-    t = EFTBStatus.EF_TB
-    divide(find_ACEEI_with_EFTB, instance=instance,
-           initial_budgets=initial_budgets, delta=delta, epsilon=epsilon, t=t)
-
+    # from fairpyx.adaptors import divide
+    #
     # from fairpyx.utils.test_utils import stringify
 
     # print(doctest.run_docstring_examples(find_ACEEI_with_EFTB, globals()))

@@ -15,11 +15,10 @@ import numpy as np
 
 from fairpyx import Instance, AllocationBuilder
 from fairpyx.utils.calculate_combinations import get_combinations_courses_sorted
+from functools import lru_cache
 
 # Setup logger and colored logs
 logger = logging.getLogger(__name__)
-
-
 
 
 # ---------------------The main function---------------------
@@ -44,7 +43,8 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
     ... item_capacities={"x":2, "y":1, "z":3})
     >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
     >>> beta = 4
-    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={0.1, 0.8}))
+    >>> use_cache = True
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={0.1, 0.8}, use_cache=use_cache))
     "{ami:['y', 'z'], tami:['x', 'z'], tzumi:['x', 'z']}"
 
     Example run 2
@@ -92,16 +92,26 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
     initial_budgets = kwargs.get('initial_budgets')
     beta = kwargs.get('beta')
     delta = kwargs.get('delta')
+    use_cache = kwargs.get('use_cache', False)
     logger.info("Tabu search: initial budgets = %s, beta = %s, delta = %s", initial_budgets, beta, delta)
 
     prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
     logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅: p = %s", prices)
     history = []
+    combinations_courses_sorted = get_combinations_courses_sorted(alloc.instance)
 
-    while True:
-        max_utilities_allocations = student_best_bundles(prices.copy(), alloc.instance, initial_budgets)
-        allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(alloc.instance, prices, max_utilities_allocations)
-        logger.info("\nprices=%s, excess demand=%s, best bundle=%s, norma=%s", prices, excess_demand_vector, allocation, norma)
+    logger.info("2) If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.")
+    if use_cache:
+        max_utilities_allocations = student_best_bundles(prices.copy(), alloc.instance, initial_budgets,
+                                                         combinations_courses_sorted)
+    else:
+        max_utilities_allocations = student_best_bundles_without_cache(prices.copy(), alloc.instance, initial_budgets, combinations_courses_sorted)
+
+    allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(alloc.instance, prices,
+                                                                               max_utilities_allocations)
+    best_allocation = allocation
+    best_prices = prices
+    best_norma = norma
 
         best_allocation, best_prices, best_norma = allocation, prices, norma
         if np.allclose(norma, 0):
@@ -111,16 +121,17 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
         logger.info("3) Include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑}")
         equivalent_prices = find_all_equivalent_prices(alloc.instance, initial_budgets, allocation)
         history.append(equivalent_prices)
-        neighbors = find_all_neighbors(
-            alloc.instance, history, prices, delta, excess_demand_vector, initial_budgets, allocation)
+        neighbors = find_all_neighbors(alloc.instance, history, prices, delta, excess_demand_vector,
+                                       initial_budgets,
+                                       allocation, use_cache, combinations_courses_sorted)
         logger.info("Found %d neighbors", len(neighbors))
         if len(neighbors) == 0:
             logger.info("--- No new neighbors to price-vector - no optimal solution")
             break
 
         logger.info("   update 𝒑 ← arg min𝒑′∈N (𝒑)−H ∥𝒛(𝒖,𝒄, 𝒑', 𝒃0)∥2")
-        allocation, excess_demand_vector, norma, prices = find_min_error_prices(
-            alloc.instance, neighbors, initial_budgets)
+        allocation, excess_demand_vector, norma, prices = find_min_error_prices(alloc.instance, neighbors,
+                                                                                initial_budgets, use_cache, combinations_courses_sorted)
 
         if norma < best_norma:
             logger.info("   Found a better norma")
@@ -242,7 +253,87 @@ def clipped_excess_demand(instance: Instance, prices: dict, allocation: dict):
     return clipped_z
 
 
-def student_best_bundles(prices: dict, instance: Instance, initial_budgets: dict):
+def student_best_bundles(prices: dict, instance: Instance, initial_budgets: dict, combinations_courses_sorted: dict):
+    """
+    Return a list of dictionaries that tells for each student all the bundle options he can take with the maximum benefit.
+
+    :param prices: dictionary with courses prices
+    :param instance: fair-course-allocation instance
+    :param initial_budgets: students' initial budgets
+    :param combinations_courses_sorted: sorted list of course combinations for each student
+
+    :return: a list of dictionaries that maps each student to its best bundle.
+
+     Example run 1 iteration 1
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":3, "y":4, "z":2}, "Bob":{"x":4, "y":3, "z":2}, "Eve":{"x":2, "y":4, "z":3}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":2, "y":1, "z":3})
+    >>> initial_budgets = {"Alice": 5, "Bob": 4, "Eve": 3}
+    >>> prices = {"x": 1, "y": 2, "z": 1}
+    >>> combinations_courses_sorted = {'Alice': [('x', 'y'), ('y', 'z'), ('x', 'z'), ('y',), ('x',), ('z',)], 'Bob': [('x', 'y'), ('x', 'z'), ('y', 'z'), ('x',), ('y',), ('z',)], 'Eve': [('y', 'z'), ('x', 'y'), ('x', 'z'), ('y',), ('z',), ('x',)]}
+    >>> student_best_bundles(prices, instance, initial_budgets, combinations_courses_sorted)
+    [{'Alice': ('x', 'y'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}]
+
+     Example run 2 iteration 1
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":5, "y":4, "z":3, "w":2}, "Bob":{"x":5, "y":2, "z":4, "w":3}},
+    ...     agent_capacities=3,
+    ...     item_capacities={"x":1, "y":2, "z":1, "w":2})
+    >>> initial_budgets = {"Alice": 8, "Bob": 6}
+    >>> prices = {"x": 1, "y": 2, "z": 3, "w":4}
+    >>> combinations_courses_sorted = {'Alice': [('x', 'y', 'z'), ('x', 'y', 'w'), ('x', 'z', 'w'), ('y', 'z', 'w'), ('x', 'y'), ('x', 'z'), ('x', 'w'), ('y', 'z'), ('y', 'w'), ('x',), ('z', 'w'), ('y',), ('z',), ('w',)], 'Bob': [('x', 'z', 'w'), ('x', 'y', 'z'), ('x', 'y', 'w'), ('y', 'z', 'w'), ('x', 'z'), ('x', 'w'), ('x', 'y'), ('z', 'w'), ('y', 'z'), ('x',), ('y', 'w'), ('z',), ('w',), ('y',)]}
+    >>> student_best_bundles(prices, instance, initial_budgets, combinations_courses_sorted)
+    [{'Alice': ('x', 'y', 'z'), 'Bob': ('x', 'y', 'z')}]
+
+
+    Example run 3 iteration 1
+    >>> instance = Instance(
+    ...     valuations={"Alice":{"x":3, "y":3, "z":3, "w":3}, "Bob":{"x":3, "y":3, "z":3, "w":3}, "Eve":{"x":4, "y":4, "z":4, "w":4}},
+    ...     agent_capacities=2,
+    ...     item_capacities={"x":1, "y":2, "z":2, "w":1})
+    >>> initial_budgets = {"Alice": 4, "Bob": 5, "Eve": 2}
+    >>> prices = {'x': 2.6124658024539347, 'y': 0, 'z': 1.1604071365185367, 'w': 5.930224022321449}
+    >>> combinations_courses_sorted = {'Alice': [('x', 'y'), ('x', 'z'), ('x', 'w'), ('y', 'z'), ('y', 'w'), ('z', 'w'), ('x',), ('y',), ('z',), ('w',)], 'Bob': [('x', 'y'), ('x', 'z'), ('x', 'w'), ('y', 'z'), ('y', 'w'), ('z', 'w'), ('x',), ('y',), ('z',), ('w',)], 'Eve': [('x', 'y'), ('x', 'z'), ('x', 'w'), ('y', 'z'), ('y', 'w'), ('z', 'w'), ('x',), ('y',), ('z',), ('w',)]}
+    >>> student_best_bundles(prices, instance, initial_budgets, combinations_courses_sorted)
+    [{'Alice': ('x', 'y'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'y'), 'Bob': ('x', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'y'), 'Bob': ('y', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'z'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'z'), 'Bob': ('x', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('x', 'z'), 'Bob': ('y', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('y', 'z'), 'Bob': ('x', 'y'), 'Eve': ('y', 'z')}, {'Alice': ('y', 'z'), 'Bob': ('x', 'z'), 'Eve': ('y', 'z')}, {'Alice': ('y', 'z'), 'Bob': ('y', 'z'), 'Eve': ('y', 'z')}]
+    """
+
+    @lru_cache(maxsize=None)
+    def bundle_valuation(student, combination):
+        return instance.agent_bundle_value(student, combination)
+
+    all_combinations = {student: [] for student in instance.agents}
+    for student in instance.agents:
+        max_valuation = -1
+        for combination in combinations_courses_sorted[student]:
+            price_combination = sum(prices[course] for course in combination)
+            if price_combination <= initial_budgets[student]:
+                current_valuation = bundle_valuation(student, combination)
+                if current_valuation >= max_valuation:
+                    if current_valuation > max_valuation:
+                        all_combinations[student] = []
+                    max_valuation = current_valuation
+                    all_combinations[student].append(combination)
+
+        if not all_combinations[student]:
+            all_combinations[student].append(())
+
+    all_combinations_list = list(product(*all_combinations.values()))
+
+    valid_allocations = []
+    for allocation in all_combinations_list:
+        valid_allocation = {}
+        for student, bundle in zip(instance.agents, allocation):
+            if sum(prices[item] for item in bundle) <= initial_budgets[student]:
+                valid_allocation[student] = bundle
+        if len(valid_allocation) == len(instance.agents):
+            valid_allocations.append(valid_allocation)
+
+    return valid_allocations
+
+
+def student_best_bundles_without_cache(prices: dict, instance: Instance, initial_budgets: dict, combinations_courses_sorted: dict):
     """
     Return a list of dictionaries that tells for each student all the bundle options he can take with the maximum benefit
 
@@ -287,12 +378,17 @@ def student_best_bundles(prices: dict, instance: Instance, initial_budgets: dict
     """
     all_combinations = {student: [] for student in instance.agents}
 
-    combinations_courses_sorted = get_combinations_courses_sorted(instance)
     for student in instance.agents:
+        combinations_courses_list = []
+        capacity = instance.agent_capacity(student)
+        for r in range(1, capacity + 1):
+            combinations_courses_list.extend(combinations(instance.items, r))
+
         valuation_function = lambda combination: instance.agent_bundle_value(student, combination)
+        combinations_courses_sorted = sorted(combinations_courses_list, key=valuation_function, reverse=True)
 
         max_valuation = -1
-        for combination in combinations_courses_sorted[student]:
+        for combination in combinations_courses_sorted:
             price_combination = sum(prices[course] for course in combination)
             if price_combination <= initial_budgets[student]:
                 current_valuation = valuation_function(combination)
@@ -544,7 +640,8 @@ def differ_in_one_value(original_allocation: dict, new_allocation: dict, course:
 
 
 def find_individual_price_adjustment_neighbors(instance: Instance, history: list[list], prices: dict,
-                                               excess_demand_vector: dict, initial_budgets: dict, allocation: dict):
+                                               excess_demand_vector: dict, initial_budgets: dict, allocation: dict,
+                                               use_cache: bool, combinations_courses_sorted: dict = {}):
     """
     Add the individual price adjustment neighbors N(p) to the neighbors list
 
@@ -566,7 +663,8 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
     >>> excess_demand_vector = {"x":0,"y":2,"z":-2}
     >>> initial_budgets = {"ami":5,"tami":4,"tzumi":3}
     >>> allocation = {"ami":('x','y'),"tami":('x','y'),"tzumi":('y','z')}
-    >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation)
+    >>> use_cache = False
+    >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation, use_cache)
     [{'x': 1, 'y': 2.7071067811865475, 'z': 1}]
 
 
@@ -581,7 +679,8 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
     >>> excess_demand_vector = {"x":1,"y":0,"z":0}
     >>> initial_budgets = {"ami":5,"tami":4,"tzumi":3}
     >>> allocation = {"ami":('x','y'),"tami":('x','z'),"tzumi":('x','z')}
-    >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation)
+    >>> use_cache = False
+    >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation, use_cache)
     [{'x': 1.7071067811865475, 'y': 4, 'z': 0}, {'x': 2.414213562373095, 'y': 4, 'z': 0}]
 
 
@@ -600,7 +699,8 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
     >>> excess_demand_vector = {'x': 1, 'y': -2, 'z': 1, 'w': -1}
     >>> initial_budgets = {"ami": 4, "tami": 5, "tzumi": 2}
     >>> allocation = {'ami': ('x', 'z'), 'tami': ('x', 'z'), 'tzumi': 'z'}
-    >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation)
+    >>> use_cache = False
+    >>> find_individual_price_adjustment_neighbors(instance, history, prices, excess_demand_vector, initial_budgets, allocation, use_cache)
     [{'x': 2.6124658024539347, 'y': 0, 'z': 1.1604071365185367, 'w': 5.930224022321449}, {'x': 2.6124658024539347, 'y': 4.138416343413373, 'z': 1.1604071365185367, 'w': 0}]
     """
     new_neighbors = []
@@ -616,7 +716,12 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
                 if any(all(f(updated_prices) for f in sublist) for sublist in history):
                     continue
                 # get the new demand of the course
-                new_allocations = student_best_bundles(updated_prices.copy(), instance, initial_budgets)
+                if use_cache:
+                    new_allocations = student_best_bundles(updated_prices.copy(), instance, initial_budgets,
+                                                           combinations_courses_sorted)
+                else:
+                    new_allocations = student_best_bundles_without_cache(updated_prices.copy(), instance,
+                                                                         initial_budgets, combinations_courses_sorted)
                 for new_allocation in new_allocations:
                     if differ_in_one_value(allocation, new_allocation, course):
                         new_neighbors.append(updated_prices.copy())
@@ -630,7 +735,7 @@ def find_individual_price_adjustment_neighbors(instance: Instance, history: list
 
 
 def find_all_neighbors(instance: Instance, history: list, prices: dict, delta: set,
-                       excess_demand_vector: dict, initial_budgets: dict, allocation: dict):
+                       excess_demand_vector: dict, initial_budgets: dict, allocation: dict, use_cache: bool, combinations_courses_sorted: dict = {}):
     """
     Update neighbors N (𝒑) - list of Gradient neighbors and Individual price adjustment neighbors.
 
@@ -644,14 +749,16 @@ def find_all_neighbors(instance: Instance, history: list, prices: dict, delta: s
     individual_price_adjustment_neighbors = find_individual_price_adjustment_neighbors(instance, history,
                                                                                        prices,
                                                                                        excess_demand_vector,
-                                                                                       initial_budgets, allocation)
+                                                                                       initial_budgets, allocation,
+                                                                                       use_cache, combinations_courses_sorted)
     logger.debug(f"neighbors: \ngradient_neighbors = {gradient_neighbors}")
     logger.debug(f"individual_price = {individual_price_adjustment_neighbors}")
 
     return gradient_neighbors + individual_price_adjustment_neighbors
 
 
-def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: dict):
+def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: dict, use_cache: bool,
+                          combinations_courses_sorted: dict = {}):
     """
     Return the update prices that minimize the market clearing error.
 
@@ -669,7 +776,8 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     ... item_capacities={"x":2, "y":1, "z":3})
     >>> neighbors = [{"x":1, "y":4, "z":0}, {"x":1, "y":3, "z":1}]
     >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
-    >>> find_min_error_prices(instance, neighbors, initial_budgets)
+    >>> use_cache = False
+    >>> find_min_error_prices(instance, neighbors, initial_budgets, use_cache)
     ({'ami': ('x', 'y'), 'tami': ('x', 'z'), 'tzumi': ('x', 'z')}, {'x': 1, 'y': 0, 'z': 0}, 1.0, {'x': 1, 'y': 4, 'z': 0})
 
      Example run 1 iteration 2
@@ -679,7 +787,8 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     ... item_capacities={"x":2, "y":1, "z":3})
     >>> neighbors = [{"x":2, "y":4, "z":0}, {"x":3, "y":4, "z":0}]
     >>> initial_budgets={"ami":5, "tami":4, "tzumi":3}
-    >>> find_min_error_prices(instance, neighbors, initial_budgets)
+    >>> use_cache = False
+    >>> find_min_error_prices(instance, neighbors, initial_budgets, use_cache)
     ({'ami': ('y', 'z'), 'tami': ('x', 'z'), 'tzumi': ('x', 'z')}, {'x': 0, 'y': 0, 'z': 0}, 0.0, {'x': 2, 'y': 4, 'z': 0})
     """
     errors = []  # tuple of (allocation, excess_demand, norm, price)
@@ -687,7 +796,10 @@ def find_min_error_prices(instance: Instance, neighbors: list, initial_budgets: 
     logger.debug("\nChecking the neighbors:")
     for neighbor in neighbors:
         logger.debug(f"neighbor: {neighbor}")
-        allocations = student_best_bundles(neighbor.copy(), instance, initial_budgets)
+        if use_cache:
+            allocations = student_best_bundles(neighbor.copy(), instance, initial_budgets, combinations_courses_sorted)
+        else:
+            allocations = student_best_bundles_without_cache(neighbor.copy(), instance, initial_budgets, combinations_courses_sorted)
         allocation, excess_demand_vector, norma = min_excess_demand_for_allocation(instance, neighbor, allocations)
         logger.debug(f"excess demand: {excess_demand_vector}")
         logger.debug(f"norma = {norma}")
