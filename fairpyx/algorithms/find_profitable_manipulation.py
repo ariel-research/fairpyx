@@ -65,7 +65,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> initial_budgets = random_initial_budgets(instance, beta)
     >>> delta = 0.5
     >>> epsilon = 0.5
-    >>> t = ACEEI.EFTBStatus.NO_EF_TB
+    >>> t = ACEEI.ACEEI.EFTBStatus.NO_EF_TB
     >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, eta, instance, initial_budgets, beta, delta=delta, epsilon=epsilon, t=t)
     {'x': 1, 'y': 2, 'z': 4}
 
@@ -83,7 +83,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> initial_budgets = random_initial_budgets(instance, beta)
     >>> delta = 0.5
     >>> epsilon = 0.5
-    >>> t = ACEEI.EFTBStatus.EF_TB
+    >>> t = ACEEI.ACEEI.EFTBStatus.EF_TB
     >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, eta, instance, initial_budgets, beta, delta=delta, epsilon=epsilon, t=t)
     {'x': 1, 'y': 2, 'z': 4}
 
@@ -102,7 +102,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> initial_budgets = random_initial_budgets(instance, beta)
     >>> delta = 0.5
     >>> epsilon = 0.5
-    >>> t = ACEEI.EFTBStatus.NO_EF_TB
+    >>> t = ACEEI.ACEEI.EFTBStatus.NO_EF_TB
     >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, eta, instance, initial_budgets, beta, delta=delta, epsilon=epsilon, t=t)
     {'x': 6, 'y': 2}
 
@@ -119,7 +119,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
     >>> initial_budgets = random_initial_budgets(instance, beta)
     >>> delta = 0.5
     >>> epsilon = 0.5
-    >>> t = ACEEI.EFTBStatus.NO_EF_TB
+    >>> t = ACEEI.ACEEI.EFTBStatus.NO_EF_TB
     >>> find_profitable_manipulation(mechanism, student, true_student_utility, criteria, eta, instance, initial_budgets, beta, delta=delta, epsilon=epsilon, t=t)
     {'x': 1, 'y': 2, 'z': 5}
 
@@ -382,7 +382,7 @@ if __name__ == '__main__':
     # initial_budgets = random_initial_budgets(instance, beta)
     # delta = 0.5
     # epsilon = 0.5
-    # t = ACEEI.EFTBStatus.NO_EF_TB
+    # t = ACEEI.ACEEI.EFTBStatus.NO_EF_TB
     # find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, initial_budgets, beta, delta=delta, epsilon=epsilon, t=t)
 
     #
@@ -398,5 +398,5 @@ if __name__ == '__main__':
     # initial_budgets = random_initial_budgets(instance, beta)
     # delta = 0.5
     # epsilon = 0.5
-    # t = ACEEI.EFTBStatus.NO_EF_TB
+    # t = ACEEI.ACEEI.EFTBStatus.NO_EF_TB
     # find_profitable_manipulation(mechanism, student, utility, criteria, neu, instance, initial_budgets, beta, delta=delta, epsilon=epsilon, t=t)
