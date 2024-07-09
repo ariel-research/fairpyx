@@ -14,7 +14,7 @@ import numpy as np
 
 from fairpyx import Instance, AllocationBuilder
 from fairpyx.algorithms.ACEEI import linear_program as lp
-from fairpyx.utils.calculate_combinations import get_combinations_courses_sorted
+from fairpyx.algorithms.ACEEI.calculate_combinations import get_combinations_courses_sorted
 
 
 class EFTBStatus(Enum):

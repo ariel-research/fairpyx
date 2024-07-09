@@ -14,7 +14,7 @@ from itertools import combinations, product
 import numpy as np
 
 from fairpyx import Instance, AllocationBuilder
-from fairpyx.utils.calculate_combinations import get_combinations_courses_sorted
+from fairpyx.algorithms.ACEEI.calculate_combinations import get_combinations_courses_sorted
 from functools import lru_cache
 
 # Setup logger and colored logs

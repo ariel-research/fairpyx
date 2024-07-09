@@ -13,7 +13,7 @@ import pytest
 
 import fairpyx
 from fairpyx import Instance, divide
-from fairpyx.algorithms.tabu_search import tabu_search
+from fairpyx.algorithms.ACEEI.tabu_search import tabu_search
 
 random_delta = {random.uniform(0.1, 1)}
 random_beta = random.uniform(1, 100)

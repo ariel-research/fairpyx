@@ -18,7 +18,7 @@ normalized_sum_of_values = 1000
 TIME_LIMIT = 100
 
 from fairpyx.algorithms.ACEEI.ACEEI import ACEEI_without_EFTB, ACEEI_with_EFTB, ACEEI_with_contested_EFTB
-from fairpyx.algorithms.tabu_search import run_tabu_search
+from fairpyx.algorithms.ACEEI.tabu_search import run_tabu_search
 
 algorithms_to_check = [
     ACEEI_without_EFTB,
