@@ -125,7 +125,6 @@ def test_case_5():
 
 
 if __name__ == "__main__":
-    pytest.main(["-v", __file__])
     # logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
-    # test_case_3()
+    # logger.setLevel(logging.INFO)
+    pytest.main(["-v", __file__])

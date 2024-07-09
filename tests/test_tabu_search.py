@@ -111,7 +111,6 @@ def test_case5():
 
 
 if __name__ == "__main__":
-    # pytest.main(["-v", __file__])
-    import doctest
-
-    doctest.testmod()
+    # logger.addHandler(logging.StreamHandler())
+    # logger.setLevel(logging.INFO)
+    pytest.main(["-v", __file__])
