@@ -13,11 +13,12 @@ import cvxpy as cp
 import numpy as np
 from fairpyx import Instance, AllocationBuilder, divide
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
 
-def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
+def improved_high_multiplicity_fair_allocation(alloc: AllocationBuilder):
     """
       Finds an allocation maximizing the sum of utilities for given instance with envy-freeness and Pareto-optimality constraints.
 
@@ -28,18 +29,16 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
       - alloc (AllocationBuilder): The allocation of items to agents.
 
 
-      >>> agent_capacities = {"Ami": 2, "Tami": 2, "Rami": 2}
-      >>> item_capacities = {"Fork": 2, "Knife": 2, "Pen": 2}
-      >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1} }
-      >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
-      >>> divide(high_multiplicity_fair_allocation, instance=instance)
-      {'Ami': ['Fork', 'Fork'], 'Rami': ['Pen', 'Pen'], 'Tami': ['Knife', 'Knife']}
+    >>> item_capacities = {"Fork": 2, "Knife": 2, "Pen": 2}
+    >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1} }
+    >>> instance = Instance(item_capacities=item_capacities, valuations=valuations)
+    >>> divide(improved_high_multiplicity_fair_allocation, instance=instance)
+    {'Ami': ['Fork', 'Fork'], 'Rami': ['Pen', 'Pen'], 'Tami': ['Knife', 'Knife']}
 
-    >>> agent_capacities = {"Ami": 9, "Tami": 9}
     >>> item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
     >>> valuations = {"Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}}
-    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
-    >>> divide(high_multiplicity_fair_allocation, instance=instance)
+    >>> instance = Instance(item_capacities=item_capacities, valuations=valuations)
+    >>> divide(improved_high_multiplicity_fair_allocation, instance=instance)
     {'Ami': ['Fork', 'Fork', 'Fork'], 'Tami': ['Knife', 'Knife', 'Knife', 'Pen', 'Pen', 'Pen']}
       """
 
@@ -55,8 +54,8 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
         items.append(i)
     for agent in alloc.remaining_agents():
         agents.append(agent)
-    agent_capacities = sum([alloc.remaining_item_capacities[item] for item in alloc.remaining_items()])
 
+    agent_capacities = sum([alloc.remaining_item_capacities[item] for item in alloc.remaining_items()])
     alloc.remaining_agent_capacities = {agent: agent_capacities for agent in alloc.remaining_agents()}
 
     allocation_variables = cp.Variable((len(alloc.remaining_agents()), len(alloc.remaining_items())), integer=True)
@@ -95,7 +94,6 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
             logger.debug(f'The values of the Pareto dominating allocation {calculate_values(alloc, alloc_Y)}')
 
             constraints_ilp.extend(create_more_constraints_ILP(alloc, alloc_X, alloc_Y, allocation_variables))
-            logger.debug("%d constraints", len(constraints_ilp))
             alloc_X = find_envy_free_allocation(alloc, allocation_variables, constraints_ilp)
 
     logger.info(f"No envy-free allocation found after {iteration_count} iterations, ending process.")
@@ -104,60 +102,61 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
 
 def find_envy_free_allocation(alloc: AllocationBuilder, allocation_variables, constraints_ilp):
     """
-       Find an envy-free allocation of items to agents.
+          Find an envy-free allocation of items to agents.
 
-       Parameters:
-       - constraints (list): List of constraints for the ILP.
-       - instance (Instance): The instance of the problem.
+          Parameters:
+          - constraints (list): List of constraints for the ILP.
+          - instance (Instance): The instance of the problem.
 
-       Returns:
-       - allocation_matrix : The allocation of items to agents as a matrix.
-                                           maxtrix[i][j] = x -> times agent i gets item j.
-    >>> item_capacities = {"Fork": 2, "Knife": 2, "Pen": 2}
-    >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1} }
-    >>> instance = Instance(item_capacities=item_capacities, valuations=valuations)
-    >>> alloc = AllocationBuilder(instance)
-    >>> allocation_vars = cp.Variable((len(alloc.remaining_agents()), len(alloc.remaining_items())), integer=True)
-    >>> alloc_X = find_envy_free_allocation(alloc, allocation_vars, [])
-    >>> print(alloc_X)
-    [[2 0 0]
-     [0 0 2]
-     [0 2 0]]
-    """
+          Returns:
+          - allocation_matrix : The allocation of items to agents as a matrix.
+                                              maxtrix[i][j] = x -> times agent i gets item j.
+       >>> item_capacities = {"Fork": 2, "Knife": 2, "Pen": 2}
+       >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1} }
+       >>> instance = Instance(item_capacities=item_capacities, valuations=valuations)
+       >>> alloc = AllocationBuilder(instance)
+       >>> allocation_vars = cp.Variable((len(alloc.remaining_agents()), len(alloc.remaining_items())), integer=True)
+       >>> alloc_X = find_envy_free_allocation(alloc, allocation_vars, [])
+       >>> print(alloc_X)
+       [[2 0 0]
+        [0 0 2]
+        [0 2 0]]
+   """
 
     logger.debug("Searching for envy-free allocation.")
-    constraints = []
-    num_agents, num_items, items_capacities, \
-        agent_valuations = get_agents_items_and_capacities(alloc)
+    num_agents, num_items, items_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
 
     # Define the objective function (maximize total value)
     objective = cp.Maximize(0)
 
     item_capacity_constraints = [cp.sum(allocation_variables[:, j]) == items_capacities[j] for j in range(num_items)]
 
-    agent_capacity_constraints = []
-    # Ensure no agent receives more items than their capacity
-    for i in range(num_agents):
+    def create_agent_capacity_constraints(i):
+        constraints = []
         for j in range(num_items):
-            agent_capacity_constraints.append(allocation_variables[i, j] >= 0)
+            constraints.append(allocation_variables[i, j] >= 0)
+        return constraints
 
+    with ThreadPoolExecutor() as executor:
+        agent_capacity_constraints = list(executor.map(create_agent_capacity_constraints, range(num_agents)))
+    agent_capacity_constraints = [constraint for sublist in agent_capacity_constraints for constraint in sublist]
 
-    # Define envy-free constraints
-    envy_free_constraints = []
-    for i in range(num_agents):
+    def create_envy_free_constraints(i):
+        constraints = []
         i_profit = cp.sum(cp.multiply(agent_valuations[i, :], allocation_variables[i, :]))
         for j in range(num_agents):
             if i != j:
                 j_profit = cp.sum(cp.multiply(agent_valuations[i, :], allocation_variables[j, :]))
-                envy_free_constraints.append(j_profit <= i_profit)
+                constraints.append(j_profit <= i_profit)
+        return constraints
+
+    with ThreadPoolExecutor() as executor:
+        envy_free_constraints = list(executor.map(create_envy_free_constraints, range(num_agents)))
+    envy_free_constraints = [constraint for sublist in envy_free_constraints for constraint in sublist]
 
     # Define the problem
-    prob = cp.Problem(objective, item_capacity_constraints + agent_capacity_constraints +
-                      envy_free_constraints + constraints_ilp)
-    # logger.debug(f'Problem constraints:')
-    # for constraint in prob.constraints:
-    #     logger.debug(f'{constraint} ')
-    # Solve the problem
+    prob = cp.Problem(objective, item_capacity_constraints + agent_capacity_constraints + envy_free_constraints + constraints_ilp)
+
     try:
         prob.solve()
         if allocation_variables.value is None:
@@ -172,81 +171,81 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation_variables, co
 
 def find_pareto_dominating_allocation(alloc: AllocationBuilder, alloc_matrix):
     """
-    Find a Pareto-dominates allocation of items to agents.
+        Find a Pareto-dominates allocation of items to agents.
 
-    Returns:
-    - allocation_matrix (np.ndarray): The allocation of items to agents as a matrix.
-                                        maxtrix[i][j] = x -> times agent i gets item j.
+        Returns:
+        - allocation_matrix (np.ndarray): The allocation of items to agents as a matrix.
+                                            maxtrix[i][j] = x -> times agent i gets item j.
 
-    >>> item_capacities = {"Fork": 2, "Knife": 2, "Pen": 2}
-    >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1} }
-    >>> instance = Instance(item_capacities=item_capacities, valuations=valuations)
-    >>> alloc = AllocationBuilder(instance)
-    >>> alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
-    >>> pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
-    >>> print(pareto_optimal_allocation)
-    [[2 0 0]
-     [0 1 2]
-     [0 1 0]]
-
-    >>> item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
-    >>> valuations = {"Ami": {"Fork": 3, "Knife": 5, "Pen": 8}, "Rami": {"Fork": 5, "Knife": 7, "Pen": 5},"Tami": {"Fork": 4, "Knife": 1, "Pen": 11}}
-    >>> instance = Instance(item_capacities=item_capacities, valuations=valuations)
-    >>> alloc = AllocationBuilder(instance)
-    >>> alloc_X = np.array([[3, 0, 0], [0, 0, 3], [0, 3, 0]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
-    >>> pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
-    >>> print(pareto_optimal_allocation)
-    [[3 0 2]
-     [0 3 0]
-     [0 0 1]]
-
-    >>> item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
-    >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Yumi": {"Fork": 4, "Knife": 5, "Pen": 6} }
-    >>> instance = Instance(item_capacities=item_capacities, valuations=valuations)
-    >>> alloc = AllocationBuilder(instance)
-    >>> alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1], [1, 1, 1]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
-    >>> pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
-    >>> print(pareto_optimal_allocation)
-    [[1 0 0]
-     [0 0 2]
-     [0 2 0]
-     [2 1 1]]
-    """
-
+        >>> item_capacities = {"Fork": 2, "Knife": 2, "Pen": 2}
+        >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1} }
+        >>> instance = Instance(item_capacities=item_capacities, valuations=valuations)
+        >>> alloc = AllocationBuilder(instance)
+        >>> alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
+        >>> pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
+        >>> print(pareto_optimal_allocation)
+        [[2 0 0]
+         [0 1 2]
+         [0 1 0]]
+        >>> item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
+        >>> valuations = {"Ami": {"Fork": 3, "Knife": 5, "Pen": 8}, "Rami": {"Fork": 5, "Knife": 7, "Pen": 5},"Tami": {"Fork": 4, "Knife": 1, "Pen": 11}}
+        >>> instance = Instance(item_capacities=item_capacities, valuations=valuations)
+        >>> alloc = AllocationBuilder(instance)
+        >>> alloc_X = np.array([[3, 0, 0], [0, 0, 3], [0, 3, 0]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
+        >>> pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
+        >>> print(pareto_optimal_allocation)
+        [[3 0 2]
+         [0 3 0]
+         [0 0 1]]
+        >>> item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
+        >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Yumi": {"Fork": 4, "Knife": 5, "Pen": 6} }
+        >>> instance = Instance(item_capacities=item_capacities, valuations=valuations)
+        >>> alloc = AllocationBuilder(instance)
+        >>> alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1], [1, 1, 1]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
+        >>> pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
+        >>> print(pareto_optimal_allocation)
+        [[1 0 0]
+         [0 0 2]
+         [0 2 0]
+         [2 1 1]]
+        """
     logger.debug("Searching for a Pareto-dominating allocation")
 
-    num_agents, num_items, item_capacities, \
-        agent_valuations = get_agents_items_and_capacities(alloc)
+    num_agents, num_items, item_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
 
-
-    # logger.debug(f"Item names and capacities: {alloc.remaining_item_capacities}")
-    # logger.debug(f"Agents names and capacities: {alloc.remaining_agent_capacities}")
-    # logger.debug(f"Agent valuations: {agent_valuations}")
-
-
-    # Define decision variables
     allocation_var = cp.Variable((num_agents, num_items), integer=True)
 
-    # Define capacity constraints
-    item_capacity_constraints = [cp.sum(allocation_var[:, j]) == item_capacities[j] for j in range(num_items)]
-    agent_capacity_constraints = [allocation_var[i, j] >= 0 for i in range(num_agents) for j in range(num_items)]
+    def create_item_capacity_constraints(j):
+        return cp.sum(allocation_var[:, j]) == item_capacities[j]
 
+    def create_agent_capacity_constraints():
+        constraints = []
+        for i in range(num_agents):
+            for j in range(num_items):
+                constraints.append(allocation_var[i, j] >= 0)
+        return constraints
 
-    # Define Pareto dominance constraints
-    current_value_per_agent = [cp.sum(cp.multiply(agent_valuations[i, :], alloc_matrix[i, :])) for i in
-                               range(num_agents)]
-    new_value_per_agent = [cp.sum(cp.multiply(agent_valuations[i, :], allocation_var[i, :])) for i in
-                           range(num_agents)]
-    pareto_dominating_constraints = [new_value_per_agent[i] >= current_value_per_agent[i] for i in range(num_agents)]
+    def create_current_value_per_agent(i):
+        return cp.sum(cp.multiply(agent_valuations[i, :], alloc_matrix[i, :]))
 
-    # Ensure sum_val_y > sum_val_x
+    def create_new_value_per_agent(i):
+        return cp.sum(cp.multiply(agent_valuations[i, :], allocation_var[i, :]))
+
+    def create_pareto_dominating_constraints(i):
+        return new_value_per_agent[i] >= current_value_per_agent[i]
+
+    with ThreadPoolExecutor() as executor:
+        item_capacity_constraints = list(executor.map(create_item_capacity_constraints, range(num_items)))
+        agent_capacity_constraints = list(executor.submit(create_agent_capacity_constraints).result())
+        current_value_per_agent = list(executor.map(create_current_value_per_agent, range(num_agents)))
+        new_value_per_agent = list(executor.map(create_new_value_per_agent, range(num_agents)))
+        pareto_dominating_constraints = list(executor.map(create_pareto_dominating_constraints, range(num_agents)))
+
     pareto_dominating_constraints.append(cp.sum(new_value_per_agent) >= 1 + cp.sum(current_value_per_agent))
 
-    # Create the optimization problem
     problem = cp.Problem(cp.Maximize(0),
                          pareto_dominating_constraints + item_capacity_constraints + agent_capacity_constraints)
 
-    # Solve the problem
     try:
         problem.solve()
         if allocation_var.value is None:
@@ -275,34 +274,34 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, a
     """
     logger.debug("Creating more ILP constraints based on current and previous allocations.")
 
-    # Define variables
-    agents, items, items_capacities = get_agents_items_and_capacities(alloc, True)  # True to return only this tuple
+    agents, items, items_capacities = get_agents_items_and_capacities(alloc, True)
     num_agents = len(agents)
     num_items = len(items)
 
-    # Create binary variables for each agent-item combination
     Z = cp.Variable((num_agents, num_items), boolean=True)
     Z_bar = cp.Variable((num_agents, num_items), boolean=True)
 
-
-    # Add constraints for each agent-item combination
     constraints = []
 
     delta = alloc_Y - alloc_X
-    logger.debug(f'Delta:\n%s',delta)
-    for i in range(num_agents):
-        for j in range(num_items):
-            # Constraint 7 - inequality (7) in the paper.
-            constraint7 = allocation_variables[i][j] + delta[i][j] <= -1 + (2 * items_capacities[j]) * (1 - Z[i][j])
-            constraints.append(constraint7)
+    logger.debug(f'Delta:\n{delta}')
 
-            # Constraint 8 - inequality (8) in the paper.
-            constraint8 = allocation_variables[i][j] + delta[i][j] >= -items_capacities[j]  + Z_bar[i][j] * (2*items_capacities[j] +1)
-            constraints.append(constraint8)
-    # Add constraint for each agent that at least one item must change: inequality (9) in the paper.
+    def create_constraints_for_agent_item(i, j):
+        constraints = []
+        constraint7 = allocation_variables[i][j] + delta[i][j] <= -1 + (2 * items_capacities[j]) * (1 - Z[i][j])
+        constraints.append(constraint7)
+
+        constraint8 = allocation_variables[i][j] + delta[i][j] >= -items_capacities[j] + Z_bar[i][j] * (2 * items_capacities[j] + 1)
+        constraints.append(constraint8)
+        return constraints
+
+    with ThreadPoolExecutor() as executor:
+        agent_item_constraints = [executor.submit(create_constraints_for_agent_item, i, j) for i in range(num_agents) for j in range(num_items)]
+    for future in agent_item_constraints:
+        constraints.extend(future.result())
 
     constraint9 = (cp.sum([Z[i][j] for i in range(num_agents) for j in range(num_items)]) +
-        cp.sum([Z_bar[i][j] for i in range(num_agents) for j in range(num_items)])) >= 1
+                   cp.sum([Z_bar[i][j] for i in range(num_agents) for j in range(num_items)])) >= 1
     constraints.append(constraint9)
 
     return constraints
@@ -417,7 +416,7 @@ def instance2_4_6():
          's2': {'c1': 60, 'c2': 100, 'c3': 60, 'c4': 60, 'c5': 70, 'c6': 60},
          's3': {'c1': 60, 'c2': 60, 'c3': 100, 'c4': 60, 'c5': 60, 'c6': 70},
          's4': {'c1': 60, 'c2': 60, 'c3': 60, 'c4': 100, 'c5': 60, 'c6': 70}}
-    return Instance(item_capacities=item_capacities, valuations=valuations)
+    return Instance( item_capacities=item_capacities, valuations=valuations)
 
 
 if __name__ == "__main__":
@@ -438,7 +437,7 @@ if __name__ == "__main__":
     #     normalized_sum_of_values=1000,
     #     random_seed=1)
     # print(instance)
-    divide(high_multiplicity_fair_allocation, instance_4_3())
+    divide(improved_high_multiplicity_fair_allocation, instance_4_6())
 
 
     # alloc = AllocationBuilder(instance)

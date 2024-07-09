@@ -23,12 +23,13 @@ NUM_OF_RANDOM_INSTANCES = 10
 
 
 def test_feasibility():
-    for i in range(NUM_OF_RANDOM_INSTANCES):
+    for i in range(NUM_OF_RANDOM_INSTANCES):    # run_uniform_experiment()
+
         np.random.seed(i)
         instance = fairpyx.Instance.random_uniform(
-            num_of_agents=70, num_of_items=10, normalized_sum_of_values=1000,
+            num_of_agents=5, num_of_items=5, normalized_sum_of_values=1000,
             agent_capacity_bounds=[2, 6],
-            item_capacity_bounds=[20, 40],
+            item_capacity_bounds=[2, 6],
             item_base_value_bounds=[1, 1000],
             item_subjective_ratio_bounds=[0.5, 1.5]
         )

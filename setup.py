@@ -1,5 +1,8 @@
 import pathlib
 import setuptools
+from setuptools import Extension
+from Cython.Build import cythonize
+import numpy as np
 
 NAME = "fairpyx"
 URL = "https://github.com/ariel-research/" + NAME
@@ -13,12 +16,22 @@ VERSION = (HERE / NAME / "VERSION").read_text().strip()
 # See https://packaging.python.org/en/latest/guides/single-sourcing-package-version/
 
 packages = setuptools.find_packages()
+packages.append('fairpyx.zalternatives.yekta_day_impl')
 print ("packages: ", packages)
+
+# Define Cython extensions
+extensions = [
+    Extension(
+        name="fairpyx.algorithms.second_improved_high_multiplicity",
+        sources=["fairpyx/algorithms/second_improved_high_multiplicity.pyx"],
+        include_dirs=[np.get_include()]
+    )
+]
 
 setuptools.setup(
     name=NAME,
     version=VERSION,
-    packages=setuptools.find_packages(),
+    packages=packages,
     install_requires=REQUIRES,
     author="Erel Segal-Halevi",
     author_email="erelsgl@gmail.com",
@@ -40,6 +53,8 @@ setuptools.setup(
         # "Development Status :: 2 - Pre-Alpha",
         # "Development Status :: 3 - Alpha",
     ],
+    ext_modules=cythonize(extensions, language_level="3"),
+    zip_safe=False,
 )
 
 # Build:
@@ -49,7 +64,6 @@ setuptools.setup(
 #        python -m build
 #   Or (old version):
 #        python setup.py sdist bdist_wheel
-
 
 # Publish to test PyPI:
 #   twine upload --repository testpypi dist/*
