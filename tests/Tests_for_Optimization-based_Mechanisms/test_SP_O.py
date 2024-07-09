@@ -35,9 +35,9 @@ def test_with_two_students_one_course():
     assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': [], 's2': ['c1']}, "ERROR"
 
 def test_optimal_improve_cardinal_and_ordinal_results():
-    s1 = {"c1": 50, "c2": 30, "c3": 20}
+    s1 = {"c1": 50, "c2": 30, "c3": 20}  # c1: 1, c2: 2, c3: 3
     s2 = {"c1": 40, "c2": 50, "c3": 10}
-    s3 = {"c1": 60, "c2": 10, "c3": 30}
+    s3 = {"c1": 60, "c2": 11, "c3": 29}
     instance = fairpyx.Instance(
         agent_capacities={"s1": 2, "s2": 2, "s3": 2},
         item_capacities={"c1": 2, "c2": 3, "c3": 1},

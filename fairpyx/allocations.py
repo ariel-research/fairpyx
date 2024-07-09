@@ -39,6 +39,7 @@ def validate_allocation(instance:Instance, allocation:dict, title:str=""):
     ValueError: : Wasteful allocation:
     Item c2 has remaining capacity: 2>['Bob'].
     Agent Alice has remaining capacity: 2>['c1'].
+    Agent Alice values Item c2 at 22.
     """
 
     ### validate agent capacity and uniqueness:
@@ -69,10 +70,12 @@ def validate_allocation(instance:Instance, allocation:dict, title:str=""):
     for agent in agents_below_their_capacity:
         for item in items_below_their_capacity:
             bundle = allocation[agent]
-            if item not in bundle and instance.agent_item_value(agent,item)>0:
+            value = instance.agent_item_value(agent,item)
+            if item not in bundle and value>0:
                 item_message = f"Item {item} has remaining capacity: {instance.item_capacity(item)}>{map_item_to_list_of_owners[item]}."
                 agent_message = f"Agent {agent} has remaining capacity: {instance.agent_capacity(agent)}>{bundle}."
-                raise ValueError(f"{title}: Wasteful allocation:\n{item_message}\n{agent_message}")
+                value_message = f"Agent {agent} values Item {item} at {value}."
+                raise ValueError(f"{title}: Wasteful allocation:\n{item_message}\n{agent_message}\n{value_message}")
 
 
 def rounded_allocation(allocation_matrix:dict, digits:int):
