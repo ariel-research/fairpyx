@@ -90,6 +90,7 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
             logger.debug(f'The values of the Pareto dominating allocation:\n{calculate_values(alloc, alloc_Y)}')
 
             constraints_ilp.extend(create_more_constraints_ILP(alloc, alloc_X, alloc_Y, allocation_variables))
+            logger.debug("%d constraints", len(constraints_ilp))
             alloc_X = find_envy_free_allocation(alloc, allocation_variables, constraints_ilp)
 
     logger.info(f"No envy-free allocation found after {iteration_count} iterations, ending process.")
@@ -301,7 +302,7 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, a
             constraints.append(constraint7)
 
             # Constraint 8 - inequality (8) in the paper.
-            constraint8 = allocation_variables[i][j] + delta[i][j] >= -items_capacities[j]  + Z_bar[i][j] * (items_capacities[j] + items_capacities[j] +1)
+            constraint8 = allocation_variables[i][j] + delta[i][j] >= -items_capacities[j]  + Z_bar[i][j] * (2*items_capacities[j] +1)
             constraints.append(constraint8)
     # Add constraint for each agent that at least one item must change: inequality (9) in the paper.
 
@@ -445,7 +446,7 @@ if __name__ == "__main__":
     #     normalized_sum_of_values=1000,
     #     random_seed=1)
     # print(instance)
-    divide(high_multiplicity_fair_allocation, instance2_4_6())
+    divide(high_multiplicity_fair_allocation, instance_4_6())
 
 
     # alloc = AllocationBuilder(instance)
