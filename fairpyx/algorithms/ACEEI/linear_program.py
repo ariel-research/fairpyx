@@ -118,10 +118,10 @@ def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instan
         model += xsum(x[student, bundle] for bundle in map_student_to_best_bundle_per_budget[student].values()) == 1
 
     # Add EF-TB constraints based on parameter t
-    if t == ACEEI.EFTBStatus.NO_EF_TB:
+    if t == ACEEI.ACEEI.EFTBStatus.NO_EF_TB:
         pass  # No EF-TB constraints, no need to anything
 
-    elif t == ACEEI.EFTBStatus.EF_TB or t == ACEEI.EFTBStatus.CONTESTED_EF_TB:
+    elif t == ACEEI.ACEEI.EFTBStatus.EF_TB or t == ACEEI.EFTBStatus.CONTESTED_EF_TB:
         # Add EF-TB constraints here
         envy_constraints = get_envy_constraints(instance, initial_budgets, map_student_to_best_bundle_per_budget, t, prices)
         for constraint in envy_constraints:
