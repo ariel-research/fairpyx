@@ -88,7 +88,7 @@ def run_uniform_experiment():
         "value_noise_ratio": [0, 0.2, 0.5, 0.8, 1],
         "algorithm": algorithms_with_specific_solver,
         "random_seed": range(5),
-        "solver": [None, cp.CBC, cp.COPT, cp.CPLEX, cp.GUROBI, cp.MOSEK, cp.SCIP, cp.XPRESS],
+        "solver": [None, cp.CBC, cp.MOSEK, cp.SCIP, cp.XPRESS], #, cp.COPT, cp.CPLEX, cp.GUROBI
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges_specific_solver, time_limit=TIME_LIMIT)
 
@@ -144,7 +144,7 @@ def run_szws_experiment():
         "nonfavorite_item_value_bounds": [(0,50)],
         "algorithm": algorithms_with_specific_solver,
         "random_seed": range(5),
-        "solver": [None, cp.CBC, cp.COPT, cp.CPLEX, cp.GUROBI, cp.MOSEK, cp.SCIP, cp.XPRESS],
+        "solver": [None, cp.CBC, cp.CPLEX, cp.GUROBI, cp.MOSEK, cp.SCIP, cp.XPRESS], #, cp.COPT
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_szws, input_ranges_specific_solver, time_limit=TIME_LIMIT)
 
@@ -186,7 +186,7 @@ def run_ariel_experiment():
         "max_total_agent_capacity": [1000, 1115, 1500, 2000],
         "algorithm": algorithms_with_specific_solver,
         "random_seed": range(10),
-        "solver": [None, cp.CBC, cp.COPT, cp.CPLEX, cp.GUROBI, cp.MOSEK, cp.SCIP, cp.XPRESS],
+        "solver": [None, cp.CBC, cp.CPLEX, cp.GUROBI, cp.MOSEK, cp.SCIP, cp.XPRESS], #, cp.COPT
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_sample, input_ranges_specific_solver, time_limit=TIME_LIMIT)
 
