@@ -142,7 +142,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
         if clearing_error is None:
             raise ValueError("Clearing error is None")
         # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
-        logger.debug("Clearing error %s", clearing_error)
+        logger.info("Clearing error is %s", clearing_error)
         if np.allclose(clearing_error, 0):
             break
         # 4) update 𝒑 ← 𝒑 + 𝛿𝒛˜(𝒖,𝒄, 𝒑, 𝒃), then go back to step 2.
@@ -318,39 +318,42 @@ if __name__ == "__main__":
 
     from fairpyx.adaptors import divide
 
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     lp.logger.setLevel(logging.WARNING)
 
-    # from fairpyx.adaptors import divide
-    #
-    # from fairpyx.utils.test_utils import stringify
+    import coloredlogs
+    level_styles = {
+        'debug': {'color': 'green'},
+        'info': {'color': 'cyan'},
+        'warning': {'color': 'yellow'},
+        'error': {'color': 'red', 'bold': True},
+        'critical': {'color': 'red', 'bold': True, 'background': 'white'}
+    }
+    coloredlogs.install(level='DEBUG', logger=logger, fmt='%(message)s', level_styles=level_styles)
 
-    # print(doctest.run_docstring_examples(find_ACEEI_with_EFTB, globals()))
-    #
-
-    # instance = Instance(
-    #     valuations={"alice": {"CS161": 5, "ECON101": 3, "IR": 6},
-    #                 "bob": {"CS161": 3, "ECON101": 2, "IR": 0},
-    #                 "eve-1": {"CS161": 0, "ECON101": 10, "IR": 1},
-    #                 "eve-2": {"CS161": 0, "ECON101": 10, "IR": 1},
-    #                 "eve-3": {"CS161": 0, "ECON101": 10, "IR": 1},
-    #                 "eve-4": {"CS161": 0, "ECON101": 10, "IR": 1},
-    #                 "eve-5": {"CS161": 0, "ECON101": 10, "IR": 1},
-    #                 "eve-6": {"CS161": 0, "ECON101": 10, "IR": 1},
-    #                 "eve-7": {"CS161": 0, "ECON101": 10, "IR": 1},
-    #                 "eve-8": {"CS161": 0, "ECON101": 10, "IR": 1},
-    #                 "eve-9": {"CS161": 0, "ECON101": 10, "IR": 1},
-    #                 "eve-10": {"CS161": 0, "ECON101": 10, "IR": 1}},
-    #     agent_capacities=2,
-    #     item_capacities={"CS161": 1, "ECON101": 10, "IR": 100})
-    # initial_budgets = {"alice": 4.7, "bob": 4.4, "eve-1": 6, "eve-2": 1, "eve-3": 1, "eve-4": 1, "eve-5": 1, "eve-6": 1,
-    #                    "eve-7": 1, "eve-8": 1, "eve-9": 1, "eve-10": 1}
-    # delta = 0.5
-    # epsilon = 0.5
-    # t = EFTBStatus.EF_TB
-    #
-    # print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
-    #              t=t))
+    instance = Instance(
+        valuations={"alice": {"CS161": 5, "ECON101": 3, "IR": 6},
+                    "bob": {"CS161": 3, "ECON101": 2, "IR": 0},
+                    "eve-1": {"CS161": 0, "ECON101": 10, "IR": 1},
+                    "eve-2": {"CS161": 0, "ECON101": 10, "IR": 1},
+                    "eve-3": {"CS161": 0, "ECON101": 10, "IR": 1},
+                    "eve-4": {"CS161": 0, "ECON101": 10, "IR": 1},
+                    "eve-5": {"CS161": 0, "ECON101": 10, "IR": 1},
+                    "eve-6": {"CS161": 0, "ECON101": 10, "IR": 1},
+                    "eve-7": {"CS161": 0, "ECON101": 10, "IR": 1},
+                    "eve-8": {"CS161": 0, "ECON101": 10, "IR": 1},
+                    "eve-9": {"CS161": 0, "ECON101": 10, "IR": 1},
+                    "eve-10": {"CS161": 0, "ECON101": 10, "IR": 1}},
+        agent_capacities=2,
+        item_capacities={"CS161": 1, "ECON101": 10, "IR": 100})
+    initial_budgets = {"alice": 4.7, "bob": 4.4, "eve-1": 6, "eve-2": 1, "eve-3": 1, "eve-4": 1, "eve-5": 1, "eve-6": 1,
+                       "eve-7": 1, "eve-8": 1, "eve-9": 1, "eve-10": 1}
+    delta = 0.5
+    epsilon = 0.5
+    t = EFTBStatus.EF_TB
+    
+    print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
+                 t=t))
 
     # instance = Instance(
     #     valuations={"alice": {"CS161": 5, "ECON101": 3, "IR": 6}, "bob": {"CS161": 3, "ECON101": 5, "IR": 0},

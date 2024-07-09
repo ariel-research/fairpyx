@@ -739,7 +739,6 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     import coloredlogs
-
     level_styles = {
         'debug': {'color': 'green'},
         'info': {'color': 'cyan'},
@@ -755,21 +754,20 @@ if __name__ == "__main__":
     random_beta = random.uniform(1, 100)
 
 
-    # def random_initial_budgets(num):
-    #     return {f"s{key}": random.uniform(1, 1 + random_beta) for key in range(1, num + 1)}
-    #
-    #
-    # num_of_agents = 3
-    # utilities = {f"s{i}": {f"c{num_of_agents + 1 - j}": j for j in range(num_of_agents, 0, -1)} for i in
-    #              range(1, num_of_agents + 1)}
-    # instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
-    # initial_budgets = {f"s{key}": (num_of_agents + 1 - key) for key in range(1, num_of_agents + 1)}
-    # logger.error(f"initial_budgets = {initial_budgets}")
-    # logger.error(f"random_beta = {random_beta}")
-    # # initial_budgets = {f"s{key}": (random_beta + key) for key in range(1, num_of_agents + 1)}
-    # allocation = divide(tabu_search, instance=instance,
-    #                     initial_budgets=initial_budgets,
-    #                     beta=random_beta, delta=random_delta)
+    def random_initial_budgets(num):
+        return {f"s{key}": random.uniform(1, 1 + random_beta) for key in range(1, num + 1)}
+    
+    num_of_agents = 3
+    utilities = {f"s{i}": {f"c{num_of_agents + 1 - j}": j for j in range(num_of_agents, 0, -1)} for i in
+                 range(1, num_of_agents + 1)}
+    instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
+    initial_budgets = {f"s{key}": (num_of_agents + 1 - key) for key in range(1, num_of_agents + 1)}
+    logger.error(f"initial_budgets = {initial_budgets}")
+    logger.error(f"random_beta = {random_beta}")
+    # initial_budgets = {f"s{key}": (random_beta + key) for key in range(1, num_of_agents + 1)}
+    allocation = divide(tabu_search, instance=instance,
+                        initial_budgets=initial_budgets,
+                        beta=random_beta, delta=random_delta)
     # for i in range(1, num_of_agents + 1):
     #     assert (f"c{i}" in allocation[f"s{i}"])
 

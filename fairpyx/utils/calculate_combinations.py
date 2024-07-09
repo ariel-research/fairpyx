@@ -85,3 +85,8 @@ def get_combinations_courses_sorted(instance: Instance):
         combinations_courses[student] = combinations_for_student_sorted
 
     return combinations_courses
+
+
+if __name__ == "__main__":
+    import doctest, sys
+    print("\n", doctest.testmod(), "\n")
