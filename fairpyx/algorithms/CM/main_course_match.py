@@ -66,16 +66,16 @@ def course_match_algorithm(alloc: AllocationBuilder, budget: dict, time : int = 
 
 if __name__ == "__main__":
     import doctest
-    doctest.testmod()
-    # instance = Instance(
-    #   agent_conflicts = {"Alice": [], "Bob": []},
-    #   item_conflicts = {"c1": [], "c2": [], "c3": []},
-    #   agent_capacities = {"Alice": 2, "Bob": 1},
-    #   item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
-    #   valuations = {"Alice": {"c1": 100, "c2": 60, "c3": 0},
-    #                 "Bob": {"c1": 0, "c2": 100, "c3": 0},
-    # })
-    # allocation = AllocationBuilder(instance)
-    # budget = {"Alice": 3.0, "Bob": 1.0}    
-    # print(course_match_algorithm(allocation, budget))
+    # print("\n", doctest.testmod(), "\n")
 
+    from fairpyx import divide
+    instance = Instance(
+      agent_conflicts = {"Alice": [], "Bob": []},
+      item_conflicts = {"c1": [], "c2": [], "c3": []},
+      agent_capacities = {"Alice": 2, "Bob": 1},
+      item_capacities  = {"c1": 1, "c2": 2, "c3": 2},
+      valuations = {"Alice": {"c1": 100, "c2": 60, "c3": 0},
+                    "Bob": {"c1": 0, "c2": 100, "c3": 0},
+    })
+    budget = {"Alice": 3.0, "Bob": 1.0}    
+    print(divide(course_match_algorithm, instance, budget=budget))
