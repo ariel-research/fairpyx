@@ -14,7 +14,7 @@ import numpy as np
 
 from fairpyx import Instance, AllocationBuilder
 from fairpyx.adaptors import divide
-from fairpyx.algorithms.ACEEI import find_ACEEI_with_EFTB
+from fairpyx.algorithms.ACEEI.ACEEI import find_ACEEI_with_EFTB
 
 
 class criteria_for_profitable_manipulation(Enum):

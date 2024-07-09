@@ -13,7 +13,7 @@ import logging
 import numpy as np
 
 from fairpyx import Instance, AllocationBuilder
-from fairpyx.utils import linear_program as lp
+from fairpyx.algorithms.ACEEI import linear_program as lp
 from fairpyx.utils.calculate_combinations import get_combinations_courses_sorted
 
 
@@ -311,7 +311,7 @@ def random_initial_budgets(num_of_agents: int) -> dict:
 
 
 if __name__ == "__main__":
-    import doctest, sys
+    import doctest
 
     print("\n", doctest.testmod(), "\n")
     # sys.exit(0)

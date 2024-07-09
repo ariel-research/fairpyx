@@ -14,9 +14,8 @@ import fairpyx
 from fairpyx import Instance, divide
 # from fairpyx.algorithms import ACEEI
 # from fairpyx.algorithms.linear_program import optimize_model
-from fairpyx.algorithms.ACEEI import EFTBStatus, logger, find_ACEEI_with_EFTB
+from fairpyx.algorithms.ACEEI.ACEEI import EFTBStatus, logger, find_ACEEI_with_EFTB
 import numpy as np
-
 
 
 def random_initial_budgets(num):
