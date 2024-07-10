@@ -27,7 +27,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     per category round-robin is an allocation algorithm which guarantees EF1 (envy-freeness up to 1 good) allocation
     under settings in which agent-capacities are equal across all agents,
     no capacity-inequalities are allowed since this algorithm doesnt provie a cycle-prevention mechanism
-    TLDR: same partition constriants , same capacities , may have different valuations across agents  -> EF1 allocation
+    TLDR: same partition, same capacities, may have different valuations across agents  -> EF1 allocation
 
     :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents.
     :param item_categories: a dictionary of the categories  in which each category is paired with a list of items.
@@ -72,6 +72,8 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
+    # TODO: Check that capacities are identical.
+    # (also in other algorithms)
 
     for category in item_categories.keys():
         logger.info(f'\nCurrent category -> {category}')

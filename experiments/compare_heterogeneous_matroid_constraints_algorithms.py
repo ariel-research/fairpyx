@@ -18,10 +18,10 @@ def compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian
         'equal_capacities': [True],
         'equal_valuations': [True],
         'binary_valuations': [True],
-        'num_of_items':range(10,20),
         'category_count': [2],
-        'item_capacity_bounds': range(1, 1 + 1),
-        'random_seed_num': [0],
+        'item_capacity_bounds': [1],
+        'num_of_items':range(10,20),
+        'random_seed_num': range(5),
         'num_of_agents': range(10,100),
         'algorithm': [per_category_round_robin, capped_round_robin,
                       per_category_capped_round_robin, two_categories_capped_round_robin, iterated_priority_matching,
@@ -30,11 +30,11 @@ def compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian
     input_ranges_2 = {
         'equal_capacities': [True],
         'equal_valuations': [True,False],
-        'binary_valuations': [False],
-        'num_of_items': range(10,20),
+        'binary_valuations': [True,False],
         'category_count': [2],
-        'item_capacity_bounds': range(1, 1 + 1),
-        'random_seed_num': [0],
+        'num_of_items': range(10,20),
+        'item_capacity_bounds': [1],
+        'random_seed_num': range(5),
         'num_of_agents': range(10,100),
         'algorithm': [per_category_round_robin, capped_round_robin
                       , two_categories_capped_round_robin,
@@ -45,10 +45,10 @@ def compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian
         'equal_capacities': [True],
         'equal_valuations': [True],
         'binary_valuations': [False],
-        'num_of_items': range(10,20),
         'category_count': [2],
-        'item_capacity_bounds': range(1, 1 + 1),
-        'random_seed_num': [0],
+        'num_of_items': range(10,20),
+        'item_capacity_bounds': [1],
+        'random_seed_num': range(5),
         'num_of_agents': range(10,100),
         'algorithm': [
                       per_category_capped_round_robin]
@@ -56,6 +56,7 @@ def compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian
     expr.run_with_time_limit(run_experiment,input_ranges_1,5)
     expr.run_with_time_limit(run_experiment, input_ranges_2, 5)
     expr.run_with_time_limit(run_experiment, input_ranges_3, 5)
+    
 def run_experiment(equal_capacities:bool,equal_valuations:bool,binary_valuations:bool,category_count:int,item_capacity_bounds:int,random_seed_num:int,num_of_agents:int,algorithm:callable,num_of_items:int):
     # Mapping of algorithms to their specific argument sets
     algo_args = {
