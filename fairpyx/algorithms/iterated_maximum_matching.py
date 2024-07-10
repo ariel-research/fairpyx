@@ -166,27 +166,14 @@ def iterated_maximum_matching_unadjusted(alloc:AllocationBuilder, **kwargs):
 if __name__ == "__main__":
     import doctest, sys
     # print("\n",doctest.testmod(), "\n")
-
     # sys.exit(0)
 
     from fairpyx.adaptors import divide_random_instance, divide
     from fairpyx.explanations import ConsoleExplanationLogger, FilesExplanationLogger, StringsExplanationLogger
 
-    console_explanation_logger = ConsoleExplanationLogger()
-    files_explanation_logger = FilesExplanationLogger({
-        i: f"logs/s{i+1}.log"
-        for i in range(2)
-    }, mode='w', language="he")
-    string_explanation_logger = StringsExplanationLogger(f"s{i+1}" for i in range(2))
 
-    instance = Instance(valuations=[[5,4,3,2],[2,3,4,5]], agent_capacities=2, item_capacities=1)
-    print(divide(iterated_maximum_matching, instance=instance, explanation_logger=files_explanation_logger))
-
-    sys.exit()
-
-    num_of_agents = 30
-    num_of_items = 10
-
+    num_of_agents = 5
+    num_of_items = 3
 
     console_explanation_logger = ConsoleExplanationLogger()
     files_explanation_logger = FilesExplanationLogger({
@@ -195,19 +182,20 @@ if __name__ == "__main__":
     }, mode='w', language="he")
     string_explanation_logger = StringsExplanationLogger(f"s{i+1}" for i in range(num_of_agents))
 
-    print("\n\nIterated Maximum Matching without adjustments:")
-    divide_random_instance(algorithm=iterated_maximum_matching, adjust_utilities=False,
-                           num_of_agents=num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12], 
-                           item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
-                           random_seed=1)
+    # print("\n\nIterated Maximum Matching without adjustments:")
+    # divide_random_instance(algorithm=iterated_maximum_matching, adjust_utilities=False,
+    #                        num_of_agents=num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12], 
+    #                        item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
+    #                        random_seed=1)
 
     print("\n\nIterated Maximum Matching with adjustments:")
     divide_random_instance(algorithm=iterated_maximum_matching, adjust_utilities=True, 
                         #    explanation_logger=console_explanation_logger,
-                           explanation_logger = files_explanation_logger,
-                        #    explanation_logger = string_explanation_logger,
+                        #    explanation_logger = files_explanation_logger,
+                           explanation_logger = string_explanation_logger,
                            num_of_agents=num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12], 
                            item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
                            random_seed=1)
     
     # print(string_explanation_logger.map_agent_to_explanation())
+    print(string_explanation_logger.map_agent_to_explanation()["s1"])

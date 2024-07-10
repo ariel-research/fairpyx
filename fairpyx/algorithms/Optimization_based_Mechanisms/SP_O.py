@@ -40,6 +40,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
     :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents of
      the fair course allocation problem(CAP).
 
+    :param solver: solver for cvxpy. Default is SCIPY.
 
     >>> from fairpyx.adaptors import divide
     >>> s1 = {"c1": 50, "c2": 49, "c3": 1}

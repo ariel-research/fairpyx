@@ -25,10 +25,10 @@ def numberOfCourses(var, alloc, less_then):
 
 
 # allocation course to student according the result of the linear programing
-def give_items_according_to_allocation_matrix(alloc, allocation_matrix, logger, rank_mat):
+def give_items_according_to_allocation_matrix(alloc, allocation_matrix, explanation_logger, rank_mat):
     # Extract the optimized values of x
     x_values = allocation_matrix.value
-    logger.info("x_values - the optimum allocation:\n%s", x_values)
+    explanation_logger.debug("x_values - the optimum allocation:\n%s", x_values)
 
     # Initialize a dictionary where each student will have an empty list
     assign_map_courses_to_student = {student: [] for student in alloc.remaining_agents()}
@@ -41,9 +41,10 @@ def give_items_according_to_allocation_matrix(alloc, allocation_matrix, logger, 
         for j, course in enumerate(remaining_items_list):
             # logger.info("x[%d,%d]=%s", j, i, x_values[j, i])
             if x_values[j, i] > 0.5:
+                explanation_logger.info("x_values[%d, You] = %s, so you get course %s", j, x_values[j, i], course, agents=student)
                 assign_map_courses_to_student[student].append(course)
 
-    logger.info("assign_map_courses_to_student: %s", assign_map_courses_to_student)
+    # logger.info("assign_map_courses_to_student: %s", assign_map_courses_to_student)
 
     # Assign the courses to students based on the dictionary
     for student, courses in assign_map_courses_to_student.items():
@@ -63,10 +64,9 @@ def give_items_according_to_allocation_matrix(alloc, allocation_matrix, logger, 
                 for i, student2 in enumerate(alloc.remaining_agents()):
                     if student == student2:
                         rank_mat[j][i] = 0
+            alloc.give(student, course)  # , logger
 
-            alloc.give(student, course, logger)
-
-    logger.info("after alloc Rank matrix:\n%s", rank_mat)
+    explanation_logger.debug("after alloc Rank matrix:\n%s", rank_mat)
     return rank_mat
 
 

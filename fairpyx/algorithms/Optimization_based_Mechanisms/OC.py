@@ -24,6 +24,8 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents of
      the fair course allocation problem(CAP).
 
+    :param solver: solver for cvxpy. Default is SCIPY.
+
     >>> from fairpyx.adaptors import divide
     >>> s1 = {"c1": 44, "c2": 39, "c3": 17}
     >>> s2 = {"c1": 50, "c2": 45, "c3": 5}

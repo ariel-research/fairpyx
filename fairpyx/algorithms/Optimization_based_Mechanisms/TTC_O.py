@@ -61,6 +61,8 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
     :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents of
      the fair course allocation problem(CAP).
 
+    :param solver: solver for cvxpy. Default is SCIPY.
+
     >>> from fairpyx.adaptors import divide
     >>> s1 = {"c1": 50, "c2": 49, "c3": 1}
     >>> s2 = {"c1": 48, "c2": 46, "c3": 6}
@@ -71,24 +73,23 @@ def TTC_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogg
     >>> divide(TTC_O_function, instance=instance)
     {'s1': ['c2'], 's2': ['c1']}
     """
-    logger.info("\nAlgorithm TTC-O starts.\n")
+    explanation_logger.info("\nAlgorithm TTC-O starts.\n")
 
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
-    logger.info("Max iterations: %d", max_iterations)
+    explanation_logger.debug("Max iterations: %d", max_iterations)
 
     rank_mat = optimal.createRankMat(alloc, logger)
     for iteration in range(max_iterations):
-        logger.info("\nIteration number: %d", iteration+1)
+        explanation_logger.info("\nIteration number: %d", iteration+1)
         if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
-            logger.info("There are no more agents (%d) or items(%d) ", len(alloc.remaining_agent_capacities),len(alloc.remaining_item_capacities))
+            explanation_logger.info("There are no more agents (%d) or items (%d): algorithm ends", len(alloc.remaining_agent_capacities),len(alloc.remaining_item_capacities))
             break
-
 
         result_Zt1, result_Zt2, var, problem = roundTTC_O(alloc, logger, alloc.effective_value, 0, rank_mat, solver)
 
         # Check if the optimization problem was successfully solved
         if result_Zt2 is not None:
-            rank_mat = optimal.give_items_according_to_allocation_matrix(alloc, var, logger, rank_mat)
+            rank_mat = optimal.give_items_according_to_allocation_matrix(alloc, var, explanation_logger, rank_mat)
 
             optimal_value = problem.value
             logger.info("Optimal Objective Value: %s", optimal_value)
