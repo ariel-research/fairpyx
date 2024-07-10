@@ -7,6 +7,7 @@
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 from FaSt import Demote
+from copy import deepcopy
 #import sys
 
 import logging
@@ -35,82 +36,97 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
     C = alloc.instance.items
     agents_valuations = alloc.instance._valuations
     #Convert the list of the agents and item to dictionary so that each agent\item will have its coresponding integer
-    S_dict = generate_dictionary(S)
-    C_dict = generate_dictionary(C)
+    student_name_to_int = generate_dict_from_str_to_int(S)
+    college_name_to_int = generate_dict_from_str_to_int(C)
+    int_to_student_name = generate_dict_from_int_to_str(S)
+    int_to_college_name = generate_dict_from_int_to_str(C)
 
     #Creating a match of the integers and the string coresponding one another to deal with the demote function and the leximin tuple as well
-    integer_match = create_stable_matching(agents=S, items=C, agents_dict=S_dict, items_dict=C_dict)
-    str_match = integer_to_str_matching(integer_match=integer_match, agent_dict=S_dict, items_dict=C_dict)
+    integer_match = create_stable_matching(agents=S, items=C, agents_dict=student_name_to_int, items_dict=college_name_to_int)
+    str_match = integer_to_str_matching(integer_match=integer_match, agent_dict=student_name_to_int, items_dict=college_name_to_int)
 
     logger.debug(f"Initial match: {str_match}")
 
-    UpperFix = [C_dict[C[0]]]
-    LowerFix = [C_dict[C[len(C)-1]]]
+    UpperFix = [college_name_to_int[C[0]]]              # Inidces of colleges to which we cannot add any more students.
+    LowerFix = [college_name_to_int[C[len(C)-1]]]       # Inidces of colleges from which we cannot remove any more students.
     SoftFix = []
-    UnFixed = [item for item in C_dict.values() if item not in UpperFix]
+    UnFixed = [item for item in college_name_to_int.values() if item not in UpperFix]
    
 
     #creating a dictionary of vj(µ) = Pi∈µ(cj) for each j in C
-    matching_valuations_sum = update_matching_valuations_sum(match=str_match,items_valuations=items_valuations)
+    matching_college_valuations = update_matching_valuations_sum(match=str_match, items_valuations=items_valuations)
+    logger.debug(f"matching_college_valuations: {matching_college_valuations}")
 
     while len(LowerFix) + len([item for item in UpperFix if item not in LowerFix]) < len(C):
-        up = min([j for j in C_dict.values() if j not in LowerFix])
-        down = min(UnFixed, key=lambda j: matching_valuations_sum[get_key_by_value(value=j, items_dict=C_dict)])
+        logger.debug(f"\nstr_match: {str_match}, integer_match: {integer_match}, UpperFix: {UpperFix}, LowerFix: {LowerFix}, SoftFix: {SoftFix}, UnFixed: {UnFixed}")
+        up = min([j for j in college_name_to_int.values() if j not in LowerFix])
+        down = min(UnFixed, key=lambda j: matching_college_valuations[int_to_college_name[j]])
+        logger.debug(f"up: {up}, down: {down}")
         
         SoftFix = [pair for pair in SoftFix if not (pair[1] <= up < pair[0])]
-        logger.debug(f"UpperFix: {UpperFix}, LowerFix: {LowerFix}, SoftFix: {SoftFix}, UnFixed: {UnFixed}")
-
-        if (len(integer_match[up]) == 1) or (matching_valuations_sum[get_key_by_value(value=up, items_dict=C_dict)] <= matching_valuations_sum[get_key_by_value(value=down, items_dict=C_dict)]):
+        logger.debug(f"Updating SoftFix to {SoftFix}")
+        
+        logger.debug(f"vup(mu)={matching_college_valuations[int_to_college_name[up]]}, vdown(mu)={matching_college_valuations[int_to_college_name[down]]}")
+        if (len(integer_match[up]) == 1) or (matching_college_valuations[int_to_college_name[up]] <= matching_college_valuations[int_to_college_name[down]]):
             LowerFix.append(up)
-            logger.info(f"Added {up} to LowerFix")
+            logger.info(f"Cannot remove any more students from c_{up}: Added c_{up} to LowerFix")
         else:
             #check the lowest-rank student who currently belongs to mu(c_{down-1})
-            agant_to_demote = get_lowest_ranked_student(down-1, integer_match, items_valuations, C_dict, S_dict)
-            _match = Demote(integer_match, agant_to_demote, up_index=up, down_index=down)
-            _match_str = integer_to_str_matching(integer_match=_match, agent_dict=S_dict, items_dict=C_dict)
+            agant_to_demote = get_lowest_ranked_student(down-1, integer_match, items_valuations, int_to_college_name=int_to_college_name, int_to_student_name=int_to_student_name)
+            new_integer_match = Demote(deepcopy(integer_match), agant_to_demote, up_index=up, down_index=down)
+            logger.info(f"Demoting from {up} to {down}, starting at student {agant_to_demote}. New match: {new_integer_match}")
+            new_match_str = integer_to_str_matching(integer_match=new_integer_match, agent_dict=student_name_to_int, items_dict=college_name_to_int)
 
             #Creating a leximin tuple for the new match from the demote and for the old match to compare
-            _match_leximin_tuple = create_leximin_tuple(match=_match_str, agents_valuations=agents_valuations, items_valuations=items_valuations)
-            match_leximin_tuple = create_leximin_tuple(match=str_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
+            match_leximin_tuple = create_leximin_tuple(match=str_match  , agents_valuations=agents_valuations, items_valuations=items_valuations)
+            logger.info(f"Old match leximin tuple: {match_leximin_tuple}")
+            new_match_leximin_tuple = create_leximin_tuple(match=new_match_str, agents_valuations=agents_valuations, items_valuations=items_valuations)
+            logger.info(f"New match leximin tuple: {new_match_leximin_tuple}")
             
-            if compare_leximin(old_match_leximin_tuple=match_leximin_tuple, new_match_leximin_tuple=_match_leximin_tuple):
-                integer_match = _match  
-                str_match = integer_to_str_matching(integer_match=integer_match, agent_dict=S_dict, items_dict=C_dict)
-                matching_valuations_sum = update_matching_valuations_sum(match=str_match,items_valuations=items_valuations)
-                logger.debug(f"Match updated: {str_match}")
+            if is_leximin_at_least(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=match_leximin_tuple):
+                logger.debug(f"New match is leximin-better than old match:")
+                integer_match = new_integer_match  
+                str_match = new_match_str
+                matching_college_valuations = update_matching_valuations_sum(match=str_match,items_valuations=items_valuations)
+                logger.debug(f"   Match updated to {str_match}")
             
-            elif sourceDec(_match_leximin_tuple, match_leximin_tuple) == up:
+            elif sourceDec(new_match_leximin_tuple, match_leximin_tuple) == up:
+                logger.debug(f"New match is leximin-worse because of c_up = c_{up}:")
                 LowerFix.append(up)
                 UpperFix.append(up + 1)
-                logger.info(f"Updated LowerFix and UpperFix with {up}")
+                logger.info(f"   Updated LowerFix and UpperFix with {up}")
             
-            elif sourceDec(_match_leximin_tuple, match_leximin_tuple) in alloc.instance.agents:
-                t = C_dict[get_match(match=str_match, value=sourceDec(_match_leximin_tuple, match_leximin_tuple))]
+            elif sourceDec(new_match_leximin_tuple, match_leximin_tuple) in alloc.instance.agents:
+                sd = sourceDec(new_match_leximin_tuple, match_leximin_tuple)
+                logger.debug(f"New match is leximin-worse because of student {sd}: ")
+                t = college_name_to_int[get_match(match=str_match, value=sd)]
                 LowerFix.append(t)
                 UpperFix.append(t+1)
+                logger.debug(f"   sourceDec student {sd} is matched to c_t = c_{t}: adding c_{t} to LowerFix and c_{t+1} to UpperFix.")
                 A = [j for j in UnFixed if (j > t + 1)]
                 SoftFix.extend((j, t+1) for j in A)
-                logger.info(f"Updated LowerFix and UpperFix with {t}")
+                logger.debug(f"   Updating SoftFix to {SoftFix}")
             
             else:
+                logger.debug(f"New match is leximin-worse because of college {sourceDec(new_match_leximin_tuple, match_leximin_tuple)}: ")
                 str_match, LowerFix, UpperFix, SoftFix = LookAheadRoutine((S, C, agents_valuations, items_valuations), integer_match, down, LowerFix, UpperFix, SoftFix)
-                logger.debug(f"LookAheadRoutine result: match={str_match}, LowerFix={LowerFix}, UpperFix={UpperFix}, SoftFix={SoftFix}")
+                logger.debug(f"   LookAheadRoutine result: match={str_match}, LowerFix={LowerFix}, UpperFix={UpperFix}, SoftFix={SoftFix}")
         
         UnFixed = [
-            j for j in C_dict.values() 
+            j for j in college_name_to_int.values() 
             if (j not in UpperFix) or 
-            any((j, _j) not in SoftFix for _j in C_dict.values() if _j > j)
+            any((j, _j) not in SoftFix for _j in college_name_to_int.values() if _j > j)
             ]
+        logger.debug(f"   Updating UnFixed to {UnFixed}")
 
     logger.info("Finished FaStGen algorithm")
     return str_match    #We want to return the final march in his string form
 
-def LookAheadRoutine(I:tuple, match:dict, down:int, LowerFix:list, UpperFix:list, SoftFix:list)->tuple:
+def LookAheadRoutine(I:tuple, integer_match:dict, down:int, LowerFix:list, UpperFix:list, SoftFix:list)->tuple:
     """
     Algorithem 4-LookAheadRoutine: Designed to handle cases where a decrease in the leximin value
       may be balanced by future changes in the pairing,
       the goal is to ensure that the sumi pairing will maintain a good leximin value or even improve it.
-    
 
     :param I: A presentation of the problem, aka a tuple that contain the list of students(S), the list of colleges(C) when the capacity
     of each college is n-1 where n is the number of students, student valuation function(U), college valuation function(V).
@@ -121,7 +137,6 @@ def LookAheadRoutine(I:tuple, match:dict, down:int, LowerFix:list, UpperFix:list
     :param SoftFix: A set of temporary upper limits.
     *We will asume that in the colleges list in index 0 there is college 1 in index 1 there is coll
     
-
     >>> from fairpyx.adaptors import divide
     >>> S = ["s1", "s2", "s3", "s4", "s5"]
     >>> C = ["c1", "c2", "c3", "c4"]
@@ -137,57 +152,71 @@ def LookAheadRoutine(I:tuple, match:dict, down:int, LowerFix:list, UpperFix:list
     ({'c1': ['s1', 's2'], 'c2': ['s5'], 'c3': ['s3'], 'c4': ['s4']}, [1], [], [])
     """    
     agents, items, agents_valuations, items_valuations = I
-    agents_dict = generate_dictionary(agents)
-    items_dict = generate_dictionary(items) 
+
+    student_name_to_int = generate_dict_from_str_to_int(agents)
+    college_name_to_int = generate_dict_from_str_to_int(items) 
+    int_to_student_name = generate_dict_from_int_to_str(agents)
+    int_to_college_name = generate_dict_from_int_to_str(items)
+
     LF = LowerFix.copy()
     UF = UpperFix.copy()
-    _match = match.copy()
-    str_match = integer_to_str_matching(integer_match=_match, items_dict=items_dict, agent_dict=agents_dict)
-    giving_str_match = integer_to_str_matching(integer_match=match, items_dict=items_dict, agent_dict=agents_dict)
+    given_str_match = integer_to_str_matching(integer_match=integer_match, items_dict=college_name_to_int, agent_dict=student_name_to_int)
+    new_integer_match = deepcopy(integer_match)
+    new_str_match = integer_to_str_matching(integer_match=new_integer_match, items_dict=college_name_to_int, agent_dict=student_name_to_int)
 
-    logger.info("Starting LookAheadRoutine")
-    logger.debug(f"Initial parameters - match: {str_match}, down: {down}, LowerFix: {LowerFix}, UpperFix: {UpperFix}, SoftFix: {SoftFix}")
-    matching_valuations_sum = update_matching_valuations_sum(match=str_match,items_valuations=items_valuations)
+    logger.info(f"Starting LookAheadRoutine. Initial parameters - match: {new_str_match}, down: {down}, LowerFix: {LowerFix}, UpperFix: {UpperFix}, SoftFix: {SoftFix}")
+    matching_college_valuations = update_matching_valuations_sum(match=given_str_match,items_valuations=items_valuations)
     while len(LF) + len([item for item in UF if item not in LF]) < len(items):
-        up = min([j for j in items_dict.values() if j not in LowerFix])
-        logger.debug(f"Selected 'up': {up}")
-        if (len(_match[up]) == 1) or (matching_valuations_sum[get_key_by_value(value=up, items_dict=items_dict)] <= matching_valuations_sum[get_key_by_value(value=down, items_dict=items_dict)]):
+        up = min([j for j in college_name_to_int.values() if j not in LowerFix])
+        logger.debug(f"   Selected 'up': {up}")
+        if (len(integer_match[up]) == 1) or (matching_college_valuations[int_to_college_name[up]] <= matching_college_valuations[int_to_college_name[down]]):
             LF.append(up)
-            logger.info(f"Appended {up} to LowerFix")
+            logger.info(f"   Cannot remove any more students from c_{up}: appended c_{up} to LF")
         else:
-            #check the lowest-rank student who currently belongs to mu(c_{down-1})
-            agant_to_demote = get_lowest_ranked_student(item=down-1, match=_match, items_valuations=items_valuations, items_dict=items_dict, agent_dict=agents_dict)
-            logger.debug(f"Agent to demote: {agant_to_demote}")
+            #check the lowest-rank student who currently belongs to mu(c_{down-1})d
+            agant_to_demote = get_lowest_ranked_student(item_int=down-1, match_int=new_integer_match, items_valuations=items_valuations, int_to_college_name=int_to_college_name, int_to_student_name=int_to_student_name)
+            new_integer_match = Demote(new_integer_match, agant_to_demote, up_index=up, down_index=down)
+            logger.info(f"   Demoting from {up} to {down}, starting at student {agant_to_demote}. New match: {new_integer_match}")
+
+            new_str_match = integer_to_str_matching(integer_match=new_integer_match, items_dict=college_name_to_int, agent_dict=student_name_to_int)
+            matching_college_valuations = update_matching_valuations_sum(match=new_str_match,items_valuations=items_valuations)
             
-            _match = Demote(_match, agant_to_demote, up_index=up, down_index=down)
-            str_match = integer_to_str_matching(integer_match=_match, items_dict=items_dict, agent_dict=agents_dict)
-            matching_valuations_sum = update_matching_valuations_sum(match=str_match,items_valuations=items_valuations)
-            
-            new_match_leximin_tuple = create_leximin_tuple(match=str_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
-            old_match_leximin_tuple = create_leximin_tuple(match=giving_str_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
-            if compare_leximin(old_match_leximin_tuple=old_match_leximin_tuple, new_match_leximin_tuple=new_match_leximin_tuple):
-                match = _match
+            old_match_leximin_tuple = create_leximin_tuple(match=given_str_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
+            new_match_leximin_tuple = create_leximin_tuple(match=new_str_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
+            logger.info(f"   Old match leximin tuple: {old_match_leximin_tuple}")
+            new_match_leximin_tuple = create_leximin_tuple(match=new_str_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
+            logger.info(f"   New match leximin tuple: {new_match_leximin_tuple}")
+
+            if is_leximin_at_least(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=old_match_leximin_tuple):
+                logger.debug(f"   New match is leximin-better than old match:")
+                integer_match = new_integer_match
                 LowerFix = LF
                 UpperFix = UF
-                logger.info("Updated match and fixed LowerFix and UpperFix")
+                logger.info("       Updated match and fixed LowerFix and UpperFix")
                 break
+
             elif sourceDec(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=old_match_leximin_tuple) == up:
+                logger.debug(f"   New match is leximin-worse because of c_up = c_{up}:")
                 LF.append(up)
                 UF.append(up + 1)
-                logger.info(f"Appended {up} to LowerFix and {up+1} to UpperFix")
-            elif sourceDec(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=old_match_leximin_tuple) in agents:
-                    t = items_dict[get_match(match=str_match, value=sourceDec(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=old_match_leximin_tuple))]
-                    if t == down:
-                        UpperFix.append(down)
-                    else:
-                        SoftFix.append((down, t))
-                        logger.info(f"Appended {down} to UpperFix or SoftFix")
-                    break
+                logger.info(f"      Appended {up} to LF and {up+1} to UF")
 
-    final_match = integer_to_str_matching(integer_match=match, items_dict=items_dict, agent_dict=agents_dict)
-    logger.info("Completed LookAheadRoutine")
-    logger.debug(f"Final result - match: {final_match}, LowerFix: {LowerFix}, UpperFix: {UpperFix}, SoftFix: {SoftFix}")
-    return (final_match, LowerFix, UpperFix, SoftFix)
+            elif sourceDec(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=old_match_leximin_tuple) in agents:
+                sd = sourceDec(new_match_leximin_tuple, old_match_leximin_tuple)
+                logger.debug(f"   New match is leximin-worse because of student {sd}: ")
+                t = college_name_to_int[get_match(match=new_str_match, value=sd)]
+                logger.debug(f"      sourceDec student {sd} is matched to c_t = c_{t}.")
+                if t == down:
+                    logger.debug(f"      t=down={down}: adding c_{down} to UpperFix")  # UF?
+                    UpperFix.append(down)
+                else:
+                    logger.info(f"       t!=down: adding ({down},{t}) to SoftFix")
+                    SoftFix.append((down, t))
+                break
+
+    final_match_str = integer_to_str_matching(integer_match=integer_match, items_dict=college_name_to_int, agent_dict=student_name_to_int)
+    logger.info(f"Completed LookAheadRoutine. Final result - match: {final_match_str}, LowerFix: {LowerFix}, UpperFix: {UpperFix}, SoftFix: {SoftFix}")
+    return (final_match_str, LowerFix, UpperFix, SoftFix)
 
 def create_leximin_tuple(match:dict, agents_valuations:dict, items_valuations:dict):
     # """
@@ -231,8 +260,8 @@ def create_leximin_tuple(match:dict, agents_valuations:dict, items_valuations:di
     leximin_tuple.sort(key = lambda x: x[1]) 
     return leximin_tuple
 
-def compare_leximin(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->bool:
-    # """
+def is_leximin_at_least(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->bool:
+    """
     # Determine whether the leximin tuple of the new match is greater or equal to the leximin tuple of the old match.
 
     # Args:
@@ -243,16 +272,24 @@ def compare_leximin(new_match_leximin_tuple:list, old_match_leximin_tuple:list)-
     # - bool: True if new_match_leximin_tuple >= old_match_leximin_tuple, otherwise False.
 
     # Example:
-    # >>> new_match = [("s7",1),("c4",1),("s6",6),("c4",7),("c3",9),("c1",16),("s3",21),("s2",23),("c2",24),("s4",29),("c1",29),("c1",36),("s1",50)]
-    # >>> old_match = [("s7",1),("c4",1),("s4",13),("c1",16),("c3",18),("c2",19),("s6",20),("s3",21),("s2",23),("s5",26),("c1",29),("c1",36),("c1",41),("s1",50)]
-    # >>> compare_leximin(new_match, old_match)
-    # False
+    >>> new_match = [("s7",1),("c4",1),("s6",6),("c4",7),("c3",9),("c1",16),("s3",21),("s2",23),("c2",24),("s4",29),("c1",29),("c1",36),("s1",50)]
+    >>> old_match = [("s7",1),("c4",1),("s4",13),("c1",16),("c3",18),("c2",19),("s6",20),("s3",21),("s2",23),("s5",26),("c1",29),("c1",36),("c1",41),("s1",50)]
+    >>> is_leximin_at_least(new_match, old_match)
+    False
 
-    # >>> new_match = [("c4",0),("c3",5),("c1",16),("c2",19),("s2",23),("c2",24),("s5",26),("s3",32),("s4",35),("c1",36),("s1",50)]
-    # >>> old_match = [("c4",3),("c3",12),("c1",16),("c2",19),("s2",23),("s5",26),("s4",29),("c1",36),("s1",50),("s3",60)]
-    # >>> compare_leximin(new_match, old_match)
-    # True
-    # """
+    >>> new_match = [("c4",0),("c3",5),("c1",16),("c2",19),("s2",23),("c2",24),("s5",26),("s3",32),("s4",35),("c1",36),("s1",50)]
+    >>> old_match = [("c4",3),("c3",12),("c1",16),("c2",19),("s2",23),("s5",26),("s4",29),("c1",36),("s1",50),("s3",60)]
+    >>> is_leximin_at_least(new_match, old_match)
+    False
+
+    >>> new_match = [("c4",3),("c3",5),("c1",16),("c2",19),("s2",23),("c2",24),("s5",26),("s3",32),("s4",35),("c1",36),("s1",50)]
+    >>> old_match = [("c4",0),("c3",12),("c1",16),("c2",19),("s2",23),("s5",26),("s4",29),("c1",36),("s1",50),("s3",60)]
+    >>> is_leximin_at_least(new_match, old_match)
+    True
+
+    >>> is_leximin_at_least(new_match, new_match)
+    True
+    """
     for k in range(0, len(new_match_leximin_tuple)):
         if new_match_leximin_tuple[k][1] == old_match_leximin_tuple[k][1]:
             continue
@@ -260,6 +297,7 @@ def compare_leximin(new_match_leximin_tuple:list, old_match_leximin_tuple:list)-
             return True
         else:
             return False
+    return True
 
 def sourceDec(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->str:
     # """
@@ -288,9 +326,9 @@ def sourceDec(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->str:
             return new_match_leximin_tuple[k][0]  
     return ""
 
-def get_lowest_ranked_student(item, match:dict, items_valuations:dict, items_dict:dict, agent_dict:dict):
-    # """
-    # Get the lowest ranked student for a given item.
+def get_lowest_ranked_student(item_int:int, match_int:dict, items_valuations:dict, int_to_college_name:dict, int_to_student_name:dict):
+    """
+    Get the lowest ranked student that is matched to the item with the given index.
 
     # Args:
     # - item: The item for which the lowest ranked student is to be found.
@@ -301,17 +339,23 @@ def get_lowest_ranked_student(item, match:dict, items_valuations:dict, items_dic
     # - str: The lowest ranked student for the given item.
 
     # Example:
-    # >>> match = {"c1":["s1","s2","s3","s4"], "c2":["s5"], "c3":["s6"], "c4":["s7"]}
-    # >>> items_valuations = {       #the colleges valuations
-    #     "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
-    #     "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
-    #     "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
-    #     "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}
-    #     }
-    # >>> get_lowest_ranked_student("c3", match, items_valuations)
-    # 's6'
-    # """
-    return min(match[item], key=lambda agant: items_valuations[get_key_by_value(value=item, items_dict=items_dict)][get_key_by_value(value=agant, items_dict=agent_dict)])
+    >>> match = {1:[1,2,3,4], 2:[5], 3:[6], 4:[7]}
+    >>> items_valuations = {       #the colleges valuations
+    ... "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
+    ... "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
+    ... "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
+    ... "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}
+    ... }
+    >>> int_to_college_name = {i: f"c{i}" for i in [1,2,3,4]}
+    >>> int_to_student_name = {i: f"s{i}" for i in [1,2,3,4,5,6,7]}
+    >>> get_lowest_ranked_student(1, match, items_valuations, int_to_college_name=int_to_college_name, int_to_student_name=int_to_student_name)
+    4
+    >>> get_lowest_ranked_student(2, match, items_valuations, int_to_college_name=int_to_college_name, int_to_student_name=int_to_student_name)
+    5
+    >>> get_lowest_ranked_student(3, match, items_valuations, int_to_college_name=int_to_college_name, int_to_student_name=int_to_student_name)
+    6
+    """
+    return min(match_int[item_int], key=lambda agent: items_valuations[int_to_college_name[item_int]][int_to_student_name[agent]])
 
 def update_matching_valuations_sum(match:dict, items_valuations:dict)->dict:
     # """
@@ -358,8 +402,11 @@ def create_stable_matching(agents, agents_dict, items, items_dict):
     
     return matching
 
-def generate_dictionary(input_list:list)->dict:
+def generate_dict_from_str_to_int(input_list:list)->dict:
     return {item: index + 1 for index, item in enumerate(input_list)}
+    
+def generate_dict_from_int_to_str(input_list:list)->dict:
+    return {index + 1: item for index, item in enumerate(input_list)}
     
 def get_key_by_value(value, items_dict):
     return next(key for key, val in items_dict.items() if val == value)
@@ -380,4 +427,18 @@ def get_match(match:dict, value:str)->any:
 
 if __name__ == "__main__":
     import doctest, sys
-    print(doctest.testmod())
+    # print(doctest.testmod())
+    # doctest.run_docstring_examples(is_leximin_at_least, globals())
+    # doctest.run_docstring_examples(get_lowest_ranked_student, globals())
+    # sys.exit(0)
+
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler())
+    from fairpyx.adaptors import divide
+    S = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
+    C = ["c1", "c2", "c3", "c4"]
+    V = {"c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},"c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}}
+    U = {"s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},"s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}}
+    ins = Instance(agents=S, items=C, valuations=U)
+    alloc = AllocationBuilder(instance=ins)
+    FaStGen(alloc=alloc, items_valuations=V)
