@@ -56,7 +56,7 @@ def compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian
     expr.run_with_time_limit(run_experiment,input_ranges_1,5)
     expr.run_with_time_limit(run_experiment, input_ranges_2, 5)
     expr.run_with_time_limit(run_experiment, input_ranges_3, 5)
-    
+
 def run_experiment(equal_capacities:bool,equal_valuations:bool,binary_valuations:bool,category_count:int,item_capacity_bounds:int,random_seed_num:int,num_of_agents:int,algorithm:callable,num_of_items:int):
     # Mapping of algorithms to their specific argument sets
     algo_args = {
@@ -92,9 +92,11 @@ def run_experiment(equal_capacities:bool,equal_valuations:bool,binary_valuations
     min_egalitarian_algorithm_value_denominator=min_egalitarian_algorithm_value if min_egalitarian_algorithm_value!=0 else min_egalitarian_algorithm_value+epsilon
     #experiments_csv.logger.info(f'valuation_matrix -> {valuation_matrix} \n and egalitarian allocation ->{not_rounded_egal} \n min value of it is -> {min_egalitarian_algorithm_value}')
     #running current algorithm with the appropriate arguments
-    algorithm(**filtered_kwargs)
+
+    algorithm(**filtered_kwargs)  # results are kept in allocc
     min_algorithm_bundle_value=min(alloc.agent_bundle_value(agent,bundle) for agent,bundle in alloc.bundles.items())# to compare with egalitarian algorithm
     # Utilitarian algorithm
+    
     alloc_utilitarian=AllocationBuilder(instance)
     utilitarian_matching(alloc_utilitarian)
     utilitarian_bundle_sum=sum(alloc_utilitarian.agent_bundle_value(agent,bundle)for agent,bundle in alloc_utilitarian.bundles.items())
