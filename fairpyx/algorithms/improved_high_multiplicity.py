@@ -55,8 +55,6 @@ def improved_high_multiplicity_fair_allocation(alloc: AllocationBuilder):
     for agent in alloc.remaining_agents():
         agents.append(agent)
 
-    agent_capacities = sum([alloc.remaining_item_capacities[item] for item in alloc.remaining_items()])
-    alloc.remaining_agent_capacities = {agent: agent_capacities for agent in alloc.remaining_agents()}
 
     allocation_variables = cp.Variable((len(alloc.remaining_agents()), len(alloc.remaining_items())), integer=True)
 
@@ -124,9 +122,7 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation_variables, co
    """
 
     logger.debug("Searching for envy-free allocation.")
-    num_agents, num_items, items_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
-
-    # Define the objective function (maximize total value)
+    num_agents, num_items, items_capacities, agent_capacities, agent_valuations = get_agents_items_and_capacities(alloc)    # Define the objective function (maximize total value)
     objective = cp.Maximize(0)
 
     item_capacity_constraints = [cp.sum(allocation_variables[:, j]) == items_capacities[j] for j in range(num_items)]
@@ -135,6 +131,7 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation_variables, co
         constraints = []
         for j in range(num_items):
             constraints.append(allocation_variables[i, j] >= 0)
+        constraints.append(cp.sum(allocation_variables[i, :]) <= agent_capacities[i])
         return constraints
 
     with ThreadPoolExecutor() as executor:
@@ -211,8 +208,7 @@ def find_pareto_dominating_allocation(alloc: AllocationBuilder, alloc_matrix):
         """
     logger.debug("Searching for a Pareto-dominating allocation")
 
-    num_agents, num_items, item_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
-
+    num_agents, num_items, item_capacities, agent_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
     allocation_var = cp.Variable((num_agents, num_items), integer=True)
 
     def create_item_capacity_constraints(j):
@@ -223,6 +219,7 @@ def find_pareto_dominating_allocation(alloc: AllocationBuilder, alloc_matrix):
         for i in range(num_agents):
             for j in range(num_items):
                 constraints.append(allocation_var[i, j] >= 0)
+        constraints += [cp.sum(allocation_var[i, :]) <= agent_capacities[i] for i in range(num_agents)]
         return constraints
 
     def create_current_value_per_agent(i):
@@ -380,12 +377,12 @@ def get_agents_items_and_capacities(alloc: AllocationBuilder, bool=False):
         return agents_names, items_names, item_capacities
 
     # else
+    agent_capacities = [alloc.remaining_agent_capacities[agent] for agent in agents_names]
     agent_valuations = [[alloc.effective_value(agent, item) for item in items_names] for agent in agents_names]
     agent_valuations = np.array(agent_valuations)
 
     # Return all variables
-    return len(agents_names), len(items_names), item_capacities, agent_valuations
-
+    return len(agents_names), len(items_names), item_capacities, agent_capacities, agent_valuations
 
 #### MAIN ####
 

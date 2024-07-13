@@ -23,9 +23,6 @@ def second_improved_high_multiplicity_fair_allocation(object alloc):
     items = list(alloc.remaining_items())
     constraints_ilp = []
 
-    agent_capacities = sum([alloc.remaining_item_capacities[item] for item in alloc.remaining_items()])
-    alloc.remaining_agent_capacities = {agent: agent_capacities for agent in alloc.remaining_agents()}
-
     allocation_variables = cp.Variable((len(agents), len(items)), integer=True)
     iteration_count = 0
     alloc_X = second_improved_find_envy_free_allocation(alloc, allocation_variables, constraints_ilp)
@@ -51,15 +48,13 @@ def second_improved_high_multiplicity_fair_allocation(object alloc):
 def second_improved_find_envy_free_allocation(object alloc, object allocation_variables, list constraints_ilp):
     cdef list constraints
     cdef int num_agents, num_items
-    cdef np.ndarray item_capacities, agent_valuations
-
+    cdef np.ndarray item_capacities, agent_capacities, agent_valuations
     constraints = []
-    num_agents, num_items, item_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
-
+    num_agents, num_items, item_capacities, agent_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
     objective = cp.Maximize(0)
     item_capacity_constraints = [cp.sum(allocation_variables[:, j]) == item_capacities[j] for j in range(num_items)]
     agent_capacity_constraints = [allocation_variables[i, j] >= 0 for i in range(num_agents) for j in range(num_items)]
-
+    agent_capacity_constraints += [cp.sum(allocation_variables[i, :]) <= agent_capacities[i] for i in range(num_agents)]
     envy_free_constraints = []
     for i in range(num_agents):
         i_profit = cp.sum(cp.multiply(agent_valuations[i, :], allocation_variables[i, :]))
@@ -81,13 +76,12 @@ def second_improved_find_envy_free_allocation(object alloc, object allocation_va
 
 def second_improved_find_pareto_dominating_allocation(object alloc, np.ndarray alloc_matrix):
     cdef int num_agents, num_items
-    cdef np.ndarray item_capacities, agent_valuations
-
-    num_agents, num_items, item_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
+    cdef np.ndarray item_capacities, agent_capacities, agent_valuations
+    num_agents, num_items, item_capacities, agent_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
     allocation_var = cp.Variable((num_agents, num_items), integer=True)
     item_capacity_constraints = [cp.sum(allocation_var[:, j]) == item_capacities[j] for j in range(num_items)]
     agent_capacity_constraints = [allocation_var[i, j] >= 0 for i in range(num_agents) for j in range(num_items)]
-
+    agent_capacity_constraints += [cp.sum(allocation_var[i, :]) <= agent_capacities[i] for i in range(num_agents)]
     current_value_per_agent = [cp.sum(cp.multiply(agent_valuations[i, :], alloc_matrix[i, :])) for i in
                                range(num_agents)]
     new_value_per_agent = [cp.sum(cp.multiply(agent_valuations[i, :], allocation_var[i, :])) for i in range(num_agents)]
@@ -172,7 +166,7 @@ def get_agents_items_and_capacities(object alloc, bint simple=False):
 
     if simple:
         return agents_names, items_names, item_capacities
-
+    agent_capacities = np.array([alloc.remaining_agent_capacities[agent] for agent in agents_names], dtype=np.int32)
     agent_valuations = np.array(
         [[alloc.effective_value(agent, item) for item in items_names] for agent in agents_names], dtype=np.int32)
-    return len(agents_names), len(items_names), item_capacities, agent_valuations
+    return len(agents_names), len(items_names), item_capacities, agent_capacities, agent_valuations

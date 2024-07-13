@@ -20,6 +20,14 @@ max_value = 1000
 normalized_sum_of_values = 100
 TIME_LIMIT = 60
 
+algorithms_plot = [
+    "high_multiplicity_fair_allocation",
+    "solve",
+    "improved_high_multiplicity_fair_allocation",
+    "second_improved_high_multiplicity_fair_allocation"
+
+
+]
 # Define the specific algorithm you want to check
 algorithms = [
     high.high_multiplicity_fair_allocation,
@@ -71,8 +79,8 @@ def course_allocation_with_random_instance_uniform(
         value_noise_ratio: float,
         algorithm: Callable,
         random_seed: int):
-    agent_capacity_bounds = [2, 5, 8, 10]
-    item_capacity_bounds = [2, 5, 8, 10]
+    agent_capacity_bounds = [1000, 1000]
+    item_capacity_bounds = [2, 10]
     np.random.seed(random_seed)
     instance = Instance.random_uniform(
         num_of_agents=num_of_agents, num_of_items=num_of_items,
@@ -148,24 +156,24 @@ def create_plot_naor_experiment():
 
     fig, axes = plt.subplots(1, 3, figsize=(21, 6))
 
-    for algorithm in algorithms_for_plot:
-        df_algo = data[data['algorithm'] == algorithm]
-        axes[0].plot(df_algo['utilitarian_value'], marker='o', linestyle='-', label=algorithm)
-        axes[1].plot(df_algo['egalitarian_value'], marker='o', linestyle='-', label=algorithm)
-        axes[2].plot(df_algo['runtime'], marker='o', linestyle='-', label=algorithm)
+    for algorithm_p in algorithms_for_plot:
+        df_algo = data[data['algorithm'] == algorithm_p]
+        axes[0].plot(df_algo['utilitarian_value'], marker='o', linestyle='-', label=algorithm_p)
+        axes[1].plot(df_algo['egalitarian_value'], marker='o', linestyle='-', label=algorithm_p)
+        axes[2].plot(df_algo['runtime'], marker='o', linestyle='-', label=algorithm_p)
 
     axes[0].set_title('Utilitarian Value Comparison')
-    axes[0].set_xlabel('Random Seed')
+    axes[0].set_xlabel('')
     axes[0].set_ylabel('Utilitarian Value')
     axes[0].legend()
 
     axes[1].set_title('Egalitarian Value Comparison')
-    axes[1].set_xlabel('Random Seed')
+    axes[1].set_xlabel('')
     axes[1].set_ylabel('Egalitarian Value')
     axes[1].legend()
 
     axes[2].set_title('runtime Comparison')
-    axes[2].set_xlabel('Random Seed')
+    axes[2].set_xlabel('')
     axes[2].set_ylabel('runtime')
     axes[2].legend()
 
@@ -182,24 +190,24 @@ def create_plot_uniform():
 
     fig, axes = plt.subplots(1, 3, figsize=(21, 6))
 
-    for algorithm in algorithms_for_plot:
-        df_algo = data[data['algorithm'] == algorithm]
-        axes[0].plot(df_algo['utilitarian_value'], marker='o', linestyle='-', label=algorithm)
-        axes[1].plot(df_algo['egalitarian_value'], marker='o', linestyle='-', label=algorithm)
-        axes[2].plot(df_algo['runtime'], marker='o', linestyle='-', label=algorithm)
+    for algorithm_p in algorithms_for_plot:
+        df_algo = data[data['algorithm'] == algorithm_p]
+        axes[0].plot(df_algo['num_of_agents'], df_algo['utilitarian_value'], marker='o', linestyle='-', label=algorithm_p)
+        axes[1].plot(df_algo['num_of_agents'], df_algo['egalitarian_value'], marker='o', linestyle='-', label=algorithm_p)
+        axes[2].plot(df_algo['num_of_agents'], df_algo['runtime'], marker='o', linestyle='-', label=algorithm_p)
 
     axes[0].set_title('Utilitarian Value Comparison')
-    axes[0].set_xlabel('Random Seed')
+    axes[0].set_xlabel('num_of_agents')
     axes[0].set_ylabel('Utilitarian Value')
     axes[0].legend()
 
     axes[1].set_title('Egalitarian Value Comparison')
-    axes[1].set_xlabel('Random Seed')
+    axes[1].set_xlabel('num_of_agents')
     axes[1].set_ylabel('Egalitarian Value')
     axes[1].legend()
 
     axes[2].set_title('runtime Comparison')
-    axes[2].set_xlabel('Random Seed')
+    axes[2].set_xlabel('num_of_agents')
     axes[2].set_ylabel('runtime')
     axes[2].legend()
 
@@ -215,5 +223,7 @@ if __name__ == "__main__":
     import logging
 
     experiments_csv.logger.setLevel(logging.DEBUG)
-    run_uniform_experiment()
+    # run_naor_experiment()
+    # create_plot_naor_experiment()
+    # run_uniform_experiment()
     create_plot_uniform()
