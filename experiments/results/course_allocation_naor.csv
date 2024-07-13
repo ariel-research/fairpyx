@@ -1,0 +1,6 @@
+max_total_agent_capacity,algorithm,random_seed,utilitarian_value,egalitarian_value,runtime
+12,high_multiplicity_fair_allocation,0,106.8,84.6,217.88183908900828
+12,solve,0,104.24000000000001,94.0,0.9734957930049859
+12,solve,1,0.0,0,108.46712351799943
+12,improved_high_multiplicity_fair_allocation,0,106.8,84.6,221.5737192640081
+12,second_improved_high_multiplicity_fair_allocation,0,106.8,84.6,185.17307695699856

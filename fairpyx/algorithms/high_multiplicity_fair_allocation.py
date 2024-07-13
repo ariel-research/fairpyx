@@ -55,9 +55,6 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
         items.append(i)
     for agent in alloc.remaining_agents():
         agents.append(agent)
-    agent_capacities = sum([alloc.remaining_item_capacities[item] for item in alloc.remaining_items()])
-
-    alloc.remaining_agent_capacities = {agent: agent_capacities for agent in alloc.remaining_agents()}
 
     allocation_variables = cp.Variable((len(alloc.remaining_agents()), len(alloc.remaining_items())), integer=True)
 
@@ -72,7 +69,7 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
         logger.debug(f'The envy matrix of the allocation {calculate_envy_matrix(alloc, alloc_X)} ')
         alloc_Y = find_pareto_dominating_allocation(alloc, alloc_X)
         if alloc_Y is None:
-            logger.info("No Pareto dominating allocation found, finalizing allocation:\n%s",alloc_X)
+            logger.info("No Pareto dominating allocation found, finalizing allocation:\n%s", alloc_X)
 
             i = 0
             for agent in alloc_X:
@@ -90,7 +87,8 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
             logger.info(f"allocation found after {iteration_count} iterations")
             return
         else:
-            logger.debug(f'The envy matrix of the Pareto dominating allocation {calculate_envy_matrix(alloc, alloc_Y)} ')
+            logger.debug(
+                f'The envy matrix of the Pareto dominating allocation {calculate_envy_matrix(alloc, alloc_Y)} ')
             logger.debug(f'The values of the first allocation {calculate_values(alloc, alloc_X)} ')
             logger.debug(f'The values of the Pareto dominating allocation {calculate_values(alloc, alloc_Y)}')
 
@@ -125,9 +123,9 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation_variables, co
     """
 
     logger.debug("Searching for envy-free allocation.")
-    constraints = []
+
     num_agents, num_items, items_capacities, \
-        agent_valuations = get_agents_items_and_capacities(alloc)
+        agent_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
 
     # Define the objective function (maximize total value)
     objective = cp.Maximize(0)
@@ -140,7 +138,8 @@ def find_envy_free_allocation(alloc: AllocationBuilder, allocation_variables, co
         for j in range(num_items):
             agent_capacity_constraints.append(allocation_variables[i, j] >= 0)
 
-
+    agent_capacity_constraints += [cp.sum(allocation_variables[i, :]) <= agent_capacities[i] for i in
+                                   range(num_agents)]
     # Define envy-free constraints
     envy_free_constraints = []
     for i in range(num_agents):
@@ -215,13 +214,11 @@ def find_pareto_dominating_allocation(alloc: AllocationBuilder, alloc_matrix):
     logger.debug("Searching for a Pareto-dominating allocation")
 
     num_agents, num_items, item_capacities, \
-        agent_valuations = get_agents_items_and_capacities(alloc)
-
+        agent_capacities, agent_valuations = get_agents_items_and_capacities(alloc)
 
     # logger.debug(f"Item names and capacities: {alloc.remaining_item_capacities}")
     # logger.debug(f"Agents names and capacities: {alloc.remaining_agent_capacities}")
     # logger.debug(f"Agent valuations: {agent_valuations}")
-
 
     # Define decision variables
     allocation_var = cp.Variable((num_agents, num_items), integer=True)
@@ -229,8 +226,7 @@ def find_pareto_dominating_allocation(alloc: AllocationBuilder, alloc_matrix):
     # Define capacity constraints
     item_capacity_constraints = [cp.sum(allocation_var[:, j]) == item_capacities[j] for j in range(num_items)]
     agent_capacity_constraints = [allocation_var[i, j] >= 0 for i in range(num_agents) for j in range(num_items)]
-
-
+    agent_capacity_constraints += [cp.sum(allocation_var[i, :]) <= agent_capacities[i] for i in range(num_agents)]
     # Define Pareto dominance constraints
     current_value_per_agent = [cp.sum(cp.multiply(agent_valuations[i, :], alloc_matrix[i, :])) for i in
                                range(num_agents)]
@@ -258,7 +254,8 @@ def find_pareto_dominating_allocation(alloc: AllocationBuilder, alloc_matrix):
         return None
 
 
-def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, alloc_Y: np.ndarray, allocation_variables: cp.Variable):
+def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, alloc_Y: np.ndarray,
+                                allocation_variables: cp.Variable):
     """
     Creates additional ILP constraints based on current and previous allocations to ensure
     the new allocation differs from the previous one and satisfies specific conditions.
@@ -283,12 +280,11 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, a
     Z = cp.Variable((num_agents, num_items), boolean=True)
     Z_bar = cp.Variable((num_agents, num_items), boolean=True)
 
-
     # Add constraints for each agent-item combination
     constraints = []
 
     delta = alloc_Y - alloc_X
-    logger.debug(f'Delta:\n%s',delta)
+    logger.debug(f'Delta:\n%s', delta)
     for i in range(num_agents):
         for j in range(num_items):
             # Constraint 7 - inequality (7) in the paper.
@@ -297,12 +293,12 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, a
 
             # Constraint 8 - inequality (8) in the paper.
             constraint8 = allocation_variables[i][j] + delta[i][j] >= -items_capacities[j] + Z_bar[i][j] * (
-                        2 * items_capacities[j] + 1)
+                    2 * items_capacities[j] + 1)
             constraints.append(constraint8)
     # Add constraint for each agent that at least one item must change: inequality (9) in the paper.
 
     constraint9 = (cp.sum([Z[i][j] for i in range(num_agents) for j in range(num_items)]) +
-        cp.sum([Z_bar[i][j] for i in range(num_agents) for j in range(num_items)])) >= 1
+                   cp.sum([Z_bar[i][j] for i in range(num_agents) for j in range(num_items)])) >= 1
     constraints.append(constraint9)
 
     return constraints
@@ -381,11 +377,12 @@ def get_agents_items_and_capacities(alloc: AllocationBuilder, bool=False):
         return agents_names, items_names, item_capacities
 
     # else
+    agent_capacities = [alloc.remaining_agent_capacities[agent] for agent in agents_names]
     agent_valuations = [[alloc.effective_value(agent, item) for item in items_names] for agent in agents_names]
     agent_valuations = np.array(agent_valuations)
 
     # Return all variables
-    return len(agents_names), len(items_names), item_capacities, agent_valuations
+    return len(agents_names), len(items_names), item_capacities, agent_capacities, agent_valuations
 
 
 #### MAIN ####
@@ -403,20 +400,20 @@ def instance_4_3():
 def instance_4_6():
     item_capacities = {'c1': 5, 'c2': 6, 'c3': 2, 'c4': 3, 'c5': 5, 'c6': 2}
     valuations = {
-         's1': {'c1': 152, 'c2': 86, 'c3': 262, 'c4': 68, 'c5': 263, 'c6': 169},
-         's2': {'c1': 124, 'c2': 70, 'c3': 98, 'c4': 244, 'c5': 329, 'c6': 135},
-         's3': {'c1': 170, 'c2': 235, 'c3': 295, 'c4': 91, 'c5': 91, 'c6': 118},
-         's4': {'c1': 158, 'c2': 56, 'c3': 134, 'c4': 255, 'c5': 192, 'c6': 205}}
+        's1': {'c1': 152, 'c2': 86, 'c3': 262, 'c4': 68, 'c5': 263, 'c6': 169},
+        's2': {'c1': 124, 'c2': 70, 'c3': 98, 'c4': 244, 'c5': 329, 'c6': 135},
+        's3': {'c1': 170, 'c2': 235, 'c3': 295, 'c4': 91, 'c5': 91, 'c6': 118},
+        's4': {'c1': 158, 'c2': 56, 'c3': 134, 'c4': 255, 'c5': 192, 'c6': 205}}
     return Instance(item_capacities=item_capacities, valuations=valuations)
 
 
 def instance2_4_6():
     item_capacities = {'c1': 2, 'c2': 2, 'c3': 2, 'c4': 2, 'c5': 2, 'c6': 2}
     valuations = {
-         's1': {'c1': 100, 'c2': 60, 'c3': 60, 'c4': 60, 'c5': 70, 'c6': 60},
-         's2': {'c1': 60, 'c2': 100, 'c3': 60, 'c4': 60, 'c5': 70, 'c6': 60},
-         's3': {'c1': 60, 'c2': 60, 'c3': 100, 'c4': 60, 'c5': 60, 'c6': 70},
-         's4': {'c1': 60, 'c2': 60, 'c3': 60, 'c4': 100, 'c5': 60, 'c6': 70}}
+        's1': {'c1': 100, 'c2': 60, 'c3': 60, 'c4': 60, 'c5': 70, 'c6': 60},
+        's2': {'c1': 60, 'c2': 100, 'c3': 60, 'c4': 60, 'c5': 70, 'c6': 60},
+        's3': {'c1': 60, 'c2': 60, 'c3': 100, 'c4': 60, 'c5': 60, 'c6': 70},
+        's4': {'c1': 60, 'c2': 60, 'c3': 60, 'c4': 100, 'c5': 60, 'c6': 70}}
     return Instance(item_capacities=item_capacities, valuations=valuations)
 
 
@@ -429,7 +426,6 @@ if __name__ == "__main__":
 
     logger.setLevel(logging.DEBUG)
 
-
     # instance = Instance.random_uniform(
     #     num_of_agents=4, num_of_items=6,
     #     agent_capacity_bounds=(6,6), item_capacity_bounds=(2,6),
@@ -439,7 +435,6 @@ if __name__ == "__main__":
     #     random_seed=1)
     # print(instance)
     divide(high_multiplicity_fair_allocation, instance_4_3())
-
 
     # alloc = AllocationBuilder(instance)
     # alloc_X = np.array([[1, 0, 1], [0, 2, 0], [1, 0, 1], [1, 1, 1]])
