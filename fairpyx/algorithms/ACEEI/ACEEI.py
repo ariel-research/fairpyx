@@ -117,6 +117,18 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
     ... delta=delta, epsilon=epsilon, t=t))
     "{avi:['x', 'z'], beni:['y', 'z']}"
+
+    # INFISIBLE
+    >>> instance = Instance(valuations={'s1': {'c1': 184, 'c2': 172, 'c3': 62, 'c4': 50, 'c5': 84, 'c6': 75, 'c7': 37, 'c8': 39, 'c9': 80, 'c10': 54, 'c11': 69, 'c12': 93}, 's2': {'c1': 81, 'c2': 2, 'c3': 223, 'c4': 61, 'c5': 89, 'c6': 229, 'c7': 81, 'c8': 94, 'c9': 18, 'c10': 103, 'c11': 2, 'c12': 17}, 's3': {'c1': 178, 'c2': 44, 'c3': 210, 'c4': 78, 'c5': 49, 'c6': 174, 'c7': 59, 'c8': 23, 'c9': 101, 'c10': 43, 'c11': 33, 'c12': 7}, 's4': {'c1': 165, 'c2': 134, 'c3': 8, 'c4': 36, 'c5': 146, 'c6': 210, 'c7': 15, 'c8': 52, 'c9': 88, 'c10': 56, 'c11': 55, 'c12': 35}, 's5': {'c1': 42, 'c2': 21, 'c3': 155, 'c4': 82, 'c5': 122, 'c6': 146, 'c7': 75, 'c8': 51, 'c9': 91, 'c10': 81, 'c11': 61, 'c12': 72}, 's6': {'c1': 82, 'c2': 141, 'c3': 42, 'c4': 159, 'c5': 172, 'c6': 13, 'c7': 45, 'c8': 32, 'c9': 104, 'c10': 84, 'c11': 56, 'c12': 69}, 's7': {'c1': 188, 'c2': 192, 'c3': 96, 'c4': 7, 'c5': 36, 'c6': 36, 'c7': 44, 'c8': 129, 'c9': 26, 'c10': 33, 'c11': 85, 'c12': 127}, 's8': {'c1': 38, 'c2': 89, 'c3': 131, 'c4': 48, 'c5': 186, 'c6': 89, 'c7': 72, 'c8': 86, 'c9': 110, 'c10': 95, 'c11': 7, 'c12': 48}, 's9': {'c1': 34, 'c2': 223, 'c3': 115, 'c4': 144, 'c5': 64, 'c6': 75, 'c7': 61, 'c8': 0, 'c9': 82, 'c10': 36, 'c11': 89, 'c12': 76}, 's10': {'c1': 52, 'c2': 52, 'c3': 127, 'c4': 185, 'c5': 37, 'c6': 165, 'c7': 23, 'c8': 23, 'c9': 87, 'c10': 89, 'c11': 72, 'c12': 87}},
+    ...     agent_capacities=5,
+    ...     item_capacities={'c1': 5.0, 'c2': 5.0, 'c3': 5.0, 'c4': 5.0, 'c5': 5.0, 'c6': 5.0, 'c7': 5.0, 'c8': 5.0, 'c9': 5.0, 'c10': 5.0, 'c11': 5.0, 'c12': 5.0})
+    >>> initial_budgets = {'s1': 0.1650725918656969, 's2': 0.16262501524662654, 's3': 0.3201931268150584, 's4': 0.2492903523388018, 's5': 0.8017230433275404, 's6': 0.4141205417185544, 's7': 0.6544436816508201, 's8': 0.37386229094484114, 's9': 0.18748235872379515, 's10': 0.6342641285976163}
+    >>> delta = 0.5
+    >>> epsilon = 3
+    >>> t = EFTBStatus.EF_TB
+    >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
+    ... delta=delta, epsilon=epsilon, t=t))
+    '{s1:[], s10:[], s2:[], s3:[], s4:[], s5:[], s6:[], s7:[], s8:[], s9:[]}'
     """
     # allocation = [[0 for _ in range(instance.num_of_agents)] for _ in range(instance.num_of_items)]
     # 1) init prices vector to be 0
@@ -140,7 +152,9 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
             initial_budgets, epsilon, prices, alloc.instance, t, combinations_courses_sorted)
 
         if clearing_error is None:
-            raise ValueError("Clearing error is None")
+            print("Clearing error is None - No Solution")
+            # raise ValueError("Clearing error is None")
+            break
         # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
         logger.info("Clearing error is %s", clearing_error)
         if np.allclose(clearing_error, 0):
@@ -280,8 +294,8 @@ def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict
     logger.debug(
         "  Budget perturbation with lowest clearing error: new_budgets = %s, clearing_error = %s, excess_demand_per_course = %s",
         new_budgets, clearing_error, excess_demand_per_course)
-    if clearing_error is None:
-        raise ValueError("Clearing error is None")
+    # if clearing_error is None:
+    #     raise ValueError("Clearing error is None")
     return new_budgets, clearing_error, map_student_to_best_bundle_per_budget, excess_demand_per_course
 
 
@@ -293,6 +307,7 @@ def ACEEI_without_EFTB(alloc: AllocationBuilder, **kwargs):
 
 def ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
     initial_budgets = random_initial_budgets(alloc.instance.num_of_agents)
+    # print(f"--- initial_budgets = {initial_budgets} ---")
     return find_ACEEI_with_EFTB(alloc, initial_budgets=initial_budgets, delta=0.5, epsilon=3.0, t=EFTBStatus.EF_TB,
                                 **kwargs)
 
