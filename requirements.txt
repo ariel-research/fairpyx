@@ -1,7 +1,8 @@
-numpy>=1.21.3 
+numpy>=1.21.3,<2.0.0
 scipy>=1.6.1
-networkz
+networkz~=1.0.6
 cvxpy_base>=1.1.17
+prtpy
 # cmake
 # matplotlib
 # repackage
