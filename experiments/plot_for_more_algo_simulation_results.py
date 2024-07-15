@@ -21,10 +21,10 @@ def multi_multi_plot_results(results_csv_file:str, save_to_file_template:str, fi
 
 
 def plot_course_allocation_results_szws():
-     filter={"num_of_agents": 100, "num_of_items": 25}
+     filter={"num_of_agents": 100, "num_of_items": 25, "solver": None}
      y_fields=["utilitarian_value","egalitarian_value", "max_envy", "mean_envy",  "mean_deficit", "max_deficit", "num_with_top_1", "num_with_top_2", "num_with_top_3","runtime"]
      multi_multi_plot_results(
-          results_csv_file="results/more_algo_for_course_allocation_szws.csv",
+          results_csv_file="results/wi_algo_for_course_allocation_szws.csv",
           save_to_file_template="results/more_algo_for_course_allocation_szws_{}.png",
           filter=filter, 
           x_field="supply_ratio", y_fields=y_fields, z_field="algorithm", mean=True,
@@ -34,6 +34,7 @@ def plot_course_allocation_results_szws():
 
 
 def plot_course_allocation_results_ariel():
+     filter = {"solver": None}
      y_fields=["utilitarian_value","egalitarian_value", "max_envy", "mean_envy",  "mean_deficit", "max_deficit", "num_with_top_1", "num_with_top_2", "num_with_top_3","runtime"]
      multi_multi_plot_results(
           results_csv_file="results/more_algo_for_course_allocation_ariel.csv",
@@ -48,10 +49,10 @@ def plot_course_allocation_results_ariel():
 
 
 def plot_course_allocation_results_uniform():
-     filter={}
+     filter = {}
      y_fields=["utilitarian_value","egalitarian_value", "max_envy", "mean_envy",  "mean_deficit", "max_deficit", "num_with_top_1", "num_with_top_2", "num_with_top_3","runtime"]
      multi_multi_plot_results(
-          results_csv_file="results/more_algo_for_course_allocation_uniform.csv",
+          results_csv_file="results/with_solver_algo_for_course_allocation_uniform.csv",
           save_to_file_template="results/more_algo_for_course_allocation_uniform_{}.png",
           filter=filter, 
           x_field="value_noise_ratio", y_fields=y_fields, z_field="algorithm", mean=True,
@@ -60,9 +61,60 @@ def plot_course_allocation_results_uniform():
           )
 
 
+def plot_course_allocation_results_solvers_uniform(algo):
+     filter = {"algorithm": algo}
+     y_fields = ["runtime"]
+     z_field = "solver"
+     save_to_file_template = f"results/with_solver_algo_for_course_allocation_uniform_{algo}.png"
+     multi_multi_plot_results(
+          results_csv_file="results/with_solver_algo_for_course_allocation_uniform.csv",
+          save_to_file_template=save_to_file_template,
+          filter=filter,
+          x_field="value_noise_ratio", y_fields=y_fields, z_field=z_field, mean=True,
+          subplot_field="num_of_agents", subplot_rows=2, subplot_cols=2, sharey=True, sharex=True,
+          legend_properties={"size": 6},
+     )
+
+def plot_course_allocation_results_solvers_szws(algo):
+     filter = {"algorithm": algo}
+     y_fields = ["runtime"]
+     z_field = "solver"
+     save_to_file_template = f"results/with_solver_algo_for_course_allocation_szws_{algo}.png"
+     multi_multi_plot_results(
+          results_csv_file="results/with_solver_algo_for_course_allocation_szws.csv",
+          save_to_file_template=save_to_file_template,
+          filter=filter,
+          x_field="value_noise_ratio", y_fields=y_fields, z_field=z_field, mean=True,
+          subplot_field="num_of_agents", subplot_rows=2, subplot_cols=2, sharey=True, sharex=True,
+          legend_properties={"size": 6},
+     )
+
+def plot_course_allocation_results_solvers_ariel(algo):
+     filter = {"algorithm": algo}
+     y_fields = ["runtime"]
+     z_field = "solver"
+     save_to_file_template = f"results/with_solver_algo_for_course_allocation_ariel_{algo}.png"
+     multi_multi_plot_results(
+          results_csv_file="results/with_solver_algo_for_course_allocation_ariel.csv",
+          save_to_file_template=save_to_file_template,
+          filter=filter,
+          x_field="value_noise_ratio", y_fields=y_fields, z_field=z_field, mean=True,
+          subplot_field="num_of_agents", subplot_rows=2, subplot_cols=2, sharey=True, sharex=True,
+          legend_properties={"size": 6},
+     )
+
+
+
+
 plot_course_allocation_results_uniform()
 # plot_course_allocation_results_szws()
 #plot_course_allocation_results_ariel()
+
+# algorithms_with_specific_solver = ["TTC_O_function", "SP_O_function", "OC_function"]
+# for algo in algorithms_with_specific_solver:
+#      plot_course_allocation_results_solvers_uniform(algo)
+#      plot_course_allocation_results_solvers_szws(algo)
+#      plot_course_allocation_results_solvers_ariel(algo)
 
 
 
