@@ -42,16 +42,16 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)
 
-    rank_mat = optimal.createRankMat(alloc,logger)
+    rank_mat = optimal.createRankMat(alloc,explanation_logger)
     sum_rank = optimal.sumOnRankMat(alloc, rank_mat, x)
     objective_Z1 = cp.Maximize(sum_rank)
 
     constraints_Z1 = optimal.notExceedtheCapacity(x,alloc) + optimal.numberOfCourses(x, alloc, alloc.remaining_agent_capacities)
 
     problem = cp.Problem(objective_Z1, constraints=constraints_Z1)
-    logger.info("solver: %s", solver)
+    explanation_logger.info("solver: %s", solver)
     result_Z1 = problem.solve(solver=solver)
-    logger.info("\nRank optimization: result_Z1 = %s, x = \n%s", result_Z1, x.value)
+    explanation_logger.debug("\nRank optimization: result_Z1 = %s, x = \n%s", result_Z1, x.value)
 
     x = cvxpy.Variable((len(alloc.remaining_items()), len(alloc.remaining_agents())), boolean=True)  # Is there a func which zero all the matrix?
     sum_rank = optimal.sumOnRankMat(alloc, rank_mat, x)
@@ -70,8 +70,8 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
         list_courses.append(course)
 
     # logger.info("type(alloc.instance.item_conflicts) = %s ", type(alloc.instance.item_conflicts))
-    logger.info("alloc.remaining_conflicts = %s ", alloc.remaining_conflicts)
-    logger.info("alloc.remaining_instance().item_conflicts(c1) = %s ", alloc.remaining_instance().item_conflicts("c1"))
+    explanation_logger.debug("alloc.remaining_conflicts = %s ", alloc.remaining_conflicts)
+    explanation_logger.debug("alloc.remaining_instance().item_conflicts(c1) = %s ", alloc.remaining_instance().item_conflicts("c1"))
 
 
     for course in alloc.remaining_items():
@@ -86,14 +86,14 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     try:
         problem = cp.Problem(objective_Z2, constraints=constraints_Z2)
         result_Z2 = problem.solve(solver=solver)
-        logger.info("\nValue optimization: result_Z2 = %s, x = \n%s", result_Z2, x.value)
+        explanation_logger.debug("\nValue optimization: result_Z2 = %s, x = \n%s", result_Z2, x.value)
 
         # Check if the optimization problem was successfully solved
         if result_Z2 is not None:
-            optimal.give_items_according_to_allocation_matrix(alloc, x, logger, rank_mat)
+            optimal.give_items_according_to_allocation_matrix(alloc, x, explanation_logger, rank_mat)
 
             optimal_value = problem.value
-            explanation_logger.info("Optimal Objective Value:", optimal_value)
+            explanation_logger.debug("Optimal Objective Value:", optimal_value)
             # Now you can use this optimal value for further processing
         else:
             explanation_logger.info("Solver failed to find a solution or the problem is infeasible/unbounded.")
@@ -101,7 +101,7 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
     except Exception as e:
         explanation_logger.info("Solver failed: %s", str(e))
-        logger.error("An error occurred: %s", str(e))
+        explanation_logger.error("An error occurred: %s", str(e))
         raise
 
 
@@ -110,24 +110,24 @@ if __name__ == "__main__":
     print("\n", doctest.testmod(), "\n")
     # sys.exit(1)
 
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.DEBUG)
-    import fairpyx
-    from fairpyx.adaptors import divide
-
-    valuations =  {
-        's1': {'c1': 1, 'c2': 4, 'c3': 5, 'c4': 2, 'c5': 18}, 
-        's2': {'c1': 1, 'c2': 4, 'c3': 3, 'c4': 2, 'c5': 20}, 
-        's3': {'c1': 3, 'c2': 5, 'c3': 3, 'c4': 2, 'c5': 17}, 
-        's4': {'c1': 2, 'c2': 1, 'c3': 6, 'c4': 2, 'c5': 19}, 
-        's5': {'c1': 2, 'c2': 5, 'c3': 3, 'c4': 2, 'c5': 19}
-    }
-    agent_capacities = {'s1': 3, 's2': 3, 's3': 3, 's4': 3, 's5': 3}
-    item_capacities = {'c1': 5, 'c2': 5, 'c3': 5, 'c4': 5, 'c5': 5}
-    instance = fairpyx.Instance(valuations=valuations, agent_capacities=agent_capacities, item_capacities=item_capacities)
-    solver = None
-    allocation = fairpyx.divide(OC_function, instance=instance, solver=solver)
-    fairpyx.validate_allocation(instance, allocation, title=f"OC_function")
+    # logger.addHandler(logging.StreamHandler())
+    # logger.setLevel(logging.DEBUG)
+    # import fairpyx
+    # from fairpyx.adaptors import divide
+    #
+    # valuations =  {
+    #     's1': {'c1': 1, 'c2': 4, 'c3': 5, 'c4': 2, 'c5': 18},
+    #     's2': {'c1': 1, 'c2': 4, 'c3': 3, 'c4': 2, 'c5': 20},
+    #     's3': {'c1': 3, 'c2': 5, 'c3': 3, 'c4': 2, 'c5': 17},
+    #     's4': {'c1': 2, 'c2': 1, 'c3': 6, 'c4': 2, 'c5': 19},
+    #     's5': {'c1': 2, 'c2': 5, 'c3': 3, 'c4': 2, 'c5': 19}
+    # }
+    # agent_capacities = {'s1': 3, 's2': 3, 's3': 3, 's4': 3, 's5': 3}
+    # item_capacities = {'c1': 5, 'c2': 5, 'c3': 5, 'c4': 5, 'c5': 5}
+    # instance = fairpyx.Instance(valuations=valuations, agent_capacities=agent_capacities, item_capacities=item_capacities)
+    # solver = None
+    # allocation = fairpyx.divide(OC_function, instance=instance, solver=solver)
+    # fairpyx.validate_allocation(instance, allocation, title=f"OC_function")
 
 
     # for i in range(100):
@@ -191,4 +191,37 @@ if __name__ == "__main__":
     #     valuations={"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}
     # )
     # allocation = divide(OC_function, instance=instance)
+
+    from fairpyx.adaptors import divide_random_instance, divide
+    from fairpyx.explanations import ConsoleExplanationLogger, FilesExplanationLogger, StringsExplanationLogger
+
+    num_of_agents = 5
+    num_of_items = 3
+
+    console_explanation_logger = ConsoleExplanationLogger(level=logging.INFO)
+    # files_explanation_logger = FilesExplanationLogger({
+    #     f"s{i + 1}": f"logs/s{i + 1}.log"
+    #     for i in range(num_of_agents)
+    # }, mode='w', language="he")
+    # string_explanation_logger = StringsExplanationLogger(f"s{i + 1}" for i in range(num_of_agents))
+
+    # print("\n\nIterated Maximum Matching without adjustments:")
+    # divide_random_instance(algorithm=iterated_maximum_matching, adjust_utilities=False,
+    #                        num_of_agents=num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=[2,5], item_capacity_bounds=[3,12],
+    #                        item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
+    #                        random_seed=1)
+
+    print("\n\nIterated Maximum Matching with adjustments:")
+    divide_random_instance(algorithm=OC_function,
+                           explanation_logger=console_explanation_logger,
+                           #    explanation_logger = files_explanation_logger,
+                           # explanation_logger=string_explanation_logger,
+                           num_of_agents=num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=[2, 5],
+                           item_capacity_bounds=[3, 12],
+                           item_base_value_bounds=[1, 100], item_subjective_ratio_bounds=[0.5, 1.5],
+                           normalized_sum_of_values=100,
+                           random_seed=1)
+
+    # print(string_explanation_logger.map_agent_to_explanation())
+    # print(string_explanation_logger.map_agent_to_explanation()["s1"])
 

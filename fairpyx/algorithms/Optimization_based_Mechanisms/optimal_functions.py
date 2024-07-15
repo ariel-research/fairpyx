@@ -41,7 +41,7 @@ def give_items_according_to_allocation_matrix(alloc, allocation_matrix, explanat
         for j, course in enumerate(remaining_items_list):
             # logger.info("x[%d,%d]=%s", j, i, x_values[j, i])
             if x_values[j, i] > 0.5:
-                explanation_logger.info("x_values[%d, You] = %s, so you get course %s", j, x_values[j, i], course, agents=student)
+                explanation_logger.info("x_values[%d, You] = %s, so you get course %s for %d bids", j, x_values[j, i], course, alloc.effective_value(student, course), agents=student)
                 assign_map_courses_to_student[student].append(course)
 
     # logger.info("assign_map_courses_to_student: %s", assign_map_courses_to_student)
