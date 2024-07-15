@@ -42,36 +42,6 @@ def sort_and_tie_brake(input_dict: Dict[str, float], tie_braking_lottery: Dict[s
     
     return sorted_dict
 
-def sort_lists_by_numeric_suffix(input_dict):
-    """
-    Sorts lists of strings in a dictionary based on the numeric values after the character 'c'.
-
-    Parameters:
-    input_dict (dict[str, list[str]]): A dictionary where each key is a string and the value is a list of strings
-                                       starting with 'c' followed by a numeric value.
-
-    Returns:
-    dict[str, list[str]]: A dictionary with the same keys as input_dict but with sorted lists.
-
-    Example:
-    >>> input_dict = {'Alice': ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15'], 
-    ...               'Bob': ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15', 'c16', 'c17', 'c18', 'c19', 'c20'], 
-    ...               'Chana': ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15', 'c16', 'c17', 'c18'], 
-    ...               'Dana': ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15', 'c16', 'c17'], 
-    ...               'Dor': ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15', 'c16']}
-    >>> sorted_dict = sort_lists_by_numeric_suffix(input_dict)
-    >>> sorted_dict['Alice']
-    ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15']
-    >>> sorted_dict['Bob']
-    ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15', 'c16', 'c17', 'c18', 'c19', 'c20']
-    """
-
-    def numeric_suffix(item):
-        return int(item[1:])  # Convert the numeric part of the string to an integer
-
-    sorted_dict = {key: sorted(value, key=numeric_suffix) for key, value in input_dict.items()}
-    return sorted_dict
-
 def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, List[str]], tie_braking_lottery: Union[None, Dict[str, float]] = None):
     """
     Allocate the given items to the given agents using the Gale-Shapley protocol.
