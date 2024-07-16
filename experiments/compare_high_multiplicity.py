@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 from fairpyx import divide, AgentBundleValueMatrix, Instance
 import fairpyx.algorithms.high_multiplicity_fair_allocation as high
 import fairpyx.algorithms.improved_high_multiplicity as imp
-import fairpyx.algorithms.second_improved_high_multiplicity as sec
 from typing import *
 import numpy as np
 from eefpy import Objective, EnvyNotion
@@ -24,16 +23,12 @@ algorithms_plot = [
     "high_multiplicity_fair_allocation",
     "solve",
     "improved_high_multiplicity_fair_allocation",
-    "second_improved_high_multiplicity_fair_allocation"
-
-
 ]
 # Define the specific algorithm you want to check
 algorithms = [
     high.high_multiplicity_fair_allocation,
     solve,
     imp.improved_high_multiplicity_fair_allocation,
-    sec.second_improved_high_multiplicity_fair_allocation
 ]
 
 
@@ -197,17 +192,17 @@ def create_plot_uniform():
         axes[2].plot(df_algo['num_of_agents'], df_algo['runtime'], marker='o', linestyle='-', label=algorithm_p)
 
     axes[0].set_title('Utilitarian Value Comparison')
-    axes[0].set_xlabel('num_of_agents')
+    axes[0].set_xlabel('')
     axes[0].set_ylabel('Utilitarian Value')
     axes[0].legend()
 
     axes[1].set_title('Egalitarian Value Comparison')
-    axes[1].set_xlabel('num_of_agents')
+    axes[1].set_xlabel('')
     axes[1].set_ylabel('Egalitarian Value')
     axes[1].legend()
 
     axes[2].set_title('runtime Comparison')
-    axes[2].set_xlabel('num_of_agents')
+    axes[2].set_xlabel('')
     axes[2].set_ylabel('runtime')
     axes[2].legend()
 
