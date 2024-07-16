@@ -13,7 +13,7 @@ import numpy as np
 import fairpyx.algorithms.Optimization_based_Mechanisms.optimal_functions as optimal
 logger = logging.getLogger(__name__)
 
-def conflicts_condition(alloc, x):
+def conflicts_condition(alloc, x, explanation_logger):
     conditions = []
     list_courses = []
     for course in alloc.remaining_items():
@@ -21,7 +21,7 @@ def conflicts_condition(alloc, x):
 
     for course in alloc.remaining_items():
         list_of_conflict = alloc.remaining_instance().item_conflicts(course)
-
+        explanation_logger.debug("for course %s list_of_conflict %s", course, list_of_conflict)
         for course2 in list_of_conflict:
             index_c1 = list_courses.index(course)
             index_c2 = list_courses.index(course2)
@@ -42,14 +42,14 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
     :param solver: solver for cvxpy. Default is SCIPY.
 
-    >>> from fairpyx.adaptors import divide
-    >>> s1 = {"c1": 44, "c2": 39, "c3": 17}
-    >>> s2 = {"c1": 50, "c2": 45, "c3": 5}
-    >>> agent_capacities = {"s1": 2, "s2": 2}                                 # 4 seats required
-    >>> course_capacities = {"c1": 2, "c2": 1, "c3": 2}                       # 5 seats available
-    >>> valuations = {"s1": s1, "s2": s2}
-    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
-    >>> divide(OC_function, instance=instance)
+    # >>> from fairpyx.adaptors import divide
+    # >>> s1 = {"c1": 44, "c2": 39, "c3": 17}
+    # >>> s2 = {"c1": 50, "c2": 45, "c3": 5}
+    # >>> agent_capacities = {"s1": 2, "s2": 2}                                 # 4 seats required
+    # >>> course_capacities = {"c1": 2, "c2": 1, "c3": 2}                       # 5 seats available
+    # >>> valuations = {"s1": s1, "s2": s2}
+    # >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    # >>> divide(OC_function, instance=instance)
     {'s1': ['c1', 'c3'], 's2': ['c1', 'c2']}
     """
 
@@ -64,7 +64,7 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
 
     constraints_Z1 = optimal.notExceedtheCapacity(x,alloc) \
                      + optimal.numberOfCourses(x, alloc, alloc.remaining_agent_capacities) \
-                     + conflicts_condition(alloc, x)
+                     + conflicts_condition(alloc, x, explanation_logger)
 
     problem = cp.Problem(objective_Z1, constraints=constraints_Z1)
     explanation_logger.info("solver: %s", solver)
@@ -81,18 +81,18 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
     # condition number 19:
     constraints_Z2 = optimal.notExceedtheCapacity(x, alloc) \
                      + optimal.numberOfCourses(x, alloc, alloc.remaining_agent_capacities) \
-                     + conflicts_condition(alloc, x)
+                     + conflicts_condition(alloc, x, explanation_logger)
 
     constraints_Z2.append(sum_rank == result_Z1)
 
 
     # logger.info("type(alloc.instance.item_conflicts) = %s ", type(alloc.instance.item_conflicts))
-    explanation_logger.debug("alloc.remaining_conflicts = %s ", alloc.remaining_conflicts)
-    explanation_logger.debug("alloc.remaining_instance().item_conflicts(c1) = %s ", alloc.remaining_instance().item_conflicts("c1"))
+    # explanation_logger.debug("alloc.remaining_conflicts = %s ", alloc.remaining_conflicts)
+    # explanation_logger.debug("alloc.remaining_instance().item_conflicts(c1) = %s ", alloc.remaining_instance().item_conflicts("c1"))
 
     try:
         problem = cp.Problem(objective_Z2, constraints=constraints_Z2)
-        result_Z2 = problem.solve(solver=solver)
+        result_Z2 = problem.solve(solver=solver, verbose=True)
         explanation_logger.debug("\nValue optimization: result_Z2 = %s, x = \n%s", result_Z2, x.value)
 
         # Check if the optimization problem was successfully solved
@@ -580,4 +580,17 @@ if __name__ == "__main__":
         item_conflicts=item_conflicts
     )
     allocation = divide(OC_function, instance=instance, solver=None, explanation_logger=console_explanation_logger)
+
+
+    # import experiments_csv
+    # import experiments.compare_new_algo_for_course_allocation as compare_algos
+    # input_ranges_specific_solver = {
+    #     "max_total_agent_capacity": [1000],
+    #     "algorithm": OC_function,
+    #     "random_seed": 9,
+    #     "solver": [None, cp.CBC, cp.MOSEK, cp.SCIP],  # , cp.XPRESS, cp.COPT, cp.CPLEX, cp.GUROBI
+    # }
+    #
+    # experiments_csv.Experiment.run_with_time_limit(compare_algos.course_allocation_with_random_instance_sample, input_ranges_specific_solver,
+    #                                time_limit=300)
 
