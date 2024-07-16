@@ -24,11 +24,11 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
     >>> S = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
     >>> C = ["c1", "c2", "c3", "c4"]
     >>> V = {"c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},"c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}}
-    >>> U = {   "s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},"s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}}
+    >>> U = {"s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},"s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}}
     >>> ins = Instance(agents=S, items=C, valuations=U)
     >>> alloc = AllocationBuilder(instance=ins)
     >>> FaStGen(alloc=alloc, items_valuations=V)
-    {'c1': ['s1'], 'c2': ['s2'], 'c3': ['s5', 's4', 's3'], 'c4': ['s7', 's6']}   
+    {'c1': ['s1', 's2', 's3'], 'c2': ['s4'], 'c3': ['s5'], 'c4': ['s7', 's6']}   
     """
     logger.info("Starting FaStGen algorithm")
     
@@ -219,45 +219,53 @@ def LookAheadRoutine(I:tuple, integer_match:dict, down:int, LowerFix:list, Upper
     return (final_match_str, LowerFix, UpperFix, SoftFix)
 
 def create_leximin_tuple(match:dict, agents_valuations:dict, items_valuations:dict):
-    # """
-    # Create a leximin tuple from the given match, agents' valuations, and items' valuations.
+    """
+    Create a leximin tuple from the given match, agents' valuations, and items' valuations.
 
-    # Args:
-    # - match (dict): A dictionary where keys are items and values are lists of agents.
-    # - agents_valuations (dict): A dictionary where keys are agents and values are dictionaries of item valuations.
-    # - items_valuations (dict): A dictionary where keys are items and values are dictionaries of agent valuations.
+    Args:
+    - match (dict): A dictionary where keys are items and values are lists of agents.
+    - agents_valuations (dict): A dictionary where keys are agents and values are dictionaries of item valuations.
+    - items_valuations (dict): A dictionary where keys are items and values are dictionaries of agent valuations.
 
-    # Returns:
-    # - list: A sorted list of tuples representing the leximin tuple.
+    Returns:
+    - list: A sorted list of tuples representing the leximin tuple.
 
-    # Example:
-    # >>> match = {"c1":["s1","s2","s3"], "c2":["s4"], "c3":["s5"], "c4":["s7","s6"]}
-    # >>> items_valuations = {       #the colleges valuations
-    #     "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
-    #     "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
-    #     "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
-    #     "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}
-    #     }
-    # >>> agents_valuations = {       #the students valuations   
-    #     "s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, 
-    #     "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, 
-    #     "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, 
-    #     "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},
-    #     "s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, 
-    #     "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, 
-    #     "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}
-    #     }
-    # >>> create_leximin_tuple(match, agents_valuations, items_valuations)
-    # [("s7",1),("c4",1),("s6",6),("c4",7),("c3",9),("c1",16),("s3",21),("s2",23),("c2",24),("s4",29),("c1",29),("c1",36),("s1",50)]
-    # """ 
+    Example:
+    >>> match = {"c1":["s1","s2","s3","s4"], "c2":["s5"], "c3":["s6"], "c4":["s7"]}
+    >>> items_valuations = {       #the colleges valuations
+    ... "c1":{"s1":50, "s2":23, "s3":21, "s4":13, "s5":10, "s6":6, "s7":5}, 
+    ... "c2":{"s1":45, "s2":40, "s3":32, "s4":29, "s5":26, "s6":11, "s7":4}, 
+    ... "c3":{"s1":90, "s2":79, "s3":60, "s4":35, "s5":28, "s6":20, "s7":15}, 
+    ... "c4":{"s1":80, "s2":48, "s3":36, "s4":29, "s5":15, "s6":7, "s7":1},
+    ... }
+    >>> agents_valuations = {       #the students valuations   
+    ... "s1":{"c1":16, "c2":10, "c3":6, "c4":5}, 
+    ... "s2":{"c1":36, "c2":20, "c3":10, "c4":1}, 
+    ... "s3":{"c1":29, "c2":24, "c3":12, "c4":10}, 
+    ... "s4":{"c1":41, "c2":24, "c3":5, "c4":3}, 
+    ... "s5":{"c1":36, "c2":19, "c3":9, "c4":6}, 
+    ... "s6":{"c1":39, "c2":30, "c3":18, "c4":7}, 
+    ... "s7":{"c1":40, "c2":29, "c3":6, "c4":1}
+    ... }
+    >>> create_leximin_tuple(match, agents_valuations, items_valuations)
+    [('c4', 1), ('s7', 1), ('s1', 16), ('s6', 18), ('s5', 19), ('c3', 20), ('c2', 26), ('s3', 29), ('s2', 36), ('s4', 41), ('c1', 107)]
+
+    >>> match = {"c1":["s1","s2","s3"], "c2":["s4"], "c3":["s5"], "c4":["s7","s6"]}
+    >>> create_leximin_tuple(match, agents_valuations, items_valuations)
+    [('s7', 1), ('s6', 7), ('c4', 8), ('s5', 9), ('s1', 16), ('s4', 24), ('c3', 28), ('c2', 29), ('s3', 29), ('s2', 36), ('c1', 94)]
+    """ 
     leximin_tuple = []
+    matching_college_valuations = update_matching_valuations_sum(match=match, items_valuations=items_valuations)
+    logger.debug(f"matching_college_valuations: {matching_college_valuations}")
     for item in match.keys():
         if len(match[item]) == 0:
             leximin_tuple.append((item, 0))
+        else:
+            leximin_tuple.append((item, matching_college_valuations[item]))
         for agent in match[item]:
-            leximin_tuple.append((agent,items_valuations[item][agent]))
-            leximin_tuple.append((item, agents_valuations[agent][item]))
-    leximin_tuple.sort(key = lambda x: x[1]) 
+            leximin_tuple.append((agent,agents_valuations[agent][item]))
+    
+    leximin_tuple = sorted(leximin_tuple, key=lambda x: (x[1], x[0]))
     return leximin_tuple
 
 def is_leximin_at_least(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->bool:
@@ -272,23 +280,15 @@ def is_leximin_at_least(new_match_leximin_tuple:list, old_match_leximin_tuple:li
     # - bool: True if new_match_leximin_tuple >= old_match_leximin_tuple, otherwise False.
 
     # Example:
-    >>> new_match = [("s7",1),("c4",1),("s6",6),("c4",7),("c3",9),("c1",16),("s3",21),("s2",23),("c2",24),("s4",29),("c1",29),("c1",36),("s1",50)]
-    >>> old_match = [("s7",1),("c4",1),("s4",13),("c1",16),("c3",18),("c2",19),("s6",20),("s3",21),("s2",23),("s5",26),("c1",29),("c1",36),("c1",41),("s1",50)]
-    >>> is_leximin_at_least(new_match, old_match)
-    False
-
-    >>> new_match = [("c4",0),("c3",5),("c1",16),("c2",19),("s2",23),("c2",24),("s5",26),("s3",32),("s4",35),("c1",36),("s1",50)]
-    >>> old_match = [("c4",3),("c3",12),("c1",16),("c2",19),("s2",23),("s5",26),("s4",29),("c1",36),("s1",50),("s3",60)]
-    >>> is_leximin_at_least(new_match, old_match)
-    False
-
-    >>> new_match = [("c4",3),("c3",5),("c1",16),("c2",19),("s2",23),("c2",24),("s5",26),("s3",32),("s4",35),("c1",36),("s1",50)]
-    >>> old_match = [("c4",0),("c3",12),("c1",16),("c2",19),("s2",23),("s5",26),("s4",29),("c1",36),("s1",50),("s3",60)]
+    >>> new_match = [("s7",1),("s6",7),("c4",8),("s5",9),("s1",16),("s4",24),("c3",28),("c2",29),("s3",29),("s2",36),("c1",94)]
+    >>> old_match = [("c4",1),("s7",1),("s1",16),("s6",18),("s5",19),("c3",20),("c2",26),("s3",29),("s2",36),("s4",41),("c1",107)]
     >>> is_leximin_at_least(new_match, old_match)
     True
 
-    >>> is_leximin_at_least(new_match, new_match)
-    True
+    >>> new_match = [("s7",1),("s4",5),("s5",6),("s6",7),("c4",14),("s1",16),("s3",24),("c2",32),("c3",35),("s2",36),("c1",52)]
+    >>> old_match = [("s7",1),("s6",7),("c4",8),("s5",9),("s1",16),("s4",24),("c3",28),("c2",29),("s3",29),("s2",36),("c1",94)]
+    >>> is_leximin_at_least(new_match, old_match)
+    False
     """
     for k in range(0, len(new_match_leximin_tuple)):
         if new_match_leximin_tuple[k][1] == old_match_leximin_tuple[k][1]:
@@ -300,27 +300,27 @@ def is_leximin_at_least(new_match_leximin_tuple:list, old_match_leximin_tuple:li
     return True
 
 def sourceDec(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->str:
-    # """
-    # Determine the agent causing the leximin decrease between two matchings.
+    """
+    Determine the agent causing the leximin decrease between two matchings.
 
-    # Args:
-    # - new_match_leximin_tuple (list): The leximin tuple of the new matching.
-    # - old_match_leximin_tuple (list): The leximin tuple of the old matching.
+    Args:
+    - new_match_leximin_tuple (list): The leximin tuple of the new matching.
+    - old_match_leximin_tuple (list): The leximin tuple of the old matching.
 
-    # Returns:
-    # - str: The agent (student) causing the leximin decrease.
+    Returns:
+    - str: The agent (student) causing the leximin decrease.
 
-    # Example:
-    # >>> new_match = [("s7",1),("c4",1),("s6",6),("c4",7),("c3",9),("c1",16),("s3",21),("s2",23),("c2",24),("s4",29),("c1",29),("c1",36),("s1",50)]
-    # >>> old_match = [("s7",1),("c4",1),("s4",13),("c1",16),("c3",18),("c2",19),("s6",20),("s3",21),("s2",23),("s5",26),("c1",29),("c1",36),("c1",41),("s1",50)]
-    # >>> sourceDec(new_match, old_match)
-    # 's6'
+    Example:
+    >>> new_match = [("s7",1),("s4",5),("s5",6),("s6",7),("c4",14),("s1",16),("s3",24),("c2",32),("c3",35),("s2",36),("c1",52)]
+    >>> old_match = [("s7",1),("s6",7),("c4",8),("s5",9),("s1",16),("s4",24),("c3",28),("c2",29),("s3",29),("s2",36),("c1",94)]
+    >>> sourceDec(new_match, old_match)
+    's4'
 
-    # >>> new_match = [("c4",3),("c3",5),("c1",16),("c2",19),("s2",23),("c2",24),("s5",26),("s3",32),("s4",35),("c1",36),("s1",50)]
-    # >>> old_match = [("c4",3),("c3",12),("c1",16),("c2",19),("s2",23),("s5",26),("s4",29),("c1",36),("s1",50),("s3",60)]
-    # >>> sourceDec(new_match, old_match)
-    # 'c3'
-    # """
+    >>> new_match = [("s7",1),("s4",7),("s5",8),("s6",9),("c4",14),("s1",16),("s3",24),("c2",32),("c3",35),("s2",36),("c1",52)]
+    >>> old_match = [("s7",1),("s6",7),("c4",8),("s5",9),("s1",16),("s4",24),("c3",28),("c2",29),("s3",29),("s2",36),("c1",94)]
+    >>> sourceDec(new_match, old_match)
+    'c4'
+    """
     for k in range(0, len(new_match_leximin_tuple)):
         if new_match_leximin_tuple[k][1] < old_match_leximin_tuple[k][1]:
             return new_match_leximin_tuple[k][0]  
@@ -358,31 +358,33 @@ def get_lowest_ranked_student(item_int:int, match_int:dict, items_valuations:dic
     return min(match_int[item_int], key=lambda agent: items_valuations[int_to_college_name[item_int]][int_to_student_name[agent]])
 
 def update_matching_valuations_sum(match:dict, items_valuations:dict)->dict:
-    # """
-    # Update the sum of valuations for each item in the matching.
+    """
+    Update the sum of valuations for each item in the matching.
 
-    # Args:
-    # - match (dict): A dictionary where keys are items and values are lists of agents.
-    # - items_valuations (dict): A dictionary where keys are items and values are dictionaries of agent valuations.
-    # - agents (list): List of agents.
-    # - items (list): List of items.
+    Args:
+    - match (dict): A dictionary where keys are items and values are lists of agents.
+    - items_valuations (dict): A dictionary where keys are items and values are dictionaries of agent valuations.
+    - agents (list): List of agents.
+    - items (list): List of items.
 
-    # Returns:
-    # - dict: A dictionary with the sum of valuations for each item.
+    Returns:
+    - dict: A dictionary with the sum of valuations for each item.
 
-    # Example:
-    # >>> match = {c1:[s1,s2,s3,s4], c2:[s5], c3:[s6], c4:[s7]}
-    # >>> items_valuations = {       #the colleges valuations
-    #     "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
-    #     "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
-    #     "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
-    #     "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}
-    #     }
-    # >>> agents = ["s1","s2","s3","s4","s5","s6","s7"]
-    # >>> items = ["c1","c2","c3","c4"]
-    # >>> update_matching_valuations_sum(match, items_valuations, agents, items)
-    # {"c1": 107, "c2": 26, "c3": 20, "c4": 1}
-    # """
+    Example:
+    >>> match = {"c1":["s1","s2","s3","s4"], "c2":["s5"], "c3":["s6"], "c4":["s7"]}
+    >>> items_valuations = {       #the colleges valuations
+    ... "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
+    ... "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
+    ... "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
+    ... "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":7,"s7":1}
+    ... }
+    >>> update_matching_valuations_sum(match, items_valuations)
+    {'c1': 107, 'c2': 26, 'c3': 20, 'c4': 1}
+
+    >>> match = {"c1":["s1","s2","s3"], "c2":["s4"], "c3":["s5"], "c4":["s7","s6"]}
+    >>> update_matching_valuations_sum(match, items_valuations)
+    {'c1': 94, 'c2': 29, 'c3': 28, 'c4': 8}
+    """
     matching_valuations_sum = { #in the artical it looks like this: vj(mu)
         colleague: sum(items_valuations[colleague][student] for student in students) 
         for colleague, students in match.items()
@@ -390,6 +392,28 @@ def update_matching_valuations_sum(match:dict, items_valuations:dict)->dict:
     return matching_valuations_sum
 
 def create_stable_matching(agents, agents_dict, items, items_dict):
+    """
+    Creating a stable matching according to this:
+        the first collage get the first n-m+1 students
+        each collage in deacrising order get the n-(m-j)th student
+
+    Args:
+    - items_dict: A dictionary of all the items and there indexes like this: ("c1":1).
+    - agents_dict: A dictionary of all the agents and there indexes like this: ("s1":1).
+    - agents (list): List of agents.
+    - items (list): List of items.
+
+    Returns:
+    - dict: A stable matching of integers
+
+    Example:
+    >>> agents = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
+    >>> items = ["c1", "c2", "c3", "c4"]
+    >>> agents_dict = {"s1":1, "s2":2, "s3":3, "s4":4, "s5":5, "s6":6, "s7":7}
+    >>> items_dict = {"c1":1, "c2":2, "c3":3, "c4":4}
+    >>> create_stable_matching(agents, agents_dict, items, items_dict)
+    {1: [1, 2, 3, 4], 2: [5], 3: [6], 4: [7]}
+    """
     # Initialize the matching dictionary
     matching = {}
 
@@ -403,15 +427,71 @@ def create_stable_matching(agents, agents_dict, items, items_dict):
     return matching
 
 def generate_dict_from_str_to_int(input_list:list)->dict:
+    """
+    Creating a dictionary that includes for each string item in the list an index representing it, key=string.
+
+    Args:
+    - input_list: A list of strings
+
+    Returns:
+    - dict: a dictionary of strings ang indexes
+
+    Example:
+    >>> agents = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
+    >>> items = ["c1", "c2", "c3", "c4"]
+
+    >>> generate_dict_from_str_to_int(agents)
+    {'s1': 1, 's2': 2, 's3': 3, 's4': 4, 's5': 5, 's6': 6, 's7': 7}
+
+    >>> generate_dict_from_str_to_int(items)
+    {'c1': 1, 'c2': 2, 'c3': 3, 'c4': 4}
+    """
     return {item: index + 1 for index, item in enumerate(input_list)}
     
 def generate_dict_from_int_to_str(input_list:list)->dict:
+    """
+    Creating a dictionary that includes for each string item in the list an index representing it, key=integer.
+
+    Args:
+    - input_list: A list of strings
+
+    Returns:
+    - dict: a dictionary of strings ang indexes
+
+    Example:
+    >>> agents = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
+    >>> items = ["c1", "c2", "c3", "c4"]
+
+    >>> generate_dict_from_int_to_str(agents)
+    {1: 's1', 2: 's2', 3: 's3', 4: 's4', 5: 's5', 6: 's6', 7: 's7'}
+
+    >>> generate_dict_from_int_to_str(items)
+    {1: 'c1', 2: 'c2', 3: 'c3', 4: 'c4'}
+    """
     return {index + 1: item for index, item in enumerate(input_list)}
     
-def get_key_by_value(value, items_dict):
-    return next(key for key, val in items_dict.items() if val == value)
+# def get_key_by_value(value, items_dict):
+#     return next(key for key, val in items_dict.items() if val == value)
 
 def integer_to_str_matching(integer_match:dict, agent_dict:dict, items_dict:dict)->dict:
+    """
+    Converting an integer match to a string match.
+
+    Args:
+    - integer_match: A matching of agents to items out of numbers.
+    - items_dict: A dictionary of all the items and there indexes like this: ("c1":1).
+    - agents_dict: A dictionary of all the agents and there indexes like this: ("s1":1).
+
+    Returns:
+    - dict: A string matching.
+
+    Example:
+    >>> agents_dict = {"s1":1, "s2":2, "s3":3, "s4":4, "s5":5, "s6":6, "s7":7}
+    >>> items_dict = {"c1":1, "c2":2, "c3":3, "c4":4}
+    >>> integer_match = {1: [1, 2, 3, 4], 2: [5], 3: [6], 4: [7]}
+    >>> integer_to_str_matching(integer_match, agents_dict, items_dict)
+    {'c1': ['s1', 's2', 's3', 's4'], 'c2': ['s5'], 'c3': ['s6'], 'c4': ['s7']}
+    """
     # Reverse the s_dict and c_dict to map integer values back to their string keys
     s_reverse_dict = {v: k for k, v in agent_dict.items()}
     c_reverse_dict = {v: k for k, v in items_dict.items()}
@@ -420,6 +500,31 @@ def integer_to_str_matching(integer_match:dict, agent_dict:dict, items_dict:dict
     return {c_reverse_dict[c_key]: [s_reverse_dict[s_val] for s_val in s_values] for c_key, s_values in integer_match.items()}
 
 def get_match(match:dict, value:str)->any:
+    """
+    Giving a match and an agent or an item the function will produce its match
+
+    Args:
+    - match: A matching of agents to items.
+    - value: An agent or an item.
+
+    Returns:
+    - any: An agent or an item.
+
+    Example:
+    >>> match = {"c1":["s1","s2","s3","s4"], "c2":["s5"], "c3":["s6"], "c4":["s7"]}
+    
+    >>> value = "c1"
+    >>> get_match(match, value)
+    ['s1', 's2', 's3', 's4']
+
+    >>> value = "s4"
+    >>> get_match(match, value)
+    'c1'
+
+    >>> value = "c4"
+    >>> get_match(match, value)
+    ['s7']
+    """
     if value in match.keys():
         return match[value]
     else:
@@ -430,15 +535,16 @@ if __name__ == "__main__":
     # print(doctest.testmod())
     # doctest.run_docstring_examples(is_leximin_at_least, globals())
     # doctest.run_docstring_examples(get_lowest_ranked_student, globals())
-    # sys.exit(0)
+    doctest.run_docstring_examples(LookAheadRoutine, globals())
+    sys.exit(0)
 
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.StreamHandler())
-    from fairpyx.adaptors import divide
-    S = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
-    C = ["c1", "c2", "c3", "c4"]
-    V = {"c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},"c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}}
-    U = {"s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},"s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}}
-    ins = Instance(agents=S, items=C, valuations=U)
-    alloc = AllocationBuilder(instance=ins)
-    FaStGen(alloc=alloc, items_valuations=V)
+    # logger.setLevel(logging.DEBUG)
+    # logger.addHandler(logging.StreamHandler())
+    # from fairpyx.adaptors import divide
+    # S = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
+    # C = ["c1", "c2", "c3", "c4"]
+    # V = {"c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},"c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}}
+    # U = {"s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},"s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}}
+    # ins = Instance(agents=S, items=C, valuations=U)
+    # alloc = AllocationBuilder(instance=ins)
+    # FaStGen(alloc=alloc, items_valuations=V)
