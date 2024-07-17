@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------The main function---------------------
+
 def tabu_search(alloc: AllocationBuilder, **kwargs):
     """
     ALGORITHM 3: Tabu search
@@ -93,6 +94,8 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
     delta = kwargs.get('delta')
     logger.info("Tabu search: initial budgets = %s, beta = %s, delta = %s", initial_budgets, beta, delta)
 
+    print(f"--- initial_budgets = {initial_budgets} ---")
+
     prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
     logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅: p = %s", prices)
     history = []
@@ -100,6 +103,7 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
 
     logger.info("2) If ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0, terminate with 𝒑∗ = 𝒑.")
 
+    best_allocation, best_prices, best_norma = None, None, np.inf
     while True:
         max_utilities_allocations = student_best_bundles(prices.copy(), alloc.instance, initial_budgets,
                                                          combinations_courses_sorted)
@@ -107,7 +111,7 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
                                                                                    max_utilities_allocations)
         logger.info("\nprices=%s, excess demand=%s, best bundle=%s, norma=%s", prices, excess_demand_vector, allocation,
                     norma)
-        best_allocation, best_prices, best_norma = allocation, prices, norma
+        # best_allocation, best_prices, best_norma = allocation, prices, norma
         if np.allclose(norma, 0):
             logger.info("2) ∥𝒛(𝒖,𝒄, 𝒑, 𝒃0)∥2 = 0: terminate with 𝒑∗ = 𝒑.")
             break
@@ -115,9 +119,13 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
         logger.info("3) Include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑}")
         equivalent_prices = find_all_equivalent_prices(alloc.instance, initial_budgets, allocation)
         history.append(equivalent_prices)
+        # logger.warning(type(equivalent_prices))
         neighbors = find_all_neighbors(alloc.instance, history, prices, delta, excess_demand_vector,
                                        initial_budgets,
                                        allocation, combinations_courses_sorted)
+        constraints = create_constraints_from_neighbors(neighbors)
+        # history.append(neighbors)
+        # logger.warning(type(neighbors))
         logger.info("Found %d neighbors", len(neighbors))
         if len(neighbors) == 0:
             logger.info("--- No new neighbors to price-vector - no optimal solution")
@@ -127,7 +135,7 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
         allocation, excess_demand_vector, norma, prices = find_min_error_prices(alloc.instance, neighbors,
                                                                                 initial_budgets,
                                                                                 combinations_courses_sorted)
-
+        logger.warning(f"--- allocation = {allocation} ---")
         if norma < best_norma:
             logger.info("   Found a better norma")
             best_allocation, best_prices, best_norma = allocation, prices, norma
@@ -143,6 +151,39 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
 
 
 # ---------------------helper functions:---------------------
+def create_constraints_from_neighbors(neighbors):
+    """
+    Create lambda constraints from neighbors.
+
+    :param neighbors: (list of dicts): List of dictionaries where each dictionary represents a neighbor with courses
+                    and their values.
+
+    :return: lambda_groups (list of list of lambda functions): List of groups of lambda functions, each group
+            representing constraints based on a neighbor.
+
+
+
+    >>> neighbors = [{'x': 1, 'y': 4, 'z': 0}]
+    >>> ans = create_constraints_from_neighbors(neighbors)
+    >>> p = {'x': 1, 'y': 4, 'z': 0}
+    >>> all([f(p) for f in ans[0]])
+    True
+
+    """
+    lambda_groups = []
+
+    for neighbor in neighbors:
+        lambda_group = []
+
+        for course, value in neighbor.items():
+            lambda_func = lambda p, key=course, val=value: p[key] == val
+            lambda_group.append(lambda_func)
+
+        lambda_groups.append(lambda_group)
+
+    return lambda_groups
+
+
 def min_excess_demand_for_allocation(instance: Instance, prices: dict, max_utilities_allocations: list[dict]):
     """
     Goes through all allocations with the highest utilities of the students, and returns the allocation with the
@@ -442,9 +483,6 @@ def find_all_equivalent_prices(instance: Instance, initial_budgets: dict, alloca
                 continue
 
             if current_utility >= original_utility:
-                # Create a copy of sorted_combination for the lambda function
-                combination_copy = sorted_combination.copy()  # todo - we dont use it
-
                 func = lambda p, agent=student, keys=allocation[student]: (
                         sum(p[key] for key in keys) > initial_budgets[agent])
                 equivalent_prices.append(func)
@@ -723,6 +761,7 @@ def run_tabu_search(alloc: AllocationBuilder, **kwargs):
     initial_budgets = random_initial_budgets(alloc.instance.num_of_agents, beta)
     return tabu_search(alloc, initial_budgets=initial_budgets, beta=beta, delta={0.34}, **kwargs)
 
+
 def random_initial_budgets(num_of_agents: int, beta: float = 100) -> dict:
     # Create initial budgets for each agent, uniformly distributed in the range [1, 1 + beta]
     initial_budgets = np.random.uniform(1, 1 + beta, num_of_agents)
@@ -739,6 +778,7 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     import coloredlogs
+
     level_styles = {
         'debug': {'color': 'green'},
         'info': {'color': 'cyan'},
@@ -756,18 +796,19 @@ if __name__ == "__main__":
 
     def random_initial_budgets(num):
         return {f"s{key}": random.uniform(1, 1 + random_beta) for key in range(1, num + 1)}
-    
-    num_of_agents = 3
-    utilities = {f"s{i}": {f"c{num_of_agents + 1 - j}": j for j in range(num_of_agents, 0, -1)} for i in
-                 range(1, num_of_agents + 1)}
-    instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
-    initial_budgets = {f"s{key}": (num_of_agents + 1 - key) for key in range(1, num_of_agents + 1)}
-    logger.error(f"initial_budgets = {initial_budgets}")
-    logger.error(f"random_beta = {random_beta}")
-    # initial_budgets = {f"s{key}": (random_beta + key) for key in range(1, num_of_agents + 1)}
-    allocation = divide(tabu_search, instance=instance,
-                        initial_budgets=initial_budgets,
-                        beta=random_beta, delta=random_delta)
+
+
+    # num_of_agents = 3
+    # utilities = {f"s{i}": {f"c{num_of_agents + 1 - j}": j for j in range(num_of_agents, 0, -1)} for i in
+    #              range(1, num_of_agents + 1)}
+    # instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
+    # initial_budgets = {f"s{key}": (num_of_agents + 1 - key) for key in range(1, num_of_agents + 1)}
+    # logger.error(f"initial_budgets = {initial_budgets}")
+    # logger.error(f"random_beta = {random_beta}")
+    # # initial_budgets = {f"s{key}": (random_beta + key) for key in range(1, num_of_agents + 1)}
+    # allocation = divide(tabu_search, instance=instance,
+    #                     initial_budgets=initial_budgets,
+    #                     beta=random_beta, delta=random_delta)
     # for i in range(1, num_of_agents + 1):
     #     assert (f"c{i}" in allocation[f"s{i}"])
 
@@ -780,11 +821,20 @@ if __name__ == "__main__":
     # with open('seed.txt', 'a') as file:
     #     file.write(f"seed is {seed}\n")
     #
-    # # instance = Instance(valuations = {"ami": {"x": 4, "y": 3, "z": 2}, "tami": {"x": 5, "y": 1, "z": 2}}, agent_capacities = 2,
-    # #     item_capacities = {"x": 1, "y": 2, "z": 3})
-    # # initial_budgets = {"ami": 6, "tami": 4}
-    # # beta = 6
-    # # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={0.72})
+
+    random.seed(0)
+    instance = Instance(
+        valuations={'s1': {'c1': 275, 'c2': 79, 'c3': 59, 'c4': 63, 'c5': 54, 'c6': 226, 'c7': 133, 'c8': 110},
+                    's2': {'c1': 105, 'c2': 17, 'c3': 222, 'c4': 202, 'c5': 227, 'c6': 89, 'c7': 30, 'c8': 107},
+                    's3': {'c1': 265, 'c2': 120, 'c3': 37, 'c4': 230, 'c5': 160, 'c6': 44, 'c7': 30, 'c8': 113},
+                    's4': {'c1': 194, 'c2': 132, 'c3': 224, 'c4': 77, 'c5': 29, 'c6': 230, 'c7': 62, 'c8': 52},
+                    's5': {'c1': 174, 'c2': 89, 'c3': 229, 'c4': 249, 'c5': 24, 'c6': 83, 'c7': 99, 'c8': 52}},
+        agent_capacities=5,
+        item_capacities={'c1': 3.0, 'c2': 3.0, 'c3': 3.0, 'c4': 3.0, 'c5': 3.0, 'c6': 3.0, 'c7': 3.0, 'c8': 3.0})
+    initial_budgets = {'s1': 1.0005695511898616, 's2': 1.0009070710569965, 's3': 1.000699704772071,
+                       's4': 1.000078616581918, 's5': 1.0008131880118405}
+    beta = 0.001
+    divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={0.34})
     # # # "{ami:['x', 'y'], tami:['y', 'z']}"
     #
     # # instance = Instance(valuations = {"ami": {"x": 4, "y": 3, "z": 2}, "tami": {"x": 5, "y": 1, "z": 2}},
