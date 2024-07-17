@@ -94,7 +94,7 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
     delta = kwargs.get('delta')
     logger.info("Tabu search: initial budgets = %s, beta = %s, delta = %s", initial_budgets, beta, delta)
 
-    print(f"--- initial_budgets = {initial_budgets} ---")
+    # print(f"--- initial_budgets = {initial_budgets} ---")
 
     prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
     logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅: p = %s", prices)
@@ -124,7 +124,7 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
                                        initial_budgets,
                                        allocation, combinations_courses_sorted)
         constraints = create_constraints_from_neighbors(neighbors)
-        # history.append(neighbors)
+        history.extend(constraints)
         # logger.warning(type(neighbors))
         logger.info("Found %d neighbors", len(neighbors))
         if len(neighbors) == 0:
@@ -167,6 +167,16 @@ def create_constraints_from_neighbors(neighbors):
     >>> ans = create_constraints_from_neighbors(neighbors)
     >>> p = {'x': 1, 'y': 4, 'z': 0}
     >>> all([f(p) for f in ans[0]])
+    True
+
+    >>> neighbors = [{'x': 1, 'y': 4, 'z': 0}, {'x': 2, 'y': 3, 'z': 5}]
+    >>> ans = create_constraints_from_neighbors(neighbors)
+    >>> p = {'x': 1, 'y': 3, 'z': 0}
+    >>> any(all([f(p) for f in s]) for s in ans)
+    False
+
+    >>> p = {'x': 2, 'y': 3, 'z': 5}
+    >>> any(all([f(p) for f in s]) for s in ans)
     True
 
     """
