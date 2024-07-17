@@ -152,7 +152,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
             initial_budgets, epsilon, prices, alloc.instance, t, combinations_courses_sorted)
 
         if clearing_error is None:
-            print("Clearing error is None - No Solution")
+            logger.info("Clearing error is None - No Solution")
             # raise ValueError("Clearing error is None")
             break
         # 3) If ∥𝒛˜(𝒖,𝒄, 𝒑, 𝒃) ∥2 = 0, terminate with 𝒑* = 𝒑, 𝒃* = 𝒃
@@ -307,7 +307,6 @@ def ACEEI_without_EFTB(alloc: AllocationBuilder, **kwargs):
 
 def ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
     initial_budgets = random_initial_budgets(alloc.instance.num_of_agents)
-    # print(f"--- initial_budgets = {initial_budgets} ---")
     return find_ACEEI_with_EFTB(alloc, initial_budgets=initial_budgets, delta=0.5, epsilon=3.0, t=EFTBStatus.EF_TB,
                                 **kwargs)
 
