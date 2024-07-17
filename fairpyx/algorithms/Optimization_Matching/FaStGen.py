@@ -7,8 +7,8 @@
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 from FaSt import Demote
+from AgentItem import AgentItem, create_agent_items
 from copy import deepcopy
-#import sys
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
     >>> ins = Instance(agents=S, items=C, valuations=U)
     >>> alloc = AllocationBuilder(instance=ins)
     >>> FaStGen(alloc=alloc, items_valuations=V)
-    {'c1': ['s1', 's2', 's3'], 'c2': ['s4'], 'c3': ['s5'], 'c4': ['s7', 's6']}   
+    {'c1': ['s1', 's2', 's3'], 'c2': ['s4'], 'c3': ['s5'], 'c4': ['s7', 's6']}
     """
     logger.info("Starting FaStGen algorithm")
     
@@ -169,9 +169,9 @@ def LookAheadRoutine(I:tuple, integer_match:dict, down:int, LowerFix:list, Upper
     new_str_match = integer_to_str_matching(integer_match=new_integer_match, items_dict=college_name_to_int, agent_dict=student_name_to_int)
 
     logger.info(f"Starting LookAheadRoutine. Initial parameters - match: {new_str_match}, down: {down}, LowerFix: {LowerFix}, UpperFix: {UpperFix}, SoftFix: {SoftFix}")
-    matching_college_valuations = update_matching_valuations_sum(match=given_str_match,items_valuations=items_valuations)
+    matching_college_valuations = update_matching_valuations_sum(match=new_str_match,items_valuations=items_valuations)
     while len(LF) + len([item for item in UF if item not in LF]) < len(items):
-        up = min([j for j in college_name_to_int.values() if j not in LowerFix])
+        up = min([j for j in college_name_to_int.values() if j not in LF])
         logger.debug(f"   Selected 'up': {up}")
         if (len(integer_match[up]) == 1) or (matching_college_valuations[int_to_college_name[up]] <= matching_college_valuations[int_to_college_name[down]]):
             LF.append(up)
@@ -450,9 +450,6 @@ def generate_dict_from_int_to_str(input_list:list)->dict:
     {1: 'c1', 2: 'c2', 3: 'c3', 4: 'c4'}
     """
     return {index + 1: item for index, item in enumerate(input_list)}
-    
-# def get_key_by_value(value, items_dict):
-#     return next(key for key, val in items_dict.items() if val == value)
 
 def integer_to_str_matching(integer_match:dict, agent_dict:dict, items_dict:dict)->dict:
     """
