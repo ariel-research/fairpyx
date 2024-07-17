@@ -4,6 +4,7 @@ from fairpyx.algorithms.picking_sequence import round_robin, bidirectional_round
 from fairpyx.algorithms.utilitarian_matching import utilitarian_matching
 from fairpyx.algorithms.ACEEI_algorithms.tabu_search import tabu_search
 from fairpyx.algorithms.ACEEI_algorithms.ACEEI import find_ACEEI_with_EFTB
+from fairpyx.algorithms.ACEEI_algorithms.find_profitable_manipulation import find_profitable_manipulation
 from fairpyx.algorithms.Optimization_based_Mechanisms.OC import OC_function
 from fairpyx.algorithms.Optimization_based_Mechanisms.SP_O import SP_O_function
 from fairpyx.algorithms.Optimization_based_Mechanisms.SP import SP_function
