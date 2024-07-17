@@ -88,13 +88,26 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
     >>> beta = 5
     >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={0.34}))
     "{ami:['x', 'y'], tami:['y', 'z'], tzumi:['z']}"
+
+    >>> random.seed(0)
+    >>> instance = Instance(
+    ... valuations={'s1': {'c1': 275, 'c2': 79, 'c3': 59, 'c4': 63, 'c5': 54, 'c6': 226, 'c7': 133, 'c8': 110},
+    ...             's2': {'c1': 105, 'c2': 17, 'c3': 222, 'c4': 202, 'c5': 227, 'c6': 89, 'c7': 30, 'c8': 107},
+    ...             's3': {'c1': 265, 'c2': 120, 'c3': 37, 'c4': 230, 'c5': 160, 'c6': 44, 'c7': 30, 'c8': 113},
+    ...             's4': {'c1': 194, 'c2': 132, 'c3': 224, 'c4': 77, 'c5': 29, 'c6': 230, 'c7': 62, 'c8': 52},
+    ...             's5': {'c1': 174, 'c2': 89, 'c3': 229, 'c4': 249, 'c5': 24, 'c6': 83, 'c7': 99, 'c8': 52}},
+    ... agent_capacities=5,
+    ... item_capacities={'c1': 3.0, 'c2': 3.0, 'c3': 3.0, 'c4': 3.0, 'c5': 3.0, 'c6': 3.0, 'c7': 3.0, 'c8': 3.0})
+    >>> initial_budgets = {'s1': 1.0005695511898616, 's2': 1.0009070710569965, 's3': 1.000699704772071,
+    ...                    's4': 1.000078616581918, 's5': 1.0008131880118405}
+    >>> beta = 0.001
+    >>> stringify(divide(tabu_search, instance=instance, initial_budgets=initial_budgets,beta=beta, delta={0.34}))
+    "{s1:['c1', 'c2', 'c6', 'c7', 'c8'], s2:['c1', 'c3', 'c4', 'c5', 'c8'], s3:['c1', 'c2', 'c4', 'c5', 'c8'], s4:['c2', 'c3', 'c6', 'c7'], s5:['c3', 'c4', 'c7']}"
     """
     initial_budgets = kwargs.get('initial_budgets')
     beta = kwargs.get('beta')
     delta = kwargs.get('delta')
     logger.info("Tabu search: initial budgets = %s, beta = %s, delta = %s", initial_budgets, beta, delta)
-
-    # print(f"--- initial_budgets = {initial_budgets} ---")
 
     prices = {course: random.uniform(1, 1 + beta) for course in alloc.instance.items}
     logger.info("1) Let 𝒑 ← uniform(1, 1 + 𝛽)^𝑚, H ← ∅: p = %s", prices)
@@ -119,13 +132,11 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
         logger.info("3) Include all equivalent prices of 𝒑 into the history: H ← H + {𝒑′ : 𝒑′ ∼𝑝 𝒑}")
         equivalent_prices = find_all_equivalent_prices(alloc.instance, initial_budgets, allocation)
         history.append(equivalent_prices)
-        # logger.warning(type(equivalent_prices))
         neighbors = find_all_neighbors(alloc.instance, history, prices, delta, excess_demand_vector,
                                        initial_budgets,
                                        allocation, combinations_courses_sorted)
         constraints = create_constraints_from_neighbors(neighbors)
         history.extend(constraints)
-        # logger.warning(type(neighbors))
         logger.info("Found %d neighbors", len(neighbors))
         if len(neighbors) == 0:
             logger.info("--- No new neighbors to price-vector - no optimal solution")
@@ -135,7 +146,6 @@ def tabu_search(alloc: AllocationBuilder, **kwargs):
         allocation, excess_demand_vector, norma, prices = find_min_error_prices(alloc.instance, neighbors,
                                                                                 initial_budgets,
                                                                                 combinations_courses_sorted)
-        logger.warning(f"--- allocation = {allocation} ---")
         if norma < best_norma:
             logger.info("   Found a better norma")
             best_allocation, best_prices, best_norma = allocation, prices, norma
