@@ -1,7 +1,7 @@
 """
 "Practical algorithms and experimentally validated incentives
 for equilibrium-based fair division (A-CEEI)"
-tests for algorithm 1 - ACEEI
+tests for algorithm 1 - ACEEI_algorithms
 
 Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
 Since: 2024-01
@@ -12,9 +12,9 @@ import pytest
 import logging
 import fairpyx
 from fairpyx import Instance, divide
-# from fairpyx.algorithms import ACEEI
+# from fairpyx.algorithms import ACEEI_algorithms
 # from fairpyx.algorithms.linear_program import optimize_model
-from fairpyx.algorithms.ACEEI.ACEEI import EFTBStatus, logger, find_ACEEI_with_EFTB
+from fairpyx.algorithms.ACEEI_algorithms.ACEEI import EFTBStatus, logger, find_ACEEI_with_EFTB
 import numpy as np
 
 

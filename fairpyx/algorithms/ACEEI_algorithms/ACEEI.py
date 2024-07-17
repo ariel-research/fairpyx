@@ -13,8 +13,8 @@ import logging
 import numpy as np
 
 from fairpyx import Instance, AllocationBuilder
-from fairpyx.algorithms.ACEEI import linear_program as lp
-from fairpyx.algorithms.ACEEI.calculate_combinations import get_combinations_courses_sorted
+from fairpyx.algorithms.ACEEI_algorithms import linear_program as lp
+from fairpyx.algorithms.ACEEI_algorithms.calculate_combinations import get_combinations_courses_sorted
 
 
 class EFTBStatus(Enum):
@@ -138,7 +138,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
     epsilon = kwargs.get('epsilon')
     t = kwargs.get('t')
 
-    logger.info("ACEEI algorithm with initial budgets = %s, delta = %s, epsilon = %s, t = %s", initial_budgets, delta,
+    logger.info("ACEEI_algorithms algorithm with initial budgets = %s, delta = %s, epsilon = %s, t = %s", initial_budgets, delta,
                 epsilon, t)
 
     prices = {key: 0 for key in alloc.remaining_items()}
