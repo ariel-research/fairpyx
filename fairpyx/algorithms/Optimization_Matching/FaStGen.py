@@ -83,21 +83,25 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
             new_match_leximin_tuple = create_leximin_tuple(match=new_match_str, agents_valuations=agents_valuations, items_valuations=items_valuations)
             logger.info(f"New match leximin tuple: {new_match_leximin_tuple}")
             
-            if is_leximin_at_least(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=match_leximin_tuple):
+            #Extarcting from the SourceDec function the problematic item or agent, if there isn't one then it will be ""
+            problematic_component = sourceDec(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=match_leximin_tuple)
+            logger.info(f"   problematic component: {problematic_component}")
+           
+            if problematic_component == "":
                 logger.debug(f"New match is leximin-better than old match:")
                 integer_match = new_integer_match  
                 str_match = new_match_str
                 matching_college_valuations = update_matching_valuations_sum(match=str_match,items_valuations=items_valuations)
                 logger.debug(f"   Match updated to {str_match}")
             
-            elif sourceDec(new_match_leximin_tuple, match_leximin_tuple) == up:
+            elif problematic_component == int_to_college_name[up]:
                 logger.debug(f"New match is leximin-worse because of c_up = c_{up}:")
                 LowerFix.append(up)
                 UpperFix.append(up + 1)
                 logger.info(f"   Updated LowerFix and UpperFix with {up}")
             
-            elif sourceDec(new_match_leximin_tuple, match_leximin_tuple) in alloc.instance.agents:
-                sd = sourceDec(new_match_leximin_tuple, match_leximin_tuple)
+            elif problematic_component in alloc.instance.agents:
+                sd = problematic_component
                 logger.debug(f"New match is leximin-worse because of student {sd}: ")
                 t = college_name_to_int[get_match(match=str_match, value=sd)]
                 LowerFix.append(t)
@@ -119,8 +123,8 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
             ]
         logger.debug(f"   Updating UnFixed to {UnFixed}")
 
-    logger.info("Finished FaStGen algorithm")
-    return str_match    #We want to return the final march in his string form
+    logger.info(f"Finished FaStGen algorithm, final result: {str_match}")
+    return str_match    #We want to return the final match in his string form
 
 def LookAheadRoutine(I:tuple, integer_match:dict, down:int, LowerFix:list, UpperFix:list, SoftFix:list)->tuple:
     """
@@ -186,8 +190,12 @@ def LookAheadRoutine(I:tuple, integer_match:dict, down:int, LowerFix:list, Upper
             logger.info(f"   Old match leximin tuple: {old_match_leximin_tuple}")
             new_match_leximin_tuple = create_leximin_tuple(match=new_str_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
             logger.info(f"   New match leximin tuple: {new_match_leximin_tuple}")
+            
+                #Extarcting from the SourceDec function the problematic item or agent, if there isn't one then it will be ""
+            problematic_component = sourceDec(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=old_match_leximin_tuple)
+            logger.info(f"   problematic component: {problematic_component}")
 
-            if is_leximin_at_least(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=old_match_leximin_tuple):
+            if problematic_component == "":
                 logger.debug(f"   New match is leximin-better than old match:")
                 integer_match = new_integer_match
                 LowerFix = LF
@@ -195,14 +203,14 @@ def LookAheadRoutine(I:tuple, integer_match:dict, down:int, LowerFix:list, Upper
                 logger.info("       Updated match and fixed LowerFix and UpperFix")
                 break
 
-            elif sourceDec(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=old_match_leximin_tuple) == up:
+            elif problematic_component == int_to_college_name[up]:
                 logger.debug(f"   New match is leximin-worse because of c_up = c_{up}:")
                 LF.append(up)
                 UF.append(up + 1)
                 logger.info(f"      Appended {up} to LF and {up+1} to UF")
 
-            elif sourceDec(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=old_match_leximin_tuple) in agents:
-                sd = sourceDec(new_match_leximin_tuple, old_match_leximin_tuple)
+            elif problematic_component in agents:
+                sd = problematic_component
                 logger.debug(f"   New match is leximin-worse because of student {sd}: ")
                 t = college_name_to_int[get_match(match=new_str_match, value=sd)]
                 logger.debug(f"      sourceDec student {sd} is matched to c_t = c_{t}.")
@@ -268,37 +276,6 @@ def create_leximin_tuple(match:dict, agents_valuations:dict, items_valuations:di
     leximin_tuple = sorted(leximin_tuple, key=lambda x: (x[1], x[0]))
     return leximin_tuple
 
-def is_leximin_at_least(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->bool:
-    """
-    # Determine whether the leximin tuple of the new match is greater or equal to the leximin tuple of the old match.
-
-    # Args:
-    # - new_match_leximin_tuple (list): The leximin tuple of the new matching.
-    # - old_match_leximin_tuple (list): The leximin tuple of the old matching.
-
-    # Returns:
-    # - bool: True if new_match_leximin_tuple >= old_match_leximin_tuple, otherwise False.
-
-    # Example:
-    >>> new_match = [("s7",1),("s6",7),("c4",8),("s5",9),("s1",16),("s4",24),("c3",28),("c2",29),("s3",29),("s2",36),("c1",94)]
-    >>> old_match = [("c4",1),("s7",1),("s1",16),("s6",18),("s5",19),("c3",20),("c2",26),("s3",29),("s2",36),("s4",41),("c1",107)]
-    >>> is_leximin_at_least(new_match, old_match)
-    True
-
-    >>> new_match = [("s7",1),("s4",5),("s5",6),("s6",7),("c4",14),("s1",16),("s3",24),("c2",32),("c3",35),("s2",36),("c1",52)]
-    >>> old_match = [("s7",1),("s6",7),("c4",8),("s5",9),("s1",16),("s4",24),("c3",28),("c2",29),("s3",29),("s2",36),("c1",94)]
-    >>> is_leximin_at_least(new_match, old_match)
-    False
-    """
-    for k in range(0, len(new_match_leximin_tuple)):
-        if new_match_leximin_tuple[k][1] == old_match_leximin_tuple[k][1]:
-            continue
-        elif new_match_leximin_tuple[k][1] > old_match_leximin_tuple[k][1]:
-            return True
-        else:
-            return False
-    return True
-
 def sourceDec(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->str:
     """
     Determine the agent causing the leximin decrease between two matchings.
@@ -322,7 +299,11 @@ def sourceDec(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->str:
     'c4'
     """
     for k in range(0, len(new_match_leximin_tuple)):
-        if new_match_leximin_tuple[k][1] < old_match_leximin_tuple[k][1]:
+        if new_match_leximin_tuple[k][1] == old_match_leximin_tuple[k][1]:
+            continue
+        elif new_match_leximin_tuple[k][1] > old_match_leximin_tuple[k][1]:
+            return ""
+        else:   #new_match_leximin_tuple[k][1] < old_match_leximin_tuple[k][1]
             return new_match_leximin_tuple[k][0]  
     return ""
 
@@ -532,10 +513,8 @@ def get_match(match:dict, value:str)->any:
 
 if __name__ == "__main__":
     import doctest, sys
-    # print(doctest.testmod())
-    # doctest.run_docstring_examples(is_leximin_at_least, globals())
-    # doctest.run_docstring_examples(get_lowest_ranked_student, globals())
-    doctest.run_docstring_examples(LookAheadRoutine, globals())
+    print(doctest.testmod())
+    # doctest.run_docstring_examples(LookAheadRoutine, globals())
     sys.exit(0)
 
     # logger.setLevel(logging.DEBUG)
