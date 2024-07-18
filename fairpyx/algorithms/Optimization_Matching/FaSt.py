@@ -8,9 +8,15 @@ Date: 19.5.2024
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import logging
 
-# Object to insert the relevant data 
+#Object to insert the relevant data 
 logger = logging.getLogger("data")
-
+console=logging.StreamHandler() #writes to stderr (= cerr)
+logger.handlers=[console] # we want the logs to be written to console
+# Change logger level
+logger.setLevel(logging.DEBUG)
+#logger.addHandler(console)
+logger.debug("blah blah")
+    
 
 
 
@@ -59,7 +65,6 @@ def Demote(matching:dict, student_index:int, down_index:int, up_index:int)-> dic
         p -= 1
 
     return matching #Return the matching after the change
-##ADD THAT CHANGE THE MATCHING (THE ORIGINAL)#####RETURN NULL AND CHANGE THE MATCHING##MAKE SURE WITH HADAR.####################
 
 def get_leximin_tuple(matching, V):
     """
@@ -235,7 +240,7 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     >>> ins = Instance(agents=agents, items=items, valuations=valuation)
     >>> alloc = AllocationBuilder(instance=ins)
     >>> FaSt(alloc=alloc)
-    {1: [1,2,3], 2: [5, 4], 3: [7, 6]}"""
+    {1: [1, 2, 3], 2: [5, 4], 3: [7, 6]}"""
 
     S = alloc.instance.agents
     C = alloc.instance.items
@@ -243,7 +248,7 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     # Now V look like this:
     # "Alice": {"c1":2, "c2": 3, "c3": 4},
     # "Bob": {"c1": 4, "c2": 5, "c3": 6}
-    logger.info('FaSt(%g)',alloc)
+    logger.info('FaSt(%s,%s,%s)',S,C,V)
     n=len(S)# number of students
     m = len(C)  # number of colleges
     i = n - 1  # start from the last student
@@ -255,43 +260,37 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     # Initialize the leximin tuple
     lex_tupl=get_leximin_tuple(initial_matching,V)
 
-# Initialize the position array pos
+# Initialize the position array pos, F, college_values
     pos= build_pos_array(initial_matching, V)
     college_values=build_college_values(initial_matching,V)
-    logger.debug('Initial i:%g', i)
-    logger.debug('Initial j:%g', j)
+    logger.debug('Initial i:%d', i)
+    logger.debug('Initial j:%d', j)
+     # Initialize F as a list of two lists: one for students, one for colleges
+    F = [[], []]
+    F[0].append(n)  # Add sn to the student list in F
+    logger.debug('Initialized F: %s',  F)
 
-    print("i: ", i)
-    print("j: ", j)
+
     index = 1
     while i > j - 1 and j > 1:
-        logger.debug('Iteration number %g', index)
-        logger.debug('Current i:%g', i)
-        logger.debug('Current j:%g  ', j)
-        print("******** Iteration number ", index, "********")
-        print("i: ", i)
-        print("j: ", j)
-        # logger.debug('college_values[j+1]: %g',  college_values[j + 1])############################
-        # print("college_values[j+1]: ", college_values[j + 1])##########################3
-        print("college_values: ", college_values)
-        print("V:", V)
-        logger.debug('V[i-1][j-1]: %g',  V[i - 1][j - 1])
-        logger.debug('college_values: %g',  college_values)
-
-        print("V[i-1][j-1]: ", V[i - 1][j - 1])
-        print("college_values[j]: ", college_values[j])
+        logger.debug('**Iteration number %d**', index)
+        logger.debug('Current i:%d', i)
+        logger.debug('Current j:%d  ', j)
+    
+        logger.debug('V: %s',  V)
+        logger.debug('V[i-1][j-1]: %d',  V[i - 1][j - 1])
+        logger.debug('college_values:%s ', college_values)
+        logger.debug('college_values[j]: %d',  college_values[j])
+        initial_j=j #for updating F in the end
         # IMPORTANT! in the variable college_values we use in j and not j-1 because it build like this:  {1: 35, 2: 3, 3: 1}
         # So this: college_values[j] indeed gave us the right index ! [i.e. different structure!]
         if college_values[j] >= V[i - 1][j-1]:  # In the algo the college_values is actually v
             j -= 1
         else:
-            if college_values[j] < V[i - 1][j - 1]: #Raw 11- different indixes because of different structures.
-                logger.debug('V[i-1][j-1]: %g',  V[i-1][j-1])
-                print("V[i-1][j-1]:", V[i - 1][j-1])
-                # if V[i][j - 1] > L[j - 1]:
+            if college_values[j] < V[i - 1][j - 1]: #Raw 11 in the article- different indixes because of different structures.
+                # print("V[i-1][j-1]:", V[i - 1][j-1])
                 initial_matching = Demote(initial_matching, i, j, 1)
-                print("initial_matching after demote:", initial_matching)
-                logger.debug('initial_matching after demote: %g',  initial_matching)
+                logger.debug('initial_matching after demote: %s',  initial_matching)
 
             else:
                 if V[i - 1][j - 1] < college_values[j]:#Raw 14
@@ -315,31 +314,31 @@ def FaSt(alloc: AllocationBuilder)-> dict:
                             t += 1
                     if k == j - 1 and initial_matching != µ_prime:
                         j -= 1
-        ### ADD UPDATE F########################################################################
         # Updates
-        college_values = build_college_values(initial_matching, V)  # Update the college values
-        lex_tupl = get_leximin_tuple(initial_matching, V) ############################################
-        logger.debug('lex_tupl: %g',  lex_tupl)
-        print("lex_tupl: ", lex_tupl)
-        pos = build_pos_array(initial_matching, V)###############################################
-        logger.debug('pos: %g',  pos)
-        print("pos:", pos)
+        # Update the college values
+        college_values = build_college_values(initial_matching, V)  
+        # Update leximin tuple 
+        lex_tupl = get_leximin_tuple(initial_matching, V) 
+        logger.debug('lex_tupl: %s',  lex_tupl)
+
+        # Update position array
+        pos = build_pos_array(initial_matching, V) 
+        logger.debug('pos: %s',  pos)
+
+         # Update F
+        # Insert student i 
+        F[0].append(i)
+        # Insert college j 
+        if j not in F[1]:
+            F[1].append(j)
+        logger.debug('Updated F: %s',  F)
 
         i -= 1
         index += 1
-        logger.debug('END while, i: %g, j: %g',i, j)
-
-        #print("END while :")
-        #print("i: ", i)
-        #print("j: ", j)
+        logger.debug('END while, i: %d, j: %d',i, j)
 
     return initial_matching
 
-
 if __name__ == "__main__":
     import doctest
-    console=logging.StreamHandler() #writes to stderr (= cerr)
-    logger.handlers=[console] # we want the logs to be written to console
-    # Change logger level
-    logger.setLevel(logging.INFO)
     doctest.testmod()
