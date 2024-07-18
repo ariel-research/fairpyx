@@ -7,6 +7,7 @@ Date: 19.5.2024
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import logging
+import copy # For deep copy use
 
 #Object to insert the relevant data 
 logger = logging.getLogger("data")
@@ -14,10 +15,7 @@ console=logging.StreamHandler() #writes to stderr (= cerr)
 logger.handlers=[console] # we want the logs to be written to console
 # Change logger level
 logger.setLevel(logging.DEBUG)
-#logger.addHandler(console)
-logger.debug("blah blah")
     
-
 
 
 def Demote(matching:dict, student_index:int, down_index:int, up_index:int)-> dict:
