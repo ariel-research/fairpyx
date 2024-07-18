@@ -20,8 +20,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
+def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
                              initial_agent_order: list):
+    #TODO
+    # item_categories: 1) validate no duplicates
+    # agent_category_capacities : 1) maybe negative numbers in capacity arent accepted 2) validate identical capacities for everyone
+    # initial_agent_order : validate no duplicates
     """
     this is the Algorithm 1 from the paper
     per category round-robin is an allocation algorithm which guarantees EF1 (envy-freeness up to 1 good) allocation
@@ -72,9 +76,11 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
-    # TODO: Check that capacities are identical.
-    # (also in other algorithms)
-
+    #TODO validation
+    kwargs={'alloc': alloc, 'item_categories': item_categories, 'agent_category_capacities': agent_category_capacities,
+                             'initial_agent_order': initial_agent_order}
+    validate_input(per_category_capped_round_robin.__name__,kwargs)
+    validate_input(per_category_capped_round_robin.__name__,alloc=alloc,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=initial_agent_order)
     for category in item_categories.keys():
         logger.info(f'\nCurrent category -> {category}')
         logger.info(f'Envy graph before RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
@@ -91,6 +97,14 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict, ag
 
 def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
                        initial_agent_order: list, target_category: str):
+    #TODO
+    # target_category: validate it does belong to the items_categories.keys
+    # initial_agent_order: validate no duplicates✅
+    # item_categories: validate no duplicates✅
+    # agent_category_capacities: validate no negative capacities ✅
+    # validate non-negative valuations ✅
+
+
     """
     this is Algorithm 2 CRR (capped round-robin) algorithm TLDR: single category , may have differnt capacities
     capped in CRR stands for capped capacity for each agent unlke RR , maye have different valuations -> F-EF1 (
@@ -158,6 +172,13 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
 
 def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
                                       initial_agent_order: list, target_category_pair: tuple[str]):
+    #TODO
+    # initial_agent_order: validate no duplicates
+    # target_category_pair : validate list(target_category_pair)== list(item_categories.keys)
+    # agent_category_capacities: validate no negative capacities
+    # item_categories: validate no duplicates
+    # validate non negative valuations
+
     """
         this is Algorithm 3 back and forth capped round-robin algorithm (2 categories,may have different capacities,may have different valuations)
         in which we simply
@@ -236,6 +257,12 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
 
 def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
                                     initial_agent_order: list):
+    #TODO
+    # no need for different capacities validation since its also acceptable to have equal capacities , it doesnt hurt
+    # validate identical valuations , non negative
+    # item_categories: validate no duplicates
+    # initial_agent_order: validate no duplicates
+    # agent_category_capacities: validate no negative capacities
     """
     this is Algorithm 4 deals with (Different Capacities, Identical Valuations), suitable for any number of categories
     CRR (per-category capped round-robin) algorithm
@@ -297,6 +324,10 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
 
 
 def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):
+    #TODO
+    # validate binary valuations , all values must be either 0 or 1
+    # item_categories: validate no duplicates
+    # agent_category_capacities :  validate no negative capacities
     """
     this is Algorithm 5  deals with (partition Matroids with Binary Valuations, may have different capacities)
     loops as much as maximum capacity in per each category , each iteration we build :
@@ -1012,6 +1043,85 @@ def helper_create_agent_item_bipartite_graph(agents, items, valuation_func):
     logger.info(f'bipartite graph ->{agent_item_bipartite_graph}')
     return agent_item_bipartite_graph
 
+def validate_input(function_name:str,alloc: AllocationBuilder, item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
+                             initial_agent_order: list=None,target_category_pair: tuple[str]=None,target_category:str=None):
+    if function_name =='per_category_round_robin':
+        validate_duplicate(initial_agent_order)
+        validate_duplicate([item for category in item_categories.keys() for item  in item_categories[category]])# validate for duplicate across all the items in the categories
+        validate_capacities(is_identical=True,agent_category_capacities=agent_category_capacities)
+        validate_valuations(agent_item_valuations=alloc.instance._valuations)
+        pass
+    elif function_name =='capped_round_robin':
+        validate_duplicate(initial_agent_order)
+        validate_duplicate([item for category in item_categories.keys() for item in
+                            item_categories[category]])  # validate for duplicate across all the items in the categories
+        validate_capacities(agent_category_capacities=agent_category_capacities)
+        validate_valuations(agent_item_valuations=alloc.instance._valuations)
+        if target_category not in item_categories:
+            raise ValueError(f"target category mistyped or not found  {target_category}")
+        pass
+    elif function_name =='two_categories_capped_round_robin':
+        validate_duplicate(initial_agent_order)
+        validate_duplicate([item for category in item_categories.keys() for item in
+                            item_categories[category]])  # validate for duplicate across all the items in the categories
+        validate_capacities(agent_category_capacities=agent_category_capacities)
+        validate_valuations(agent_item_valuations=alloc.instance._valuations)
+        if not all(item in item_categories for item in target_category_pair):
+            raise ValueError(f"Not all elements of the tuple {target_category_pair} are in the categories list.")
+        pass
+    elif function_name =='per_category_capped_round_robin':
+        validate_duplicate(initial_agent_order)
+        validate_duplicate([item for category in item_categories.keys() for item in
+                            item_categories[category]])  # validate for duplicate across all the items in the categories
+        validate_capacities(agent_category_capacities=agent_category_capacities)
+        validate_valuations(is_identical=True,agent_item_valuations=alloc.instance._valuations)
+        pass
+    elif function_name =='iterated_priority_matching':
+        #validate_duplicate(initial_agent_order)
+        validate_duplicate([item for category in item_categories.keys() for item in
+                            item_categories[category]])  # validate for duplicate across all the items in the categories
+        validate_capacities(agent_category_capacities=agent_category_capacities)
+        validate_valuations(is_identical=True,agent_item_valuations=alloc.instance._valuations,is_binary=True)
+        pass
+    else :
+        logger.info('algorithm not mentioned in validation function , hence no validation check done')
+
+
+def validate_valuations(agent_item_valuations: dict[str, dict[str, int]], is_identical: bool = False,is_binary: bool = False):
+    if is_identical:
+        # Check for identical valuations
+        first_agent_values = next(iter(agent_item_valuations.values()))
+        for agent, items in agent_item_valuations.items():
+            if items != first_agent_values:
+                raise ValueError(f"Valuations for agent {agent} are not identical.")
+
+    # Check if there are negative valuations
+    negative_values = [value for agent in agent_item_valuations for value in agent_item_valuations[agent].values() if value < 0]
+    if negative_values:
+        raise ValueError(f"Negative valuations found: {negative_values}")
+    if is_binary:
+        if any(value not in [0, 1] for agent in agent_item_valuations for value in
+               agent_item_valuations[agent].values()):
+            raise ValueError("Non-binary values found in agent item valuations.")
+
+
+
+def validate_capacities(agent_category_capacities: dict[str, dict[str, float]], is_identical: bool = False):
+    if is_identical:
+        # Check for identical capacities
+        first_agent_capacities = next(iter(agent_category_capacities.values()))
+        for agent, capacities in agent_category_capacities.items():
+            if capacities != first_agent_capacities:
+                raise ValueError(f"Capacities for agent {agent} are not identical.")
+
+    # Check if there are negative capacities
+    negative_capacities = [value for agent in agent_category_capacities for value in agent_category_capacities[agent].values() if value < 0]
+    if negative_capacities:
+        raise ValueError(f"Negative capacities found: {negative_capacities}")
+
+def validate_duplicate(list_of_items:list):
+    if len(list_of_items) != len(set(list_of_items)):
+        raise ValueError(f"Duplicate items found in the list: {list_of_items}")
 
 if __name__ == "__main__":
     #import doctest, sys
