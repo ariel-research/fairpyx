@@ -11,11 +11,6 @@ import copy # For deep copy use
 
 #Object to insert the relevant data 
 logger = logging.getLogger("data")
-console=logging.StreamHandler() #writes to stderr (= cerr)
-logger.handlers=[console] # we want the logs to be written to console
-# Change logger level
-logger.setLevel(logging.DEBUG)
-    
 
 
 def Demote(matching:dict, student_index:int, down_index:int, up_index:int)-> dict:
@@ -118,8 +113,8 @@ def build_pos_array(matching, V):
     """
     Build the pos array based on the leximin tuple and the matching.
     For example:
-    Leximin Tuple: [**9**, 8, 7, 6, 5, 3, 1, 35, 3, 1] -> V of S1 is 9
-    Sorted Leximin Tuple: [1, 1, 3, 3, 5, 6, 7, 8, 9,35]-> 9 is in index 8
+    Unsorted Leximin Tuple: [**9**, 8, 7, 6, 5, 3, 1, 35, 3, 1] -> V of S1 is 9
+    Sorted Leximin Tuple:   [1, 1, 3, 3, 5, 6, 7, 8, 9,35]-> 9 is in index 8
     pos=[8,7, 6,5,4,3,1,9,2,0]
 
     :param leximin_tuple: The leximin tuple
@@ -258,15 +253,16 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     # Initialize the leximin tuple
     lex_tupl=get_leximin_tuple(initial_matching,V)
 
-# Initialize the position array pos, F, college_values
+    # Initialize the position array pos, F, college_values
     pos= build_pos_array(initial_matching, V)
     college_values=build_college_values(initial_matching,V)
     logger.debug('Initial i:%d', i)
     logger.debug('Initial j:%d', j)
      # Initialize F as a list of two lists: one for students, one for colleges
-    F = [[], []]
-    F[0].append(n)  # Add sn to the student list in F
-    logger.debug('Initialized F: %s',  F)
+    F_stduents = []
+    F_colleges = []
+    F_stduents.append(n)  # Add sn to the student list in F
+    logger.debug('Initialized F_students: %s, F_colleges: %s',  F_stduents, F_colleges)
 
 
     index = 1
@@ -325,11 +321,11 @@ def FaSt(alloc: AllocationBuilder)-> dict:
 
          # Update F
         # Insert student i 
-        F[0].append(i)
+        F_stduents.append(i)
         # Insert college j 
-        if j not in F[1]:
-            F[1].append(j)
-        logger.debug('Updated F: %s',  F)
+        if j not in F_colleges:
+            F_colleges.append(j)
+        logger.debug('Updated F_students: %s, F_colleges: %s',  F_stduents, F_colleges)
 
         i -= 1
         index += 1
@@ -338,5 +334,10 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     return initial_matching
 
 if __name__ == "__main__":
+    console=logging.StreamHandler() #writes to stderr (= cerr)
+    logger.handlers=[console] # we want the logs to be written to console
+    # Change logger level
+    logger.setLevel(logging.DEBUG)
+
     import doctest
     doctest.testmod()
