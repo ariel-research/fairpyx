@@ -23,7 +23,7 @@ Algorithm 3: The algorithm is designed to refill all the courses that, following
 """
 
 
-def reduce_undersubscription(allocation: AllocationBuilder, price_vector: dict, student_budgets: dict) -> AllocationBuilder:
+def reduce_undersubscription(allocation: AllocationBuilder, price_vector: dict, student_budgets: dict, priorities_student_list: list) -> AllocationBuilder:
     """
     Perform automated aftermarket allocations with increased budget and restricted allocations.
 
@@ -51,7 +51,7 @@ def reduce_undersubscription(allocation: AllocationBuilder, price_vector: dict, 
     student_schedule_dict = create_dictionary_of_schedules(student_schedule, allocation.instance.items, allocation.instance.agents)
     logger.debug('Initial student schedules: %s', student_schedule_dict)
 
-    student_list = calculate_remaining_budgets(price_vector, student_budgets, student_schedule_dict)
+    student_list = calculate_remaining_budgets(price_vector, student_budgets, student_schedule_dict, priorities_student_list, allocation)
     logger.debug('Student list with remaining budgets: %s', student_list)
 
     # Reoptimize student schedules to fill undersubscribed courses
@@ -121,31 +121,53 @@ def create_dictionary_of_schedules(student_schedule, course, students) -> dict:
     logger.debug('Created dictionary of schedules: %s', schedule_dict)
     return schedule_dict
 
-def calculate_remaining_budgets(price_vector, student_budgets, student_courses) -> list:
+
+def calculate_remaining_budgets(price_vector: dict, student_budgets: dict, student_courses: dict, priorities_student_list: list, alloc: AllocationBuilder) -> list:
     """
-    Calculate remaining budget for each student.
+    Calculate remaining budget for each student and sort based on priority and remaining budget.
 
     :param price_vector: (dict) price vector for courses
     :param student_budgets: (dict) budget for each student
     :param student_courses: (dict) courses allocated to each student
+    :param priorities_student_list: (list of lists) Each list represents students with higher priority than the group after it
 
     :return: List of tuples containing student and their remaining budget
 
+    >>> instance = Instance(
+    ...     agent_capacities={"Alice": 2, "Bob": 2, "Tom": 2},
+    ...     item_capacities={"c1": 2, "c2": 2, "c3": 2},
+    ...     valuations={
+    ...         "Alice": {"c1": 50, "c2": 20, "c3": 80},
+    ...         "Bob": {"c1": 60, "c2": 40, "c3": 30},
+    ...         "Tom": {"c1": 70, "c2": 30, "c3": 70},
+    ...     },
+    ... )
+    >>> allocation = AllocationBuilder(instance)
     >>> price_vector = {"c1": 1.2, "c2": 0.7, "c3": 1.3}
     >>> student_budgets = {"Alice": 2.2, "Bob": 1.4, "Tom": 2.6}
     >>> student_courses = {'Alice': ['c1', 'c2'], 'Bob': ['c1'], 'Tom': ['c1', 'c3']}
-    >>> calculate_remaining_budgets(price_vector, student_budgets, student_courses)
-    [('Tom', 0.10000000000000009), ('Bob', 0.19999999999999996), ('Alice', 0.30000000000000027)]
+    >>> priorities_student_list = [["Alice"], ["Bob", "Tom"]]
+    >>> calculate_remaining_budgets(price_vector, student_budgets, student_courses, priorities_student_list, allocation)
+    [('Alice', 0.30000000000000027), ('Tom', 0.10000000000000009), ('Bob', 0.19999999999999996)]
     """
     remaining_budgets = []
     for student, courses in student_courses.items():
         total_cost = sum(price_vector[course] for course in courses)
         remaining_budget = student_budgets[student] - total_cost
         remaining_budgets.append((student, remaining_budget))
+        logger.debug('Student %s, Courses: %s, Total Cost: %f, Remaining Budget: %f', student, courses, total_cost, remaining_budget)
     
-    # Sort the list of tuples by remaining budget
-    remaining_budgets.sort(key=lambda x: x[1])
+    # Create a priority dictionary to map each student to their priority group index
+    if len(priorities_student_list) == 0:
+        priorities_student_list = [[agent for agent in alloc.remaining_agents()]]
+    priority_dict = {}
+    for priority_index, group in enumerate(priorities_student_list):
+        for student in group:
+            priority_dict[student] = priority_index
     
+    # Sort first by priority and then by remaining budget within each priority group
+    remaining_budgets.sort(key=lambda x: (priority_dict[x[0]], x[1]))
+
     logger.debug('Calculated remaining budgets: %s', remaining_budgets)
     return remaining_budgets
 

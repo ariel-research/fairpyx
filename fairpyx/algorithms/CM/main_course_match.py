@@ -14,7 +14,7 @@ from fairpyx.algorithms.CM import A_CEEI
 from fairpyx.algorithms.CM import remove_oversubscription
 from fairpyx.algorithms.CM import reduce_undersubscription
 
-def course_match_algorithm(alloc: AllocationBuilder, budget: dict, time : int = 60):
+def course_match_algorithm(alloc: AllocationBuilder, budget: dict, priorities_student_list: list = [], time : int = 60):
     """
     Perform the Course Match algorithm to find the best course allocations.
     
@@ -55,12 +55,13 @@ def course_match_algorithm(alloc: AllocationBuilder, budget: dict, time : int = 
 
     price_vector = A_CEEI.A_CEEI(alloc,budget,time)
     price_vector = remove_oversubscription.remove_oversubscription(alloc, price_vector, budget)
-    reduce_undersubscription.reduce_undersubscription(alloc, price_vector, budget)
+    reduce_undersubscription.reduce_undersubscription(alloc, price_vector, budget, priorities_student_list)
 
-    CM = {agent:list(alloc.bundles[agent]) for agent in alloc.bundles}
-    for agent in CM:
-        CM[agent].sort()
-    print(CM)
+    # CM = {agent:list(alloc.bundles[agent]) for agent in alloc.bundles}
+    # for agent in CM:
+    #     CM[agent].sort()
+    # print(CM)
+    return alloc
    
 
 
