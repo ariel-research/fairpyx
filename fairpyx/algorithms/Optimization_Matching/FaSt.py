@@ -205,12 +205,7 @@ def convert_valuations_to_matrix(valuations):
     """
     students = sorted(valuations.keys())  # Sort student keys to maintain order
     colleges = sorted(valuations[students[0]].keys())  # Sort college keys to maintain order
-
-    V = []
-    for student in students:
-        V.append([valuations[student][college] for college in colleges])
-
-    return V
+    return [[valuations[student][college] for college in colleges] for student in students]
 
 def FaSt(alloc: AllocationBuilder)-> dict:
     """
@@ -265,9 +260,9 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     logger.debug('Initialized F_students: %s, F_colleges: %s',  F_stduents, F_colleges)
 
 
-    index = 1
+    iteration = 1   # For logging
     while i > j - 1 and j > 1:
-        logger.debug('**Iteration number %d**', index)
+        logger.debug('\n**Iteration number %d**', iteration)
         logger.debug('Current i:%d', i)
         logger.debug('Current j:%d  ', j)
     
@@ -328,7 +323,7 @@ def FaSt(alloc: AllocationBuilder)-> dict:
         logger.debug('Updated F_students: %s, F_colleges: %s',  F_stduents, F_colleges)
 
         i -= 1
-        index += 1
+        iteration += 1
         logger.debug('END while, i: %d, j: %d',i, j)
 
     return initial_matching
