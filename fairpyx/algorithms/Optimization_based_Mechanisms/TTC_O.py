@@ -37,7 +37,7 @@ def roundTTC_O(alloc, explanation_logger, agent_item_value_func, flag_if_use_all
 
     constraints_Zt2 = optimal.notExceedtheCapacity(x, alloc) + optimal.numberOfCourses(x, alloc, 1)
 
-    constraints_Zt2.append(sum_rank == result_Zt1)
+    constraints_Zt2.append(sum_rank >= int(result_Zt1))
 
     try:
         problem = cp.Problem(objective_Zt2, constraints=constraints_Zt2)
