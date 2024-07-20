@@ -92,8 +92,8 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str
         logger.info(f"Topological sort -> {current_order} \n***************************** ")
     logger.info(f'alloc after termination of algorithm ->{alloc}')
 
-def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
-                       initial_agent_order: list, target_category: str):
+def capped_round_robin(alloc: AllocationBuilder,item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
+                             initial_agent_order: list, target_category: str):
     #TODO
     # target_category: validate it does belong to the items_categories.keys
     # initial_agent_order: validate no duplicates✅
@@ -168,8 +168,8 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
                                                     target_category=target_category)  # this is RR without wrapper
     logger.info(f'alloc after CRR -> {alloc.bundles}')
 
-def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
-                                      initial_agent_order: list, target_category_pair: tuple[str]):
+def two_categories_capped_round_robin(alloc: AllocationBuilder,item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
+                             initial_agent_order: list, target_category_pair: tuple[str]):
     #TODO
     # initial_agent_order: validate no duplicates
     # target_category_pair : validate list(target_category_pair)== list(item_categories.keys)
@@ -255,8 +255,8 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
     logger.info(f'alloc after CRR#{target_category_pair[1]} ->{alloc.bundles}')
 
 
-def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict,
-                                    initial_agent_order: list):
+def per_category_capped_round_robin(alloc: AllocationBuilder,item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
+                             initial_agent_order: list):
     #TODO
     # no need for different capacities validation since its also acceptable to have equal capacities , it doesnt hurt
     # validate identical valuations , non negative
@@ -275,7 +275,7 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
         :param item_categories: a dictionary of the categories  in which each category is paired with a list of items.
         :param agent_category_capacities:  a dictionary of dictionary in which in the first dimension we have agents then
         paired with a dictionary of category-capacity.
-        :param order: a list representing the order we start with in the algorithm
+        :param initial_agent_order: a list representing the order we start with in the algorithm
 
          >>> # Example 1 (basic: 2 agents 3 items same capacities same valuations)
             >>> from fairpyx import  divide
@@ -326,7 +326,7 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
     logger.info(f'allocation after termination of algorithm4 -> {alloc.bundles}')
 
 
-def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, agent_category_capacities: dict):
+def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]]):
     #TODO
     # validate binary valuations , all values must be either 0 or 1
     # item_categories: validate no duplicates
@@ -437,8 +437,8 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
  # helper functions section :
 
 
-def helper_envy(source: str, target: str, bundles: dict[str, set or list], val_func: callable, item_categories: dict,
-                agent_category_capacities: dict):
+def helper_envy(source: str, target: str, bundles: dict[str, set or list], val_func: callable, item_categories: dict[str,list],
+                agent_category_capacities: dict[str,dict[str,int]]):
     """
         Determine if the source agent envies the target agent's bundle.
 
@@ -542,16 +542,17 @@ def helper_envy(source: str, target: str, bundles: dict[str, set or list], val_f
     logger.info(f'does {source} envy {target} ? -> {target_bundle_val > source_bundle_val}')
     return target_bundle_val > source_bundle_val
 
-def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, agent_order:list, items_to_allocate:list, agent_category_capacities:dict,
-                                                    target_category:str='c1'):
+def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, agent_order:list, items_to_allocate:list, agent_category_capacities:dict[str,dict[str,int]],
+                                                    target_category:str):
     """
     This is Round Robin algorithm with respect to categorization (works on each category separately when called)
     it was copied from picking_sequence.py and modified to align with our task
 
     :param alloc: the current allocation in a form of AllocationBuilder instance
     :param agent_order: a specific order of agents in which to start with
-    :param item_categories: a dictionary mapping categories to a list of their items
+    :param target_category: the category we're welling to run round robin on it currently
     :param agent_category_capacities: a dictionary mapping agents to their capacities per category
+    :param items_to_allocate: the desired items to be allocated with Round Robin method
 
     Examples :
     >>> # Example 1 : basic example
@@ -636,8 +637,8 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
 
 
 
-def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph, item_categories: dict,
-                             agent_category_capacities: dict):
+def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph, item_categories: dict[str,list],
+                             agent_category_capacities: dict[str,dict[str,int]]):
     """
     simply a helper function to update the envy-graph based on given params
     :param curr_bundles: the current allocation
@@ -710,7 +711,7 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
 #     plt.show()
 #
 
-def helper_remove_cycles(envy_graph, alloc:AllocationBuilder, valuation_func, item_categories, agent_category_capacities):
+def helper_remove_cycles(envy_graph:nx.Graph, alloc:AllocationBuilder, valuation_func:callable, item_categories:dict[str,list], agent_category_capacities:dict[str,dict[str,int]]):
     """
         Removes cycles from the envy graph by updating the bundles.
 
@@ -874,7 +875,7 @@ def helper_update_ordered_agent_list(current_order: list, remaining_category_age
     return current_agent_list
 
 
-def helper_update_item_list(alloc: AllocationBuilder, category: str, item_categories: dict) -> list:
+def helper_update_item_list(alloc: AllocationBuilder, category: str, item_categories: dict[str,list]) -> list:
     """
         Update the item list for a given category and allocation.
 
@@ -926,7 +927,7 @@ def helper_update_item_list(alloc: AllocationBuilder, category: str, item_catego
     return current_item_list
 
 
-def helper_priority_matching(agent_item_bipartite_graph:nx.Graph, current_order:list, alloc:AllocationBuilder, remaining_category_agent_capacities:dict):
+def helper_priority_matching(agent_item_bipartite_graph:nx.Graph, current_order:list, alloc:AllocationBuilder, remaining_category_agent_capacities:dict[str,int]):
     """
     Performs priority matching based on the agent-item bipartite graph and the current order of agents.
 
@@ -997,14 +998,13 @@ def helper_priority_matching(agent_item_bipartite_graph:nx.Graph, current_order:
                     del remaining_category_agent_capacities[match[1]]
 
 
-def helper_create_agent_item_bipartite_graph(agents, items, valuation_func):
+def helper_create_agent_item_bipartite_graph(agents:list, items:list, valuation_func:callable):
     """
     Creates an agent-item bipartite graph with edges weighted based on agent preferences.
 
     :param agents: List of agents.
     :param items: List of items.
     :param valuation_func: Function to determine the value of an item for an agent.
-    :param current_agent_list: List of agents currently being considered for matching.(ordered)
     :return: A bipartite graph with agents and items as nodes, and edges with weights representing preferences.
 
     >>> import networkx as nx
@@ -1082,13 +1082,12 @@ def validate_input(function_name:str,alloc: AllocationBuilder=None, item_categor
         >>> validate_input(function_name='iterated_priority_matching',alloc=AllocationBuilder(instance=Instance(valuations=valuations,items=items)),item_categories=item_categories,agent_category_capacities=agent_category_capacities)
         True
         """
-
+    logger.info(f'start validating input for {function_name}')
     if function_name =='per_category_round_robin':
         validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item  in item_categories[category]])# validate for duplicate across all the items in the categories
         validate_capacities(is_identical=True,agent_category_capacities=agent_category_capacities)
         validate_valuations(agent_item_valuations=alloc.instance._valuations)
-        return True
     elif function_name =='capped_round_robin':
         validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item in
@@ -1097,7 +1096,6 @@ def validate_input(function_name:str,alloc: AllocationBuilder=None, item_categor
         validate_valuations(agent_item_valuations=alloc.instance._valuations)
         if target_category not in item_categories:
             raise ValueError(f"target category mistyped or not found  {target_category}")
-        return True
     elif function_name =='two_categories_capped_round_robin':
         validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item in
@@ -1106,25 +1104,22 @@ def validate_input(function_name:str,alloc: AllocationBuilder=None, item_categor
         validate_valuations(agent_item_valuations=alloc.instance._valuations)
         if not all(item in item_categories for item in target_category_pair): # checks if at least one of the specified target categories isn't mentioned then raise error
             raise ValueError(f"Not all elements of the tuple {target_category_pair} are in the categories list {list(item_categories.keys())}.")
-        return True
     elif function_name =='per_category_capped_round_robin':
         validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item in
                             item_categories[category]])  # validate for duplicate across all the items in the categories
         validate_capacities(agent_category_capacities=agent_category_capacities)
         validate_valuations(is_identical=True,agent_item_valuations=alloc.instance._valuations)
-        return True
     elif function_name =='iterated_priority_matching':
-        #validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item in
                             item_categories[category]])  # validate for duplicate across all the items in the categories
         validate_capacities(agent_category_capacities=agent_category_capacities)
         validate_valuations(agent_item_valuations=alloc.instance._valuations,is_binary=True)# in addition to identical&non-negative valuation validation,also validates that all valuations are binary
-        return True
     else :
         logger.info('algorithm not mentioned in validation function , hence no validation check done')
         return False
-
+    logger.info(f'start validating input for {function_name}')
+    return True
 
 def validate_valuations(agent_item_valuations: dict[str, dict[str, int]], is_identical: bool = False,is_binary: bool = False):
     if is_identical:
