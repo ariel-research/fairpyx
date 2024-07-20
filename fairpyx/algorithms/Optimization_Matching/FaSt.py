@@ -259,9 +259,9 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     logger.debug('Initial i:%d', i)
     logger.debug('Initial j:%d', j)
      # Initialize F as a list of two lists: one for students, one for colleges
-    F_stduents = []
+    F_students = []
     F_colleges = []
-    F_stduents.append(n)  # Add sn to the student list in F
+    F_students.append(n)  # Add sn to the student list in F
     #logger.debug('Initialized F_students: %s, F_colleges: %s',  F_stduents, F_colleges)
 
     logger.debug('\n**initial_matching %s**', initial_matching)
@@ -334,12 +334,16 @@ def FaSt(alloc: AllocationBuilder)-> dict:
         logger.debug('pos: %s',  pos)
 
          # Update F
-        # Insert student i 
-        F_stduents.append(i)
-        # Insert college j 
-        if j not in F_colleges:
-            F_colleges.append(j)
-        logger.debug('Updated F_students: %s, F_colleges: %s',  F_stduents, F_colleges)
+        # Insert all students from i to n
+        for student in range(i, n + 1):
+            if student not in F_students:
+                F_students.append(student)
+        # Insert all colleges from j+1 to m
+        for college in range(j + 1, m + 1):
+            if college not in F_colleges:
+                F_colleges.append(college)
+
+        logger.debug('Updated F_students: %s, F_colleges: %s',  F_students, F_colleges)
 
         i -= 1
         iteration += 1
