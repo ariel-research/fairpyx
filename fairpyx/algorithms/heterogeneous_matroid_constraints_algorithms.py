@@ -72,15 +72,12 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str
     >>> divide(algorithm=per_category_round_robin,instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order=order)
     {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3'], 'Agent4': ['m4']}
     """
+    #input validation
+    validate_input(function_name=per_category_round_robin.__name__,alloc=alloc,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=initial_agent_order)
     logger.info(f"Running per_category_round_robin with alloc -> {alloc.bundles} \n item_categories -> {item_categories} \n agent_category_capacities -> {agent_category_capacities} \n -> initial_agent_order are -> {initial_agent_order}\n ")
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
-    #TODO validation
-    kwargs={'alloc': alloc, 'item_categories': item_categories, 'agent_category_capacities': agent_category_capacities,
-                             'initial_agent_order': initial_agent_order}
-    validate_input(per_category_capped_round_robin.__name__,kwargs)
-    validate_input(per_category_capped_round_robin.__name__,alloc=alloc,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=initial_agent_order)
     for category in item_categories.keys():
         logger.info(f'\nCurrent category -> {category}')
         logger.info(f'Envy graph before RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
@@ -162,7 +159,8 @@ def capped_round_robin(alloc: AllocationBuilder, item_categories: dict, agent_ca
     >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order = order,target_category=target_category)
     {'Agent1': [], 'Agent2': ['m1'], 'Agent3': ['m3', 'm4'], 'Agent4': ['m2', 'm5', 'm6']}
         """
-
+    #input validation
+    validate_input(function_name=capped_round_robin.__name__,alloc=alloc,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=initial_agent_order,target_category=target_category)
     # no need for envy graphs whatsoever
     current_order = initial_agent_order
     logger.info(f'Running Capped Round Robin.  initial_agent_order -> {initial_agent_order}')
@@ -241,6 +239,8 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder, item_categories:
             {'Agent1': ['m2', 'm3', 'm4'], 'Agent2': ['m5'], 'Agent3': ['m6']}
             >>> # m1 remains unallocated unfortunately :-(
             """
+    #validate input
+    validate_input(function_name=two_categories_capped_round_robin.__name__,alloc=alloc,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=initial_agent_order,target_category_pair=target_category_pair)
     current_order = initial_agent_order
     logger.info(f'\nRunning two_categories_capped_round_robin, initial_agent_order -> {current_order}')
     logger.info(f'\nAllocating cagetory {target_category_pair[0]}')
@@ -307,6 +307,9 @@ def per_category_capped_round_robin(alloc: AllocationBuilder, item_categories: d
             >>> divide(algorithm=per_category_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order = order)
             {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3']}
     """
+    #validate input
+    validate_input(function_name=per_category_capped_round_robin.__name__,alloc=alloc,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=initial_agent_order)
+
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
@@ -371,6 +374,8 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict, 
             >>> #divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)# m3 remains unallocated ....
             {'Agent1': ['m1', 'm5', 'm6'], 'Agent2': ['m2', 'm4'], 'Agent3': []}
    """
+    #validate input
+    validate_input(function_name=iterated_priority_matching.__name__,alloc=alloc,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
     logger.info("Running Iterated Priority Matching")
     envy_graph = nx.DiGraph()
     envy_graph.add_nodes_from(alloc.remaining_agents())  # adding agent nodes (no edges involved yet)
@@ -1043,14 +1048,47 @@ def helper_create_agent_item_bipartite_graph(agents, items, valuation_func):
     logger.info(f'bipartite graph ->{agent_item_bipartite_graph}')
     return agent_item_bipartite_graph
 
-def validate_input(function_name:str,alloc: AllocationBuilder, item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
-                             initial_agent_order: list=None,target_category_pair: tuple[str]=None,target_category:str=None):
+def validate_input(function_name:str,alloc: AllocationBuilder=None, item_categories: dict[str,list[str]]=None, agent_category_capacities: dict[str,dict[str,int]]=None,
+                             initial_agent_order: list=None,target_category_pair: tuple[str,str]=None,target_category:str=None):
+    """
+        This function validates the correctness of input according to our standards and the official article papers
+        raises error in case of mismatch with our desired standards
+
+        :param function_name: the name of the function to be input-validated.
+        :param **kwargs: the rest of arguments are simply the union of all arguments used in the 5 algorithms in this .py file which are meant to be input-validated.
+
+
+        >>> #Example 1: a function which isn't meant to be validated/not yet specified in our test cases
+        >>> validate_input(function_name='winter_is_coming')
+        False
+
+        >>> #Example 2:bad input
+        >>> validate_input(function_name='per_category_round_robin',initial_agent_order=['abodi','abodi','yousef'])
+        Traceback (most recent call last):
+        ...
+        ValueError: Duplicate items found in the list: ['abodi', 'abodi', 'yousef'].
+
+        >>> #Example 3: target category not found
+        >>> validate_input(function_name='two_categories_capped_round_robin',alloc=AllocationBuilder(Instance(valuations={'Erel':{'Tesla model 3':100,'Tesla cyber-truck':99,'Nissan GT-R':98,'Toyota Supra':97},'Abodi':{'Tesla model 3':97,'Tesla cyber-truck':98,'Nissan GT-R':99,'Toyota Supra':100}})),initial_agent_order={'Erel','Abodi'},agent_category_capacities={'Erel':{'EV':math.inf,'Petrol':math.inf},'Abodi':{'EV':math.inf-1,'Petrol':math.inf-1}},item_categories={'EV':['Tesla model 3','Tesla cyber-truck'],'Petrol':['Nissan GT-R','Toyota Supra']},target_category_pair=('PH-EV','Petrol'))
+        Traceback (most recent call last):
+        ...
+        ValueError: Not all elements of the tuple ('PH-EV', 'Petrol') are in the categories list ['EV', 'Petrol'].
+
+        >>> #Example 4: good example
+        >>> items=['m1','m2','m3']
+        >>> item_categories = {'c1': ['m1','m2','m3']}
+        >>> agent_category_capacities = {'Agent1': {'c1':1}, 'Agent2': {'c1':2}}
+        >>> valuations = {'Agent1':{'m1':1,'m2':0,'m3':0},'Agent2':{'m1':0,'m2':1,'m3':0}}
+        >>> validate_input(function_name='iterated_priority_matching',alloc=AllocationBuilder(instance=Instance(valuations=valuations,items=items)),item_categories=item_categories,agent_category_capacities=agent_category_capacities)
+        True
+        """
+
     if function_name =='per_category_round_robin':
         validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item  in item_categories[category]])# validate for duplicate across all the items in the categories
         validate_capacities(is_identical=True,agent_category_capacities=agent_category_capacities)
         validate_valuations(agent_item_valuations=alloc.instance._valuations)
-        pass
+        return True
     elif function_name =='capped_round_robin':
         validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item in
@@ -1059,32 +1097,33 @@ def validate_input(function_name:str,alloc: AllocationBuilder, item_categories: 
         validate_valuations(agent_item_valuations=alloc.instance._valuations)
         if target_category not in item_categories:
             raise ValueError(f"target category mistyped or not found  {target_category}")
-        pass
+        return True
     elif function_name =='two_categories_capped_round_robin':
         validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item in
                             item_categories[category]])  # validate for duplicate across all the items in the categories
         validate_capacities(agent_category_capacities=agent_category_capacities)
         validate_valuations(agent_item_valuations=alloc.instance._valuations)
-        if not all(item in item_categories for item in target_category_pair):
-            raise ValueError(f"Not all elements of the tuple {target_category_pair} are in the categories list.")
-        pass
+        if not all(item in item_categories for item in target_category_pair): # checks if at least one of the specified target categories isn't mentioned then raise error
+            raise ValueError(f"Not all elements of the tuple {target_category_pair} are in the categories list {list(item_categories.keys())}.")
+        return True
     elif function_name =='per_category_capped_round_robin':
         validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item in
                             item_categories[category]])  # validate for duplicate across all the items in the categories
         validate_capacities(agent_category_capacities=agent_category_capacities)
         validate_valuations(is_identical=True,agent_item_valuations=alloc.instance._valuations)
-        pass
+        return True
     elif function_name =='iterated_priority_matching':
         #validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item in
                             item_categories[category]])  # validate for duplicate across all the items in the categories
         validate_capacities(agent_category_capacities=agent_category_capacities)
-        validate_valuations(is_identical=True,agent_item_valuations=alloc.instance._valuations,is_binary=True)
-        pass
+        validate_valuations(agent_item_valuations=alloc.instance._valuations,is_binary=True)# in addition to identical&non-negative valuation validation,also validates that all valuations are binary
+        return True
     else :
         logger.info('algorithm not mentioned in validation function , hence no validation check done')
+        return False
 
 
 def validate_valuations(agent_item_valuations: dict[str, dict[str, int]], is_identical: bool = False,is_binary: bool = False):
@@ -1121,13 +1160,13 @@ def validate_capacities(agent_category_capacities: dict[str, dict[str, float]], 
 
 def validate_duplicate(list_of_items:list):
     if len(list_of_items) != len(set(list_of_items)):
-        raise ValueError(f"Duplicate items found in the list: {list_of_items}")
+        raise ValueError(f"Duplicate items found in the list: {list_of_items}.")
 
 if __name__ == "__main__":
-    #import doctest, sys
+    import doctest, sys
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
-    #print("\n", doctest.testmod(), "\n")
+    print("\n", doctest.testmod(), "\n")
 #     # # doctest.run_docstring_examples(iterated_priority_matching, globals())
 #     #
 #     # order=['Agent1','Agent2','Agent3','Agent4']
@@ -1149,12 +1188,12 @@ if __name__ == "__main__":
 #     # instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
 #     # # divide(algorithm=iterated_priority_matching,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
 #
-    order = ['Agent1', 'Agent2']
-    items = ['m1']
-    item_categories = {'c1': ['m1']}
-    agent_category_capacities = {'Agent1': {'c1': 0}, 'Agent2': {'c1': 1}}
-    valuations = {'Agent1': {'m1': 0}, 'Agent2': {'m1': 420}}
-    target_category = 'c1'
-    divide(algorithm=capped_round_robin, instance=Instance(valuations=valuations, items=items),
-                    item_categories=item_categories, agent_category_capacities=agent_category_capacities,
-                    initial_agent_order=order, target_category=target_category)
+    # order = ['Agent1', 'Agent2']
+    # items = ['m1']
+    # item_categories = {'c1': ['m1']}
+    # agent_category_capacities = {'Agent1': {'c1': 0}, 'Agent2': {'c1': 1}}
+    # valuations = {'Agent1': {'m1': 0}, 'Agent2': {'m1': 420}}
+    # target_category = 'c1'
+    # divide(algorithm=capped_round_robin, instance=Instance(valuations=valuations, items=items),
+    #                 item_categories=item_categories, agent_category_capacities=agent_category_capacities,
+    #                 initial_agent_order=order, target_category=target_category)
