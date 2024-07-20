@@ -1158,10 +1158,10 @@ def validate_duplicate(list_of_items:list):
         raise ValueError(f"Duplicate items found in the list: {list_of_items}.")
 
 if __name__ == "__main__":
-    import doctest, sys
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.StreamHandler())
-    print("\n", doctest.testmod(), "\n")
+    # import doctest, sys
+    # logger.setLevel(logging.DEBUG)
+    # logger.addHandler(logging.StreamHandler())
+    # print("\n", doctest.testmod(), "\n")
 #     # # doctest.run_docstring_examples(iterated_priority_matching, globals())
 #     #
 #     # order=['Agent1','Agent2','Agent3','Agent4']
@@ -1192,3 +1192,4 @@ if __name__ == "__main__":
     # divide(algorithm=capped_round_robin, instance=Instance(valuations=valuations, items=items),
     #                 item_categories=item_categories, agent_category_capacities=agent_category_capacities,
     #                 initial_agent_order=order, target_category=target_category)
+    pass
