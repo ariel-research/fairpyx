@@ -4,11 +4,13 @@ An implementation of the Pytest of the algorithms  in:
 Programmer: Abed El-Kareem Massarwa.
 Date: 2024-03.
 """
+import logging
 
 import pytest
 from fairpyx.algorithms import heterogeneous_matroid_constraints_algorithms
 from fairpyx import divide
-from fairpyx.utils.test_heterogeneous_matroid_constraints_algorithms_utils import logger, random_instance, is_fef1
+from fairpyx.utils.test_heterogeneous_matroid_constraints_algorithms_utils import random_instance, is_fef1
+logger = logging.getLogger(__name__)
 @pytest.mark.parametrize("run", range(100))  # Run the test 10 times
 def test_algorithm_1(run):
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=True,
