@@ -146,12 +146,10 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                             ))
             for agent in result_instance.agents
         }
-        experiments_csv.logger.info(f'normalized random valuation in case of equal_valuations={equal_valuations} is ->{normalized_random_agent_item_valuation} ') # TODO works !
     else:  # means the valuations aren't supposed to be equal for every agent
         normalized_random_agent_item_valuation = {
             agent: {item: result_instance.agent_item_value(agent, item) for item in result_instance.items} for agent in
             result_instance.agents}  # we simply use what result_instance has (since its private we extract it)
-        experiments_csv.logger.info(f'not equal valuations !') # TODO works !
 
     temporary_items = list(result_instance.items).copy()
     logger.info(f"categories are -> {categories} and items are -> {temporary_items}")
@@ -185,7 +183,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
 
     result_instance = Instance(valuations=normalized_random_agent_item_valuation, item_capacities=item_capacities,
                                agent_capacities=result_instance.agent_capacity)
-    experiments_csv.logger.info(f'valuations of instance are -> {normalized_random_agent_item_valuation}')
+    #experiments_csv.logger.info(f'valuations of instance are -> {normalized_random_agent_item_valuation}')
     return result_instance, agent_category_capacities, categories, initial_agent_order  #✅#✅#✅
 
 
