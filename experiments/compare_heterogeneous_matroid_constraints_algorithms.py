@@ -3,6 +3,7 @@ import logging
 
 from fairpyx import rounded_allocation
 from fairpyx.algorithms.heterogeneous_matroid_constraints_algorithms import *
+from fairpyx.algorithms.utilitarian_matching import utilitarian_matching
 from fairpyx.utils.test_utils import stringify
 from tests.test_heterogeneous_matroid_constraints_algorithms import *
 from fairpyx.algorithms.fractional_egalitarian import *
