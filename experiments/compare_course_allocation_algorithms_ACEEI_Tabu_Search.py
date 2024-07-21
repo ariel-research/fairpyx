@@ -21,7 +21,7 @@ from fairpyx.algorithms.ACEEI_algorithms.ACEEI import ACEEI_without_EFTB, ACEEI_
 from fairpyx.algorithms.ACEEI_algorithms.tabu_search import run_tabu_search
 
 algorithms_to_check = [
-    # ACEEI_without_EFTB,
+    ACEEI_without_EFTB,
     ACEEI_with_EFTB,
     ACEEI_with_contested_EFTB,
     run_tabu_search,
@@ -30,9 +30,6 @@ algorithms_to_check = [
 ]
 
 def evaluate_algorithm_on_instance(algorithm, instance):
-    # print(f" -!-!- instance._valuations = {instance._valuations} -!-!-")
-    # capacity = {course: instance.item_capacity(course) for course in instance.items}
-    # print(f" -!-!- capacity = {capacity} -!-!-")
     allocation = divide(algorithm, instance)
     matrix = AgentBundleValueMatrix(instance, allocation)
     matrix.use_normalized_values()
@@ -112,9 +109,9 @@ def run_szws_experiment():
     # Run on SZWS simulated data:
     experiment = experiments_csv.Experiment("results/", "course_allocation_szws_ACEEI.csv", backup_folder="results/backup/")
     input_ranges = {
-        "num_of_agents": [5, 10, 15],
-        "num_of_items":  [4, 8],                            # in SZWS: 25
-        "agent_capacity": [5],                            # as in SZWS 
+        "num_of_agents": [10, 20, 30, 40],
+        "num_of_items":  [5, 10, 14],                            # in SZWS: 25
+        "agent_capacity": [5, 7, 9],                            # as in SZWS
         "supply_ratio": [1.1, 1.25, 1.5],                    # as in SZWS
         "num_of_popular_items": [6, 9],                   # as in SZWS
         "mean_num_of_favorite_items": [2.6, 3.85],        # as in SZWS code https://github.com/marketdesignresearch/Course-Match-Preference-Simulator/blob/main/preference_generator_demo.ipynb
@@ -179,7 +176,7 @@ def plot_average_runtime_vs_students(df, algorithm_name):
     plt.plot(num_of_agents, runtime, marker='o', label=algorithm_name)
     plt.xlabel('Number of Students')
     plt.ylabel('Average Runtime (seconds)')
-    plt.title(f'Average Runtime vs. Number of Students ({algorithm_name})')
+    plt.title(f'Average Runtime vs. Number of Students')
     plt.legend()
     plt.grid(True)
 
@@ -188,21 +185,21 @@ def plot_average_runtime_vs_students(df, algorithm_name):
 if __name__ == "__main__":
     import logging, experiments_csv
     experiments_csv.logger.setLevel(logging.INFO)
-    run_uniform_experiment()
+    # run_uniform_experiment()
     run_szws_experiment()
     # run_ariel_experiment()
 
     # Load and plot data for run_uniform_experiment()
-    uniform_results = load_experiment_results('results/course_allocation_uniform.csv')
-    plt.figure(figsize=(10, 6))  # Adjust figure size if needed
-
-    for algorithm in algorithms_to_check:
-        algorithm_name = algorithm.__name__
-        algorithm_data = uniform_results[uniform_results['algorithm'] == algorithm_name]
-        plot_average_runtime_vs_students(algorithm_data, algorithm_name)
-
-    plt.tight_layout()
-    plt.show()
+    # uniform_results = load_experiment_results('results/course_allocation_uniform.csv')
+    # plt.figure(figsize=(10, 6))  # Adjust figure size if needed
+    #
+    # for algorithm in algorithms_to_check:
+    #     algorithm_name = algorithm.__name__
+    #     algorithm_data = uniform_results[uniform_results['algorithm'] == algorithm_name]
+    #     plot_average_runtime_vs_students(algorithm_data, algorithm_name)
+    #
+    # plt.tight_layout()
+    # plt.show()
 
     # Load and plot data for run_szws_experiment()
     szws_results = load_experiment_results('results/course_allocation_szws_ACEEI.csv')
