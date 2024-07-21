@@ -306,7 +306,7 @@ def FaSt(alloc: AllocationBuilder)-> dict:
                         if V[k][j] > lex_tupl[t]:
                             i = k
                             logger.debug('Before demote: µ=%s, µ_prime=%s',  initial_matching, µ_prime)
-                            initial_matching = Demote(µ_prime, k, j, 1)
+                            initial_matching = Demote(copy.deepcopy(µ_prime), k, j, 1)
                             logger.debug('After demote: µ=%s, µ_prime=%s',  initial_matching, µ_prime)
                             break
                         else:
@@ -314,7 +314,7 @@ def FaSt(alloc: AllocationBuilder)-> dict:
                                 j -= 1
                                 break
                             else:
-                                µ_prime = Demote(µ_prime, k, j, 1)
+                                µ_prime = Demote(copy.deepcopy(µ_prime), k, j, 1)
                                 k -= 1
                                 t += 1
                     logger.debug('k:%s ,j: %s', k,j)
