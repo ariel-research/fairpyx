@@ -7,7 +7,7 @@
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 from FaSt import Demote
-# from AgentItem import AgentItem, create_agent_items
+# from bidict import bidict
 from copy import deepcopy
 
 import logging
@@ -146,14 +146,14 @@ def LookAheadRoutine(I:tuple, integer_match:dict, down:int, LowerFix:list, Upper
     >>> C = ["c1", "c2", "c3", "c4"]
     >>> V = {"c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10},"c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26},"c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28},"c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15}}                               
     >>> U = {"s1" : {"c1":16,"c2":10,"c3":6,"c4":5},"s2" : {"c1":36,"c2":20,"c3":10,"c4":1},"s3" : {"c1":29,"c2":24,"c3":12,"c4":10},"s4" : {"c1":41,"c2":24,"c3":5,"c4":3},"s5" : {"c1":36,"c2":19,"c3":9,"c4":6}}                              
-    >>> match = {1 : [1,2],2 : [3,5],3 : [4],4 : []}
+    >>> match = {1 : [1,2],2 : [3],3 : [4],4 : [5]}
     >>> I = (S,C,U,V)
     >>> down = 4
-    >>> LowerFix = [1]
-    >>> UpperFix = []
+    >>> LowerFix = [4]
+    >>> UpperFix = [1]
     >>> SoftFix = []
     >>> LookAheadRoutine(I, match, down, LowerFix, UpperFix, SoftFix)
-    ({'c1': ['s1', 's2'], 'c2': ['s5'], 'c3': ['s3'], 'c4': ['s4']}, [1], [], [])
+    ({'c1': ['s1', 's2'], 'c2': ['s3'], 'c3': ['s4'], 'c4': ['s5']}, [4], [1, 4], [])
     """    
     agents, items, agents_valuations, items_valuations = I
 

@@ -145,7 +145,6 @@ def build_pos_array(matching, V):
         college_index += 1
     return pos
 
-
 def build_college_values(matching, V):
     """
        Build the college_values dictionary that sums the students' valuations for each college.
@@ -169,7 +168,6 @@ def build_college_values(matching, V):
         college_values[college] = college_sum
 
     return college_values
-
 
 def initialize_matching(n, m):
     """
