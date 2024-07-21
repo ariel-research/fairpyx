@@ -522,6 +522,8 @@ def helper_envy(source: str, target: str, bundles: dict[str, set or list], val_f
         >>> helper_envy('agent3', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
         False
         """
+    validate_input(helper_envy.__name__,source=source, target=target, bundles=bundles, val_func=val_func, item_categories=item_categories,
+                agent_category_capacities=agent_category_capacities)
     val = val_func
     source_bundle_val = sum(list(val(source, current_item) for current_item in bundles[source]))
     logger.info(f'source agent bundle value -> {source_bundle_val}')
@@ -594,6 +596,7 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
     >>> alloc.sorted()
     {'agent1': ['m3', 'm7'], 'agent2': ['m1'], 'agent3': ['m2', 'm4', 'm5', 'm6']}
     """
+    validate_input(helper_categorization_friendly_picking_sequence.__name__,alloc=alloc,agent_order=agent_order,items_to_allocate=items_to_allocate,agent_category_capacities=agent_category_capacities,target_category=target_category)
     if agent_order is None:
         agent_order = [agent for agent in alloc.remaining_agents() if agent_category_capacities[agent][target_category] > 0]
 
@@ -689,6 +692,7 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
     >>> graph.has_edge('Agent1','Agent2')
     False
     """
+    validate_input(helper_update_envy_graph.__name__,curr_bundles=curr_bundles,valuation_func=valuation_func,envy_graph=envy_graph,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
     logger.info(f"Creating envy graph for curr_bundles -> {curr_bundles}")
     envy_graph.clear_edges()
     envy_graph.add_nodes_from(curr_bundles.keys())
@@ -711,7 +715,7 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
 #     plt.show()
 #
 
-def helper_remove_cycles(envy_graph:nx.Graph, alloc:AllocationBuilder, valuation_func:callable, item_categories:dict[str,list], agent_category_capacities:dict[str,dict[str,int]]):
+def helper_remove_cycles(envy_graph:nx.DiGraph, alloc:AllocationBuilder, valuation_func:callable, item_categories:dict[str,list], agent_category_capacities:dict[str,dict[str,int]]):
     """
         Removes cycles from the envy graph by updating the bundles.
 
@@ -801,6 +805,7 @@ def helper_remove_cycles(envy_graph:nx.Graph, alloc:AllocationBuilder, valuation
         {'Agent1': ['Item3'], 'Agent2': ['Item1', 'Item2']}
 
         """
+    validate_input(helper_remove_cycles.__name__,envy_graph=envy_graph,alloc=alloc,val_func=valuation_func,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
     while not nx.is_directed_acyclic_graph(envy_graph):
         try:
             cycle = nx.find_cycle(envy_graph, orientation='original')
@@ -870,6 +875,7 @@ def helper_update_ordered_agent_list(current_order: list, remaining_category_age
     >>> helper_update_ordered_agent_list(current_order, remaining_category_agent_capacities)
     ['Abed', 'Noor']
     """
+    validate_input(helper_update_ordered_agent_list.__name__,current_order=current_order,remaining_category_agent_capacities=remaining_category_agent_capacities)
     current_agent_list = [agent for agent in current_order if agent in remaining_category_agent_capacities.keys()]
     logger.info(f'current_agent_list->{current_agent_list}')
     return current_agent_list
@@ -922,6 +928,7 @@ def helper_update_item_list(alloc: AllocationBuilder, category: str, item_catego
             >>> helper_update_item_list(alloc, 'c2', item_categories)
             []
         """
+    validate_input(helper_update_item_list.__name__,alloc=alloc,category=category,item_categories=item_categories)
     current_item_list = [item for item in alloc.remaining_items() if item in item_categories[category]]
     logger.info(f'current_item_list->{current_item_list}')
     return current_item_list
@@ -979,6 +986,7 @@ def helper_priority_matching(agent_item_bipartite_graph:nx.Graph, current_order:
     >>> alloc.sorted() in [{'Agent1': ['Item3'], 'Agent2': ['Item2'], 'Agent3': ['Item1']} , {'Agent1': ['Item1'], 'Agent2': ['Item2'], 'Agent3': ['Item3']} , {'Agent1': ['Item1'], 'Agent2': ['Item3'], 'Agent3': ['Item2']}]
     True
     """
+    validate_input(helper_priority_matching.__name__,agent_item_bipartite_graph=agent_item_bipartite_graph,current_order=current_order,alloc=alloc,remaining_category_agent_capacities=remaining_category_agent_capacities)
     matching=nx.max_weight_matching(agent_item_bipartite_graph)
     # we used max weight matching in which (agents are getting high weights in desc order 2^n,2^n-1.......1)
     logger.info(f'matching is -> {matching}')
@@ -1032,6 +1040,7 @@ def helper_create_agent_item_bipartite_graph(agents:list, items:list, valuation_
     >>> sorted(bipartite_graph.edges(data=True))
     [('Agent3', 'Item1', {'weight': 2}), ('Agent3', 'Item2', {'weight': 2}), ('Agent3', 'Item3', {'weight': 2})]
     """
+    validate_input(helper_create_agent_item_bipartite_graph.__name__,agents=agents,items=items,valuation_func=valuation_func)
     agent_item_bipartite_graph = nx.Graph()
     agent_item_bipartite_graph.add_nodes_from(agents, bipartite=0)
     agent_item_bipartite_graph.add_nodes_from(items, bipartite=1)
@@ -1048,8 +1057,7 @@ def helper_create_agent_item_bipartite_graph(agents:list, items:list, valuation_
     logger.info(f'bipartite graph ->{agent_item_bipartite_graph}')
     return agent_item_bipartite_graph
 
-def validate_input(function_name:str,alloc: AllocationBuilder=None, item_categories: dict[str,list[str]]=None, agent_category_capacities: dict[str,dict[str,int]]=None,
-                             initial_agent_order: list=None,target_category_pair: tuple[str,str]=None,target_category:str=None):
+def validate_input(function_name:str,**kwargs):
     """
         This function validates the correctness of input according to our standards and the official article papers
         raises error in case of mismatch with our desired standards
@@ -1083,12 +1091,39 @@ def validate_input(function_name:str,alloc: AllocationBuilder=None, item_categor
         True
         """
     logger.info(f'start validating input for {function_name}')
+    try:
+        item_categories=kwargs['item_categories']
+        agent_category_capacities=kwargs['agent_category_capacities']
+        initial_agent_order=kwargs['initial_agent_order']
+        alloc=kwargs['alloc']
+        target_category_pair=kwargs['target_category_pair']
+        target_category=kwargs['target_category']
+        bundles=kwargs['bundles']
+        val_func=kwargs['val_func']
+        source=kwargs['source']
+        target=kwargs['target']
+        valuation_func=kwargs['valuation_func']
+        items_to_allocate=kwargs['items_to_allocate']
+        envy_graph=kwargs['envy_graph']
+        current_order=kwargs['current_order']
+        remaining_category_agent_capacities=kwargs['remaining_category_agent_capacities']
+        category=kwargs['category']
+        agent_item_bipartite_graph=kwargs['agent_item_bipartite_graph']
+        agents=kwargs['agents']
+        items=kwargs['items']
+
+
+    except KeyError:
+        pass
+
     if function_name =='per_category_round_robin':
+        validate_item_categories(item_categories)
         validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item  in item_categories[category]])# validate for duplicate across all the items in the categories
         validate_capacities(is_identical=True,agent_category_capacities=agent_category_capacities)
         validate_valuations(agent_item_valuations=alloc.instance._valuations)
     elif function_name =='capped_round_robin':
+        validate_item_categories(item_categories)
         validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item in
                             item_categories[category]])  # validate for duplicate across all the items in the categories
@@ -1097,65 +1132,160 @@ def validate_input(function_name:str,alloc: AllocationBuilder=None, item_categor
         if target_category not in item_categories:
             raise ValueError(f"target category mistyped or not found  {target_category}")
     elif function_name =='two_categories_capped_round_robin':
-        validate_duplicate(initial_agent_order)
-        validate_duplicate([item for category in item_categories.keys() for item in
-                            item_categories[category]])  # validate for duplicate across all the items in the categories
-        validate_capacities(agent_category_capacities=agent_category_capacities)
-        validate_valuations(agent_item_valuations=alloc.instance._valuations)
-        if not all(item in item_categories for item in target_category_pair): # checks if at least one of the specified target categories isn't mentioned then raise error
-            raise ValueError(f"Not all elements of the tuple {target_category_pair} are in the categories list {list(item_categories.keys())}.")
+            validate_item_categories(item_categories)
+            #if no error raised this block proceeds
+            validate_duplicate(initial_agent_order)
+            validate_duplicate([item for category in item_categories.keys() for item in
+                                item_categories[category]])  # validate for duplicate across all the items in the categories
+            validate_capacities(agent_category_capacities=agent_category_capacities)
+            validate_valuations(agent_item_valuations=alloc.instance._valuations)
+            if not all(item in item_categories for item in target_category_pair): # checks if at least one of the specified target categories isn't mentioned then raise error
+                raise ValueError(f"Not all elements of the tuple {target_category_pair} are in the categories list {list(item_categories.keys())}.")
     elif function_name =='per_category_capped_round_robin':
+        validate_item_categories(item_categories)
         validate_duplicate(initial_agent_order)
         validate_duplicate([item for category in item_categories.keys() for item in
                             item_categories[category]])  # validate for duplicate across all the items in the categories
         validate_capacities(agent_category_capacities=agent_category_capacities)
         validate_valuations(is_identical=True,agent_item_valuations=alloc.instance._valuations)
     elif function_name =='iterated_priority_matching':
+        validate_item_categories(item_categories)
         validate_duplicate([item for category in item_categories.keys() for item in
                             item_categories[category]])  # validate for duplicate across all the items in the categories
         validate_capacities(agent_category_capacities=agent_category_capacities)
         validate_valuations(agent_item_valuations=alloc.instance._valuations,is_binary=True)# in addition to identical&non-negative valuation validation,also validates that all valuations are binary
+    elif function_name ==helper_envy:
+        #validate source and target are in the agent list
+        if isinstance(bundles, dict):
+            for key,val in bundles.items():
+                if not isinstance(key,str) or not isinstance(val,list):
+                    raise ValueError(f"Bundles not structured properly ")
+            if not isinstance(val_func,callable):
+                raise ValueError(f"val_func must be callable")
+            if not isinstance(source,str) or not isinstance(target,str):
+                raise ValueError(f"soruce and target not structured properly")
+            if source not in bundles or target not in bundles:
+                raise ValueError(f'source or target agents are mistyped/not found in {bundles}')
+            validate_item_categories(item_categories)
+            validate_capacities(agent_category_capacities)
+    elif function_name== 'helper_categorization_friendly_picking_sequence':
+        validate_duplicate(initial_agent_order)
+        validate_duplicate(items_to_allocate)
+        validate_capacities(agent_category_capacities)
+        validate_item_categories(item_categories)
+        if not isinstance(target_category,str):
+            raise ValueError(f"target_category must be of type str !")
+        if target_category not in item_categories:
+            raise ValueError(f"target category mistyped or not found  {target_category}")
+    elif function_name== 'helper_update_envy_graph':
+        if isinstance(bundles, dict):
+            for key,val in bundles.items():
+                if not isinstance(key,str) or not isinstance(val,list):
+                    raise ValueError(f"Bundles not structured properly ")
+            if not isinstance(valuation_func,callable):
+                raise ValueError(f"val_func must be callable")
+            if not isinstance(envy_graph,nx.DiGraph):
+                raise ValueError(f"envy_graph must be of type nx.DiGraph")
+            validate_item_categories(item_categories)
+            validate_capacities(agent_category_capacities)
+    elif function_name=='helper_remove_cycles':
+        if not isinstance(valuation_func, callable):
+            raise ValueError(f"val_func must be callable")
+        if not isinstance(envy_graph, nx.DiGraph):
+            raise ValueError(f"envy_graph must be of type nx.DiGraph")
+        validate_item_categories(item_categories)
+        validate_capacities(agent_category_capacities)
+    elif function_name=='helper_update_ordered_agent_list':
+        validate_duplicate(current_order)
+        temp={'catx':remaining_category_agent_capacities}
+        validate_capacities(temp)
+    elif function_name=='helper_update_item_list':
+        validate_item_categories(item_categories)
+        if not isinstance(category,str):
+            raise ValueError(f"target_category must be of type str !")
+        if category not in item_categories:
+            raise ValueError(f"target category mistyped or not found  {category}")
+    elif function_name=='helper_priority_matching':
+        if not isinstance(agent_item_bipartite_graph,nx.Graph):
+            raise ValueError(f"agent_item_bipartite_graph must be of type nx.Graph")
+        validate_duplicate(current_order)
+        validate_capacities({'catx':remaining_category_agent_capacities})
+
+    elif function_name=='helper_create_agent_item_bipartite_graph':
+        validate_capacities(agents)
+        validate_duplicate(items)
+        if not isinstance(valuation_func,callable):
+            raise ValueError(f"val_func must be callable")
     else :
         logger.info('algorithm not mentioned in validation function , hence no validation check done')
         return False
-    logger.info(f'start validating input for {function_name}')
+    logger.info(f'validating successfully completed for {function_name}')
     return True
 
 def validate_valuations(agent_item_valuations: dict[str, dict[str, int]], is_identical: bool = False,is_binary: bool = False):
-    if is_identical:
-        # Check for identical valuations
-        first_agent_values = next(iter(agent_item_valuations.values()))
-        for agent, items in agent_item_valuations.items():
-            if items != first_agent_values:
-                raise ValueError(f"Valuations for agent {agent} are not identical.")
+    if  isinstance(agent_item_valuations,dict):# to check that the agent_category_capacities is indeed dict[str,dict[str,int]]
+        for key,value in agent_item_valuations.items():
+            if not isinstance(key,str) or not isinstance(value,dict):
+                raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly")
+            for inner_key,inner_value in value.items():
+                if not isinstance(inner_key,str) or not isinstance(inner_value,int):
+                    raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly")
 
-    # Check if there are negative valuations
-    negative_values = [value for agent in agent_item_valuations for value in agent_item_valuations[agent].values() if value < 0]
-    if negative_values:
-        raise ValueError(f"Negative valuations found: {negative_values}")
-    if is_binary:
-        if any(value not in [0, 1] for agent in agent_item_valuations for value in
-               agent_item_valuations[agent].values()):
-            raise ValueError("Non-binary values found in agent item valuations.")
+        if is_identical:
+            # Check for identical valuations
+            first_agent_values = next(iter(agent_item_valuations.values()))
+            for agent, items in agent_item_valuations.items():
+                if items != first_agent_values:
+                    raise ValueError(f"Valuations for agent {agent} are not identical.")
+
+        # Check if there are negative valuations
+        negative_values = [value for agent in agent_item_valuations for value in agent_item_valuations[agent].values() if value < 0]
+        if negative_values:
+            raise ValueError(f"Negative valuations found: {negative_values}")
+        if is_binary:
+            if any(value not in [0, 1] for agent in agent_item_valuations for value in
+                   agent_item_valuations[agent].values()):
+                raise ValueError("Non-binary values found in agent item valuations.")
+    else:
+        raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly")
 
 
 
-def validate_capacities(agent_category_capacities: dict[str, dict[str, float]], is_identical: bool = False):
-    if is_identical:
-        # Check for identical capacities
-        first_agent_capacities = next(iter(agent_category_capacities.values()))
-        for agent, capacities in agent_category_capacities.items():
-            if capacities != first_agent_capacities:
-                raise ValueError(f"Capacities for agent {agent} are not identical.")
+def validate_capacities(agent_category_capacities: dict[str, dict[str, int]], is_identical: bool = False):
+    if  isinstance(agent_category_capacities,dict):# to check that the agent_category_capacities is indeed dict[str,dict[str,int]]
+        for key,value in agent_category_capacities.items():
+            if not isinstance(key,str) or not isinstance(value,dict):
+                raise ValueError(f"agent_category_capacities {agent_category_capacities} isn't structured correctly")
+            for inner_key,inner_value in value.items():
+                if not isinstance(inner_key,str) or not isinstance(inner_value,int):
+                    raise ValueError(f"agent_category_capacities {agent_category_capacities} isn't structured correctly")
 
-    # Check if there are negative capacities
-    negative_capacities = [value for agent in agent_category_capacities for value in agent_category_capacities[agent].values() if value < 0]
-    if negative_capacities:
-        raise ValueError(f"Negative capacities found: {negative_capacities}")
+        if is_identical:
+            # Check for identical capacities
+            first_agent_capacities = next(iter(agent_category_capacities.values()))
+            for agent, capacities in agent_category_capacities.items():
+                if capacities != first_agent_capacities:
+                    raise ValueError(f"Capacities for agent {agent} are not identical.")
+
+        # Check if there are negative capacities
+        negative_capacities = [value for agent in agent_category_capacities for value in agent_category_capacities[agent].values() if value < 0]
+        if negative_capacities:
+            raise ValueError(f"Negative capacities found: {negative_capacities}")
+    else:
+        raise ValueError(f"agent_category_capacities {agent_category_capacities} isn't structured correctly")
 
 def validate_duplicate(list_of_items:list):
-    if len(list_of_items) != len(set(list_of_items)):
-        raise ValueError(f"Duplicate items found in the list: {list_of_items}.")
+    if  isinstance(list_of_items,list):
+        if len(list_of_items) != len(set(list_of_items)):
+            raise ValueError(f"Duplicate items found in the list: {list_of_items}.")
+    else:
+        raise ValueError(f"the input {list_of_items} isn't of type list, only list is allowed.")
+
+def validate_item_categories(item_categories:dict[str, list]):
+    if isinstance(item_categories, dict):
+        for category, items in item_categories.items():
+            if not isinstance(category, str) or not isinstance(items, list):
+                raise ValueError(f"item categories not structured properly!!!")
 
 if __name__ == "__main__":
     # import doctest, sys
