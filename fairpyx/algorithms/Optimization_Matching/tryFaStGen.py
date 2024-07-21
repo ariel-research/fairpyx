@@ -7,7 +7,7 @@
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 from FaSt import Demote
-# from AgentItem import AgentItem, create_agent_items
+from AgentItem import AgentItem, create_agent_items
 from copy import deepcopy
 
 import logging
@@ -32,47 +32,47 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
     """
     logger.info("Starting FaStGen algorithm")
     
-    S = alloc.instance.agents
-    C = alloc.instance.items
+    agents = alloc.instance.agents
+    items = alloc.instance.items
     agents_valuations = alloc.instance._valuations
-    #Convert the list of the agents and item to dictionary so that each agent\item will have its coresponding integer
-    student_name_to_int = generate_dict_from_str_to_int(S)
-    college_name_to_int = generate_dict_from_str_to_int(C)
-    int_to_student_name = generate_dict_from_int_to_str(S)
-    int_to_college_name = generate_dict_from_int_to_str(C)
+    # #Convert the list of the agents and item to dictionary so that each agent\item will have its coresponding integer
+    # student_name_to_int = generate_dict_from_str_to_int(S)
+    # college_name_to_int = generate_dict_from_str_to_int(C)
+    # int_to_student_name = generate_dict_from_int_to_str(S)
+    # int_to_college_name = generate_dict_from_int_to_str(C)
 
     #Creating a match of the integers and the string coresponding one another to deal with the demote function and the leximin tuple as well
-    integer_match = create_stable_matching(agents=S, items=C, agents_dict=student_name_to_int, items_dict=college_name_to_int)
-    str_match = integer_to_str_matching(integer_match=integer_match, agent_dict=student_name_to_int, items_dict=college_name_to_int)
-
+    match = create_stable_matching(agents=agents, items=items)
+    # str_match = integer_to_str_matching(integer_match=integer_match, agent_dict=student_name_to_int, items_dict=college_name_to_int)
+    str_match = {item.GetStrFormat(): [agent.GetStrFormat() for agent in agent_list] for item, agent_list in match.items()}
     logger.debug(f"Initial match: {str_match}")
 
-    UpperFix = [college_name_to_int[C[0]]]              # Inidces of colleges to which we cannot add any more students.
-    LowerFix = [college_name_to_int[C[len(C)-1]]]       # Inidces of colleges from which we cannot remove any more students.
+    UpperFix = [items[0].GetIntFormat()]              # Inidces of colleges to which we cannot add any more students.
+    LowerFix = [items[len(items)-1].GetIntFormat()]       # Inidces of colleges from which we cannot remove any more students.
     SoftFix = []
-    UnFixed = [item for item in college_name_to_int.values() if item not in UpperFix]
+    UnFixed = [item.GetIntFormat() for item in agents if item.GetIntFormat() not in UpperFix]
    
 
     #creating a dictionary of vj(µ) = Pi∈µ(cj) for each j in C
     matching_college_valuations = update_matching_valuations_sum(match=str_match, items_valuations=items_valuations)
     logger.debug(f"matching_college_valuations: {matching_college_valuations}")
 
-    while len(LowerFix) + len([item for item in UpperFix if item not in LowerFix]) < len(C):
+    while len(LowerFix) + len([item for item in UpperFix if item not in LowerFix]) < len(items):
         logger.debug(f"\nstr_match: {str_match}, integer_match: {integer_match}, UpperFix: {UpperFix}, LowerFix: {LowerFix}, SoftFix: {SoftFix}, UnFixed: {UnFixed}")
-        up = min([j for j in college_name_to_int.values() if j not in LowerFix])
-        down = min(UnFixed, key=lambda j: matching_college_valuations[int_to_college_name[j]])
+        up = min([j.GetIntFormat() for j in items if j.GetIntFormat() not in LowerFix])
+        down = min(UnFixed, key=lambda j: matching_college_valuations[f"c{j}"])
         logger.debug(f"up: {up}, down: {down}")
         
         SoftFix = [pair for pair in SoftFix if not (pair[1] <= up < pair[0])]
         logger.debug(f"Updating SoftFix to {SoftFix}")
         
-        logger.debug(f"vup(mu)={matching_college_valuations[int_to_college_name[up]]}, vdown(mu)={matching_college_valuations[int_to_college_name[down]]}")
-        if (len(integer_match[up]) == 1) or (matching_college_valuations[int_to_college_name[up]] <= matching_college_valuations[int_to_college_name[down]]):
+        logger.debug(f"vup(mu)={matching_college_valuations[f"c{up}"]}, vdown(mu)={matching_college_valuations[f"c{down}"]}")
+        if (len(integer_match[up]) == 1) or (matching_college_valuations[f"c{up}"] <= matching_college_valuations[f"c{down}"]):
             LowerFix.append(up)
             logger.info(f"Cannot remove any more students from c_{up}: Added c_{up} to LowerFix")
         else:
             #check the lowest-rank student who currently belongs to mu(c_{down-1})
-            agant_to_demote = get_lowest_ranked_student(down-1, integer_match, items_valuations, int_to_college_name=int_to_college_name, int_to_student_name=int_to_student_name)
+            agant_to_demote = get_lowest_ranked_student(down-1, integer_match, items_valuations, int_to_college_name=items, int_to_student_name=agents)
             new_integer_match = Demote(deepcopy(integer_match), agant_to_demote, up_index=up, down_index=down)
             logger.info(f"Demoting from {up} to {down}, starting at student {agant_to_demote}. New match: {new_integer_match}")
             new_match_str = integer_to_str_matching(integer_match=new_integer_match, agent_dict=student_name_to_int, items_dict=college_name_to_int)
@@ -372,7 +372,7 @@ def update_matching_valuations_sum(match:dict, items_valuations:dict)->dict:
         }
     return matching_valuations_sum
 
-def create_stable_matching(agents, agents_dict, items, items_dict):
+def create_stable_matching(agents, items):
     """
     Creating a stable matching according to this:
         the first collage get the first n-m+1 students
@@ -399,11 +399,11 @@ def create_stable_matching(agents, agents_dict, items, items_dict):
     matching = {}
 
     # Assign the first m-1 students to c1
-    matching[items_dict[items[0]]] = [agents_dict[agents[i]] for i in range(0, len(agents) - len(items) + 1)]
+    matching[items[0]] = [agents[i] for i in range(0, len(agents) - len(items) + 1)]
 
     # Assign the remaining students to cj for j >= 2
     for j in range(1, len(items)):
-        matching[items_dict[items[j]]] = [agents_dict[agents[len(agents) - (len(items) - j)]]]
+        matching[items[j]] = [agents[len(agents) - (len(items) - j)]]
     
     return matching
 
@@ -510,17 +510,17 @@ def get_match(match:dict, value:str)->any:
 
 if __name__ == "__main__":
     import doctest, sys
-    print(doctest.testmod())
-    # doctest.run_docstring_examples(FaStGen, globals())
-    sys.exit(0)
+    # print(doctest.testmod())
+    # # doctest.run_docstring_examples(LookAheadRoutine, globals())
+    # sys.exit(0)
 
-    # logger.setLevel(logging.DEBUG)
-    # logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler())
 
-    # S = create_agent_items('s', 1, 7)
-    # C = create_agent_items('c', 1, 4)
-    # V = {"c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},"c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}}
-    # U = {"s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},"s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}}
-    # ins = Instance(agents=S, items=C, valuations=U)
-    # alloc = AllocationBuilder(instance=ins)
-    # # FaStGen(alloc=alloc, items_valuations=V)
+    S = create_agent_items('s', 1, 7)
+    C = create_agent_items('c', 1, 4)
+    V = {"c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},"c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}}
+    U = {"s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},"s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}}
+    ins = Instance(agents=S, items=C, valuations=U)
+    alloc = AllocationBuilder(instance=ins)
+    # FaStGen(alloc=alloc, items_valuations=V)
