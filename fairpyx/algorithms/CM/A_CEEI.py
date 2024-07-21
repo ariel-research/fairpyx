@@ -459,6 +459,6 @@ def find_preferred_schedule_adapter(alloc: AllocationBuilder):
     agent_conflicts={agent:  alloc.instance.agent_conflicts(agent) for agent in alloc.instance.agents}
     return find_preference_order_for_each_student(alloc.instance._valuations , alloc.instance._agent_capacities , item_conflicts , agent_conflicts)
     
-
+if __name__ == "__main__":
 import doctest
 doctest.testmod()
