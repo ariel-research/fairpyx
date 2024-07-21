@@ -305,8 +305,9 @@ def FaSt(alloc: AllocationBuilder)-> dict:
                     while k > j - 1:
                         if V[k][j] > lex_tupl[t]:
                             i = k
+                            logger.debug('Before demote: µ=%s, µ_prime=%s',  initial_matching, µ_prime)
                             initial_matching = Demote(µ_prime, k, j, 1)
-                            logger.debug('matching after demote: %s',  initial_matching)
+                            logger.debug('After demote: µ=%s, µ_prime=%s',  initial_matching, µ_prime)
                             break
                         else:
                             if V[i][j] < college_values[j]:# raw 24 in the article
