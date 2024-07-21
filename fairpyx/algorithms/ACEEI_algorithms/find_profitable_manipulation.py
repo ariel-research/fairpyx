@@ -47,7 +47,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
 
     return: The profitable manipulation
 
-    >>> from fairpyx.algorithms.ACEEI.ACEEI import find_ACEEI_with_EFTB
+    >>> from fairpyx.algorithms.ACEEI_algorithms.ACEEI import find_ACEEI_with_EFTB
     >>> from fairpyx.algorithms import ACEEI_algorithms, tabu_search
 
 
