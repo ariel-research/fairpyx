@@ -1132,8 +1132,8 @@ def validate_input(function_name: str, **kwargs):
             bundles = kwargs['bundles']
             if isinstance(bundles, dict):
                 for key, val in bundles.items():
-                    if not isinstance(key, str) or not isinstance(val, list):
-                        raise ValueError("Bundles not structured properly.")
+                    if not isinstance(key, str) or not isinstance(val, (list,set)):
+                        raise ValueError(f"Bundles not structured properly.{bundles} type(va;) -> {type(val)}")
                 if not callable(kwargs['val_func']):
                     raise ValueError("val_func must be callable.")
                 if not isinstance(kwargs['source'], str) or not isinstance(kwargs['target'], str):
@@ -1162,8 +1162,8 @@ def validate_input(function_name: str, **kwargs):
             bundles = kwargs['bundles']
             if isinstance(bundles, dict):
                 for key, val in bundles.items():
-                    if not isinstance(key, str) or not isinstance(val, list):
-                        raise ValueError("Bundles not structured properly.")
+                    if not isinstance(key, str) or not isinstance(val, (list,set)):
+                        raise ValueError(f"Bundles not structured properly.{bundles} type(va;) -> {type(val)}")
                 if not callable(kwargs['valuation_func']):
                     raise ValueError("valuation_func must be callable.")
                 if not isinstance(kwargs['envy_graph'], nx.DiGraph):
