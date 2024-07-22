@@ -187,9 +187,9 @@ def create_plot_uniform():
 
     for algorithm_p in algorithms_for_plot:
         df_algo = data[data['algorithm'] == algorithm_p]
-        axes[0].plot(df_algo['num_of_agents'], df_algo['utilitarian_value'], marker='o', linestyle='-', label=algorithm_p)
-        axes[1].plot(df_algo['num_of_agents'], df_algo['egalitarian_value'], marker='o', linestyle='-', label=algorithm_p)
-        axes[2].plot(df_algo['num_of_agents'], df_algo['runtime'], marker='o', linestyle='-', label=algorithm_p)
+        axes[0].plot(df_algo['utilitarian_value'], marker='o', linestyle='-', label=algorithm_p)
+        axes[1].plot(df_algo['egalitarian_value'], marker='o', linestyle='-', label=algorithm_p)
+        axes[2].plot(df_algo['runtime'], marker='o', linestyle='-', label=algorithm_p)
 
     axes[0].set_title('Utilitarian Value Comparison')
     axes[0].set_xlabel('')
