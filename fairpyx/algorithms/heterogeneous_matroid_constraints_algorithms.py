@@ -899,7 +899,7 @@ def helper_update_item_list(alloc: AllocationBuilder, category: str, item_catego
             >>> alloc= AllocationBuilder(instance=instance)
             >>> alloc.give('Agent1','m1')
             >>> category = 'c1'
-            >>> item_categories = {'c1':'m1', 'c2':'m2'}
+            >>> item_categories = {'c1':['m1'], 'c2':['m2']}
             >>> helper_update_item_list(alloc, category, item_categories)
             []
             >>> #Example 2: remaining item
@@ -1225,7 +1225,7 @@ def validate_valuations(agent_item_valuations: dict[str, dict[str, int]], is_ide
             if not isinstance(key,str) or not isinstance(value,dict):
                 raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly")
             for inner_key,inner_value in value.items():
-                if not isinstance(inner_key,str) or not isinstance(inner_value,(int,np.int64)):
+                if not isinstance(inner_key,str) or not isinstance(inner_value,(int,np.int64,float)):
                     raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly,inner value type is {type(inner_value)}")
 
         if is_identical:
