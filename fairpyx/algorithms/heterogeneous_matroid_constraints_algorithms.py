@@ -1091,6 +1091,25 @@ def validate_input(function_name:str,**kwargs):
         True
         """
     logger.info(f'start validating input for {function_name}')
+    item_categories = kwargs['item_categories']
+    agent_category_capacities = None
+    initial_agent_order = None
+    alloc = None
+    target_category_pair = None
+    target_category = None
+    bundles = None
+    val_func = None
+    source =None
+    target =None
+    valuation_func = None
+    items_to_allocate =None
+    envy_graph =None
+    current_order =None
+    remaining_category_agent_capacities =None
+    category =None
+    agent_item_bipartite_graph =None
+    agents =None
+    items =None
     try:
         item_categories=kwargs['item_categories']
         agent_category_capacities=kwargs['agent_category_capacities']
