@@ -356,4 +356,4 @@ if __name__ == "__main__":
     # Change logger level
     logger.setLevel(logging.DEBUG) # Set logger level to DEBUG
     import doctest
-    doctest.testmod()
+    print(doctest.testmod())
