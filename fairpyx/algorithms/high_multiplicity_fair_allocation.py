@@ -49,7 +49,7 @@ def high_multiplicity_fair_allocation(alloc: AllocationBuilder):
     ## Step 4: Repeat steps 1-3 until a Pareto-optimal allocation is found or no allocation exists
 
     logger.info("Starting high multiplicity fair allocation.")
-    alloc.set_allow_multiple_items(True)
+    alloc.set_allow_multiple_copies(True)
     agents, items, constraints_ilp = [], [], []
     for i in alloc.remaining_items():
         items.append(i)

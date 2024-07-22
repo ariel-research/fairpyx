@@ -10,7 +10,7 @@ from fairpyx import Instance
 FORBIDDEN_ALLOCATION = -np.inf
 
 
-def validate_allocation(instance:Instance, allocation:dict, title:str=""):
+def validate_allocation(instance:Instance, allocation:dict, title:str="", allow_multiple_copies:bool=False):
     """
     Validate that the given allocation is feasible for the given input-instance.
     Checks agent capacities, item capacities, and uniqueness of items.
@@ -47,7 +47,7 @@ def validate_allocation(instance:Instance, allocation:dict, title:str=""):
         agent_capacity = instance.agent_capacity(agent)
         if len(bundle) > agent_capacity:
             raise ValueError(f"{title}: Agent {agent} has capacity {agent_capacity}, but received more items: {bundle}.")
-        if len(set(bundle))!=len(bundle):
+        if (not allow_multiple_copies) and len(set(bundle))!=len(bundle):
             raise ValueError(f"{title}: Agent {agent} received two or more copies of the same item. Bundle: {bundle}.")
         if len(bundle) < agent_capacity:
             agents_below_their_capacity.append(agent)
@@ -137,14 +137,14 @@ class AllocationBuilder:
     """
     def __init__(self, instance:Instance):
         self.instance = instance
-        self.allow_multiple_items = False
+        self.allow_multiple_copies = False
         self.remaining_agent_capacities = {agent: instance.agent_capacity(agent) for agent in instance.agents if instance.agent_capacity(agent) > 0}
         self.remaining_item_capacities = {item: instance.item_capacity(item) for item in instance.items if instance.item_capacity(item) > 0}
         self.remaining_conflicts = {(agent,item) for agent in self.remaining_agents() for item in self.instance.agent_conflicts(agent)}
         self.bundles = {agent: set() for agent in instance.agents}    # Each bundle is a set, since each agent can get at most one seat in each course
 
-    def set_allow_multiple_items(self, flag):
-        self.allow_multiple_items = flag
+    def set_allow_multiple_copies(self, flag):
+        self.allow_multiple_copies = flag
         if flag:
             self.bundles = {agent: list() for agent in self.instance.agents}
 
@@ -219,7 +219,7 @@ class AllocationBuilder:
             raise ValueError(f"Item {item} has no remaining capacity for agent {agent}")
         if (agent,item) in self.remaining_conflicts:
             raise ValueError(f"Agent {agent} is not allowed to take item {item} due to a conflict")
-        if self.allow_multiple_items:
+        if self.allow_multiple_copies:
             self.bundles[agent].append(item)
         else:
             self.bundles[agent].add(item)
@@ -233,7 +233,7 @@ class AllocationBuilder:
         self.remaining_item_capacities[item] -= 1
         if self.remaining_item_capacities[item] <= 0:
             self.remove_item_from_loop(item)
-        if not self.allow_multiple_items:
+        if not self.allow_multiple_copies:
             self._update_conflicts(agent,item)
 
     def give_bundle(self, agent:any, new_bundle:list, logger=None):

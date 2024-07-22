@@ -34,7 +34,7 @@ def test_feasibility():
             item_subjective_ratio_bounds=[0.5, 1.5]
         )
         allocation = fairpyx.divide(fairpyx.algorithms.high_multiplicity_fair_allocation.high_multiplicity_fair_allocation, instance=instance)
-        fairpyx.validate_allocation(instance, allocation, title=f"Seed {i}")
+        fairpyx.validate_allocation(instance, allocation, title=f"Seed {i}", allow_multiple_copies=True)
 
 
 if __name__ == "__main__":
