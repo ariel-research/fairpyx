@@ -11,3 +11,10 @@ prtpy
 # prtpy>=0.7.0
 # more_itertools
 # scs
+experiments_csv
+cvxpy~=1.5.1
+setuptools~=67.4.0
+matplotlib~=3.9.0
+pandas~=2.2.2
+pytest~=8.2.2
+eefpy~=0.1.5
