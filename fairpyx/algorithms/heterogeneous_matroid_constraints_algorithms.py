@@ -17,6 +17,7 @@ from fairpyx import divide
 import networkx as nx
 import matplotlib.pyplot as plt
 import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -1247,7 +1248,7 @@ def validate_valuations(agent_item_valuations: dict[str, dict[str, int]], is_ide
             if not isinstance(key,str) or not isinstance(value,dict):
                 raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly")
             for inner_key,inner_value in value.items():
-                if not isinstance(inner_key,str) or not isinstance(inner_value,int):
+                if not isinstance(inner_key,str) or not isinstance(inner_value,(int,np.int64)):
                     raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly,inner value type is {type(inner_value)}")
 
         if is_identical:
