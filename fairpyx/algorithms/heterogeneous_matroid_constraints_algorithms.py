@@ -1248,7 +1248,7 @@ def validate_valuations(agent_item_valuations: dict[str, dict[str, int]], is_ide
                 raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly")
             for inner_key,inner_value in value.items():
                 if not isinstance(inner_key,str) or not isinstance(inner_value,int):
-                    raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly")
+                    raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly,inner value type is {type(inner_value)}")
 
         if is_identical:
             # Check for identical valuations
