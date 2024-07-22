@@ -1203,7 +1203,7 @@ def validate_input(function_name: str, **kwargs):
 
         elif function_name == 'helper_create_agent_item_bipartite_graph':
             check_required_keys(['agents', 'items', 'valuation_func'])
-            validate_capacities(kwargs['agents'])
+            validate_duplicate(kwargs['agents'])
             validate_duplicate(kwargs['items'])
             if not callable(kwargs['valuation_func']):
                 raise ValueError("valuation_func must be callable.")
