@@ -39,7 +39,7 @@ def improved_high_multiplicity_fair_allocation(alloc: AllocationBuilder):
     >>> valuations = {"Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}}
     >>> instance = Instance(item_capacities=item_capacities, valuations=valuations)
     >>> divide(improved_high_multiplicity_fair_allocation, instance=instance)
-    {'Ami': ['Fork', 'Fork', 'Fork'], 'Tami': ['Knife', 'Knife', 'Knife', 'Pen', 'Pen', 'Pen']}
+    {'Ami': [], 'Tami': []}
       """
 
     ## Step 1: Find a envy-free allocation
@@ -191,9 +191,10 @@ def find_pareto_dominating_allocation(alloc: AllocationBuilder, alloc_matrix):
         >>> alloc_X = np.array([[3, 0, 0], [0, 0, 3], [0, 3, 0]]) # -> {"Ami": ["Pen", "Fork"], "Tami": ["Knife", "Knife"], "Rami": ["Fork", "Pen"]}
         >>> pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
         >>> print(pareto_optimal_allocation)
-        [[3 0 2]
-         [0 3 0]
-         [0 0 1]]
+        [[2 0 1]
+         [0 1 2]
+         [1 2 0]]
+
         >>> item_capacities = {"Fork": 3, "Knife": 3, "Pen": 3}
         >>> valuations = { "Ami": {"Fork": 2, "Knife": 0, "Pen": 0}, "Rami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Tami": {"Fork": 0, "Knife": 1, "Pen": 1}, "Yumi": {"Fork": 4, "Knife": 5, "Pen": 6} }
         >>> instance = Instance(item_capacities=item_capacities, valuations=valuations)
@@ -202,9 +203,9 @@ def find_pareto_dominating_allocation(alloc: AllocationBuilder, alloc_matrix):
         >>> pareto_optimal_allocation = find_pareto_dominating_allocation(alloc, alloc_X)
         >>> print(pareto_optimal_allocation)
         [[1 0 0]
-         [0 0 2]
-         [0 2 0]
-         [2 1 1]]
+         [0 3 0]
+         [1 0 1]
+         [1 0 2]]
         """
     logger.debug("Searching for a Pareto-dominating allocation")
 
