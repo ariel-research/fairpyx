@@ -1232,9 +1232,9 @@ if __name__ == "__main__":
     sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
     instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
     divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
-    divide(algorithm=capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category="c1")
+    # divide(algorithm=capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category="c1")
     divide(algorithm=two_categories_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category_pair=("c1","c2"))
-    divide(algorithm=per_category_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
+    # divide(algorithm=per_category_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
     
     items=['m1','m2','m3']
     item_categories = {'c1': ['m1'],'c2':['m2','m3']}
