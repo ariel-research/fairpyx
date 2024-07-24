@@ -8,14 +8,12 @@ import math
 import random
 from itertools import cycle
 
-import experiments_csv
 from networkx import DiGraph
 import fairpyx.algorithms
 from fairpyx import Instance, AllocationBuilder
 from fairpyx.algorithms import *
 from fairpyx import divide
 import networkx as nx
-import matplotlib.pyplot as plt
 import logging
 import numpy as np
 
@@ -685,7 +683,6 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
                     logger.info(f'No more agents with capacity')
                     break
                 continue # otherwise pick the next agent !
-        #experiments_csv.logger.info(f'remaining agents are ->{remaining_category_agent_capacities}')
         # safe to assume agent has capacity & has the best item to pick
         best_item_for_agent = max(potential_items_for_agent, key=lambda item: alloc.instance.agent_item_value(agent, item))
         logger.info(f'picked best item for {agent} -> item -> {best_item_for_agent}')
@@ -779,6 +776,7 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
     logger.info(f"envy_graph.edges after update -> {envy_graph.edges}")
 
 # def visualize_graph(envy_graph):
+#     import matplotlib.pyplot as plt
 #     plt.figure(figsize=(8, 6))
 #     nx.draw(envy_graph, with_labels=True)
 #     plt.title('Basic Envy Graph')
@@ -1220,38 +1218,37 @@ def helper_validate_item_categories(item_categories:dict[str, list]):
                 raise ValueError(f"item categories not structured properly!!!")
 
 if __name__ == "__main__":
-    # import doctest, sys
-    # logger.setLevel(logging.DEBUG)
-    # logger.addHandler(logging.StreamHandler())
-    # print("\n", doctest.testmod(), "\n")
-#     # # doctest.run_docstring_examples(iterated_priority_matching, globals())
-#     #
-#     # order=['Agent1','Agent2','Agent3','Agent4']
-#     # items=['m1','m2','m3','m4']
-#     # item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
-#     # agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
-#     # valuations = {'Agent1':{'m1':2,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':2,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':2,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
-#     # sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
-#     # instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
-#     # # divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
-#     # # divide(algorithm=capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category="c1")
-#     # # divide(algorithm=two_categories_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category_pair=("c1","c2"))
-#     # # divide(algorithm=per_category_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
-#     #
-#     # items=['m1','m2','m3']
-#     # item_categories = {'c1': ['m1'],'c2':['m2','m3']}
-#     # agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
-#     # valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}} # TODO change valuation in paper
-#     # instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
-#     # # divide(algorithm=iterated_priority_matching,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
-#
-    # order = ['Agent1', 'Agent2']
-    # items = ['m1']
-    # item_categories = {'c1': ['m1']}
-    # agent_category_capacities = {'Agent1': {'c1': 0}, 'Agent2': {'c1': 1}}
-    # valuations = {'Agent1': {'m1': 0}, 'Agent2': {'m1': 420}}
-    # target_category = 'c1'
-    # divide(algorithm=capped_round_robin, instance=Instance(valuations=valuations, items=items),
-    #                 item_categories=item_categories, agent_category_capacities=agent_category_capacities,
-    #                 initial_agent_order=order, target_category=target_category)
-    pass
+    import doctest, sys
+    print("\n", doctest.testmod(), "\n")
+
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler())
+
+    order=['Agent1','Agent2','Agent3','Agent4']
+    items=['m1','m2','m3','m4']
+    item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
+    agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
+    valuations = {'Agent1':{'m1':2,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':2,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':2,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
+    sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
+    instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
+    divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
+    divide(algorithm=capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category="c1")
+    divide(algorithm=two_categories_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category_pair=("c1","c2"))
+    divide(algorithm=per_category_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
+    
+    items=['m1','m2','m3']
+    item_categories = {'c1': ['m1'],'c2':['m2','m3']}
+    agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
+    valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}} # TODO change valuation in paper
+    instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
+    divide(algorithm=iterated_priority_matching,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
+
+    order = ['Agent1', 'Agent2']
+    items = ['m1']
+    item_categories = {'c1': ['m1']}
+    agent_category_capacities = {'Agent1': {'c1': 0}, 'Agent2': {'c1': 1}}
+    valuations = {'Agent1': {'m1': 0}, 'Agent2': {'m1': 420}}
+    target_category = 'c1'
+    divide(algorithm=capped_round_robin, instance=Instance(valuations=valuations, items=items),
+                    item_categories=item_categories, agent_category_capacities=agent_category_capacities,
+                    initial_agent_order=order, target_category=target_category)
