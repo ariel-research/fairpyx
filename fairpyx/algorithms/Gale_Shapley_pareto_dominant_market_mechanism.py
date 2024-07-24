@@ -17,31 +17,6 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(leve
 logger = logging.getLogger(__name__)
 
 
-def sort_and_tie_brake(input_dict: Dict[str, float], tie_braking_lottery: Dict[str, float]) -> List[tuple[str, float]]:
-    """
-    Sorts a dictionary by its values in descending order and adds a number
-    to the values of keys with the same value to break ties.
-
-    Parameters:
-    input_dict (Dict[str, float]): A dictionary with string keys and float values representing student bids.
-    tie_braking_lottery (Dict[str, float]): A dictionary with string keys and float values for tie-breaking.
-
-    Returns:
-    List[tuple[str, float]]: A list of tuples containing student names and their modified bids, sorted in descending order.
-    
-    Examples:
-    >>> input_dict = {"Alice": 45, "Bob": 55, "Chana": 45, "Dana": 60}
-    >>> tie_braking_lottery = {"Alice": 0.3, "Bob": 0.2, "Chana": 0.4, "Dana": 0.1}
-    >>> sort_and_tie_brake(input_dict, tie_braking_lottery)
-    [('Dana', 60), ('Bob', 55), ('Chana', 45), ('Alice', 45)]
-    """
-
-    
-    # Sort the dictionary by adjusted values in descending order
-    sorted_dict = (sorted(input_dict.items(), key=lambda item: item[1] + tie_braking_lottery[item[0]], reverse=True))
-    
-    return sorted_dict
-
 def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, List[str]], tie_braking_lottery: Union[None, Dict[str, float]] = None):
     """
     Allocate the given items to the given agents using the Gale-Shapley protocol.
@@ -162,6 +137,32 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, L
         for student, bid in matching.items():
             alloc.give(student, course_name, logger)
     logger.info(f"The final course matchings are: {alloc.bundles}")
+
+
+def sort_and_tie_brake(input_dict: Dict[str, float], tie_braking_lottery: Dict[str, float]) -> List[tuple[str, float]]:
+    """
+    Sorts a dictionary by its values in descending order and adds a number
+    to the values of keys with the same value to break ties.
+
+    Parameters:
+    input_dict (Dict[str, float]): A dictionary with string keys and float values representing student bids.
+    tie_braking_lottery (Dict[str, float]): A dictionary with string keys and float values for tie-breaking.
+
+    Returns:
+    List[tuple[str, float]]: A list of tuples containing student names and their modified bids, sorted in descending order.
+    
+    Examples:
+    >>> input_dict = {"Alice": 45, "Bob": 55, "Chana": 45, "Dana": 60}
+    >>> tie_braking_lottery = {"Alice": 0.3, "Bob": 0.2, "Chana": 0.4, "Dana": 0.1}
+    >>> sort_and_tie_brake(input_dict, tie_braking_lottery)
+    [('Dana', 60), ('Bob', 55), ('Chana', 45), ('Alice', 45)]
+    """
+
+    
+    # Sort the dictionary by adjusted values in descending order
+    sorted_dict = (sorted(input_dict.items(), key=lambda item: item[1] + tie_braking_lottery[item[0]], reverse=True))
+    
+    return sorted_dict
 
 if __name__ == "__main__":
     import doctest
