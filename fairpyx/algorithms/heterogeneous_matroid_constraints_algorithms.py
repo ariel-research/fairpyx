@@ -21,10 +21,6 @@ logger = logging.getLogger(__name__)
 
 def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
                              initial_agent_order: list):
-    #TODO
-    # item_categories: 1) validate no duplicates
-    # agent_category_capacities : 1) maybe negative numbers in capacity arent accepted 2) validate identical capacities for everyone
-    # initial_agent_order : validate no duplicates
     """
     this is the Algorithm 1 from the paper
     per category round-robin is an allocation algorithm which guarantees EF1 (envy-freeness up to 1 good) allocation
@@ -99,14 +95,6 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str
 
 def capped_round_robin(alloc: AllocationBuilder,item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
                              initial_agent_order: list, target_category: str):
-    #TODO
-    # target_category: validate it does belong to the items_categories.keys
-    # initial_agent_order: validate no duplicates✅
-    # item_categories: validate no duplicates✅
-    # agent_category_capacities: validate no negative capacities ✅
-    # validate non-negative valuations ✅
-
-
     """
     this is Algorithm 2 CRR (capped round-robin) algorithm TLDR: single category , may have differnt capacities
     capped in CRR stands for capped capacity for each agent unlke RR , maye have different valuations -> F-EF1 (
@@ -183,13 +171,6 @@ def capped_round_robin(alloc: AllocationBuilder,item_categories: dict[str,list],
 
 def two_categories_capped_round_robin(alloc: AllocationBuilder,item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
                              initial_agent_order: list, target_category_pair: tuple[str]):
-    #TODO
-    # initial_agent_order: validate no duplicates
-    # target_category_pair : validate list(target_category_pair)== list(item_categories.keys)
-    # agent_category_capacities: validate no negative capacities
-    # item_categories: validate no duplicates
-    # validate non negative valuations
-
     """
         this is Algorithm 3 back and forth capped round-robin algorithm (2 categories,may have different capacities,may have different valuations)
         in which we simply
@@ -279,12 +260,6 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder,item_categories: 
 
 def per_category_capped_round_robin(alloc: AllocationBuilder,item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
                              initial_agent_order: list):
-    #TODO
-    # no need for different capacities validation since its also acceptable to have equal capacities , it doesnt hurt
-    # validate identical valuations , non negative
-    # item_categories: validate no duplicates
-    # initial_agent_order: validate no duplicates
-    # agent_category_capacities: validate no negative capacities
     """
     this is Algorithm 4 deals with (Different Capacities, Identical Valuations), suitable for any number of categories
     CRR (per-category capped round-robin) algorithm
@@ -311,7 +286,7 @@ def per_category_capped_round_robin(alloc: AllocationBuilder,item_categories: di
 
             >>> # Example 2 (3 agents 3 categories , different capacities )
             >>> from fairpyx import  divide
-            >>> order=['Agent2','Agent3','Agent1']#TODO change in papers
+            >>> order=['Agent2','Agent3','Agent1']
             >>> items=['m1','m2','m3','m4','m5','m6','m7','m8','m9']
             >>> item_categories = {'c1': ['m1','m2','m3','m4'],'c2':['m5','m6','m7'],'c3':['m8','m9']}
             >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':4,'c3':4}, 'Agent2': {'c1':4,'c2':0,'c3':4},'Agent3': {'c1':4,'c2':4,'c3':0}}
@@ -355,10 +330,6 @@ def per_category_capped_round_robin(alloc: AllocationBuilder,item_categories: di
 
 
 def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]]):
-    #TODO
-    # validate binary valuations , all values must be either 0 or 1
-    # item_categories: validate no duplicates
-    # agent_category_capacities :  validate no negative capacities
     """
     this is Algorithm 5  deals with (partition Matroids with Binary Valuations, may have different capacities)
     loops as much as maximum capacity in per each category , each iteration we build :
@@ -389,13 +360,13 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[s
             >>> items=['m1','m2','m3']
             >>> item_categories = {'c1': ['m1'],'c2':['m2','m3']}
             >>> agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
-            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}} # TODO change valuation in paper
+            >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}}
             >>> #divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)
             {'Agent1': ['m1', 'm3'], 'Agent2': ['m2'], 'Agent3': []}
 
             >>> # Example 3 ( 3 agents , 3 categories , with common interests, and remainder unallocated items at the end )
             >>> from fairpyx import  divide
-            >>> items=['m1','m2','m3','m4','m5','m6']#TODO change in papers since in case there is no envy we cant choose whatever order we want. maybe on papers yes but in here no
+            >>> items=['m1','m2','m3','m4','m5','m6']
             >>> item_categories = {'c1': ['m1','m2','m3'],'c2':['m4','m5'],'c3':['m6']}
             >>> agent_category_capacities = {'Agent1': {'c1':1,'c2':1,'c3':1}, 'Agent2': {'c1':1,'c2':1,'c3':1},'Agent3': {'c1':0,'c2':0,'c3':1}}
             >>> valuations = {'Agent1':{'m1':1,'m2':1,'m3':0,'m4':1,'m5':1,'m6':1},'Agent2':{'m1':0,'m2':1,'m3':0,'m4':1,'m5':1,'m6':1},'Agent3':{'m1':0,'m2':0,'m3':0,'m4':0,'m5':0,'m6':1}}
@@ -1081,14 +1052,14 @@ def helper_priority_matching(agent_item_bipartite_graph:nx.Graph, current_order:
     # we used max weight matching in which (agents are getting high weights in desc order 2^n,2^n-1.......1)
     logger.info(f'matching is -> {matching}')
     for match in matching:
-        if match[0].startswith('A'): # TODO: agent name not always starts with A. do different check
+        if match[0] in current_order: # previously was .startsWith('A') but not necessarily
             if ((match[0], match[1]) not in alloc.remaining_conflicts) and match[0] in remaining_category_agent_capacities.keys():
                 alloc.give(match[0], match[1], logger)
                 remaining_category_agent_capacities[match[0]] -= 1
                 if remaining_category_agent_capacities[match[0]] <= 0:
                     del remaining_category_agent_capacities[match[0]]
             #else do nothing ....
-        else:
+        else:#meaning match[1] in current_order
             if  ((match[1], match[0]) not in alloc.remaining_conflicts) and match[1] in remaining_category_agent_capacities.keys():
                 alloc.give(match[1], match[0], logger)
                 remaining_category_agent_capacities[match[1]] -= 1
@@ -1232,14 +1203,12 @@ if __name__ == "__main__":
     sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
     instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
     divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
-    # divide(algorithm=capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category="c1")
     divide(algorithm=two_categories_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category_pair=("c1","c2"))
-    # divide(algorithm=per_category_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
-    
+
     items=['m1','m2','m3']
     item_categories = {'c1': ['m1'],'c2':['m2','m3']}
     agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
-    valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}} # TODO change valuation in paper
+    valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}}
     instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
     divide(algorithm=iterated_priority_matching,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
 
