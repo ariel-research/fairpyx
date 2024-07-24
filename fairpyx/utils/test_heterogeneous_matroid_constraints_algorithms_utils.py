@@ -129,7 +129,7 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
         sum_of_valuations = np.sum(random_valuation)
         normalized_sum_of_values=sum_of_valuations if item_base_value_bounds == (0, 1) else normalized_sum_of_values
         normalized_random_values = np.round(random_valuation * normalized_sum_of_values / sum_of_valuations).astype(
-            int)  # TODO change to float if needed
+            int) # change to float if needed
 
         normalized_random_agent_item_valuation = {
             agent: dict(zip(result_instance.items, normalized_random_values
@@ -160,7 +160,6 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
         agent in agent_category_capacities.keys()}
 
     item_capacities = {item: result_instance.item_capacity(item) for item in result_instance.items}
-    #result_instance.item_capacity # TODO looks like a smoother approach to pass a callable since its also public ! for future use if required
 
     if item_base_value_bounds == (0, 1):  # in case of binary valuations (Algorithm5)
         if equal_valuations:
