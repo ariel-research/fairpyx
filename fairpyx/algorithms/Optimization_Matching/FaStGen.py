@@ -9,6 +9,8 @@ from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 from FaSt import Demote
 # from bidict import bidict
 from copy import deepcopy
+import random
+
 
 import logging
 logger = logging.getLogger(__name__)
