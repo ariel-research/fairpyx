@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from fairpyx.algorithms.almost_egalitarian import almost_egalitarian_allocation
 from fairpyx.satisfaction import AgentBundleValueMatrix
 from fairpyx.adaptors import divide, divide_with_priorities
-from fairpyx.algorithms.CM.main_course_match import course_match_algorithm
+from fairpyx.algorithms.CM.main_course_match import course_match_algorithm, check_envy
 from fairpyx.instances import Instance
 import time
 
@@ -130,19 +130,23 @@ def simulation_with_diffrent_distributions(list_num_items_capacity: list, list_n
         if divide_type == 'default':
             logger.debug("Performing allocation using Course Match Algorithm without priorities")
             alloc_cm = divide(algorithm=course_match_algorithm, instance=random_instance, budget=budget)
+            check_envy(alloc_cm, random_instance) 
         elif divide_type == 'with_priorities':
             logger.debug("Performing allocation using Course Match Algorithm with priorities")
             priorities_list = create_random_sublists(original_array=list(random_instance.agents), random_seed=1)
             alloc_cm = divide(algorithm=course_match_algorithm, instance=random_instance, budget=budget, priorities_student_list=priorities_list)
+            check_envy(alloc_cm, random_instance) 
         times_cm.append(time.time() - start_time)
 
         start_time = time.time()
         if divide_type == 'default':
             logger.debug("Performing allocation using Almost Egalitarian Allocation without priorities")
             alloc_al_eg = divide(algorithm=almost_egalitarian_allocation, instance=random_instance)
+            check_envy(alloc_cm, random_instance) 
         elif divide_type == 'with_priorities':
             logger.debug("Performing allocation using Almost Egalitarian Allocation with priorities")
             alloc_al_eg = divide_with_priorities(algorithm=almost_egalitarian_allocation, instance=random_instance, agent_priority_classes=priorities_list)
+            check_envy(alloc_cm, random_instance) 
         times_al_eg.append(time.time() - start_time)
 
         # Instantiate AgentBundleValueMatrix with the random instance and for both allocations

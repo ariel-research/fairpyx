@@ -63,6 +63,31 @@ def course_match_algorithm(alloc: AllocationBuilder, budget: dict, priorities_st
     # print(CM)
     return alloc
    
+def check_envy(res, instance : Instance):
+    alloc = AllocationBuilder(instance)
+    my_valuations = {agent: sum([alloc.instance._valuations[agent][item] for item in res[agent]]) for agent in res.keys()}
+    print(my_valuations)
+    envy_agent = {agent : {} for agent in res.keys()}
+    for agent in res.keys():
+        for agent2 in res.keys():
+            if agent != agent2:
+                agent_val_sun_for_agent2_baskets = sum([alloc.instance._valuations[agent][item] for item in res[agent2]])
+                if agent_val_sun_for_agent2_baskets > my_valuations[agent]:
+                    envy_agent[agent][agent2] = agent_val_sun_for_agent2_baskets - my_valuations[agent]
+    # print("check_envy", envy_agent)
+
+    for agent in envy_agent.keys():
+        for agent2 in envy_agent[agent].keys():
+            agent_val_for_agent2_baskets= [alloc.instance._valuations[agent][item] for item in res[agent2]]
+            sum_val = sum(agent_val_for_agent2_baskets)
+            boolian = False
+            for val in agent_val_for_agent2_baskets:
+                if  sum_val - val <= my_valuations[agent]:
+                    boolian=True
+                    break
+        if not boolian:
+            print(f"EF?!?! agent1 {agent} envies agent2 {agent2} by {envy_agent[agent][agent2]}")
+    print("check_envy done")
 
 
 if __name__ == "__main__":
@@ -79,4 +104,9 @@ if __name__ == "__main__":
                     "Bob": {"c1": 0, "c2": 100, "c3": 0},
     })
     budget = {"Alice": 3.0, "Bob": 1.0}    
-    print(divide(course_match_algorithm, instance, budget=budget))
+    
+
+    res = divide(course_match_algorithm, instance, budget=budget)
+    print(res)
+
+    check_envy(res,instance)
