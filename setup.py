@@ -18,7 +18,7 @@ print ("packages: ", packages)
 setuptools.setup(
     name=NAME,
     version=VERSION,
-    packages=packages,
+    packages=setuptools.find_packages(),
     install_requires=REQUIRES,
     author="Erel Segal-Halevi",
     author_email="erelsgl@gmail.com",
@@ -49,6 +49,7 @@ setuptools.setup(
 #        python -m build
 #   Or (old version):
 #        python setup.py sdist bdist_wheel
+
 
 # Publish to test PyPI:
 #   twine upload --repository testpypi dist/*

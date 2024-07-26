@@ -290,7 +290,7 @@ def create_more_constraints_ILP(alloc: AllocationBuilder, alloc_X: np.ndarray, a
     for i in range(num_agents):
         for j in range(num_items):
             # Constraint 7 - inequality (7) in the paper.
-            constraint7 = allocation_variables[i][j] + delta[i][j] <= -1 + (2 * items_capacities[j]) * (1 - Z[i][j])
+            constraint7 = allocation_variables[i][j] + delta[i][j] <= -1 + (2 * items_capacities[j] + 1) * (1 - Z[i][j])
             constraints.append(constraint7)
 
             # Constraint 8 - inequality (8) in the paper.
