@@ -1,12 +1,10 @@
 numpy>=1.21.3,<2.0.0
 scipy>=1.6.1
-networkz~=1.0.6
+networkz
 cvxpy_base>=1.1.17
 prtpy
 # cmake
-matplotlib
-experiments-csv
-
+# matplotlib
 # repackage
 # pytest
 # cvxpy_leximin>=0.4.4
