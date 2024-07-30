@@ -17,16 +17,17 @@ max_value = 1000
 normalized_sum_of_values = 1000
 TIME_LIMIT = 100
 
+from fairpyx.algorithms.ACEEI.ACEEI import ACEEI_without_EFTB, ACEEI_with_EFTB, ACEEI_with_contested_EFTB
+from fairpyx.algorithms.ACEEI.tabu_search import run_tabu_search
+
 algorithms_to_check = [
-    crs.utilitarian_matching, 
-    crs.iterated_maximum_matching_unadjusted, 
-    crs.iterated_maximum_matching_adjusted, 
-    crs.serial_dictatorship,                  # Very bad performance
-    crs.round_robin, 
-    crs.bidirectional_round_robin,
-    crs.almost_egalitarian_without_donation,
-    crs.almost_egalitarian_with_donation,
-    ]
+    ACEEI_without_EFTB,
+    ACEEI_with_EFTB,
+    ACEEI_with_contested_EFTB,
+    run_tabu_search,
+    # crs.iterated_maximum_matching_adjusted,
+    # crs.bidirectional_round_robin,
+]
 
 def evaluate_algorithm_on_instance(algorithm, instance):
     allocation = divide(algorithm, instance)
@@ -70,9 +71,9 @@ def run_uniform_experiment():
     # Run on uniformly-random data:
     experiment = experiments_csv.Experiment("results/", "course_allocation_uniform.csv", backup_folder="results/backup/")
     input_ranges = {
-        "num_of_agents": [100,200,300],         
-        "num_of_items":  [25],                   
-        "value_noise_ratio": [0, 0.2, 0.5, 0.8, 1],                        
+        "num_of_agents": [5, 8, 10],
+        "num_of_items":  [4, 6],
+        "value_noise_ratio": [0.2],
         "algorithm": algorithms_to_check,
         "random_seed": range(5),
     }
@@ -108,8 +109,8 @@ def run_szws_experiment():
     # Run on SZWS simulated data:
     experiment = experiments_csv.Experiment("results/", "course_allocation_szws.csv", backup_folder="results/backup/")
     input_ranges = {
-        "num_of_agents": [100,200,300],         
-        "num_of_items":  [25],                            # in SZWS: 25
+        "num_of_agents": [5,10],
+        "num_of_items":  [6],                            # in SZWS: 25
         "agent_capacity": [5],                            # as in SZWS 
         "supply_ratio": [1.1, 1.25, 1.5],                    # as in SZWS
         "num_of_popular_items": [6, 9],                   # as in SZWS
@@ -166,7 +167,55 @@ if __name__ == "__main__":
     import logging, experiments_csv
     experiments_csv.logger.setLevel(logging.INFO)
     run_uniform_experiment()
-    # run_szws_experiment()
+    run_szws_experiment()
     # run_ariel_experiment()
     #
+
+    import pandas as pd
+    import matplotlib.pyplot as plt
+
+
+    # Function to load experiment results from CSV
+    def load_experiment_results(filename):
+        df = pd.read_csv(filename)
+        return df
+
+
+    # Function to plot runtime vs. number of students
+    def plot_runtime_vs_students(df, algorithm_name):
+        num_of_agents = df['num_of_agents']
+        runtime = df['runtime']
+
+        plt.plot(num_of_agents, runtime, marker='o', label=algorithm_name)
+        plt.xlabel('Number of Students')
+        plt.ylabel('Runtime (seconds)')
+        plt.title(f'Runtime vs. Number of Students ({algorithm_name})')
+        plt.legend()
+        plt.grid(True)
+
+
+    # Load and plot data for run_uniform_experiment()
+    uniform_results = load_experiment_results('results/course_allocation_uniform.csv')
+    plt.figure(figsize=(10, 6))  # Adjust figure size if needed
+
+    for algorithm in algorithms_to_check:
+        algorithm_name = algorithm.__name__
+        algorithm_data = uniform_results[uniform_results['algorithm'] == algorithm_name]
+        plot_runtime_vs_students(algorithm_data, algorithm_name)
+
+    plt.tight_layout()
+    plt.show()
+
+    # Load and plot data for run_szws_experiment()
+    szws_results = load_experiment_results('results/course_allocation_szws.csv')
+    plt.figure(figsize=(10, 6))  # Adjust figure size if needed
+
+    for algorithm in algorithms_to_check:
+        algorithm_name = algorithm.__name__
+        algorithm_data = szws_results[szws_results['algorithm'] == algorithm_name]
+        plot_runtime_vs_students(algorithm_data, algorithm_name)
+
+    plt.tight_layout()
+    plt.show()
+
 
