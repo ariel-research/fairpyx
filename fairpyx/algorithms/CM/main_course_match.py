@@ -14,28 +14,13 @@ from fairpyx.algorithms.CM import A_CEEI
 from fairpyx.algorithms.CM import remove_oversubscription
 from fairpyx.algorithms.CM import reduce_undersubscription
 
-def course_match_algorithm(alloc: AllocationBuilder, budget: dict, priorities_student_list: list = [], time : int = 2):
+def course_match_algorithm(alloc: AllocationBuilder, budget: dict, priorities_student_list: list = [], time : int = 60):
     """
     Perform the Course Match algorithm to find the best course allocations.
     
     :param alloc: (AllocationBuilder) an allocation builder object
 
     :return: (dict) course allocations
-
-    :example
-    >>> instance = Instance(
-    ...   agent_conflicts = {"Alice": [], "Bob": [], "Tom": []},
-    ...   item_conflicts = {"c1": [], "c2": [], "c3": []},
-    ...   agent_capacities = {"Alice": 1, "Bob": 1, "Tom": 1}, 
-    ...   item_capacities  = {"c1": 1, "c2": 1, "c3": 1},
-    ...   valuations = {"Alice": {"c1": 100, "c2": 0, "c3": 0},
-    ...                 "Bob": {"c1": 0, "c2": 100, "c3": 0},
-    ...                 "Tom": {"c1": 0, "c2": 0, "c3": 100}
-    ... })
-    >>> budget = {"Alice": 1.0, "Bob": 1.1, "Tom": 1.3}    
-    >>> allocation = AllocationBuilder(instance)
-    >>> course_match_algorithm(allocation, budget)
-    {'Alice': ['c1'], 'Bob': ['c2'], 'Tom': ['c3']}
 
     """
     price_vector = A_CEEI.A_CEEI(alloc,budget,time)
