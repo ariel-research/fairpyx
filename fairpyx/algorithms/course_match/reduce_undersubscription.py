@@ -10,7 +10,7 @@ Naama Shiponi and Ben Dabush
 
 import logging
 logger = logging.getLogger(__name__)
-from fairpyx.algorithms.CM.A_CEEI import (
+from fairpyx.algorithms.course_match.A_CEEI import (
     compute_surplus_demand_for_each_course,
     find_best_schedule,
     find_preference_order_for_each_student,

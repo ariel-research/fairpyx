@@ -10,9 +10,9 @@ Date: 1/6/2024
 from fairpyx.instances import Instance
 from fairpyx.allocations import AllocationBuilder
 
-from fairpyx.algorithms.CM import A_CEEI
-from fairpyx.algorithms.CM import remove_oversubscription
-from fairpyx.algorithms.CM import reduce_undersubscription
+from fairpyx.algorithms.course_match import A_CEEI
+from fairpyx.algorithms.course_match import remove_oversubscription
+from fairpyx.algorithms.course_match import reduce_undersubscription
 
 def course_match_algorithm(alloc: AllocationBuilder, budget: dict, priorities_student_list: list = [], time : int = 60):
     """
