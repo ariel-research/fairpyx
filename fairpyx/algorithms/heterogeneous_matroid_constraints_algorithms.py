@@ -1187,8 +1187,8 @@ def helper_validate_item_categories(item_categories:dict[str, list]):
         for category, items in item_categories.items():
             if not isinstance(category, str) or not isinstance(items, list):
                 raise ValueError(f"item categories not structured properly!!!")
-    #else it's not of type dict ! error
-    raise ValueError(f"item categories is supposed to be dict[str,list] but u entered {type(item_categories)}")
+    else:
+        raise ValueError(f"item categories is supposed to be dict[str,list] but u entered {type(item_categories)}")
 
 if __name__ == "__main__":
     import doctest, sys
