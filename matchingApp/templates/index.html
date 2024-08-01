@@ -49,14 +49,14 @@
     <script>
         function toggleFields() {
             var algorithm = document.getElementById('algorithm').value;
-            var uField = document.getElementById('agentsField');
+            var uField = document.getElementById('uField');
             var valuationLabel = document.getElementById('valuationLabel');
             
             if (algorithm === 'FaStGen') {
-                agentsField.style.display = 'block';
-                valuationLabel.textContent = 'items Values (JSON format)';
+                uField.style.display = 'block';
+                valuationLabel.textContent = 'V Values (JSON format)';
             } else {
-                agentsField.style.display = 'none';
+                uField.style.display = 'none';
                 valuationLabel.textContent = 'Valuations (JSON format)';
             }
         }
@@ -92,14 +92,10 @@
                     <textarea class="form-control" id="valuation" name="valuation" rows="5" required></textarea>
                 </div>
 
-                <div class="form-group" id="itemsField" style="display:none;">
-                    <label for="itemsValues">items Valuations (JSON format)</label>
-                    <textarea class="form-control" id="itemsValues" name="itemsValues" rows="5"></textarea>
-                </div>
 
-                <div class="form-group" id="agentsField" style="display:none;">
-                    <label for="agentsValues">Agents Valuations (JSON format)</label>
-                    <textarea class="form-control" id="agentsValues" name="agentsValues" rows="5"></textarea>
+                <div class="form-group" id="uField" style="display:none;">
+                    <label for="uValues">U Values (JSON format)</label>
+                    <textarea class="form-control" id="uValues" name="uValues" rows="5"></textarea>
                 </div>
                 <button type="submit" class="btn custom-btn">Submit</button>
             </form>

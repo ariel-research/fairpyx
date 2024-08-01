@@ -7,9 +7,9 @@ import logging
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(_name_)
 
-app = Flask(__name__)
+app = Flask(_name_)
 
 def make_s_list(n):
     """Converts a number into a set of student identifiers."""
@@ -19,6 +19,13 @@ def make_c_list(m):
     """Converts a number into a set of college identifiers."""
     return {f"c{i+1}" for i in range(int(m))}
 
+def fastgen_make_s_list(n):
+    """Converts a number into a list of student identifiers."""
+    return [f"s{i+1}" for i in range(int(n))]
+
+def fastgen_make_c_list(m):
+    """Converts a number into a list of college identifiers."""
+    return [f"c{i+1}" for i in range(int(m))]
 @app.route('/', methods=['GET', 'POST'])
 def index():
     logger.debug("Entered index function")
@@ -56,19 +63,22 @@ def index():
                 logger.debug("FaSt algorithm result: %s", result)
                 
             elif algorithm == 'FaStGen':
-                agents_valuation = request.form['agentsValues']
-                logger.debug("Received agentsValues (JSON): %s", agents_valuation)
-                agents_valuation_dict = json.loads(agents_valuation)
-                logger.debug("Converted agentsValues to dict: %s", agents_valuation_dict)
-                ins = Instance(agents=list_students, items=list_colleges, valuations=agents_valuation_dict)
+                list_students=fastgen_make_s_list(agents)
+                list_colleges=fastgen_make_c_list(items)
+                u_valuation = request.form['uValues']
+                logger.debug("Received uValues (JSON): %s", u_valuation)
+                u_valuation_dict = json.loads(u_valuation)
+                logger.debug("Converted uValues to dict: %s", u_valuation_dict)
+                ins = Instance(agents=list_students, items=list_colleges, valuations=u_valuation_dict)
                 alloc = AllocationBuilder(instance=ins)
+
+                v_valuation=request.form['valuation']
+                logger.debug("Received vValues (JSON): %s", v_valuation)
+                v_valuation_dict=json.loads(v_valuation)
+                logger.debug("Converted vValues to dict: %s", v_valuation_dict)
+                result = FaStGen(alloc, items_valuations=v_valuation_dict)
                 logger.debug("Instance and AllocationBuilder created for FaStGen")
 
-                items_valuation=request.form['itemsValues']
-                logger.debug("Received itemsValues (JSON): %s", items_valuation)
-                items_valuation_dict=json.loads(items_valuation)
-                logger.debug("Converted itemsValues to dict: %s", items_valuation_dict)
-                result = FaStGen(alloc, items_valuations=items_valuation_dict)
                 logger.debug("FaStGen algorithm result: %s", result)
                 
             else:
@@ -84,5 +94,5 @@ def index():
 
     return render_template('index.html', error=error, result=result)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
