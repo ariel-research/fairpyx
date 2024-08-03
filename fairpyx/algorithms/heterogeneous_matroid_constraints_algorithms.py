@@ -1166,7 +1166,7 @@ def helper_validate_capacities(agent_category_capacities: dict[str, dict[str, in
             first_agent_capacities = next(iter(agent_category_capacities.values()))
             for agent, capacities in agent_category_capacities.items():
                 if capacities != first_agent_capacities:
-                    raise ValueError(f"Capacities for agent {agent} are not identical.")
+                    raise ValueError(f"Capacities for {agent}={capacities} are not identical with {list(agent_category_capacities.keys())[0]}={first_agent_capacities}.")
 
         # Check if there are negative capacities
         negative_capacities = [value for agent in agent_category_capacities for value in agent_category_capacities[agent].values() if value < 0]
