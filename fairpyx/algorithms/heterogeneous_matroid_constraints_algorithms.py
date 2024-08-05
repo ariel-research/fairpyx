@@ -434,7 +434,8 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[s
         agents_with_remaining_capacities = [agent for agent,capacity in remaining_category_agent_capacities.items() if capacity>0]
         logger.info(f'remaining_category_agent_capacities of agents capable of carrying arbitrary item ->{remaining_category_agent_capacities}')
         logger.info(f'Using round-robin to allocate the items that were not allocated in the priority matching ->{remaining_category_items}')
-        helper_categorization_friendly_picking_sequence(alloc, agents_with_remaining_capacities, item_categories[category], agent_category_capacities={agent:{category:remaining_category_agent_capacities[agent]} for agent in remaining_category_agent_capacities.keys()}, target_category=category)
+        if  remaining_category_items and remaining_category_agent_capacities:
+            helper_categorization_friendly_picking_sequence(alloc, agents_with_remaining_capacities, item_categories[category], agent_category_capacities={agent:{category:remaining_category_agent_capacities[agent]} for agent in remaining_category_agent_capacities.keys()}, target_category=category)
     logger.info(f'FINAL ALLOCATION IS -> {alloc.bundles}')
 
 
@@ -621,6 +622,7 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
     if not isinstance(target_category, str):
         raise ValueError("target_category must be of type str!")
     categories=list(set([category for agent,dict in agent_category_capacities.items() for category in dict.keys()]))
+    logger.info(f"target category is ->{target_category} ,agent_category_capacities are -> {agent_category_capacities}")
     if target_category not in categories:
         raise ValueError(f"Target category mistyped or not found: {target_category}")
 
@@ -1237,8 +1239,8 @@ if __name__ == "__main__":
     #                 item_categories=item_categories, agent_category_capacities=agent_category_capacities,
     #                 initial_agent_order=order, target_category=target_category)
     item_categories={'category_1':['item_1'],'category_2':['item_2']}
-    item_capacities={'item_1':100,'item_2':500}
-    agent_category_capacities={'agent_1':{'category_1':5,'category_2':5},'agent_2':{'category_1':5,'category_2':5}}
+    item_capacities={'item_1':2,'item_2':5}
+    agent_category_capacities={'agent_1':{'category_1':5,'category_2':1},'agent_2':{'category_1':1,'category_2':0}}
     item_valuations={'agent_1':{'item_1':0,'item_2':1},'agent_2':{'item_1':1,'item_2':0}}
     items=['item_1','item_2']
     divide(algorithm=iterated_priority_matching, instance=Instance(valuations=item_valuations, item_capacities=item_capacities,items=items),
