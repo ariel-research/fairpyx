@@ -408,7 +408,7 @@ if __name__ == "__main__":
 
     from fairpyx.adaptors import divide
 
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     lp.logger.setLevel(logging.WARNING)
 
     import coloredlogs
