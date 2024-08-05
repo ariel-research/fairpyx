@@ -10,10 +10,13 @@ Since: 2024-01
 """
 from enum import Enum
 import logging
+from itertools import combinations
+
 import numpy as np
 
 from fairpyx import Instance, AllocationBuilder
 from fairpyx.algorithms.ACEEI_algorithms import linear_program as lp
+from fairpyx.algorithms.ACEEI_algorithms.log_capture_handler import LogCaptureHandler
 from fairpyx.algorithms.ACEEI_algorithms.calculate_combinations import get_combinations_courses_sorted
 
 
@@ -138,7 +141,8 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
     epsilon = kwargs.get('epsilon')
     t = kwargs.get('t')
 
-    logger.info("ACEEI_algorithms algorithm with initial budgets = %s, delta = %s, epsilon = %s, t = %s", initial_budgets, delta,
+    logger.info("ACEEI_algorithms algorithm with initial budgets = %s, delta = %s, epsilon = %s, t = %s",
+                initial_budgets, delta,
                 epsilon, t)
 
     prices = {key: 0 for key in alloc.remaining_items()}
@@ -317,17 +321,89 @@ def ACEEI_with_contested_EFTB(alloc: AllocationBuilder, **kwargs):
                                 t=EFTBStatus.CONTESTED_EF_TB, **kwargs)
 
 
-def random_initial_budgets(num_of_agents: int) -> dict:
+def random_initial_budgets(num_of_agents: int, agents) -> dict:
     # Create initial budgets for each agent, uniformly distributed in the range [0, 1)
     initial_budgets = np.random.rand(num_of_agents)
     return {f's{agent + 1}': initial_budgets[agent] for agent in range(num_of_agents)}
 
 
+def check_envy_in_allocation(instance: Instance, allocation: dict, initial_budgets: dict, t: Enum, prices: dict):
+    """
+    Checks if there is any envy in the allocation.
+
+    :param instance: a fair-course-allocation instance
+    :param allocation: A dictionary with students as keys and lists of allocated items as values.
+    :param initial_budgets: Students' initial budgets
+    :param t: type 𝑡 of the EF-TB constraint,
+              0 for no EF-TB constraint,
+              1 for EF-TB constraint,
+              2 for contested EF-TB
+    :param prices: courses prices
+
+    :return: True if there is any envy in the allocation, False otherwise.
+
+    >>> instance = Instance(
+    ...     valuations={"avi":{"x":1, "y":2}, "beni":{"x":2, "y":3}},
+    ...     agent_capacities=1,
+    ...     item_capacities={"x":1, "y":1})
+    >>> allocation = {"avi":['x'], "beni":['y']}
+    >>> initial_budgets = {"avi":3, "beni":2}
+    >>> t = EFTBStatus.EF_TB
+    >>> prices = {"x":1, "y":2}
+    >>> check_envy_in_allocation(instance, allocation, initial_budgets, t, prices)
+    True
+
+    >>> instance = Instance(
+    ...     valuations={"avi":{"x":1, "y":2}, "beni":{"x":2, "y":3}},
+    ...     agent_capacities=1,
+    ...     item_capacities={"x":1, "y":1})
+    >>> allocation = {"avi":['x'], "beni":['y']}
+    >>> initial_budgets = {"avi":1, "beni":2}
+    >>> t = EFTBStatus.EF_TB
+    >>> prices = {"x":1, "y":2}
+    >>> check_envy_in_allocation(instance, allocation, initial_budgets, t, prices)
+    False
+
+
+    """
+    allocation = adjusting_the_allocation_format(allocation, prices)
+    for student1, student2 in combinations(instance.agents, 2):
+        if initial_budgets[student1] > initial_budgets[student2]:
+            if lp.check_envy(instance, student1, student2, allocation, t, prices):
+                return True
+    return False
+
+
+
+def adjusting_the_allocation_format(allocation: dict, prices: dict):
+    """
+    Adjusts the allocation format by calculating the total price of allocated courses for each student.
+
+
+    :param allocation: A dictionary where the keys are student names and the values are lists of course names
+                        allocated to them.
+    :param prices: A dictionary where the keys are course names and the values are their
+                    corresponding prices.
+
+    :return: A dictionary where the keys are student names and the values are dictionaries with the total price of
+            allocated courses as the key and a tuple of course names as the value.
+
+    >>> allocation = {"Alice":['x', 'z'], "Bob":['y', 'z']}
+    >>> prices = {"x": 1.5, "y": 2, "z": 0}
+    >>> adjusting_the_allocation_format(allocation, prices)
+    {'Alice': {1.5: ('x', 'z')}, 'Bob': {2: ('y', 'z')}}
+    """
+    adjusted_allocation = {}
+    for student, courses in allocation.items():
+        total_price = sum(prices[course] for course in courses)
+        adjusted_allocation[student] = {total_price: tuple(courses)}
+    return adjusted_allocation
+
 
 if __name__ == "__main__":
     import doctest
 
-    print("\n", doctest.testmod(), "\n")
+    # print("\n", doctest.testmod(), "\n")
     # sys.exit(0)
 
     from fairpyx.adaptors import divide
@@ -336,6 +412,7 @@ if __name__ == "__main__":
     lp.logger.setLevel(logging.WARNING)
 
     import coloredlogs
+
     level_styles = {
         'debug': {'color': 'green'},
         'info': {'color': 'cyan'},
@@ -345,38 +422,46 @@ if __name__ == "__main__":
     }
     coloredlogs.install(level='DEBUG', logger=logger, fmt='%(message)s', level_styles=level_styles)
 
-    instance = Instance(
-        valuations={"alice": {"CS161": 5, "ECON101": 3, "IR": 6},
-                    "bob": {"CS161": 3, "ECON101": 2, "IR": 0},
-                    "eve-1": {"CS161": 0, "ECON101": 10, "IR": 1},
-                    "eve-2": {"CS161": 0, "ECON101": 10, "IR": 1},
-                    "eve-3": {"CS161": 0, "ECON101": 10, "IR": 1},
-                    "eve-4": {"CS161": 0, "ECON101": 10, "IR": 1},
-                    "eve-5": {"CS161": 0, "ECON101": 10, "IR": 1},
-                    "eve-6": {"CS161": 0, "ECON101": 10, "IR": 1},
-                    "eve-7": {"CS161": 0, "ECON101": 10, "IR": 1},
-                    "eve-8": {"CS161": 0, "ECON101": 10, "IR": 1},
-                    "eve-9": {"CS161": 0, "ECON101": 10, "IR": 1},
-                    "eve-10": {"CS161": 0, "ECON101": 10, "IR": 1}},
-        agent_capacities=2,
-        item_capacities={"CS161": 1, "ECON101": 10, "IR": 100})
-    initial_budgets = {"alice": 4.7, "bob": 4.4, "eve-1": 6, "eve-2": 1, "eve-3": 1, "eve-4": 1, "eve-5": 1, "eve-6": 1,
-                       "eve-7": 1, "eve-8": 1, "eve-9": 1, "eve-10": 1}
-    delta = 0.5
-    epsilon = 0.5
-    t = EFTBStatus.EF_TB
-    
-    print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
-                 t=t))
-
     # instance = Instance(
-    #     valuations={"alice": {"CS161": 5, "ECON101": 3, "IR": 6}, "bob": {"CS161": 3, "ECON101": 5, "IR": 0},
-    #                 "eve": {"CS161": 1, "ECON101": 10, "IR": 0}},
+    #     valuations={"alice": {"CS161": 5, "ECON101": 3, "IR": 6},
+    #                 "bob": {"CS161": 3, "ECON101": 2, "IR": 0},
+    #                 "eve-1": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-2": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-3": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-4": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-5": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-6": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-7": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-8": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-9": {"CS161": 0, "ECON101": 10, "IR": 1},
+    #                 "eve-10": {"CS161": 0, "ECON101": 10, "IR": 1}},
     #     agent_capacities=2,
-    #     item_capacities={"CS161": 1, "ECON101": 1, "IR": 100000})
-    # initial_budgets = {"alice": 2, "bob": 1, "eve": 4}
+    #     item_capacities={"CS161": 1, "ECON101": 10, "IR": 100})
+    # initial_budgets = {"alice": 4.7, "bob": 4.4, "eve-1": 6, "eve-2": 1, "eve-3": 1, "eve-4": 1, "eve-5": 1, "eve-6": 1,
+    #                    "eve-7": 1, "eve-8": 1, "eve-9": 1, "eve-10": 1}
     # delta = 0.5
     # epsilon = 0.5
     # t = EFTBStatus.EF_TB
+    #
     # print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
     #              t=t))
+
+    log_capture_handler = LogCaptureHandler()
+    logging.getLogger().addHandler(log_capture_handler)
+
+    instance = Instance(
+        valuations={"alice": {"CS161": 5, "ECON101": 3, "IR": 6}, "bob": {"CS161": 3, "ECON101": 5, "IR": 0},
+                    "eve": {"CS161": 1, "ECON101": 10, "IR": 0}},
+        agent_capacities=2,
+        item_capacities={"CS161": 1, "ECON101": 1, "IR": 100000})
+    initial_budgets = {"alice": 2, "bob": 1, "eve": 4}
+    delta = 0.5
+    epsilon = 0.5
+    t = EFTBStatus.EF_TB
+    print(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon,
+                 t=t))
+
+    logs = log_capture_handler.get_logs()
+    print(f" --------logs----------\n{logs}")
+
+    print(f"prices ==== {log_capture_handler.extract_prices()}")

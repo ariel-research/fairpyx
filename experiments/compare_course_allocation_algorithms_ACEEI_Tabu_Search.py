@@ -168,17 +168,44 @@ def load_experiment_results(filename):
     return df
 
 # Function to plot average runtime vs. number of students
-def plot_average_runtime_vs_students(df, algorithm_name):
-    average_runtime = df.groupby('num_of_agents')['runtime'].mean()
+def plot_average_runtime_vs_students(df, algorithm_name, measure):
+    average_runtime = df.groupby('num_of_agents')[measure].mean()
     num_of_agents = average_runtime.index
     runtime = average_runtime.values
 
     plt.plot(num_of_agents, runtime, marker='o', label=algorithm_name)
     plt.xlabel('Number of Students')
-    plt.ylabel('Average Runtime (seconds)')
-    plt.title(f'Average Runtime vs. Number of Students')
+    plt.ylabel(format_metric_name(measure))
+    plt.title(f'{format_metric_name(measure)} vs. Number of Students')
     plt.legend()
     plt.grid(True)
+
+
+def format_metric_name(metric_name):
+    words = metric_name.split('_')
+    formatted_name = ' '.join(word.capitalize() for word in words)
+    return formatted_name
+
+####################
+
+
+
+
+# מדדים להצגה
+metrics = [
+    "utilitarian_value",
+    "egalitarian_value",
+    "max_envy",
+    "mean_envy",
+    "max_deficit",
+    "mean_deficit",
+    "num_with_top_1",
+    "num_with_top_2",
+    "num_with_top_3",
+    "runtime",
+]
+
+
 
 ######### MAIN PROGRAM ##########
 
@@ -186,8 +213,8 @@ if __name__ == "__main__":
     import logging, experiments_csv
     experiments_csv.logger.setLevel(logging.INFO)
     # run_uniform_experiment()
-    run_szws_experiment()
-    # run_ariel_experiment()
+    # run_szws_experiment()
+    run_ariel_experiment()
 
     # Load and plot data for run_uniform_experiment()
     # uniform_results = load_experiment_results('results/course_allocation_uniform.csv')
@@ -203,13 +230,15 @@ if __name__ == "__main__":
 
     # Load and plot data for run_szws_experiment()
     szws_results = load_experiment_results('results/course_allocation_szws_ACEEI.csv')
-    plt.figure(figsize=(10, 6))  # Adjust figure size if needed
 
-    for algorithm in algorithms_to_check:
-        algorithm_name = algorithm.__name__
-        algorithm_data = szws_results[szws_results['algorithm'] == algorithm_name]
-        plot_average_runtime_vs_students(algorithm_data, algorithm_name)
-
-    plt.tight_layout()
-    plt.show()
+    # plt.figure(figsize=(10, 6))  # Adjust figure size if needed
+    #
+    # for metric in metrics:
+    #     for algorithm in algorithms_to_check:
+    #         algorithm_name = algorithm.__name__
+    #         algorithm_data = szws_results[szws_results['algorithm'] == algorithm_name]
+    #         plot_average_runtime_vs_students(algorithm_data, algorithm_name, metric)
+    #
+    #     plt.tight_layout()
+    #     plt.show()
 
