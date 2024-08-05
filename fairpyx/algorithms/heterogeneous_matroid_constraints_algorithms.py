@@ -635,23 +635,36 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
     logger.info(f'remaining_category_items -> {remaining_category_items} & remaining agent capacities {remaining_category_agent_capacities}')
     logger.info(f"Agent order is -> {agent_order}")
     remaining_agents_with_capacities = {agent for agent,capacity in remaining_category_agent_capacities.items() if capacity>0}# all the agents with non zero capacities in our category
-    for agent in cycle(agent_order):
+    for agent in cycle(agent_order):# agent order cant be changed , it would still consist of expired agents but we're handling it in our own ways
         logger.info("Looping agent %s, remaining capacity %s", agent, remaining_category_agent_capacities[agent])
+        if agent not in remaining_agents_with_capacities or not remaining_agents_with_capacities: # means no agents left that are feasible to get items
+            if not remaining_agents_with_capacities:
+                logger.info(f'No agents left due to either:\n 1) reached maximum capacity\n 2) already has copy of item and cant carry more than 1 copy \n breaking out of loop!')
+                break
+            else: # means only pass to other agent and there is still agents to carry items
+               continue
+
+
         if remaining_category_agent_capacities[agent] <= 0:
             remaining_agents_with_capacities.discard(agent)
+            logger.info(f'{agent} removed from loop since he has no capacity!')
             if len(remaining_agents_with_capacities) == 0:
                 logger.info(f'No more agents with capacity')
                 break
             continue
 
         potential_items_for_agent = set(remaining_category_items).difference(alloc.bundles[agent]) # in case difference is empty means already has a duplicate of the item(legal) / there is no items left
+        logger.info(f'potential set of items to be allocated to {agent} are -> {potential_items_for_agent}')
         if len(potential_items_for_agent) == 0: # still has capacity, but no items to aquire (maybe no items left maybe already has copy of item)
             logger.info(f'No potential items for agent {agent}')
+            logger.info(f'remaining_agents_with_capacities is -> {remaining_agents_with_capacities},agent order is -> {agent_order}')
             if agent in remaining_agents_with_capacities:    # need to remove agent from our loop ,even if he still has capacity !
+                logger.info(f'{agent} still has capacity but already has copy of the item')
                 #del remaining_category_agent_capacities[agent]
                 remaining_agents_with_capacities.discard(agent)
+                logger.info(f'{agent} removed from loop')
                 if len(remaining_agents_with_capacities) == 0:
-                    logger.info(f'No more agents with capacity')
+                    logger.info(f'No more agents with capacity,breaking loop!')
                     break
                 continue # otherwise pick the next agent !
         # safe to assume agent has capacity & has the best item to pick
@@ -1192,34 +1205,45 @@ def helper_validate_item_categories(item_categories:dict[str, list]):
 
 if __name__ == "__main__":
     import doctest, sys
-    print("\n", doctest.testmod(), "\n")
+    #print("\n", doctest.testmod(), "\n")
 
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
 
-    order=['Agent1','Agent2','Agent3','Agent4']
-    items=['m1','m2','m3','m4']
-    item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
-    agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
-    valuations = {'Agent1':{'m1':2,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':2,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':2,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
-    sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
-    instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
-    divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
-    divide(algorithm=two_categories_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category_pair=("c1","c2"))
+    # order=['Agent1','Agent2','Agent3','Agent4']
+    # items=['m1','m2','m3','m4']
+    # item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
+    # agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
+    # valuations = {'Agent1':{'m1':2,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':2,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':2,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
+    # sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
+    # instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
+    # divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
+    # divide(algorithm=two_categories_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category_pair=("c1","c2"))
+    #
+    # items=['m1','m2','m3']
+    # item_categories = {'c1': ['m1'],'c2':['m2','m3']}
+    # agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
+    # valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}}
+    # instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
+    # divide(algorithm=iterated_priority_matching,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
+    #
+    # order = ['Agent1', 'Agent2']
+    # items = ['m1']
+    # item_categories = {'c1': ['m1']}
+    # agent_category_capacities = {'Agent1': {'c1': 0}, 'Agent2': {'c1': 1}}
+    # valuations = {'Agent1': {'m1': 0}, 'Agent2': {'m1': 420}}
+    # target_category = 'c1'
+    # divide(algorithm=capped_round_robin, instance=Instance(valuations=valuations, items=items),
+    #                 item_categories=item_categories, agent_category_capacities=agent_category_capacities,
+    #                 initial_agent_order=order, target_category=target_category)
+    item_categories={'category_1':['item_1'],'category_2':['item_2']}
+    item_capacities={'item_1':100,'item_2':500}
+    agent_category_capacities={'agent_1':{'category_1':5,'category_2':5},'agent_2':{'category_1':5,'category_2':5}}
+    item_valuations={'agent_1':{'item_1':0,'item_2':1},'agent_2':{'item_1':1,'item_2':0}}
+    items=['item_1','item_2']
+    divide(algorithm=iterated_priority_matching, instance=Instance(valuations=item_valuations, item_capacities=item_capacities,items=items),
+                     item_categories=item_categories, agent_category_capacities=agent_category_capacities,
+                    )
 
-    items=['m1','m2','m3']
-    item_categories = {'c1': ['m1'],'c2':['m2','m3']}
-    agent_category_capacities = {'Agent1': {'c1':2,'c2':2}, 'Agent2': {'c1':2,'c2':2},'Agent3': {'c1':2,'c2':2}}
-    valuations = {'Agent1':{'m1':1,'m2':1,'m3':1},'Agent2':{'m1':1,'m2':1,'m3':0},'Agent3':{'m1':0,'m2':0,'m3':0}}
-    instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
-    divide(algorithm=iterated_priority_matching,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities)
 
-    order = ['Agent1', 'Agent2']
-    items = ['m1']
-    item_categories = {'c1': ['m1']}
-    agent_category_capacities = {'Agent1': {'c1': 0}, 'Agent2': {'c1': 1}}
-    valuations = {'Agent1': {'m1': 0}, 'Agent2': {'m1': 420}}
-    target_category = 'c1'
-    divide(algorithm=capped_round_robin, instance=Instance(valuations=valuations, items=items),
-                    item_categories=item_categories, agent_category_capacities=agent_category_capacities,
-                    initial_agent_order=order, target_category=target_category)
+
