@@ -13,11 +13,10 @@ import numpy as np
 from typing import Dict, List, Union
 
 import logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
-def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, List[str]], tie_braking_lottery: Union[None, Dict[str, float]] = None):
+def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Union[Dict[str, List[str]], None] = None, tie_braking_lottery: Union[None, Dict[str, float]] = None):
     """
     Allocate the given items to the given agents using the Gale-Shapley protocol.
 
@@ -64,15 +63,16 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, L
     """
     
     # Check if inputs are dictionaries
-    input_to_check_types = [alloc.remaining_agent_capacities, alloc.remaining_item_capacities, course_order_per_student]
+    input_to_check_types = [alloc.remaining_agent_capacities, alloc.remaining_item_capacities]
     for input_to_check in input_to_check_types:
         if(type(input_to_check) != dict):
             raise TypeError(f"In the input {input_to_check}, Expected a dict, but got {type(input_to_check).__name__}")
-    if(type(tie_braking_lottery) not in [None, dict]):
-        raise TypeError(f"in tie_braking_lottery Expected None or a dict, but got {type(tie_braking_lottery).__name__}")
-        
     if not tie_braking_lottery:
         tie_braking_lottery = {student : np.random.uniform(low=0, high=1) for student in alloc.remaining_agents()}
+    
+    if not course_order_per_student:
+        course_order_per_student = {student : generate_naive_course_order_for_student(student, alloc) for student in alloc.remaining_agents()}
+        logger.info(f"Created course_order_per_student: {course_order_per_student}")
     
     was_an_offer_declined: bool = True
     course_to_on_hold_students: Dict[str, Dict[str, float]] = {course: {} for course in alloc.remaining_items()} 
@@ -113,6 +113,8 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, L
         student_to_rejection_count = {student: 0 for student in alloc.remaining_agents()}
         for course_name in course_to_on_hold_students:
             course_capacity = alloc.remaining_item_capacities[course_name]
+            if(type(course_capacity) == np.float64):
+                course_capacity = int(course_capacity)
             course_to_offerings = course_to_on_hold_students[course_name]
             logger.info(f"Course {course_name} considers the next offerings: {course_to_offerings}")
             if len(course_to_offerings) == 0:
@@ -120,12 +122,15 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, L
             elif len(course_to_offerings) <= course_capacity:
                 continue
             logger.info("In case there is a tie, the tie-breaking lottery is used to determine who is rejected and who will be kept on hold.")
-            on_hold_students_sorted_and_tie_braked = sort_and_tie_brake(course_to_offerings, tie_braking_lottery)
+            on_hold_students_sorted_and_tie_breaked = sort_and_tie_break(course_to_offerings, tie_braking_lottery)
             course_to_on_hold_students[course_name].clear()
-            for key, value in on_hold_students_sorted_and_tie_braked[:course_capacity]:
-                course_to_on_hold_students[course_name][key] = value
+            try:
+                for key, value in on_hold_students_sorted_and_tie_breaked[:course_capacity]:
+                    course_to_on_hold_students[course_name][key] = value
+            except Exception as e:
+                print(e)
                 
-            rejected_students = on_hold_students_sorted_and_tie_braked[course_capacity:]
+            rejected_students = on_hold_students_sorted_and_tie_breaked[course_capacity:]
             for rejected_student, bid in rejected_students:
                 logger.info(f"Agent '{rejected_student}' was rejected from course {course_name}")
                 student_to_rejection_count[rejected_student] += 1
@@ -139,7 +144,7 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Dict[str, L
     logger.info(f"The final course matchings are: {alloc.bundles}")
 
 
-def sort_and_tie_brake(input_dict: Dict[str, float], tie_braking_lottery: Dict[str, float]) -> List[tuple[str, float]]:
+def sort_and_tie_break(input_dict: Dict[str, float], tie_braking_lottery: Dict[str, float]) -> List[tuple[str, float]]:
     """
     Sorts a dictionary by its values in descending order and adds a number
     to the values of keys with the same value to break ties.
@@ -154,7 +159,7 @@ def sort_and_tie_brake(input_dict: Dict[str, float], tie_braking_lottery: Dict[s
     Examples:
     >>> input_dict = {"Alice": 45, "Bob": 55, "Chana": 45, "Dana": 60}
     >>> tie_braking_lottery = {"Alice": 0.3, "Bob": 0.2, "Chana": 0.4, "Dana": 0.1}
-    >>> sort_and_tie_brake(input_dict, tie_braking_lottery)
+    >>> sort_and_tie_break(input_dict, tie_braking_lottery)
     [('Dana', 60), ('Bob', 55), ('Chana', 45), ('Alice', 45)]
     """
 
@@ -163,6 +168,57 @@ def sort_and_tie_brake(input_dict: Dict[str, float], tie_braking_lottery: Dict[s
     sorted_dict = (sorted(input_dict.items(), key=lambda item: item[1] + tie_braking_lottery[item[0]], reverse=True))
     
     return sorted_dict
+
+
+def generate_naive_course_order_for_student(student: str, alloc: AllocationBuilder) -> List[str]:
+    """
+    Generate a naive course order for a given student based on the effective value the student assigns to each course.
+    
+    Parameters:
+    student (str): The student's name.
+    alloc (AllocationBuilder): An allocation builder which tracks agent capacities, item capacities, and valuations.
+
+    Returns:
+    List[str]: A list of course names sorted by the effective value the student assigns to each course, in descending order.
+    
+    Example:
+    >>> from fairpyx import Instance, AllocationBuilder
+    >>> s1 = {"c1": 40, "c2": 60}
+    >>> s2 = {"c1": 70, "c2": 30}
+    >>> s3 = {"c1": 70, "c2": 30}
+    >>> s4 = {"c1": 40, "c2": 60}
+    >>> s5 = {"c1": 50, "c2": 50}
+    >>> agent_capacities = {"Alice": 1, "Bob": 1, "Chana": 1, "Dana": 1, "Dor": 1}
+    >>> course_capacities = {"c1": 3, "c2": 2}
+    >>> valuations = {"Alice": s1, "Bob": s2, "Chana": s3, "Dana": s4, "Dor": s5}
+    >>> course_order_per_student = {"Alice": ["c2", "c1"], "Bob": ["c1", "c2"], "Chana": ["c1", "c2"], "Dana": ["c2", "c1"], "Dor": ["c1", "c2"]}
+    >>> tie_braking_lottery = {"Alice": 0.9, "Bob": 0.1, "Chana": 0.2, "Dana": 0.6, "Dor": 0.4}
+    >>> instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    >>> alloc = AllocationBuilder(instance)
+    >>> generate_naive_course_order_for_student("Alice", alloc)
+    ['c2', 'c1']
+    >>> generate_naive_course_order_for_student("Bob", alloc)
+    ['c1', 'c2']
+    >>> generate_naive_course_order_for_student('Chana', alloc)
+    ['c1', 'c2']
+    >>> generate_naive_course_order_for_student('Dana', alloc)
+    ['c2', 'c1']
+    >>> generate_naive_course_order_for_student('Dor', alloc)
+    ['c1', 'c2']
+    """
+    # Get all courses
+    courses: List[str] = alloc.remaining_items()
+    
+    # Calculate the effective value of each course for the given student
+    course_values: Dict[str, float] = {course: alloc.effective_value(student, course) for course in courses}
+    
+    # Sort the courses by their values in descending order
+    sorted_courses = sorted(course_values.items(), key=lambda item: item[1], reverse=True)
+    
+    # Extract the course names from the sorted list of tuples
+    sorted_course_names = [course for course, value in sorted_courses]
+    
+    return sorted_course_names
 
 if __name__ == "__main__":
     import doctest
