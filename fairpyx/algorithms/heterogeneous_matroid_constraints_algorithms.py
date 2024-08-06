@@ -1218,19 +1218,19 @@ def helper_validate_item_categories(item_categories:dict[str, list]):
 
 
 def helper_generate_directed_graph_base64(graph, seed=42):
-    # plt.figure()
-    # plt.title('Envy Graph')
-    # pos = nx.spring_layout(graph, seed=seed)  # Use a seed for reproducibility
-    # nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10, arrows=True)
-    #
-    # img_bytes = io.BytesIO()
-    # plt.savefig(img_bytes, format='png')
-    # plt.close()
-    # img_bytes.seek(0)
-    #
-    # base64_image = base64.b64encode(img_bytes.read()).decode('utf-8')
-    # print("Generated image data:", base64_image[:100])  # Print the first 100 characters of the image data
-    return 'base64_image'
+    plt.figure()
+    plt.title('Envy Graph')
+    pos = nx.spring_layout(graph, seed=seed)  # Use a seed for reproducibility
+    nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10, arrows=True)
+
+    img_bytes = io.BytesIO()
+    plt.savefig(img_bytes, format='png')
+    plt.close()
+    img_bytes.seek(0)
+
+    base64_image = base64.b64encode(img_bytes.read()).decode('utf-8')
+    print("Generated image data:", base64_image[:100])  # Print the first 100 characters of the image data
+    return base64_image
 
 
 def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str):
