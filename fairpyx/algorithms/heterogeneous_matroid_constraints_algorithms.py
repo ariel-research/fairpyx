@@ -87,6 +87,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str
         logger.info(f'Envy graph before RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
         helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories[category], agent_category_capacities, category)
         helper_update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities,callback)
+        callback(helper_generate_directed_graph_base64(envy_graph))#TODO remove
         logger.info(f'Envy graph after  RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
         if not nx.is_directed_acyclic_graph(envy_graph):
             logger.info("Cycle removal started ")
