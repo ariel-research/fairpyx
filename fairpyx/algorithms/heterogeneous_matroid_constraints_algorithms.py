@@ -1236,14 +1236,16 @@ def helper_generate_bipartite_graph_base64(graph):
     plt.figure()
     plt.title('Agent-Item Bipartite Graph', fontsize=16)
     try:
-        # Use spring layout for better aesthetics
-        pos = nx.spring_layout(graph, k=0.5)  # Adjust k for different spacing
-        color_map = []
-        for node in graph.nodes:
-            if graph.nodes[node].get('bipartite') == 0:
-                color_map.append('red')
-            else:
-                color_map.append('blue')
+        top_nodes = {n for n, d in graph.nodes(data=True) if d['bipartite'] == 0}
+        bottom_nodes = set(graph) - top_nodes
+
+        # Create fixed positions
+        pos = {}
+        pos.update((node, (1, index)) for index, node in enumerate(top_nodes))  # x=1 for top_nodes
+        pos.update((node, (2, index)) for index, node in enumerate(bottom_nodes))  # x=2 for bottom_nodes
+
+        # Assign colors to the nodes based on their group
+        color_map = ['red' if node in top_nodes else 'blue' for node in graph.nodes]
     except nx.NetworkXError:
         # Fallback to spring layout if there's an error
         pos = nx.spring_layout(graph)
