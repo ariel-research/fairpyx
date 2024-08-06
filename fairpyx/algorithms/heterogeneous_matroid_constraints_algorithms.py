@@ -1230,7 +1230,7 @@ def helper_generate_directed_graph_base64(graph, seed=42):
 
     base64_image = base64.b64encode(img_bytes.read()).decode('utf-8')
     print("Generated image data:", base64_image[:100])  # Print the first 100 characters of the image data
-    return base64_image
+    return 'base64_image'
 
 
 def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str):
