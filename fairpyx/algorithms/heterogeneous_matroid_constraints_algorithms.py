@@ -1219,6 +1219,7 @@ def helper_validate_item_categories(item_categories:dict[str, list]):
 
 def helper_generate_directed_graph_base64(graph):
     plt.figure()
+    plt.title('Envy Graph')
     pos = nx.spring_layout(graph)
     nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10,
             arrows=True)
@@ -1233,20 +1234,26 @@ def helper_generate_directed_graph_base64(graph):
 
 def helper_generate_bipartite_graph_base64(graph):
     plt.figure()
+    plt.title('Agent-Item Bipartite Graph', fontsize=16)
     try:
-        # Get all connected components of the graph
-        components = nx.connected_components(graph)
-        pos = {}
-        for component in components:
-            subgraph = graph.subgraph(component)
-            top_nodes, bottom_nodes = nx.bipartite.sets(subgraph)
-            component_pos = nx.bipartite_layout(subgraph, top_nodes)
-            pos.update(component_pos)
+        # Use spring layout for better aesthetics
+        pos = nx.spring_layout(graph, k=0.5)  # Adjust k for different spacing
+        color_map = []
+        for node in graph.nodes:
+            if graph.nodes[node].get('bipartite') == 0:
+                color_map.append('red')
+            else:
+                color_map.append('blue')
     except nx.NetworkXError:
         # Fallback to spring layout if there's an error
         pos = nx.spring_layout(graph)
+        # Assign default colors if layout falls back
+        color_map = ['red' for node in graph.nodes]
 
-    nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
+    nx.draw(graph, pos, with_labels=True, node_color=color_map, edge_color='gray', node_size=500, font_size=10)
+
+    # Adjust the layout to make sure the title is visible
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
 
     img_bytes = io.BytesIO()
     plt.savefig(img_bytes, format='png')
