@@ -67,6 +67,8 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Union[Dict[
     for input_to_check in input_to_check_types:
         if(type(input_to_check) != dict):
             raise TypeError(f"In the input {input_to_check}, Expected a dict, but got {type(input_to_check).__name__}")
+    if tie_braking_lottery and type(tie_braking_lottery) != dict:
+        raise TypeError(f"In the input tie_braking_lottery, Expected a dict or None, but got {type(tie_braking_lottery).__name__}")
     if not tie_braking_lottery:
         tie_braking_lottery = {student : np.random.uniform(low=0, high=1) for student in alloc.remaining_agents()}
     
