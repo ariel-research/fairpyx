@@ -415,8 +415,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[s
               # remaining agents with respect to the order
             )  # building the Bi-Partite graph
             if callback:
-                img_base64=helper_generate_graph_base64(agent_item_bipartite_graph)
-                callback(img_base64)
+                callback(helper_generate_graph_base64(envy_graph))
 
             # Creation of envy graph
             helper_update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
@@ -766,7 +765,7 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
                     # we need to add edge from the envier to the envyee
                     envy_graph.add_edge(agent1, agent2)
                     if callback:
-                        callback(envy_graph)
+                        callback(helper_generate_graph_base64(envy_graph))
     logger.info(f"envy_graph.edges after update -> {envy_graph.edges}")
 
 # def visualize_graph(envy_graph):
@@ -903,8 +902,7 @@ def helper_remove_cycles(envy_graph:nx.DiGraph, alloc:AllocationBuilder, valuati
             helper_update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
             #callback section for our flask_app
             if callback:
-                img_base64=helper_generate_graph_base64(envy_graph)
-                callback(img_base64)
+                callback(helper_generate_graph_base64(envy_graph))
 
             logger.info(f"Updated envy graph. is Graph acyclic ?? {nx.is_directed_acyclic_graph(envy_graph)}")
 
