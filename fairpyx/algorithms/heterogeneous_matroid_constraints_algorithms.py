@@ -415,7 +415,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[s
               # remaining agents with respect to the order
             )  # building the Bi-Partite graph
             if callback:
-                callback(helper_generate_graph_base64(envy_graph))
+                callback(helper_generate_graph_base64(agent_item_bipartite_graph))
 
             # Creation of envy graph
             helper_update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
