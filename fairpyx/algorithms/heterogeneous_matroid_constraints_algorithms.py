@@ -415,7 +415,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[s
               # remaining agents with respect to the order
             )  # building the Bi-Partite graph
             if callback:
-                callback(helper_generate_graph_base64(agent_item_bipartite_graph))
+                callback(helper_generate_bipartite_graph_base64(agent_item_bipartite_graph))
 
             # Creation of envy graph
             helper_update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
@@ -1217,22 +1217,35 @@ def helper_validate_item_categories(item_categories:dict[str, list]):
         raise ValueError(f"item categories is supposed to be dict[str,list] but u entered {type(item_categories)}")
 
 
-def helper_generate_graph_base64(graph):
+def helper_generate_directed_graph_base64(graph):
     plt.figure()
+    pos = nx.spring_layout(graph)
+    nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10,
+            arrows=True)
 
+    img_bytes = io.BytesIO()
+    plt.savefig(img_bytes, format='png')
+    plt.close()
+    img_bytes.seek(0)
+
+    return base64.b64encode(img_bytes.read()).decode('utf-8')
+
+
+def helper_generate_bipartite_graph_base64(graph):
+    plt.figure()
     try:
-        if nx.is_bipartite(graph):
-            # If the graph is bipartite, use the bipartite layout
-            top_nodes, bottom_nodes = nx.bipartite.sets(graph)
-            pos = nx.bipartite_layout(graph, top_nodes)
-        else:
-            # For other types of graphs, use the spring layout
-            pos = nx.spring_layout(graph)
-    except nx.NetworkXError as e:
-        # Handle the case where the graph is disconnected
+        # Get all connected components of the graph
+        components = nx.connected_components(graph)
+        pos = {}
+        for component in components:
+            subgraph = graph.subgraph(component)
+            top_nodes, bottom_nodes = nx.bipartite.sets(subgraph)
+            component_pos = nx.bipartite_layout(subgraph, top_nodes)
+            pos.update(component_pos)
+    except nx.NetworkXError:
+        # Fallback to spring layout if there's an error
         pos = nx.spring_layout(graph)
 
-    # Draw the graph
     nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
 
     img_bytes = io.BytesIO()
