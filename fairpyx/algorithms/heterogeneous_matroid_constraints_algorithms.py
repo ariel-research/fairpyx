@@ -16,11 +16,14 @@ from fairpyx import divide
 import networkx as nx
 import logging
 import numpy as np
+import matplotlib.pyplot as plt
+import io
+import base64
 
 logger = logging.getLogger(__name__)
 
 def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
-                             initial_agent_order: list):
+                             initial_agent_order: list,callback:callable=None):
     """
     this is the Algorithm 1 from the paper
     per category round-robin is an allocation algorithm which guarantees EF1 (envy-freeness up to 1 good) allocation
@@ -83,11 +86,11 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str
         logger.info(f'\nCurrent category -> {category}')
         logger.info(f'Envy graph before RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
         helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories[category], agent_category_capacities, category)
-        helper_update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
+        helper_update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities,callback)
         logger.info(f'Envy graph after  RR -> {envy_graph.nodes}, edges -> in {envy_graph.edges}')
         if not nx.is_directed_acyclic_graph(envy_graph):
             logger.info("Cycle removal started ")
-            helper_remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
+            helper_remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities,callback)
             logger.info('cycle removal ended successfully ')
         current_order = list(nx.topological_sort(envy_graph))
         logger.info(f"Topological sort -> {current_order} \n***************************** ")
@@ -329,7 +332,7 @@ def per_category_capped_round_robin(alloc: AllocationBuilder,item_categories: di
     logger.info(f'allocation after termination of algorithm4 -> {alloc.bundles}')
 
 
-def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]]):
+def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],callback:callable=None):
     """
     this is Algorithm 5  deals with (partition Matroids with Binary Valuations, may have different capacities)
     loops as much as maximum capacity in per each category , each iteration we build :
@@ -411,11 +414,14 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[s
                 valuation_func=valuation_func,
               # remaining agents with respect to the order
             )  # building the Bi-Partite graph
+            if callback:
+                img_base64=helper_generate_graph_base64(agent_item_bipartite_graph)
+                callback(img_base64)
 
             # Creation of envy graph
             helper_update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
                                      item_categories=item_categories,
-                                     agent_category_capacities=agent_category_capacities)  # updating envy graph with respect to matchings (first iteration we get no envy, cause there is no matching)
+                                     agent_category_capacities=agent_category_capacities,callback=callback)  # updating envy graph with respect to matchings (first iteration we get no envy, cause there is no matching)
             #topological sort (papers prove graph is always a-cyclic)
             topological_sort = list(nx.topological_sort(envy_graph))
             logger.info(f'topological sort is -> {topological_sort}')
@@ -683,7 +689,7 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
 
 
 def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_graph: DiGraph, item_categories: dict[str,list],
-                             agent_category_capacities: dict[str,dict[str,int]]):
+                             agent_category_capacities: dict[str,dict[str,int]],callback:callable=None):
     """
     simply a helper function to update the envy-graph based on given params
     :param curr_bundles: the current allocation
@@ -759,6 +765,8 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
                     #print(f"{agent1} envies {agent2}")  # works great .
                     # we need to add edge from the envier to the envyee
                     envy_graph.add_edge(agent1, agent2)
+                    if callback:
+                        callback(envy_graph)
     logger.info(f"envy_graph.edges after update -> {envy_graph.edges}")
 
 # def visualize_graph(envy_graph):
@@ -769,7 +777,7 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
 #     plt.show()
 #
 
-def helper_remove_cycles(envy_graph:nx.DiGraph, alloc:AllocationBuilder, valuation_func:callable, item_categories:dict[str,list], agent_category_capacities:dict[str,dict[str,int]]):
+def helper_remove_cycles(envy_graph:nx.DiGraph, alloc:AllocationBuilder, valuation_func:callable, item_categories:dict[str,list], agent_category_capacities:dict[str,dict[str,int]],callback:callable=None):
     """
         Removes cycles from the envy graph by updating the bundles.
 
@@ -893,6 +901,11 @@ def helper_remove_cycles(envy_graph:nx.DiGraph, alloc:AllocationBuilder, valuati
 
             # Update the envy graph after swapping
             helper_update_envy_graph(alloc.bundles, valuation_func, envy_graph, item_categories, agent_category_capacities)
+            #callback section for our flask_app
+            if callback:
+                img_base64=helper_generate_graph_base64(envy_graph)
+                callback(img_base64)
+
             logger.info(f"Updated envy graph. is Graph acyclic ?? {nx.is_directed_acyclic_graph(envy_graph)}")
 
         except nx.NetworkXNoCycle:
@@ -1204,6 +1217,31 @@ def helper_validate_item_categories(item_categories:dict[str, list]):
                 raise ValueError(f"item categories not structured properly!!!")
     else:
         raise ValueError(f"item categories is supposed to be dict[str,list] but u entered {type(item_categories)}")
+
+
+def helper_generate_graph_base64(graph):
+    plt.figure()
+
+    if nx.is_bipartite(graph):
+        # If the graph is bipartite, use the bipartite layout
+        top_nodes, bottom_nodes = nx.bipartite.sets(graph)
+        pos = nx.bipartite_layout(graph, top_nodes)
+    else:
+        # For other types of graphs, use the spring layout
+        pos = nx.spring_layout(graph)
+
+    # Draw the graph
+    nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
+
+    # Save the graph to a BytesIO object
+    img_bytes = io.BytesIO()
+    plt.savefig(img_bytes, format='png')
+    plt.close()
+    img_bytes.seek(0)
+
+    # Return the base64-encoded image
+    return base64.b64encode(img_bytes.read()).decode('utf-8')
+
 
 if __name__ == "__main__":
     import doctest, sys
