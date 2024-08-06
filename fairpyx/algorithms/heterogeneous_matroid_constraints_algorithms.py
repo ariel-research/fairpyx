@@ -739,6 +739,7 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
     >>> graph.has_edge('Agent1','Agent2')
     False
     """
+    callback(helper_generate_directed_graph_base64(envy_graph))#TODO remove
     #validate input
     if isinstance(curr_bundles, dict):
         for key, val in curr_bundles.items():
@@ -764,8 +765,8 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
                     #print(f"{agent1} envies {agent2}")  # works great .
                     # we need to add edge from the envier to the envyee
                     envy_graph.add_edge(agent1, agent2)
-                    #if callback:
-                    callback(helper_generate_directed_graph_base64(envy_graph))
+                    if callback:
+                        callback(helper_generate_directed_graph_base64(envy_graph))
     logger.info(f"envy_graph.edges after update -> {envy_graph.edges}")
 
 # def visualize_graph(envy_graph):
