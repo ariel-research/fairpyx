@@ -739,7 +739,6 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
     >>> graph.has_edge('Agent1','Agent2')
     False
     """
-    callback(helper_generate_directed_graph_base64(envy_graph))#TODO remove
     #validate input
     if isinstance(curr_bundles, dict):
         for key, val in curr_bundles.items():
