@@ -1,5 +1,6 @@
 """
 Article Title: High-Multiplicity Fair Allocation Made More Practical
+Authors: Robert Bredereck, Aleksander Figiel, Andrzej Kaczmarczyk, Dušan Knop, Rolf Niedermeier
 Article URL: https://www.ifaamas.org/Proceedings/aamas2021/pdfs/p260.pdf
 
 Algorithm Name: High Multiplicity Fair Allocation
