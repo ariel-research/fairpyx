@@ -415,7 +415,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[s
               # remaining agents with respect to the order
             )  # building the Bi-Partite graph
             if callback:
-                callback(helper_generate_bipartite_graph_base64(agent_item_bipartite_graph))
+                callback(helper_generate_bipartite_graph_base64(agent_item_bipartite_graph,iteration=i, category=category))
 
             # Creation of envy graph
             helper_update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
@@ -1232,9 +1232,11 @@ def helper_generate_directed_graph_base64(graph):
     return base64.b64encode(img_bytes.read()).decode('utf-8')
 
 
-def helper_generate_bipartite_graph_base64(graph):
+def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str):
     plt.figure()
     plt.title('Agent-Item Bipartite Graph', fontsize=16)
+    additional_text=f'{category} iteration {iteration}'
+    plt.figtext(0.5, 0.95, additional_text, wrap=True, horizontalalignment='center', fontsize=10)
     try:
         top_nodes = {n for n, d in graph.nodes(data=True) if d['bipartite'] == 0}
         bottom_nodes = set(graph) - top_nodes
@@ -1255,7 +1257,7 @@ def helper_generate_bipartite_graph_base64(graph):
     nx.draw(graph, pos, with_labels=True, node_color=color_map, edge_color='gray', node_size=500, font_size=10)
 
     # Adjust the layout to make sure the title is visible
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.tight_layout(rect=[0, 0, 1, 0.90])
 
     img_bytes = io.BytesIO()
     plt.savefig(img_bytes, format='png')
