@@ -1218,18 +1218,18 @@ def helper_validate_item_categories(item_categories:dict[str, list]):
 
 
 def helper_generate_directed_graph_base64(graph, seed=42):
-    plt.figure()
-    plt.title('Envy Graph')
-    pos = nx.spring_layout(graph, seed=seed)  # Use a seed for reproducibility
-    nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10, arrows=True)
-
-    img_bytes = io.BytesIO()
-    plt.savefig(img_bytes, format='png')
-    plt.close()
-    img_bytes.seek(0)
-
-    base64_image = base64.b64encode(img_bytes.read()).decode('utf-8')
-    print("Generated image data:", base64_image[:100])  # Print the first 100 characters of the image data
+    # plt.figure()
+    # plt.title('Envy Graph')
+    # pos = nx.spring_layout(graph, seed=seed)  # Use a seed for reproducibility
+    # nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10, arrows=True)
+    #
+    # img_bytes = io.BytesIO()
+    # plt.savefig(img_bytes, format='png')
+    # plt.close()
+    # img_bytes.seek(0)
+    #
+    # base64_image = base64.b64encode(img_bytes.read()).decode('utf-8')
+    # print("Generated image data:", base64_image[:100])  # Print the first 100 characters of the image data
     return 'base64_image'
 
 
@@ -1267,7 +1267,6 @@ def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str):
 
     return base64.b64encode(img_bytes.read()).decode('utf-8')
 
-
 if __name__ == "__main__":
     import doctest, sys
     #print("\n", doctest.testmod(), "\n")
@@ -1275,14 +1274,14 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
 
-    # order=['Agent1','Agent2','Agent3','Agent4']
-    # items=['m1','m2','m3','m4']
-    # item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
-    # agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
-    # valuations = {'Agent1':{'m1':2,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':2,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':2,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
-    # sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
-    # instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
-    # divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
+    order=['Agent1','Agent2','Agent3','Agent4']
+    items=['m1','m2','m3','m4']
+    item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
+    agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
+    valuations = {'Agent1':{'m1':2,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':2,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':2,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
+    sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
+    instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
+    divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
     # divide(algorithm=two_categories_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category_pair=("c1","c2"))
     #
     # items=['m1','m2','m3']
@@ -1301,14 +1300,14 @@ if __name__ == "__main__":
     # divide(algorithm=capped_round_robin, instance=Instance(valuations=valuations, items=items),
     #                 item_categories=item_categories, agent_category_capacities=agent_category_capacities,
     #                 initial_agent_order=order, target_category=target_category)
-    item_categories={'category_1':['item_1'],'category_2':['item_2']}
-    item_capacities={'item_1':2,'item_2':5}
-    agent_category_capacities={'agent_1':{'category_1':5,'category_2':1},'agent_2':{'category_1':1,'category_2':0}}
-    item_valuations={'agent_1':{'item_1':0,'item_2':1},'agent_2':{'item_1':1,'item_2':0}}
-    items=['item_1','item_2']
-    divide(algorithm=iterated_priority_matching, instance=Instance(valuations=item_valuations, item_capacities=item_capacities,items=items),
-                     item_categories=item_categories, agent_category_capacities=agent_category_capacities,
-                    )
+    # item_categories={'category_1':['item_1'],'category_2':['item_2']}
+    # item_capacities={'item_1':2,'item_2':5}
+    # agent_category_capacities={'agent_1':{'category_1':5,'category_2':1},'agent_2':{'category_1':1,'category_2':0}}
+    # item_valuations={'agent_1':{'item_1':0,'item_2':1},'agent_2':{'item_1':1,'item_2':0}}
+    # items=['item_1','item_2']
+    # divide(algorithm=iterated_priority_matching, instance=Instance(valuations=item_valuations, item_capacities=item_capacities,items=items),
+    #                  item_categories=item_categories, agent_category_capacities=agent_category_capacities,
+                    #)
 
 
 
