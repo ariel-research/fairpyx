@@ -148,7 +148,7 @@ def find_profitable_manipulation(mechanism: callable, student: str, true_student
 
     # (4) If 𝑣∗ = 𝑣0, terminate with 𝑣0 as the best manipulation found when 𝑣0 ≠ 𝑢, otherwise return failed.
     logger.info(f"current_best_manipulation = {current_best_manipulation}")
-    logger.info("NO MENIPULATION" if true_student_utility==current_best_manipulation else "MENIPULATION!!!!!")
+    logger.info("NO MANIPULATION" if true_student_utility==current_best_manipulation else "MANIPULATION!!!!!")
     return current_best_manipulation
 
 # ---------------------helper functions:---------------------
