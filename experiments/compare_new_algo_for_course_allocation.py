@@ -83,7 +83,7 @@ def run_uniform_experiment():
         "random_seed": range(5),
         "solver": [None],
     }
-    experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges_none_solver, time_limit=TIME_LIMIT)
+    # experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges_none_solver, time_limit=TIME_LIMIT)
 
     input_ranges_specific_solver = {
         "num_of_agents": [100],
@@ -93,7 +93,7 @@ def run_uniform_experiment():
         "random_seed": range(5),
         "solver": [None, cp.CBC, cp.MOSEK, cp.SCIP, cp.XPRESS], #, cp.COPT, cp.CPLEX, cp.GUROBI
     }
-    experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges_specific_solver, time_limit=TIME_LIMIT)
+    # experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges_specific_solver, time_limit=TIME_LIMIT)
 
     input_ranges_specific_solver = {
         "num_of_agents": [200, 300],
@@ -103,7 +103,7 @@ def run_uniform_experiment():
         "random_seed": range(5),
         "solver": [None, cp.CBC, cp.MOSEK, cp.SCIP],  #, cp.XPRESS , cp.COPT, cp.CPLEX, cp.GUROBI
     }
-    experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges_specific_solver, time_limit=TIME_LIMIT)
+    # experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges_specific_solver, time_limit=TIME_LIMIT)
 
     input_ranges_specific_solver = {
         "num_of_agents": [100, 200, 300],
@@ -111,7 +111,7 @@ def run_uniform_experiment():
         "value_noise_ratio": [0, 0.2, 0.5, 0.8, 1],
         "algorithm": algorithms_with_specific_solver,
         "random_seed": range(5),
-        "solver": [cp.GLPK_MI],  #cp.SCIPY],
+        "solver": [cp.SCIPY]
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges_specific_solver, time_limit=TIME_LIMIT)
 
@@ -256,6 +256,6 @@ if __name__ == "__main__":
 
     # TTC_logger.setLevel(logging.INFO)
     # TTC_logger.addHandler(logging.StreamHandler())
-    # run_uniform_experiment() #done
+    run_uniform_experiment() #done
     # run_szws_experiment() #done
     # run_ariel_experiment() #done
