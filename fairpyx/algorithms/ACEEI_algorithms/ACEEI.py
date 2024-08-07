@@ -305,19 +305,19 @@ def find_budget_perturbation(initial_budgets: dict, epsilon: float, prices: dict
 
 def ACEEI_without_EFTB(alloc: AllocationBuilder, **kwargs):
     initial_budgets = random_initial_budgets(alloc.instance.num_of_agents)
-    return find_ACEEI_with_EFTB(alloc, initial_budgets=initial_budgets, delta=0.5, epsilon=3.0, t=EFTBStatus.NO_EF_TB,
+    return find_ACEEI_with_EFTB(alloc, initial_budgets=initial_budgets, delta=0.001, epsilon=0.3, t=EFTBStatus.NO_EF_TB,
                                 **kwargs)
 
 
 def ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
     initial_budgets = random_initial_budgets(alloc.instance.num_of_agents)
-    return find_ACEEI_with_EFTB(alloc, initial_budgets=initial_budgets, delta=0.5, epsilon=3.0, t=EFTBStatus.EF_TB,
+    return find_ACEEI_with_EFTB(alloc, initial_budgets=initial_budgets, delta=0.001, epsilon=0.3, t=EFTBStatus.EF_TB,
                                 **kwargs)
 
 
 def ACEEI_with_contested_EFTB(alloc: AllocationBuilder, **kwargs):
     initial_budgets = random_initial_budgets(alloc.instance.num_of_agents)
-    return find_ACEEI_with_EFTB(alloc, initial_budgets=initial_budgets, delta=0.5, epsilon=3.0,
+    return find_ACEEI_with_EFTB(alloc, initial_budgets=initial_budgets, delta=0.001, epsilon=0.3,
                                 t=EFTBStatus.CONTESTED_EF_TB, **kwargs)
 
 

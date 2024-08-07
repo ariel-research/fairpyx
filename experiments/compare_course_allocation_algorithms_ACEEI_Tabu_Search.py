@@ -35,45 +35,8 @@ def create_initial_budgets(num_of_agents: int, beta: float = 100) -> dict:
     initial_budgets = np.random.uniform(1, 1 + beta, num_of_agents)
     return {f's{agent + 1}': initial_budgets[agent] for agent in range(num_of_agents)}
 
-# def evaluate_algorithm_on_instance(algorithm, instance):
-#     allocation = divide(algorithm, instance)
-#     matrix = AgentBundleValueMatrix(instance, allocation)
-#     matrix.use_normalized_values()
-#     return {
-#         "utilitarian_value": matrix.utilitarian_value(),
-#         "egalitarian_value": matrix.egalitarian_value(),
-#         "max_envy": matrix.max_envy(),
-#         "mean_envy": matrix.mean_envy(),
-#         "max_deficit": matrix.max_deficit(),
-#         "mean_deficit": matrix.mean_deficit(),
-#         "num_with_top_1": matrix.count_agents_with_top_rank(1),
-#         "num_with_top_2": matrix.count_agents_with_top_rank(2),
-#         "num_with_top_3": matrix.count_agents_with_top_rank(3),
-#     }
-
-def evaluate_algorithm_on_instance(algorithm, instance, **kwargs):
-    print(f"--------algorithm = {algorithm}")
-    algorithm_name = algorithm.__name__ if callable(algorithm) else algorithm
-    if algorithm_name == 'find_ACEEI_with_EFTB':
-        if all(key in kwargs for key in ('delta', 'epsilon', 't')):
-            delta = kwargs['delta']
-            epsilon = kwargs['epsilon']
-            t = kwargs['t']
-            initial_budgets = create_initial_budgets(instance.num_of_agents)
-            allocation = divide(algorithm, instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon, t=t)
-        else:
-            raise ValueError("Missing parameters for algorithm1. Required: delta, epsilon, t")
-    elif algorithm_name == 'tabu_search':
-        if all(key in kwargs for key in ('beta', 'delta')):
-            beta = kwargs['beta']
-            delta = kwargs['delta']
-            initial_budgets = create_initial_budgets(instance.num_of_agents, beta)
-            allocation = divide(algorithm, instance, initial_budgets=initial_budgets, beta=beta, delta=set(delta))
-        else:
-            raise ValueError("Missing parameters for algorithm2. Required: beta, delta")
-    else:
-        raise ValueError("Unknown algorithm")
-
+def evaluate_algorithm_on_instance(algorithm, instance):
+    allocation = divide(algorithm, instance)
     matrix = AgentBundleValueMatrix(instance, allocation)
     matrix.use_normalized_values()
     return {
@@ -88,45 +51,82 @@ def evaluate_algorithm_on_instance(algorithm, instance, **kwargs):
         "num_with_top_3": matrix.count_agents_with_top_rank(3),
     }
 
+# def evaluate_algorithm_on_instance(algorithm, instance, **kwargs):
+#     print(f"--------algorithm = {algorithm}")
+#     algorithm_name = algorithm.__name__ if callable(algorithm) else algorithm
+#     if algorithm_name == 'find_ACEEI_with_EFTB':
+#         if all(key in kwargs for key in ('delta', 'epsilon', 't')):
+#             delta = kwargs['delta']
+#             epsilon = kwargs['epsilon']
+#             t = kwargs['t']
+#             initial_budgets = create_initial_budgets(instance.num_of_agents)
+#             allocation = divide(algorithm, instance, initial_budgets=initial_budgets, delta=delta, epsilon=epsilon, t=t)
+#         else:
+#             raise ValueError("Missing parameters for algorithm1. Required: delta, epsilon, t")
+#     elif algorithm_name == 'tabu_search':
+#         if all(key in kwargs for key in ('beta', 'delta')):
+#             beta = kwargs['beta']
+#             delta = kwargs['delta']
+#             initial_budgets = create_initial_budgets(instance.num_of_agents, beta)
+#             allocation = divide(algorithm, instance, initial_budgets=initial_budgets, beta=beta, delta=set(delta))
+#         else:
+#             raise ValueError("Missing parameters for algorithm2. Required: beta, delta")
+#     else:
+#         raise ValueError("Unknown algorithm")
+#
+#     matrix = AgentBundleValueMatrix(instance, allocation)
+#     matrix.use_normalized_values()
+#     return {
+#         "utilitarian_value": matrix.utilitarian_value(),
+#         "egalitarian_value": matrix.egalitarian_value(),
+#         "max_envy": matrix.max_envy(),
+#         "mean_envy": matrix.mean_envy(),
+#         "max_deficit": matrix.max_deficit(),
+#         "mean_deficit": matrix.mean_deficit(),
+#         "num_with_top_1": matrix.count_agents_with_top_rank(1),
+#         "num_with_top_2": matrix.count_agents_with_top_rank(2),
+#         "num_with_top_3": matrix.count_agents_with_top_rank(3),
+#     }
+
 
 ######### EXPERIMENT WITH UNIFORMLY-RANDOM DATA ##########
 
-# def course_allocation_with_random_instance_uniform(
-#     num_of_agents:int, num_of_items:int,
-#     value_noise_ratio:float,
-#     algorithm:Callable,
-#     random_seed: int,):
-#     agent_capacity_bounds =  [6,6]
-#     item_capacity_bounds = [40,40]
-#     np.random.seed(random_seed)
-#     instance = Instance.random_uniform(
-#         num_of_agents=num_of_agents, num_of_items=num_of_items,
-#         normalized_sum_of_values=normalized_sum_of_values,
-#         agent_capacity_bounds=agent_capacity_bounds,
-#         item_capacity_bounds=item_capacity_bounds,
-#         item_base_value_bounds=[1,max_value],
-#         item_subjective_ratio_bounds=[1-value_noise_ratio, 1+value_noise_ratio]
-#         )
-#     return evaluate_algorithm_on_instance(algorithm, instance)
-
 def course_allocation_with_random_instance_uniform(
-        num_of_agents: int, num_of_items: int,
-        value_noise_ratio: float,
-        # beta: float, delta: List[float],
-        algorithm: Callable,
-        random_seed: int, **kwargs):
-    agent_capacity_bounds = [6, 6]
-    item_capacity_bounds = [40, 40]
+    num_of_agents:int, num_of_items:int,
+    value_noise_ratio:float,
+    algorithm:Callable,
+    random_seed: int,):
+    agent_capacity_bounds =  [6,6]
+    item_capacity_bounds = [40,40]
     np.random.seed(random_seed)
     instance = Instance.random_uniform(
         num_of_agents=num_of_agents, num_of_items=num_of_items,
         normalized_sum_of_values=normalized_sum_of_values,
         agent_capacity_bounds=agent_capacity_bounds,
         item_capacity_bounds=item_capacity_bounds,
-        item_base_value_bounds=[1, max_value],
-        item_subjective_ratio_bounds=[1 - value_noise_ratio, 1 + value_noise_ratio]
-    )
-    return evaluate_algorithm_on_instance(algorithm, instance, **kwargs)
+        item_base_value_bounds=[1,max_value],
+        item_subjective_ratio_bounds=[1-value_noise_ratio, 1+value_noise_ratio]
+        )
+    return evaluate_algorithm_on_instance(algorithm, instance)
+
+# def course_allocation_with_random_instance_uniform(
+#         num_of_agents: int, num_of_items: int,
+#         value_noise_ratio: float,
+#         # beta: float, delta: List[float],
+#         algorithm: Callable,
+#         random_seed: int, **kwargs):
+#     agent_capacity_bounds = [6, 6]
+#     item_capacity_bounds = [40, 40]
+#     np.random.seed(random_seed)
+#     instance = Instance.random_uniform(
+#         num_of_agents=num_of_agents, num_of_items=num_of_items,
+#         normalized_sum_of_values=normalized_sum_of_values,
+#         agent_capacity_bounds=agent_capacity_bounds,
+#         item_capacity_bounds=item_capacity_bounds,
+#         item_base_value_bounds=[1, max_value],
+#         item_subjective_ratio_bounds=[1 - value_noise_ratio, 1 + value_noise_ratio]
+#     )
+#     return evaluate_algorithm_on_instance(algorithm, instance, **kwargs)
 
 def run_uniform_experiment():
     # Run on uniformly-random data:
@@ -142,7 +142,7 @@ def run_uniform_experiment():
 
 
 
-######### EXPERIMENT WITH DATA GENERATED ACCORDING TO THE SZWS MODEL ##########
+######## EXPERIMENT WITH DATA GENERATED ACCORDING TO THE SZWS MODEL ##########
 
 def course_allocation_with_random_instance_szws(
     num_of_agents:int, num_of_items:int, 
@@ -350,22 +350,22 @@ class AgentBundleValueMatrixArticle:
 if __name__ == "__main__":
     import logging, experiments_csv
     experiments_csv.logger.setLevel(logging.INFO)
-    # run_uniform_experiment()
+    run_uniform_experiment()
     # run_szws_experiment()
     # run_ariel_experiment()
 
     # Load and plot data for run_uniform_experiment()
-    # uniform_results = load_experiment_results('results/course_allocation_uniform.csv')
-    # plt.figure(figsize=(10, 6))  # Adjust figure size if needed
-    #
-    # for algorithm in algorithms_to_check:
-    #     algorithm_name = algorithm.__name__
-    #     algorithm_data = uniform_results[uniform_results['algorithm'] == algorithm_name]
-    #     plot_average_runtime_vs_students(algorithm_data, algorithm_name)
-    #
-    # plt.tight_layout()
-    # plt.show()
+    uniform_results = load_experiment_results('results/course_allocation_uniform.csv')
+    plt.figure(figsize=(10, 6))  # Adjust figure size if needed
 
+    for algorithm in algorithms_to_check:
+        algorithm_name = algorithm.__name__
+        algorithm_data = uniform_results[uniform_results['algorithm'] == algorithm_name]
+        plot_average_runtime_vs_students(algorithm_data, algorithm_name, 'max_envy')
+
+    plt.tight_layout()
+    plt.show()
+    #
     # Load and plot data for run_szws_experiment()
     # szws_results = load_experiment_results('results/course_allocation_szws_ACEEI.csv')
 
@@ -381,5 +381,5 @@ if __name__ == "__main__":
     #     plt.show()
     ######### COMPARING DELTA AND EPSILON PERFORMANCE - ACEEI ##########
     # run_delta_epsilon_experiment_ACEEI()
-    df = analyze_experiment_results_ACEEI()
-    plot_mean_envy_vs_params(df,"delta", "epsilon", "ACEEI")
+    # df = analyze_experiment_results_ACEEI()
+    # plot_mean_envy_vs_params(df,"delta", "epsilon", "ACEEI")
