@@ -317,6 +317,34 @@ def plot_egalitarian_vs_params(df, param1, param2, algorithm_name):
     plt.tight_layout()
     plt.show()
 
+######### CHECK ENVY LIKE THE ARTICLE ######
+
+class AgentBundleValueMatrixArticle:
+    def make_envy_matrix_article(self):
+        if self.envy_matrix is not None:
+            return
+        self.envy_matrix = {
+            agent1: {
+                agent2: self.matrix[agent1][agent2] - self.matrix[agent1][agent1]
+                if self.initial_budgets[agent1] > self.initial_budgets[agent2] else 0
+                for agent2 in self.agents
+            }
+            for agent1 in self.agents
+        }
+        self.envy_vector = {
+            agent1: max(self.envy_matrix[agent1].values())
+            for agent1 in self.agents
+        }
+
+    def max_envy(self):
+            self.make_envy_matrix_article()
+            return max(self.envy_vector.values())
+
+    def mean_envy(self):
+            self.make_envy_matrix()
+            return sum([max(envy,0) for envy in self.envy_vector.values()]) / len(self.agents)
+
+
 ######### MAIN PROGRAM ##########
 
 if __name__ == "__main__":
