@@ -288,7 +288,7 @@ def analyze_experiment_results_ACEEI():
     # Load the results from the CSV file
     df = pd.read_csv(RESULTS_BETA_DELTA_FILE_ACEEI)
 
-    best_row = df.loc[df['egalitarian_value'].idxmin()]
+    best_row = df.loc[df['mean_envy'].idxmin()]
 
     # Extract the best beta and delta values
     best_delta = best_row['delta']  # Assuming delta is already in the correct format
@@ -299,20 +299,20 @@ def analyze_experiment_results_ACEEI():
 
     return df
 
-def plot_egalitarian_vs_params(df, param1, param2, algorithm_name):
+def plot_mean_envy_vs_params(df, param1, param2, algorithm_name):
     fig = plt.figure(figsize=(10, 6))
     ax = fig.add_subplot(111, projection='3d')
 
     param1_values = df[param1]
     param2_values = df[param2].apply(
         lambda x: float(list(ast.literal_eval(x))[0]) if isinstance(x, str) else x)  # Convert if necessary
-    runtime_values = df['egalitarian_value']
+    runtime_values = df['mean_envy']
 
     ax.scatter(param1_values, param2_values, runtime_values, c='b', marker='o')
-    ax.set_title(f'Algorithm egalitarian vs. {param1.capitalize()} and {param2.capitalize()} for {algorithm_name}')
+    ax.set_title(f'Algorithm mean_envy vs. {param1.capitalize()} and {param2.capitalize()} for {algorithm_name}')
     ax.set_xlabel(param1.capitalize())
     ax.set_ylabel(param2.capitalize())
-    ax.set_zlabel('egalitarian')
+    ax.set_zlabel('mean_envy')
 
     plt.tight_layout()
     plt.show()
@@ -380,6 +380,6 @@ if __name__ == "__main__":
     #     plt.tight_layout()
     #     plt.show()
     ######### COMPARING DELTA AND EPSILON PERFORMANCE - ACEEI ##########
-    run_delta_epsilon_experiment_ACEEI()
+    # run_delta_epsilon_experiment_ACEEI()
     df = analyze_experiment_results_ACEEI()
-    plot_egalitarian_vs_params(df,"delta", "epsilon", "ACEEI")
+    plot_mean_envy_vs_params(df,"delta", "epsilon", "ACEEI")
