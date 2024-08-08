@@ -350,35 +350,35 @@ class AgentBundleValueMatrixArticle:
 if __name__ == "__main__":
     import logging, experiments_csv
     experiments_csv.logger.setLevel(logging.INFO)
-    run_uniform_experiment()
-    # run_szws_experiment()
+    # run_uniform_experiment()
+    run_szws_experiment()
     # run_ariel_experiment()
 
     # Load and plot data for run_uniform_experiment()
-    uniform_results = load_experiment_results('results/course_allocation_uniform.csv')
-    plt.figure(figsize=(10, 6))  # Adjust figure size if needed
-
-    for algorithm in algorithms_to_check:
-        algorithm_name = algorithm.__name__
-        algorithm_data = uniform_results[uniform_results['algorithm'] == algorithm_name]
-        plot_average_runtime_vs_students(algorithm_data, algorithm_name, 'max_envy')
-
-    plt.tight_layout()
-    plt.show()
-    #
-    # Load and plot data for run_szws_experiment()
-    # szws_results = load_experiment_results('results/course_allocation_szws_ACEEI.csv')
-
+    # uniform_results = load_experiment_results('results/course_allocation_uniform.csv')
     # plt.figure(figsize=(10, 6))  # Adjust figure size if needed
     #
-    # for metric in metrics:
-    #     for algorithm in algorithms_to_check:
-    #         algorithm_name = algorithm.__name__
-    #         algorithm_data = szws_results[szws_results['algorithm'] == algorithm_name]
-    #         plot_average_runtime_vs_students(algorithm_data, algorithm_name, metric)
+    # for algorithm in algorithms_to_check:
+    #     algorithm_name = algorithm.__name__
+    #     algorithm_data = uniform_results[uniform_results['algorithm'] == algorithm_name]
+    #     plot_average_runtime_vs_students(algorithm_data, algorithm_name, 'max_envy')
     #
-    #     plt.tight_layout()
-    #     plt.show()
+    # plt.tight_layout()
+    # plt.show()
+
+    # Load and plot data for run_szws_experiment()
+    szws_results = load_experiment_results('results/course_allocation_szws_ACEEI.csv')
+
+    plt.figure(figsize=(10, 6))  # Adjust figure size if needed
+
+    for metric in metrics:
+        for algorithm in algorithms_to_check:
+            algorithm_name = algorithm.__name__
+            algorithm_data = szws_results[szws_results['algorithm'] == algorithm_name]
+            plot_average_runtime_vs_students(algorithm_data, algorithm_name, metric)
+
+        plt.tight_layout()
+        plt.show()
     ######### COMPARING DELTA AND EPSILON PERFORMANCE - ACEEI ##########
     # run_delta_epsilon_experiment_ACEEI()
     # df = analyze_experiment_results_ACEEI()

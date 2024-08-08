@@ -321,7 +321,7 @@ def ACEEI_with_contested_EFTB(alloc: AllocationBuilder, **kwargs):
                                 t=EFTBStatus.CONTESTED_EF_TB, **kwargs)
 
 
-def random_initial_budgets(num_of_agents: int, agents) -> dict:
+def random_initial_budgets(num_of_agents: int) -> dict:
     # Create initial budgets for each agent, uniformly distributed in the range [0, 1)
     initial_budgets = np.random.rand(num_of_agents)
     return {f's{agent + 1}': initial_budgets[agent] for agent in range(num_of_agents)}
