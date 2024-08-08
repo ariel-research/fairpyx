@@ -756,6 +756,8 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
     logger.info(f"Creating envy graph for curr_bundles -> {curr_bundles}")
     envy_graph.clear_edges()
     envy_graph.add_nodes_from(curr_bundles.keys())
+    if callback:
+        callback(helper_generate_directed_graph_base64(envy_graph))
     for agent1, bundle1 in curr_bundles.items():
         for agent2, bundle_agent2 in curr_bundles.items():
             if agent1 is not agent2:  # make sure w're not comparing same agent to himself
