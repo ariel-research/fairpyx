@@ -21,6 +21,8 @@ import io
 import base64
 
 logger = logging.getLogger(__name__)
+# Create a string stream to capture logs
+log_stream = io.StringIO()
 
 def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
                              initial_agent_order: list,callback:callable=None):
@@ -1266,6 +1268,16 @@ def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str):
     img_bytes.seek(0)
 
     return base64.b64encode(img_bytes.read()).decode('utf-8')
+
+def helper_configure_logger():
+    stream_handler = logging.StreamHandler(log_stream)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger.addHandler(stream_handler)
+    stream_handler.setFormatter(formatter)
+    logger.setLevel(logging.DEBUG)
+
+def helper_get_logs():
+    return log_stream.getvalue()
 
 if __name__ == "__main__":
     import doctest, sys
