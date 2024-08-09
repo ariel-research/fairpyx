@@ -34,18 +34,17 @@ def reduce_undersubscription(allocation: AllocationBuilder, price_vector: dict, 
 
     :return: Updated course allocations
     """
-    logger.info("Starting reduce undersubscription algorithm (algorithm 3).")
     item_conflicts, agent_conflicts = calculate_conflicts(allocation)
     preferred_schedule = find_preference_order_for_each_student(allocation.instance._valuations, allocation.instance._agent_capacities, item_conflicts, agent_conflicts)
     logger.debug('Preferred schedule calculated: %s', preferred_schedule)
 
     # Calculate the demand for each course based on the price vector and student budgets
     course_demands_dict = compute_surplus_demand_for_each_course(price_vector, allocation, student_budgets, preferred_schedule)  
-    logger.info('Course demands calculated: %s', course_demands_dict)
+    logger.debug('Course demands calculated: %s', course_demands_dict)
 
     # Identify undersubscribed courses (courses with negative demand)
     capacity_undersubscribed_courses = {course: -1 * course_demand for course, course_demand in course_demands_dict.items() if course_demand < 0}
-    logger.info('Undersubscribed courses identified: %s', capacity_undersubscribed_courses)
+    logger.debug('Undersubscribed courses identified: %s', capacity_undersubscribed_courses)
 
     student_schedule = find_best_schedule(price_vector, student_budgets, preferred_schedule)
     student_schedule_dict = create_dictionary_of_schedules(student_schedule, allocation.instance.items, allocation.instance.agents)
@@ -62,7 +61,6 @@ def reduce_undersubscription(allocation: AllocationBuilder, price_vector: dict, 
         allocation.give_bundle(student, schedule)
         logger.info('Updated allocation for student %s: %s', student, schedule)
 
-    logger.info("Finished reduce_undersubscription algorithm.")
     return allocation
 
 
@@ -185,7 +183,6 @@ def reoptimize_student_schedules(allocation, price_vector, student_list, student
 
     :return: Updated student schedules
     """
-    logger.info("Starting reoptimization of student schedules.")
     not_done = True
     while not_done and len(capacity_undersubscribed_courses) != 0:
         not_done = False
@@ -200,7 +197,7 @@ def reoptimize_student_schedules(allocation, price_vector, student_list, student
                 update_student_schedule_dict(student, student_schedule_dict, new_bundle, capacity_undersubscribed_courses)
                 logger.debug('Updated student %s schedule: %s', student[0], student_schedule_dict[student[0]])
                 break  # Only one student changes their allocation in each pass
-    logger.info("Finished reoptimization of student schedules.")    
+    logger.info("Finished reoptimization of student schedules %s",student_schedule_dict)    
     return student_schedule_dict
 
 
