@@ -28,8 +28,6 @@ def course_match_algorithm(alloc: AllocationBuilder, budget: dict, priorities_st
     price_vector = A_CEEI.A_CEEI(alloc,budget,time)
     price_vector = remove_oversubscription.remove_oversubscription(alloc, price_vector, budget)
     reduce_undersubscription.reduce_undersubscription(alloc, price_vector, budget, priorities_student_list)
-
-
     return alloc
    
 def check_envy(res, instance : Instance):

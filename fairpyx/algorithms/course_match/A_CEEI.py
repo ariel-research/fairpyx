@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 """
 Algorithm 1: Approximate Competitive Equilibrium from Equal Incomes (A-CEEI), finds the best price vector that matches student preferences and course capacities.
 """
-def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed = None ) -> dict:
+def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60, seed = None) -> dict:
     """
     Perform heuristic search to find the best price vector that matches student preferences and course capacities.
 
@@ -50,7 +50,7 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed =
 
 
     """
-
+    logger.info("Starting A_CEEI algorithm with budget=%s and time limit %d.",budget, time_limit)
    
     def initialize_price_vector(budget,seed):
         return {k: random.uniform(0, max(budget.values())) for k in alloc.instance.items}
@@ -106,7 +106,7 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed =
                     best_error = current_error
                     best_price_vector = price_vector
                     if best_error == 0:
-                        return best_price_vector
+                        break
     logger.info("A-CEEI algorithm completed. Best price vector: %s with error: %f", best_price_vector, best_error)      
     return best_price_vector
 
@@ -490,9 +490,8 @@ def find_preferred_schedule_adapter(alloc: AllocationBuilder):
     item_conflicts={item:  alloc.instance.item_conflicts(item) for item in alloc.instance.items}
     agent_conflicts={agent:  alloc.instance.agent_conflicts(agent) for agent in alloc.instance.agents}
     return find_preference_order_for_each_student(alloc.instance._valuations , alloc.instance._agent_capacities , item_conflicts , agent_conflicts)
-    
+
 if __name__ == "__main__":
     import doctest
-    doctest.testmod()
-
+    print(doctest.testmod())
 
