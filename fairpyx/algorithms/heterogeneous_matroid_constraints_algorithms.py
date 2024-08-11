@@ -541,6 +541,7 @@ def helper_envy(source: str, target: str, bundles: dict[str, set or list], val_f
         >>> helper_envy('agent3', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
         False
         """
+    logger.info(f'**********\nRunning helper_envy\n**********')
     #validate input
     if isinstance(bundles, dict):
         for key, val in bundles.items():
@@ -878,6 +879,8 @@ def helper_remove_cycles(envy_graph:nx.DiGraph, alloc:AllocationBuilder, valuati
         {'Agent1': ['Item3'], 'Agent2': ['Item1', 'Item2']}
 
         """
+    logger.info(f'**********\nRunning helper_remove_cycles\n**********')
+
     #start validation
     if not callable(valuation_func):
         raise ValueError("valuation_func must be callable.")
@@ -959,6 +962,7 @@ def helper_update_ordered_agent_list(current_order: list, remaining_category_age
     >>> helper_update_ordered_agent_list(current_order, remaining_category_agent_capacities)
     ['Abed', 'Noor']
     """
+    logger.info(f'**********\nRunning helper_update_ordered_agent_list\n**********')
     #validate input
     helper_validate_duplicate(current_order)
     temp = {'catx': remaining_category_agent_capacities}
@@ -1016,6 +1020,7 @@ def helper_update_item_list(alloc: AllocationBuilder, category: str, item_catego
             >>> helper_update_item_list(alloc, 'c2', item_categories)
             []
         """
+    logger.info(f'**********\nRunning helper_update_item_list\n**********')
     #validate input
     helper_validate_item_categories(item_categories)
     if not isinstance(category, str):
@@ -1080,6 +1085,7 @@ def helper_priority_matching(agent_item_bipartite_graph:nx.Graph, current_order:
     >>> alloc.sorted() in [{'Agent1': ['Item3'], 'Agent2': ['Item2'], 'Agent3': ['Item1']} , {'Agent1': ['Item1'], 'Agent2': ['Item2'], 'Agent3': ['Item3']} , {'Agent1': ['Item1'], 'Agent2': ['Item3'], 'Agent3': ['Item2']}]
     True
     """
+    logger.info(f'**********\nRunning helper_priority_matching\n**********')
     #validate input 
     if not isinstance(agent_item_bipartite_graph ,nx.Graph):
         raise ValueError("agent_item_bipartite_graph must be of type nx.Graph.")
@@ -1139,6 +1145,7 @@ def helper_create_agent_item_bipartite_graph(agents:list, items:list, valuation_
     >>> sorted(bipartite_graph.edges(data=True))
     [('Agent3', 'Item1', {'weight': 2}), ('Agent3', 'Item2', {'weight': 2}), ('Agent3', 'Item3', {'weight': 2})]
     """
+    logger.info(f'**********\nRunning helper_create_agent_item_bipartite_graph\n**********')
     #validate input 
     helper_validate_duplicate(agents)
     helper_validate_duplicate(items)
@@ -1162,6 +1169,8 @@ def helper_create_agent_item_bipartite_graph(agents:list, items:list, valuation_
     return agent_item_bipartite_graph
 
 def helper_validate_valuations(agent_item_valuations: dict[str, dict[str, int]], is_identical: bool = False, is_binary: bool = False):
+    logger.info(f'**********\nRunning helper_validate_valuations\n**********')
+
     if  isinstance(agent_item_valuations,dict):# to check that the agent_category_capacities is indeed dict[str,dict[str,int]]
         for key,value in agent_item_valuations.items():
             if not isinstance(key,str) or not isinstance(value,dict):
@@ -1191,6 +1200,8 @@ def helper_validate_valuations(agent_item_valuations: dict[str, dict[str, int]],
 
 
 def helper_validate_capacities(agent_category_capacities: dict[str, dict[str, int]], is_identical: bool = False):
+    logger.info(f'**********\nRunning helper_validate_capacities\n**********')
+
     if  isinstance(agent_category_capacities,dict):# to check that the agent_category_capacities is indeed dict[str,dict[str,int]]
         for key,value in agent_category_capacities.items():
             if not isinstance(key,str) or not isinstance(value,dict):
@@ -1214,6 +1225,7 @@ def helper_validate_capacities(agent_category_capacities: dict[str, dict[str, in
         raise ValueError(f"agent_category_capacities {agent_category_capacities} isn't structured correctly")
 
 def helper_validate_duplicate(list_of_items:list):
+    logger.info(f'**********\nRunning helper_validate_duplicates\n**********')
     if  isinstance(list_of_items,list):
         if len(list_of_items) != len(set(list_of_items)):
             raise ValueError(f"Duplicate items found in the list: {list_of_items}.")
@@ -1221,6 +1233,7 @@ def helper_validate_duplicate(list_of_items:list):
         raise ValueError(f"the input {list_of_items} isn't of type list, only list is allowed.")
 
 def helper_validate_item_categories(item_categories:dict[str, list]):
+    logger.info(f'**********\nRunning helper_validate_item_categories\n**********')
     if isinstance(item_categories, dict):
         for category, items in item_categories.items():
             if not isinstance(category, str) or not isinstance(items, list):
@@ -1230,6 +1243,8 @@ def helper_validate_item_categories(item_categories:dict[str, list]):
 
 
 def helper_generate_directed_graph_base64(graph, seed=42):
+    logger.info(f'**********\nRunning helper_generate_directed_graph_base64\n**********')
+
     plt.figure()
     plt.title('Envy Graph')
     pos = nx.spring_layout(graph, seed=seed)  # Use a seed for reproducibility
@@ -1246,6 +1261,7 @@ def helper_generate_directed_graph_base64(graph, seed=42):
 
 
 def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str):
+    logger.info(f'**********\nRunning helper_generate_bipartite_graph_base64\n**********')
     plt.figure()
     plt.title('Agent-Item Bipartite Graph', fontsize=16)
     additional_text=f'{category} iteration {iteration}'
@@ -1280,6 +1296,7 @@ def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str):
     return base64.b64encode(img_bytes.read()).decode('utf-8')
 
 def helper_configure_logger():
+    logger.info(f'**********\nRunning helper_configure_logger\n**********')
     # Create a string stream to capture logs
     log_stream = io.StringIO()
     stream_handler = logging.StreamHandler(log_stream)
@@ -1290,6 +1307,7 @@ def helper_configure_logger():
     return log_stream
 
 def helper_get_logs(log_stream):
+    logger.info(f'**********\nRunning helper_get_logs\n**********')
     return log_stream.getvalue()
 
 if __name__ == "__main__":
