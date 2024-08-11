@@ -79,7 +79,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str
     helper_validate_capacities(is_identical=True, agent_category_capacities=agent_category_capacities)
     helper_validate_valuations(agent_item_valuations=alloc.instance._valuations)
     # end validation
-    logger.info(f"Running per_category_round_robin with alloc -> {alloc.bundles} \n item_categories -> {item_categories} \n agent_category_capacities -> {agent_category_capacities} \n -> initial_agent_order are -> {initial_agent_order}\n ")
+    logger.info(f"**********\nRunning per_category_round_robin with alloc -> {alloc.bundles} \n item_categories -> {item_categories} \n agent_category_capacities -> {agent_category_capacities} \n -> initial_agent_order are -> {initial_agent_order}\n**********\n")
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
@@ -95,7 +95,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str
             logger.info('cycle removal ended successfully ')
         current_order = list(nx.topological_sort(envy_graph))
         logger.info(f"Topological sort -> {current_order} \n***************************** ")
-    logger.info(f'alloc after termination of algorithm ->{alloc}')
+    logger.info(f'alloc after per-category RR ->{alloc.bundles}')
 
 def capped_round_robin(alloc: AllocationBuilder,item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
                              initial_agent_order: list, target_category: str):
@@ -156,6 +156,8 @@ def capped_round_robin(alloc: AllocationBuilder,item_categories: dict[str,list],
     >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order = order,target_category=target_category)
     {'Agent1': [], 'Agent2': ['m1'], 'Agent3': ['m3', 'm4'], 'Agent4': ['m2', 'm5', 'm6']}
         """
+    logger.info(f'**********\nRunning capped_round_robin\n**********')
+
     #input validation
     helper_validate_item_categories(item_categories)
     helper_validate_duplicate(initial_agent_order)
@@ -237,6 +239,8 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder,item_categories: 
             {'Agent1': ['m2', 'm3', 'm4'], 'Agent2': ['m5'], 'Agent3': ['m6']}
             >>> # m1 remains unallocated unfortunately :-(
             """
+    logger.info(f'**********\nRunning two_categories_capped_round_robin\n**********')
+
     #validate input
     helper_validate_item_categories(item_categories)
     helper_validate_duplicate(initial_agent_order)
@@ -308,6 +312,8 @@ def per_category_capped_round_robin(alloc: AllocationBuilder,item_categories: di
             >>> divide(algorithm=per_category_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order = order)
             {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3']}
     """
+    logger.info(f'**********\nRunning per-category-CRR\n**********')
+
     #validate input
     helper_validate_item_categories(item_categories)
     helper_validate_duplicate(initial_agent_order)
@@ -377,6 +383,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[s
             >>> #divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)# m3 remains unallocated ....
             {'Agent1': ['m1', 'm5', 'm6'], 'Agent2': ['m2', 'm4'], 'Agent3': []}
    """
+    logger.info(f'**********\nRunning Iterated priority matching\n**********')
     #validate input
     helper_validate_item_categories(item_categories)
     helper_validate_duplicate(
@@ -621,6 +628,7 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
     >>> alloc.sorted()
     {'agent1': ['m3', 'm7'], 'agent2': ['m1'], 'agent3': ['m2', 'm4', 'm5', 'm6']}
     """
+    logger.info(f"**********\nRunning categorization_friendly_picking sequence with\nalloc->{alloc.bundles}, agent order -> {agent_order},items to allocate ->{items_to_allocate} , agent category capacities ->{agent_category_capacities} , target category ->{target_category}\n**********")
     #validate input
     helper_validate_duplicate(agent_order)
     helper_validate_duplicate(items_to_allocate)
@@ -740,6 +748,7 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
     >>> graph.has_edge('Agent1','Agent2')
     False
     """
+    logger.info(f'**********\nRunning helper_update_envy_graph\n**********')
     #validate input
     if isinstance(curr_bundles, dict):
         for key, val in curr_bundles.items():
