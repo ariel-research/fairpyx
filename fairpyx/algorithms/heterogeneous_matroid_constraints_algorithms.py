@@ -1274,7 +1274,7 @@ def helper_configure_logger():
     # Create a string stream to capture logs
     log_stream = io.StringIO()
     stream_handler = logging.StreamHandler(log_stream)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(message)s')
     logger.addHandler(stream_handler)
     stream_handler.setFormatter(formatter)
     logger.setLevel(logging.DEBUG)
