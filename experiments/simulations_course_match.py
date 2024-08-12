@@ -35,7 +35,7 @@ def make_budget(num_of_agents: int = 30, low: int = 2, high: int = 2.1, agent_na
     budget = {agent: agent_budget for agent, agent_budget in zip(agents, budget_list)}
     return budget
 
-def create_random_sublists(original_array: list, num_divisions: int = None, random_seed: int = None):
+def create_random_sublists(original_array: list, num_divisions: int = 4, random_seed: int = None):
     logger.debug(f"Creating random sublists from array of length {len(original_array)} with {num_divisions} divisions")
     if random_seed is None:
         random_seed = np.random.randint(1, 2**31)
@@ -113,8 +113,8 @@ def simulation_with_diffrent_distributions(list_num_items_capacity: list, list_n
         logger.debug(f"Generating random instance for {num_agents} agents and {item_capacity} items capacity")
         random_instance = Instance.random_uniform(
             num_of_agents=num_agents,
-            num_of_items=10,
-            agent_capacity_bounds=[5, 5],
+            num_of_items=15,
+            agent_capacity_bounds=[2, 3],
             item_capacity_bounds=[item_capacity, item_capacity],
             item_base_value_bounds=[1, 100],
             item_subjective_ratio_bounds=[0.5, 1.5],
@@ -130,23 +130,19 @@ def simulation_with_diffrent_distributions(list_num_items_capacity: list, list_n
         if divide_type == 'default':
             logger.debug("Performing allocation using Course Match Algorithm without priorities")
             alloc_cm = divide(algorithm=course_match_algorithm, instance=random_instance, budget=budget)
-            check_envy(alloc_cm, random_instance) 
         elif divide_type == 'with_priorities':
             logger.debug("Performing allocation using Course Match Algorithm with priorities")
             priorities_list = create_random_sublists(original_array=list(random_instance.agents), random_seed=1)
             alloc_cm = divide(algorithm=course_match_algorithm, instance=random_instance, budget=budget, priorities_student_list=priorities_list)
-            check_envy(alloc_cm, random_instance) 
         times_cm.append(time.time() - start_time)
 
         start_time = time.time()
         if divide_type == 'default':
             logger.debug("Performing allocation using Almost Egalitarian Allocation without priorities")
             alloc_al_eg = divide(algorithm=almost_egalitarian_allocation, instance=random_instance)
-            check_envy(alloc_cm, random_instance) 
         elif divide_type == 'with_priorities':
             logger.debug("Performing allocation using Almost Egalitarian Allocation with priorities")
             alloc_al_eg = divide_with_priorities(algorithm=almost_egalitarian_allocation, instance=random_instance, agent_priority_classes=priorities_list)
-            check_envy(alloc_cm, random_instance) 
         times_al_eg.append(time.time() - start_time)
 
         # Instantiate AgentBundleValueMatrix with the random instance and for both allocations
@@ -174,8 +170,9 @@ def simulation_with_diffrent_distributions(list_num_items_capacity: list, list_n
 
 
 if __name__ == "__main__":
-    list_num_agents = [num_agents for num_agents in range(90, 330, 30)]
-    list_num_items_capacity = [items_capacity for items_capacity in range(9, 33, 3)]
+    list_num_agents = [num_agents for num_agents in range(30, 210, 30)]
+    list_num_items_capacity = [items_capacity for items_capacity in range(7, 42, 6)]
+    
 
     simulation_with_diffrent_distributions(list_num_items_capacity, list_num_agents, divide_type='default')
 
