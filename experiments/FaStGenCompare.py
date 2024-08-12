@@ -1,7 +1,8 @@
 
+import csv
 import inspect
 import logging
-from fairpyx.algorithms.Optimization_Matching import FaSt, FaStGen
+from fairpyx.algorithms.Optimization_Matching import FaStGen
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import experiments_csv
 from matplotlib import pyplot as plt
@@ -10,24 +11,10 @@ import random
 TIME_LIMIT = 100
 
 algorithms_to_check = [
-    FaSt,
     FaStGen
     ]
 
 
-
-def generate_isometric_data(num_of_agents, num_of_items):
-    #agents dict creation > agents = {"s1", "s2", "s3", "s4", "s5", "s6", "s7"} #Student set=S
-    agents = [f"s{i}" for i in range (1,num_of_agents + 1)]
-    #items dict creation > items = {"c1", "c2", "c3"} #College set=C
-    items = [f"c{i}" for i in range (1,num_of_items + 1)]
-
-    valuations = {}
-    for student in agents:
-        valuations_for_items = sorted([random.randint(1, 1000) for _ in items], reverse=True)
-        valuations[student] = {college: valuations_for_items[i] for i, college in enumerate(items)}    
-
-    return agents, items, valuations
 
 def generate_regular_data(num_of_agents, num_of_items):
     #agents dict creation > agents = {"s1", "s2", "s3", "s4", "s5", "s6", "s7"} #Student set=S
@@ -47,7 +34,7 @@ def generate_regular_data(num_of_agents, num_of_items):
     
     return agents, items, agents_valuations, items_valuations
 
-def evaluate_algorithm_output(matching, valuation, agents, items):
+def evaluate_algorithm_output(matching:dict, agentValuations:dict, itemValuations:dict, agents:list, items:list):
     """
         Evaluate the algorithm output according to the following keys:
         - sum of the items values in the final matching.
@@ -57,15 +44,13 @@ def evaluate_algorithm_output(matching, valuation, agents, items):
         - the minimum value of agent.
         - the maximum value of agent.
     """
-    valuation = {int(agent[1:]): {int(item[1:]): value for item, value in items.items()} for agent, items in valuation.items()}
-    valuation_sums = {item: sum(valuation[agent][item] for agent in agents) for item, agents in matching.items()}
-    agents = [int(agent[1:]) for agent in agents]
-    sum_item_values = sum(key for key in valuation_sums.keys())
-    sum_agent_values = sum(valuation[agent][item] for item, agent in matching.items() for agent in agents)
-    min_item = min(valuation_sums.items(), key=lambda x: x[1])
-    max_item = max(valuation_sums.items(), key=lambda x: x[1])
-    min_agent = min(valuation[agent][item] for item, agent in matching.items() for agent in agents)
-    max_agent = max(valuation[agent][item] for item, agent in matching.items() for agent in agents)
+    matching_college_valuations = FaStGen.update_matching_valuations_sum(match=matching, items_valuations=itemValuations)
+    sum_item_values = sum(int(key[1:]) for key in matching_college_valuations.keys())
+    sum_agent_values = sum(agentValuations[agent][item] for item, agent in matching.items() for agent in agents)
+    min_item = min(matching_college_valuations.items(), key=lambda x: x[1])
+    max_item = max(matching_college_valuations.items(), key=lambda x: x[1])
+    min_agent = min(agentValuations[agent][item] for item, agent in matching.items() for agent in agents)
+    max_agent = max(agentValuations[agent][item] for item, agent in matching.items() for agent in agents)
     return {
         "sum_item_values" : sum_item_values,
         "sum_agent_values" : sum_agent_values,
@@ -75,23 +60,18 @@ def evaluate_algorithm_output(matching, valuation, agents, items):
         "max_agent" : max_agent
     }
 
-
 def run_algorithm_with_random_instance_uniform(num_of_agents, num_of_items, algorithm):
-    agents, items, valuations = generate_isometric_data(num_of_agents=num_of_agents, num_of_items=num_of_items)
-    items_valuation = {item: {agent: value for agent, items in valuations.items() 
-                              for item, value in items.items()} 
-                              for item in {item for items in valuations.values() for item in items}}
-    ins = Instance(agents=agents, items=items, valuations=valuations)
+    matchingFaStGen = {}
+    agents, items, agentValuations, itemValuations = generate_regular_data(num_of_agents=num_of_agents, num_of_items=num_of_items)
+    ins = Instance(agents=agents, items=items, valuations=agentValuations)
     allocation = AllocationBuilder(instance=ins)
-    if inspect.getsource(algorithm) == inspect.getsource(FaSt):
-        matching = FaSt.FaSt(allocation)
-    elif inspect.getsource(algorithm) == inspect.getsource(FaStGen):
-        matching = FaStGen.FaStGen(allocation, items_valuations=items_valuation)
-    return evaluate_algorithm_output(matching=matching, valuation=valuations, agents=agents, items=items)
+    if inspect.getsource(algorithm) == inspect.getsource(FaStGen):
+        matchingFaStGen = FaStGen.FaStGen(allocation, itemValuations)
+    return evaluate_algorithm_output(matching=matchingFaStGen, agentValuations=agentValuations, itemValuations=itemValuations, agents=agents, items=items)
 
 def run_uniform_experiment():
     # Run on uniformly-random data:
-    experiment = experiments_csv.Experiment("results/", "FaStVsFaStGen.csv", backup_folder="results/backup/")
+    experiment = experiments_csv.Experiment("results/", "FaStGenEXP.csv", backup_folder="results/backup/")
     input_ranges = {
         "num_of_agents": [100,200,300],         
         "num_of_items":  [25],                   
@@ -136,15 +116,15 @@ def run_uniform_experiment():
 
 #     plt.xlabel("Number of Agents")
 #     plt.ylabel("Value")
-#     plt.title("FaSt vs FaStGen Algorithm Performance")
+#     plt.title("FaStGen Algorithm Performance")
 #     plt.legend()
 #     plt.grid(True)
 #     plt.tight_layout()
 
-#     plt.savefig("FaSt_vs_FaStGen_experiment_results.png")
+#     plt.savefig("experiment_results.png")
 #     plt.show()
 
 if __name__ == "__main__":
     experiments_csv.logger.setLevel(logging.INFO)
     run_uniform_experiment()
-    # plot_experiment_results_from_csv("results/FaStVsFaStGen.csv")
+    # plot_experiment_results_from_csv("results/FaStGenEXP.csv")
