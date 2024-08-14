@@ -4,6 +4,7 @@ import logging
 from fairpyx.algorithms.Optimization_Matching import FaSt, FaStGen
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import experiments_csv
+from experiments_csv import single_plot_results, multi_plot_results
 from matplotlib import pyplot as plt
 import random
 import numpy as np
@@ -69,7 +70,7 @@ def evaluate_algorithm_output(matching, valuation, agents, items):
     valuation = {int(agent[1:]): {int(item[1:]): value for item, value in items.items()} for agent, items in valuation.items()}
     valuation_sums = {item: sum(valuation[agent][item] for agent in agents) for item, agents in matching.items()}
     agents = [int(agent[1:]) for agent in agents]
-    sum_item_values = sum(key for key in valuation_sums.keys())
+    sum_item_values = sum(value for value in valuation_sums.values())
     sum_agent_values = sum(valuation[agent][item] for item, agent in matching.items() for agent in agents)
     min_item = min(valuation_sums.items(), key=lambda x: x[1])[1]
     max_item = max(valuation_sums.items(), key=lambda x: x[1])[1]
@@ -92,6 +93,7 @@ def run_algorithm_with_random_instance_uniform(num_of_agents, num_of_items, algo
         matching = FaSt.FaSt(allocation)
     elif inspect.getsource(algorithm) == inspect.getsource(FaStGen):
         matching = FaStGen.FaStGen(allocation, items_valuations=items_valuation)
+        matching = {int(college[1:]): [int(student[1:]) for student in students] for college, students in matching.items()}
     return evaluate_algorithm_output(matching=matching, valuation=valuations, agents=agents, items=items)
 
 def run_uniform_experiment():
@@ -104,6 +106,34 @@ def run_uniform_experiment():
         # "random_seed": range(5),
     }
     experiment.run_with_time_limit(run_algorithm_with_random_instance_uniform, input_ranges, time_limit=TIME_LIMIT)
+
+def multi_multi_plot_results(results_csv_file:str, save_to_file_template:str, filter:dict, 
+     x_field:str, y_fields:list[str], z_field:str, mean:bool, 
+     subplot_field:str, subplot_rows:int, subplot_cols:int, sharey:bool, sharex:bool,
+     legend_properties:dict):
+     for y_field in y_fields:
+          save_to_file=save_to_file_template.format(y_field)
+          print(y_field, save_to_file)
+          multi_plot_results(
+               results_csv_file=results_csv_file,
+               save_to_file=save_to_file,
+               filter=filter, 
+               x_field=x_field, y_field=y_field, z_field=z_field, mean=mean, 
+               subplot_field=subplot_field, subplot_rows=subplot_rows, subplot_cols=subplot_cols, sharey=sharey, sharex=sharex,
+               legend_properties=legend_properties,
+               )
+
+def plot_course_allocation_results():
+    filter={"num_of_agents": 100, "num_of_items": 25}
+    y_fields=["sum_item_values","sum_agent_values", "min_item", "max_item",  "min_agent", "max_agent"]
+    multi_multi_plot_results(
+        results_csv_file="results/FaStEXP.csv", 
+        save_to_file_template="results/FaStEXP_{}.png",
+        filter=filter, 
+        x_field="num_of_agents", y_fields=y_fields, z_field="algorithm", mean=True,
+        subplot_field="num_of_agents", subplot_rows=2, subplot_cols=1, sharey=True, sharex=True,
+        legend_properties={"size":6}, 
+        )
 
 if __name__ == "__main__":
     experiments_csv.logger.setLevel(logging.INFO)

@@ -4,6 +4,7 @@ import inspect
 import logging
 from fairpyx.algorithms.Optimization_Matching import FaStGen
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
+from experiments_csv import single_plot_results, multi_plot_results
 import experiments_csv
 from matplotlib import pyplot as plt
 import random
@@ -45,7 +46,7 @@ def evaluate_algorithm_output(matching:dict, agentValuations:dict, itemValuation
         - the maximum value of agent.
     """
     matching_college_valuations = FaStGen.update_matching_valuations_sum(match=matching, items_valuations=itemValuations)
-    sum_item_values = sum(int(key[1:]) for key in matching_college_valuations.keys())
+    sum_item_values = sum(value for value in matching_college_valuations.values())
     sum_agent_values = sum(agentValuations[agent][item] for item, agent in matching.items() for agent in agents)
     min_item = min(matching_college_valuations.items(), key=lambda x: x[1])[1]
     max_item = max(matching_college_valuations.items(), key=lambda x: x[1])[1]
@@ -80,49 +81,33 @@ def run_uniform_experiment():
     }
     experiment.run_with_time_limit(run_algorithm_with_random_instance_uniform, input_ranges, time_limit=TIME_LIMIT)
 
-# def plot_experiment_results_from_csv(file_path):
-#     algorithms = {}
-#     with open(file_path, 'r') as file:
-#         reader = csv.DictReader(file)
-#         for row in reader:
-#             algorithm = row['algorithm']
-#             if algorithm not in algorithms:
-#                 algorithms[algorithm] = {
-#                     'num_of_agents': [],
-#                     'sum_item_values': [],
-#                     'sum_agent_values': [],
-#                     'min_item': [],
-#                     'max_item': [],
-#                     'min_agent': [],
-#                     'max_agent': []
-#                 }
-#             algorithms[algorithm]['num_of_agents'].append(int(row['num_of_agents']))
-#             algorithms[algorithm]['sum_item_values'].append(float(row['sum_item_values']))
-#             algorithms[algorithm]['sum_agent_values'].append(float(row['sum_agent_values']))
-#             algorithms[algorithm]['min_item'].append(float(row['min_item']))
-#             algorithms[algorithm]['max_item'].append(float(row['max_item']))
-#             algorithms[algorithm]['min_agent'].append(float(row['min_agent']))
-#             algorithms[algorithm]['max_agent'].append(float(row['max_agent']))
+def multi_multi_plot_results(results_csv_file:str, save_to_file_template:str, filter:dict, 
+     x_field:str, y_fields:list[str], z_field:str, mean:bool, 
+     subplot_field:str, subplot_rows:int, subplot_cols:int, sharey:bool, sharex:bool,
+     legend_properties:dict):
+     for y_field in y_fields:
+          save_to_file=save_to_file_template.format(y_field)
+          print(y_field, save_to_file)
+          multi_plot_results(
+               results_csv_file=results_csv_file,
+               save_to_file=save_to_file,
+               filter=filter, 
+               x_field=x_field, y_field=y_field, z_field=z_field, mean=mean, 
+               subplot_field=subplot_field, subplot_rows=subplot_rows, subplot_cols=subplot_cols, sharey=sharey, sharex=sharex,
+               legend_properties=legend_properties,
+               )
 
-#     plt.figure(figsize=(10, 6))
-
-#     for algorithm, data in algorithms.items():
-#         plt.plot(data['num_of_agents'], data['sum_item_values'], marker='o', label=f"{algorithm} - Sum Item Values")
-#         plt.plot(data['num_of_agents'], data['sum_agent_values'], marker='x', label=f"{algorithm} - Sum Agent Values")
-#         plt.plot(data['num_of_agents'], data['min_item'], marker='^', label=f"{algorithm} - Min Item Value")
-#         plt.plot(data['num_of_agents'], data['max_item'], marker='v', label=f"{algorithm} - Max Item Value")
-#         plt.plot(data['num_of_agents'], data['min_agent'], marker='<', label=f"{algorithm} - Min Agent Value")
-#         plt.plot(data['num_of_agents'], data['max_agent'], marker='>', label=f"{algorithm} - Max Agent Value")
-
-#     plt.xlabel("Number of Agents")
-#     plt.ylabel("Value")
-#     plt.title("FaStGen Algorithm Performance")
-#     plt.legend()
-#     plt.grid(True)
-#     plt.tight_layout()
-
-#     plt.savefig("experiment_results.png")
-#     plt.show()
+def plot_course_allocation_results():
+    filter={"num_of_agents": 100, "num_of_items": 25}
+    y_fields=["sum_item_values","sum_agent_values", "min_item", "max_item",  "min_agent", "max_agent"]
+    multi_multi_plot_results(
+        results_csv_file="results/FaStEXP.csv", 
+        save_to_file_template="results/FaStEXP_{}.png",
+        filter=filter, 
+        x_field="num_of_agents", y_fields=y_fields, z_field="algorithm", mean=True,
+        subplot_field="num_of_agents", subplot_rows=2, subplot_cols=1, sharey=True, sharex=True,
+        legend_properties={"size":6}, 
+        )
 
 if __name__ == "__main__":
     experiments_csv.logger.setLevel(logging.INFO)

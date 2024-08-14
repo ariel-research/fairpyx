@@ -42,7 +42,7 @@ def evaluate_algorithm_output(matching:dict, valuation:dict, agents:list, items:
     """
     valuation_sums = {item: sum(valuation[agent][item] for agent in agents) for item, agents in matching.items()}
     agents = [int(agent[1:]) for agent in agents]
-    sum_item_values = sum(key for key in valuation_sums.keys())
+    sum_item_values = sum(value for value in valuation_sums.values())
     sum_agent_values = sum(valuation[agent][item] for item, agents in matching.items() for agent in agents)
     min_item = min(valuation_sums.items(), key=lambda x: x[1])[1]
     max_item = max(valuation_sums.items(), key=lambda x: x[1])[1]
@@ -108,4 +108,4 @@ def plot_course_allocation_results():
 if __name__ == "__main__":
     experiments_csv.logger.setLevel(logging.INFO)
     run_uniform_experiment()
-    plot_course_allocation_results()
+    # plot_course_allocation_results()
