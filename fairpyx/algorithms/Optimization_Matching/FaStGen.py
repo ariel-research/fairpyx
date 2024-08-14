@@ -5,10 +5,10 @@
     Date: 19.5.2024
 """
 
+import random
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
-from FaSt import Demote
-# from bidict import bidict
 from copy import deepcopy
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -32,23 +32,23 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
     """
     logger.info("Starting FaStGen algorithm")
     
-    S = alloc.instance.agents
-    C = alloc.instance.items
+    agents = alloc.instance.agents
+    items = alloc.instance.items
     agents_valuations = alloc.instance._valuations
     #Convert the list of the agents and item to dictionary so that each agent\item will have its coresponding integer
-    student_name_to_int = generate_dict_from_str_to_int(S)
-    college_name_to_int = generate_dict_from_str_to_int(C)
-    int_to_student_name = generate_dict_from_int_to_str(S)
-    int_to_college_name = generate_dict_from_int_to_str(C)
+    student_name_to_int = generate_dict_from_str_to_int(agents)
+    college_name_to_int = generate_dict_from_str_to_int(items)
+    int_to_student_name = generate_dict_from_int_to_str(agents)
+    int_to_college_name = generate_dict_from_int_to_str(items)
 
     #Creating a match of the integers and the string coresponding one another to deal with the demote function and the leximin tuple as well
-    integer_match = create_stable_matching(agents=S, items=C, agents_dict=student_name_to_int, items_dict=college_name_to_int)
+    integer_match = create_stable_matching(agents=agents, items=items, agents_dict=student_name_to_int, items_dict=college_name_to_int)
     str_match = integer_to_str_matching(integer_match=integer_match, agent_dict=student_name_to_int, items_dict=college_name_to_int)
 
     logger.debug(f"Initial match: {str_match}")
 
-    UpperFix = [college_name_to_int[C[0]]]              # Inidces of colleges to which we cannot add any more students.
-    LowerFix = [college_name_to_int[C[len(C)-1]]]       # Inidces of colleges from which we cannot remove any more students.
+    UpperFix = [college_name_to_int[items[0]]]              # Inidces of colleges to which we cannot add any more students.
+    LowerFix = [college_name_to_int[items[len(items)-1]]]       # Inidces of colleges from which we cannot remove any more students.
     SoftFix = []
     UnFixed = [item for item in college_name_to_int.values() if item not in UpperFix]
    
@@ -57,7 +57,7 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
     matching_college_valuations = update_matching_valuations_sum(match=str_match, items_valuations=items_valuations)
     logger.debug(f"matching_college_valuations: {matching_college_valuations}")
 
-    while len(LowerFix) + len([item for item in UpperFix if item not in LowerFix]) < len(C):
+    while len(LowerFix) + len([item for item in UpperFix if item not in LowerFix]) < len(items):
         logger.debug(f"\nstr_match: {str_match}, integer_match: {integer_match}, UpperFix: {UpperFix}, LowerFix: {LowerFix}, SoftFix: {SoftFix}, UnFixed: {UnFixed}")
         up = min([j for j in college_name_to_int.values() if j not in LowerFix])
         down = min(UnFixed, key=lambda j: matching_college_valuations[int_to_college_name[j]])
@@ -73,8 +73,10 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
         else:
             #check the lowest-rank student who currently belongs to mu(c_{down-1})
             agant_to_demote = get_lowest_ranked_student(down-1, integer_match, items_valuations, int_to_college_name=int_to_college_name, int_to_student_name=int_to_student_name)
-            new_integer_match = Demote(deepcopy(integer_match), agant_to_demote, up_index=up, down_index=down)
-            logger.info(f"Demoting from {up} to {down}, starting at student {agant_to_demote}. New match: {new_integer_match}")
+            logger.info(f"Demoting from {up} to {down}, starting at student {agant_to_demote}.")
+            # new_integer_match = Demote(deepcopy(integer_match), agant_to_demote, up_index=up, down_index=down)
+            new_integer_match = Demote(deepcopy(integer_match), agant_to_demote, up_index=up, down_index=down, item_valuations=items_valuations, int_to_college_name=int_to_college_name, int_to_student_name=int_to_student_name)
+            logger.info(f"New match: {new_integer_match}")
             new_match_str = integer_to_str_matching(integer_match=new_integer_match, agent_dict=student_name_to_int, items_dict=college_name_to_int)
 
             #Creating a leximin tuple for the new match from the demote and for the old match to compare
@@ -93,6 +95,7 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
                 str_match = new_match_str
                 matching_college_valuations = update_matching_valuations_sum(match=str_match,items_valuations=items_valuations)
                 logger.debug(f"   Match updated to {str_match}")
+                logger.info(f"    matching_college_valuations: {matching_college_valuations}")
             
             elif problematic_component == int_to_college_name[up]:
                 logger.debug(f"New match is leximin-worse because of c_up = c_{up}:")
@@ -113,7 +116,7 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
             
             else:
                 logger.debug(f"New match is leximin-worse because of college {sourceDec(new_match_leximin_tuple, match_leximin_tuple)}: ")
-                str_match, LowerFix, UpperFix, SoftFix = LookAheadRoutine((S, C, agents_valuations, items_valuations), integer_match, down, LowerFix, UpperFix, SoftFix)
+                str_match, LowerFix, UpperFix, SoftFix = LookAheadRoutine((agents, items, agents_valuations, items_valuations), integer_match, down, LowerFix, UpperFix, SoftFix)
                 logger.debug(f"   LookAheadRoutine result: match={str_match}, LowerFix={LowerFix}, UpperFix={UpperFix}, SoftFix={SoftFix}")
         
         UnFixed = [
@@ -179,7 +182,7 @@ def LookAheadRoutine(I:tuple, integer_match:dict, down:int, LowerFix:list, Upper
         else:
             #check the lowest-rank student who currently belongs to mu(c_{down-1})d
             agant_to_demote = get_lowest_ranked_student(item_int=down-1, match_int=new_integer_match, items_valuations=items_valuations, int_to_college_name=int_to_college_name, int_to_student_name=int_to_student_name)
-            new_integer_match = Demote(new_integer_match, agant_to_demote, up_index=up, down_index=down)
+            new_integer_match = Demote(deepcopy(integer_match), agant_to_demote, up_index=up, down_index=down, item_valuations=items_valuations, int_to_college_name=int_to_college_name, int_to_student_name=int_to_student_name)
             logger.info(f"   Demoting from {up} to {down}, starting at student {agant_to_demote}. New match: {new_integer_match}")
 
             new_str_match = integer_to_str_matching(integer_match=new_integer_match, items_dict=college_name_to_int, agent_dict=student_name_to_int)
@@ -508,19 +511,67 @@ def get_match(match:dict, value:str)->any:
     else:
         return next((key for key, values_list in match.items() if value in values_list), None)
 
+def Demote(matching:dict, student_index:int, down_index:int, up_index:int, item_valuations:dict, int_to_college_name:dict, int_to_student_name:dict)-> dict:
+    """
+    Demote algorithm: Adjust the matching by moving a student to a lower-ranked college
+    while maintaining the invariant of a complete stable matching.
+    The Demote algorithm is a helper function used within the FaSt algorithm to adjust the matching while maintaining stability.
+
+    :param matching: the matchinf of the students with colleges.
+    :param student_index: Index of the student to move.
+    :param down_index: Index of the college to move the student to.
+    :param up_index: Index of the upper bound college.
+
+        #*** The test is the same as the running example we gave in Ex2.***
+#    ...   valuations       = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}},
+
+    >>> matching = {1: [1, 2, 3, 4], 2: [5], 3: [6], 4: [7]}
+    >>> UP = 1
+    >>> DOWN = 4
+    >>> student_index = 6
+    >>> items_valuations = {       #the colleges valuations
+    ... "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
+    ... "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
+    ... "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
+    ... "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}
+    ... }
+    >>> int_to_college_name = {i: f"c{i}" for i in [1,2,3,4]}
+    >>> int_to_student_name = {i: f"s{i}" for i in [1,2,3,4,5,6,7]}
+    >>> Demote(matching=matching, student_index=student_index, down_index=DOWN, up_index=UP, item_valuations=items_valuations, int_to_college_name=int_to_college_name, int_to_student_name=int_to_student_name)
+    {1: [1, 2, 3], 2: [4], 3: [5], 4: [7, 6]}
+    """
+    # Move student to college 'down' while reducing the number of students in 'up'
+    # Set t to student_index
+    t = student_index
+    # Set p to 'down'
+    p = down_index
+    logger.info(f"matching: {matching}")
+    # Check if student 't' is in college 'Cp-1'
+    if t not in matching[p - 1]:
+        raise ValueError(f"Student {t} should be in matching to college {p - 1}")
+    # Check that all colleges have at least one students
+    for college, students in matching.items():
+        if len(students) < 1:
+            raise ValueError(f"All colleges must contain at least 1 student. College number {college} has only {len(students)} students.")
+
+    # While p > up
+    while p > up_index:
+        # Remove student 't' from college 'cp-1'
+        matching[p - 1].remove(t)
+        # Add student 't' to college 'cp'
+        matching[p].append(t)
+        # Decrement t and p
+        p -= 1
+        if p > 1: t = get_lowest_ranked_student(item_int=p-1, match_int=matching, items_valuations=item_valuations, int_to_college_name=int_to_college_name, int_to_student_name=int_to_student_name)
+
+    return matching #Return the matching after the change
+
 if __name__ == "__main__":
     import doctest, sys
-    print(doctest.testmod())
-    # doctest.run_docstring_examples(FaStGen, globals())
+    console=logging.StreamHandler() #writes to stderr (= cerr)
+    logger.handlers=[console] # we want the logs to be written to console
+    # Change logger level
+    logger.setLevel(logging.DEBUG) # Set logger level to DEBUG
+
+    doctest.testmod()
     sys.exit(0)
-
-    # logger.setLevel(logging.DEBUG)
-    # logger.addHandler(logging.StreamHandler())
-
-    # S = create_agent_items('s', 1, 7)
-    # C = create_agent_items('c', 1, 4)
-    # V = {"c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},"c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}}
-    # U = {"s1" : {"c1":16,"c2":10,"c3":6,"c4":5}, "s2" : {"c1":36,"c2":20,"c3":10,"c4":1}, "s3" : {"c1":29,"c2":24,"c3":12,"c4":10}, "s4" : {"c1":41,"c2":24,"c3":5,"c4":3},"s5" : {"c1":36,"c2":19,"c3":9,"c4":6}, "s6" :{"c1":39,"c2":30,"c3":18,"c4":7}, "s7" : {"c1":40,"c2":29,"c3":6,"c4":1}}
-    # ins = Instance(agents=S, items=C, valuations=U)
-    # alloc = AllocationBuilder(instance=ins)
-    # # FaStGen(alloc=alloc, items_valuations=V)

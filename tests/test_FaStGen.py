@@ -41,7 +41,7 @@ def test_FaStGen_basic_case():
     allocation = FaStGen(instance, agents_valuations=U, items_valuations=V)
 
     # Define the expected allocation (this is hypothetical; you should set it based on the actual expected output)
-    expected_allocation = {"c1" : ["s1","s2","s3","s4"], "c2" : ["s5"], "c3" : ["s6"], "c4" : ["s7"]}
+    expected_allocation = {"c1" : ["s1","s2","s3"], "c2" : ["s4"], "c3" : ["s5"], "c4" : ["s7", "s6"]}
 
     # Assert the result
     assert allocation == expected_allocation, "FaStGen algorithm basic case failed"

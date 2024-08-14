@@ -5,6 +5,7 @@ Programmers: Hadar Bitan, Yuval Ben-Simhon
 Date: 19.5.2024
 """
 
+import random
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 import logging
 import copy # For deep copy use
@@ -347,7 +348,7 @@ def FaSt(alloc: AllocationBuilder)-> dict:
         i -= 1
         iteration += 1
         logger.debug('END while, i: %d, j: %d',i, j)
-
+    logger.debug(f"  final match:    {initial_matching}")
     return initial_matching
 
 if __name__ == "__main__":

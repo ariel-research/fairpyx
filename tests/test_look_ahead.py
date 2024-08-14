@@ -33,13 +33,13 @@ def test_look_ahead_routine_basic_case():
     I = (S, C, U ,V)
     match = {
         "c1" : ["s1","s2"], 
-        "c2" : ["s3","s5"], 
+        "c2" : ["s3"], 
         "c3" : ["s4"], 
-        "c4" : []
+        "c4" : ["s5"]
     }
-    down = "c4"
-    LowerFix = []
-    UpperFix = []
+    down = 4
+    LowerFix = [4]
+    UpperFix = [1]
     SoftFix = []
 
 
@@ -47,9 +47,9 @@ def test_look_ahead_routine_basic_case():
     new_match, new_LowerFix, new_UpperFix, new_SoftFix = LookAheadRoutine(I, match, down, LowerFix, UpperFix, SoftFix)
 
     # Define the expected output
-    expected_new_match = {"c1": ["s1", "s2"], "c2": ["s5"], "c3" : ["s3"], "c4" : ["s4"]}
-    expected_new_LowerFix = ['c1']
-    expected_new_UpperFix = []
+    expected_new_match = {"c1": ["s1", "s2"], "c2": ["s3"], "c3" : ["s4"], "c4" : ["s5"]}
+    expected_new_LowerFix = [4]
+    expected_new_UpperFix = [1, 4]
     expected_new_SoftFix = []
 
     # Assert the result
