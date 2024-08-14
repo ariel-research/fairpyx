@@ -44,8 +44,8 @@ def evaluate_algorithm_output(matching:dict, valuation:dict, agents:list, items:
     agents = [int(agent[1:]) for agent in agents]
     sum_item_values = sum(key for key in valuation_sums.keys())
     sum_agent_values = sum(valuation[agent][item] for item, agents in matching.items() for agent in agents)
-    min_item = min(valuation_sums.items(), key=lambda x: x[1])
-    max_item = max(valuation_sums.items(), key=lambda x: x[1])
+    min_item = min(valuation_sums.items(), key=lambda x: x[1])[1]
+    max_item = max(valuation_sums.items(), key=lambda x: x[1])[1]
     min_agent = min(valuation[agent][item] for item, agent in matching.items() for agent in agents)
     max_agent = max(valuation[agent][item] for item, agent in matching.items() for agent in agents)
     return {
@@ -77,7 +77,7 @@ def run_uniform_experiment():
     }
     experiment.run_with_time_limit(run_algorithm_with_random_instance_uniform, input_ranges, time_limit=TIME_LIMIT)
 
-def multi_multi_plot_results(results_csv_file:str, save_to_file_template:str, 
+def multi_multi_plot_results(results_csv_file:str, save_to_file_template:str, filter:dict, 
      x_field:str, y_fields:list[str], z_field:str, mean:bool, 
      subplot_field:str, subplot_rows:int, subplot_cols:int, sharey:bool, sharex:bool,
      legend_properties:dict):
@@ -86,19 +86,22 @@ def multi_multi_plot_results(results_csv_file:str, save_to_file_template:str,
           print(y_field, save_to_file)
           multi_plot_results(
                results_csv_file=results_csv_file,
-               save_to_file=save_to_file, filter={},
+               save_to_file=save_to_file,
+               filter=filter, 
                x_field=x_field, y_field=y_field, z_field=z_field, mean=mean, 
                subplot_field=subplot_field, subplot_rows=subplot_rows, subplot_cols=subplot_cols, sharey=sharey, sharex=sharex,
                legend_properties=legend_properties,
                )
 
 def plot_course_allocation_results():
+    filter={"num_of_agents": 100, "num_of_items": 25}
     y_fields=["sum_item_values","sum_agent_values", "min_item", "max_item",  "min_agent", "max_agent"]
     multi_multi_plot_results(
         results_csv_file="results/FaStEXP.csv", 
         save_to_file_template="results/FaStEXP_{}.png",
+        filter=filter, 
         x_field="num_of_agents", y_fields=y_fields, z_field="algorithm", mean=True,
-        subplot_field="num_of_items", subplot_rows=1, subplot_cols=1, sharey=True, sharex=True,
+        subplot_field="num_of_agents", subplot_rows=2, subplot_cols=1, sharey=True, sharex=True,
         legend_properties={"size":6}, 
         )
 

@@ -47,8 +47,8 @@ def evaluate_algorithm_output(matching:dict, agentValuations:dict, itemValuation
     matching_college_valuations = FaStGen.update_matching_valuations_sum(match=matching, items_valuations=itemValuations)
     sum_item_values = sum(int(key[1:]) for key in matching_college_valuations.keys())
     sum_agent_values = sum(agentValuations[agent][item] for item, agent in matching.items() for agent in agents)
-    min_item = min(matching_college_valuations.items(), key=lambda x: x[1])
-    max_item = max(matching_college_valuations.items(), key=lambda x: x[1])
+    min_item = min(matching_college_valuations.items(), key=lambda x: x[1])[1]
+    max_item = max(matching_college_valuations.items(), key=lambda x: x[1])[1]
     min_agent = min(agentValuations[agent][item] for item, agent in matching.items() for agent in agents)
     max_agent = max(agentValuations[agent][item] for item, agent in matching.items() for agent in agents)
     return {
