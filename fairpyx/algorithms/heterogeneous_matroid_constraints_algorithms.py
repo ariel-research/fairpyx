@@ -79,7 +79,7 @@ def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str
     helper_validate_capacities(is_identical=True, agent_category_capacities=agent_category_capacities)
     helper_validate_valuations(agent_item_valuations=alloc.instance._valuations)
     # end validation
-    logger.info(f"**********\nRunning per_category_round_robin with alloc -> {alloc.bundles} \n item_categories -> {item_categories} \n agent_category_capacities -> {agent_category_capacities} \n -> initial_agent_order are -> {initial_agent_order}\n**********\n")
+    #logger.info(f"**********\nRunning per_category_round_robin with alloc -> {alloc.bundles} \n item_categories -> {item_categories} \n agent_category_capacities -> {agent_category_capacities} \n -> initial_agent_order are -> {initial_agent_order}\n**********\n")
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
@@ -156,7 +156,7 @@ def capped_round_robin(alloc: AllocationBuilder,item_categories: dict[str,list],
     >>> divide(algorithm=capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order = order,target_category=target_category)
     {'Agent1': [], 'Agent2': ['m1'], 'Agent3': ['m3', 'm4'], 'Agent4': ['m2', 'm5', 'm6']}
         """
-    logger.info(f'**********\nRunning capped_round_robin\n**********')
+    #logger.info(f'**********\nRunning capped_round_robin\n**********')
 
     #input validation
     helper_validate_item_categories(item_categories)
@@ -170,7 +170,7 @@ def capped_round_robin(alloc: AllocationBuilder,item_categories: dict[str,list],
     # end validation
     # no need for envy graphs whatsoever
     current_order = initial_agent_order
-    logger.info(f'Running Capped Round Robin.  initial_agent_order -> {initial_agent_order}')
+    logger.info(f'**********\nRunning Capped Round Robin.  initial_agent_order -> {initial_agent_order}')
     helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories[target_category], agent_category_capacities,
                                                     target_category=target_category)  # this is RR without wrapper
     logger.info(f'alloc after CRR -> {alloc.bundles}')
@@ -239,7 +239,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder,item_categories: 
             {'Agent1': ['m2', 'm3', 'm4'], 'Agent2': ['m5'], 'Agent3': ['m6']}
             >>> # m1 remains unallocated unfortunately :-(
             """
-    logger.info(f'**********\nRunning two_categories_capped_round_robin\n**********')
+    #logger.info(f'**********\nRunning two_categories_capped_round_robin')
 
     #validate input
     helper_validate_item_categories(item_categories)
@@ -253,7 +253,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder,item_categories: 
             f"Not all elements of the tuple {target_category_pair} are in the categories list {list(item_categories.keys())}.")
     #end validation
     current_order = initial_agent_order
-    logger.info(f'\nRunning two_categories_capped_round_robin, initial_agent_order -> {current_order}')
+    logger.info(f'**********\nRunning two_categories_capped_round_robin, initial_agent_order -> {current_order}')
     logger.info(f'\nAllocating cagetory {target_category_pair[0]}')
     helper_categorization_friendly_picking_sequence(alloc, current_order, item_categories[target_category_pair[0]], agent_category_capacities,
                                                     target_category=target_category_pair[0])  #calling CRR on first category
@@ -312,7 +312,7 @@ def per_category_capped_round_robin(alloc: AllocationBuilder,item_categories: di
             >>> divide(algorithm=per_category_capped_round_robin,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities,initial_agent_order = order)
             {'Agent1': ['m1'], 'Agent2': ['m2'], 'Agent3': ['m3']}
     """
-    logger.info(f'**********\nRunning per-category-CRR\n**********')
+    #logger.info(f'**********\nRunning per-category-CRR\n**********')
 
     #validate input
     helper_validate_item_categories(item_categories)
@@ -326,7 +326,7 @@ def per_category_capped_round_robin(alloc: AllocationBuilder,item_categories: di
     envy_graph = nx.DiGraph()
     current_order = initial_agent_order
     valuation_func = alloc.instance.agent_item_value
-    logger.info(f'Run Per-Category Capped Round Robin, initial_agent_order->{initial_agent_order}')
+    logger.info(f'**********\nRunning Per-Category Capped Round Robin, initial_agent_order->{initial_agent_order}')
     for category in item_categories.keys():
         helper_categorization_friendly_picking_sequence(alloc=alloc, agent_order=current_order,
                                                         items_to_allocate=item_categories[category],
@@ -383,7 +383,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[s
             >>> #divide(algorithm=iterated_priority_matching,instance=Instance(valuations=valuations,items=items),item_categories=item_categories,agent_category_capacities= agent_category_capacities)# m3 remains unallocated ....
             {'Agent1': ['m1', 'm5', 'm6'], 'Agent2': ['m2', 'm4'], 'Agent3': []}
    """
-    logger.info(f'**********\nRunning Iterated priority matching\n**********')
+    logger.info(f'**********\nRunning Iterated priority matching')
     #validate input
     helper_validate_item_categories(item_categories)
     helper_validate_duplicate(
@@ -392,7 +392,7 @@ def iterated_priority_matching(alloc: AllocationBuilder, item_categories: dict[s
     helper_validate_valuations(agent_item_valuations=alloc.instance._valuations, is_binary=True)
 
     #end validation
-    logger.info("Running Iterated Priority Matching")
+    #logger.info("Running Iterated Priority Matching")
     envy_graph = nx.DiGraph()
     envy_graph.add_nodes_from(alloc.remaining_agents())  # adding agent nodes (no edges involved yet)
     current_order = list(alloc.remaining_agents())  # in this algorithm no need for initial_agent_order
@@ -541,7 +541,7 @@ def helper_envy(source: str, target: str, bundles: dict[str, set or list], val_f
         >>> helper_envy('agent3', 'agent2', alloc.bundles, val_func, item_categories, agent_category_capacities)
         False
         """
-    logger.info(f'**********\nRunning helper_envy\n**********')
+    #logger.info(f'**********\nRunning helper_envy\n**********')
     #validate input
     if isinstance(bundles, dict):
         for key, val in bundles.items():
@@ -629,7 +629,7 @@ def helper_categorization_friendly_picking_sequence(alloc:AllocationBuilder, age
     >>> alloc.sorted()
     {'agent1': ['m3', 'm7'], 'agent2': ['m1'], 'agent3': ['m2', 'm4', 'm5', 'm6']}
     """
-    logger.info(f"**********\nRunning categorization_friendly_picking sequence with\nalloc->{alloc.bundles}, agent order -> {agent_order},items to allocate ->{items_to_allocate} , agent category capacities ->{agent_category_capacities} , target category ->{target_category}\n**********")
+    #logger.info(f"**********\nRunning categorization_friendly_picking sequence with\nalloc->{alloc.bundles}, agent order -> {agent_order},items to allocate ->{items_to_allocate} , agent category capacities ->{agent_category_capacities} , target category ->{target_category}\n**********")
     #validate input
     helper_validate_duplicate(agent_order)
     helper_validate_duplicate(items_to_allocate)
@@ -749,7 +749,7 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
     >>> graph.has_edge('Agent1','Agent2')
     False
     """
-    logger.info(f'**********\nRunning helper_update_envy_graph\n**********')
+    #logger.info(f'**********\nRunning helper_update_envy_graph\n**********')
     #validate input
     if isinstance(curr_bundles, dict):
         for key, val in curr_bundles.items():
@@ -879,7 +879,7 @@ def helper_remove_cycles(envy_graph:nx.DiGraph, alloc:AllocationBuilder, valuati
         {'Agent1': ['Item3'], 'Agent2': ['Item1', 'Item2']}
 
         """
-    logger.info(f'**********\nRunning helper_remove_cycles\n**********')
+    #logger.info(f'**********\nRunning helper_remove_cycles\n**********')
 
     #start validation
     if not callable(valuation_func):
@@ -962,7 +962,7 @@ def helper_update_ordered_agent_list(current_order: list, remaining_category_age
     >>> helper_update_ordered_agent_list(current_order, remaining_category_agent_capacities)
     ['Abed', 'Noor']
     """
-    logger.info(f'**********\nRunning helper_update_ordered_agent_list\n**********')
+    #logger.info(f'**********\nRunning helper_update_ordered_agent_list\n**********')
     #validate input
     helper_validate_duplicate(current_order)
     temp = {'catx': remaining_category_agent_capacities}
@@ -1020,7 +1020,7 @@ def helper_update_item_list(alloc: AllocationBuilder, category: str, item_catego
             >>> helper_update_item_list(alloc, 'c2', item_categories)
             []
         """
-    logger.info(f'**********\nRunning helper_update_item_list\n**********')
+    #logger.info(f'**********\nRunning helper_update_item_list\n**********')
     #validate input
     helper_validate_item_categories(item_categories)
     if not isinstance(category, str):
@@ -1085,7 +1085,7 @@ def helper_priority_matching(agent_item_bipartite_graph:nx.Graph, current_order:
     >>> alloc.sorted() in [{'Agent1': ['Item3'], 'Agent2': ['Item2'], 'Agent3': ['Item1']} , {'Agent1': ['Item1'], 'Agent2': ['Item2'], 'Agent3': ['Item3']} , {'Agent1': ['Item1'], 'Agent2': ['Item3'], 'Agent3': ['Item2']}]
     True
     """
-    logger.info(f'**********\nRunning helper_priority_matching\n**********')
+    #logger.info(f'**********\nRunning helper_priority_matching\n**********')
     #validate input 
     if not isinstance(agent_item_bipartite_graph ,nx.Graph):
         raise ValueError("agent_item_bipartite_graph must be of type nx.Graph.")
@@ -1145,7 +1145,7 @@ def helper_create_agent_item_bipartite_graph(agents:list, items:list, valuation_
     >>> sorted(bipartite_graph.edges(data=True))
     [('Agent3', 'Item1', {'weight': 2}), ('Agent3', 'Item2', {'weight': 2}), ('Agent3', 'Item3', {'weight': 2})]
     """
-    logger.info(f'**********\nRunning helper_create_agent_item_bipartite_graph\n**********')
+    #logger.info(f'**********\nRunning helper_create_agent_item_bipartite_graph\n**********')
     #validate input 
     helper_validate_duplicate(agents)
     helper_validate_duplicate(items)
@@ -1169,7 +1169,7 @@ def helper_create_agent_item_bipartite_graph(agents:list, items:list, valuation_
     return agent_item_bipartite_graph
 
 def helper_validate_valuations(agent_item_valuations: dict[str, dict[str, int]], is_identical: bool = False, is_binary: bool = False):
-    logger.info(f'**********\nRunning helper_validate_valuations\n**********')
+    #logger.info(f'**********\nRunning helper_validate_valuations\n**********')
 
     if  isinstance(agent_item_valuations,dict):# to check that the agent_category_capacities is indeed dict[str,dict[str,int]]
         for key,value in agent_item_valuations.items():
@@ -1200,7 +1200,7 @@ def helper_validate_valuations(agent_item_valuations: dict[str, dict[str, int]],
 
 
 def helper_validate_capacities(agent_category_capacities: dict[str, dict[str, int]], is_identical: bool = False):
-    logger.info(f'**********\nRunning helper_validate_capacities\n**********')
+    #logger.info(f'**********\nRunning helper_validate_capacities\n**********')
 
     if  isinstance(agent_category_capacities,dict):# to check that the agent_category_capacities is indeed dict[str,dict[str,int]]
         for key,value in agent_category_capacities.items():
@@ -1225,7 +1225,7 @@ def helper_validate_capacities(agent_category_capacities: dict[str, dict[str, in
         raise ValueError(f"agent_category_capacities {agent_category_capacities} isn't structured correctly")
 
 def helper_validate_duplicate(list_of_items:list):
-    logger.info(f'**********\nRunning helper_validate_duplicates\n**********')
+    #logger.info(f'**********\nRunning helper_validate_duplicates\n**********')
     if  isinstance(list_of_items,list):
         if len(list_of_items) != len(set(list_of_items)):
             raise ValueError(f"Duplicate items found in the list: {list_of_items}.")
@@ -1233,7 +1233,7 @@ def helper_validate_duplicate(list_of_items:list):
         raise ValueError(f"the input {list_of_items} isn't of type list, only list is allowed.")
 
 def helper_validate_item_categories(item_categories:dict[str, list]):
-    logger.info(f'**********\nRunning helper_validate_item_categories\n**********')
+    #logger.info(f'**********\nRunning helper_validate_item_categories\n**********')
     if isinstance(item_categories, dict):
         for category, items in item_categories.items():
             if not isinstance(category, str) or not isinstance(items, list):
@@ -1243,7 +1243,7 @@ def helper_validate_item_categories(item_categories:dict[str, list]):
 
 
 def helper_generate_directed_graph_base64(graph, seed=42):
-    logger.info(f'**********\nRunning helper_generate_directed_graph_base64\n**********')
+    #logger.info(f'**********\nRunning helper_generate_directed_graph_base64\n**********')
 
     plt.figure()
     plt.title('Envy Graph')
@@ -1261,7 +1261,7 @@ def helper_generate_directed_graph_base64(graph, seed=42):
 
 
 def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str):
-    logger.info(f'**********\nRunning helper_generate_bipartite_graph_base64\n**********')
+    #logger.info(f'**********\nRunning helper_generate_bipartite_graph_base64\n**********')
     plt.figure()
     plt.title('Agent-Item Bipartite Graph', fontsize=16)
     additional_text=f'{category} iteration {iteration}'
@@ -1296,7 +1296,7 @@ def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str):
     return base64.b64encode(img_bytes.read()).decode('utf-8')
 
 def helper_configure_logger():
-    logger.info(f'**********\nRunning helper_configure_logger\n**********')
+    #logger.info(f'**********\nRunning helper_configure_logger\n**********')
     # Create a string stream to capture logs
     log_stream = io.StringIO()
     stream_handler = logging.StreamHandler(log_stream)
@@ -1307,7 +1307,7 @@ def helper_configure_logger():
     return log_stream
 
 def helper_get_logs(log_stream):
-    logger.info(f'**********\nRunning helper_get_logs\n**********')
+    #logger.info(f'**********\nRunning helper_get_logs\n**********')
     return log_stream.getvalue()
 
 if __name__ == "__main__":
