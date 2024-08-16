@@ -269,7 +269,7 @@ def two_categories_capped_round_robin(alloc: AllocationBuilder,item_categories: 
 
 
 def per_category_capped_round_robin(alloc: AllocationBuilder,item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
-                             initial_agent_order: list):
+                             initial_agent_order: list,callback:callable=None):
     """
     this is Algorithm 4 deals with (Different Capacities, Identical Valuations), suitable for any number of categories
     CRR (per-category capped round-robin) algorithm
@@ -337,7 +337,7 @@ def per_category_capped_round_robin(alloc: AllocationBuilder,item_categories: di
                                                         agent_category_capacities=agent_category_capacities,
                                                         target_category=category)
         helper_update_envy_graph(curr_bundles=alloc.bundles, valuation_func=valuation_func, envy_graph=envy_graph,
-                                 item_categories=item_categories, agent_category_capacities=agent_category_capacities,category=category,iteration=iter)
+                                 item_categories=item_categories, agent_category_capacities=agent_category_capacities,category=category,iteration=iter,callback=callback)
         current_order = list(nx.topological_sort(envy_graph))
         logger.info(f'alloc after RR in category ->{category} is ->{alloc.bundles}.\n Envy graph nodes->{envy_graph.nodes} edges->{envy_graph.edges}.\ntopological sort->{current_order}')
     logger.info(f'allocation after termination of algorithm4 -> {alloc.bundles}')
