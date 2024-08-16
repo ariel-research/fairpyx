@@ -1252,7 +1252,7 @@ def helper_generate_directed_graph_base64(graph, seed=42,category:str='',iterati
     plt.figure()
     plt.title('Envy Graph',fontsize=16)
     additional_text=f'category -> {category} iteration -> {iteration}'
-    plt.figtext(0.5, 0.90, additional_text, wrap=True, horizontalalignment='center', fontsize=10)
+    plt.figtext(0.5, 0.85, additional_text, wrap=True, horizontalalignment='center', fontsize=10)
     pos = nx.spring_layout(graph, seed=seed)  # Use a seed for reproducibility
     nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10, arrows=True)
 
@@ -1271,7 +1271,7 @@ def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str):
     plt.figure()
     plt.title('Agent-Item Bipartite Graph', fontsize=16)
     additional_text=f'category -> {category} iteration -> {iteration}'
-    plt.figtext(0.5, 0.90, additional_text, wrap=True, horizontalalignment='center', fontsize=10)
+    plt.figtext(0.5, 0.85, additional_text, wrap=True, horizontalalignment='center', fontsize=10)
     try:
         top_nodes = {n for n, d in graph.nodes(data=True) if d['bipartite'] == 0}
         bottom_nodes = set(graph) - top_nodes
