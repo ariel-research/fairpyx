@@ -14,12 +14,15 @@ import numpy as np
 from fairpyx import Instance, AllocationBuilder
 from itertools import combinations
 
+
+# logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
 
 """
 Algorithm 1: Approximate Competitive Equilibrium from Equal Incomes (A-CEEI), finds the best price vector that matches student preferences and course capacities.
 """
-def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed = None ) -> dict:
+def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60, seed = None) -> dict:
     """
     Perform heuristic search to find the best price vector that matches student preferences and course capacities.
 
@@ -47,8 +50,7 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed =
 
 
     """
-    logger.info("Starting A-CEEI algorithm with budget: %s and time limit: %s seconds", budget, time_limit)
-
+    logger.info("Starting A_CEEI algorithm with budget=%s and time limit %d.",budget, time_limit)
    
     def initialize_price_vector(budget,seed):
         return {k: random.uniform(0, max(budget.values())) for k in alloc.instance.items}
@@ -59,25 +61,22 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed =
     steps = [0.1, 0.2, 0.3, 0.4, 0.5]  # Example step sizes, can be adjusted
 
     preferred_schedule = find_preferred_schedule_adapter(alloc)
-    logger.debug("Calling find_preferred_schedule_adapter %s",preferred_schedule)
-    
-    counter = 0
+    logger.debug("Calling find_preference_order_for_each_student %s",preferred_schedule)
     while time.time() - start_time < time_limit :
         if seed:
             seed+=1        
             random.seed(seed)
         price_vector = initialize_price_vector(budget,seed)
-        logger.debug("Initialized price vector: %s", price_vector)
 
         search_error = alpha(compute_surplus_demand_for_each_course(price_vector, alloc, budget, preferred_schedule))
-        logger.debug("Initial search error: %f", search_error)
+        logger.debug("Initial search on _random_ price_ %s error: %f",price_vector, search_error)
 
         tabu_list = []
         c = 0
         while c < 5:
             neighbors = find_neighbors(price_vector, alloc, budget, steps, preferred_schedule)
             logger.debug("Found %d neighbors : %s", len(neighbors), neighbors)
-           
+            
             while neighbors:
                 next_price_vector = neighbors.pop(0)
                 next_demands = compute_surplus_demand_for_each_course(next_price_vector, alloc, budget, preferred_schedule)
@@ -86,24 +85,28 @@ def A_CEEI(alloc: AllocationBuilder, budget : dict , time_limit: int = 60,seed =
                     break
  
             if not neighbors: #if there are neighbors is empty
+                logger.debug("all the demand neighbors in tabu_list, break while c<5, tabu_list: %s", tabu_list)
                 c = 5
             else:
-                logger.debug("next_price_vector: %f", next_price_vector)
                 price_vector = next_price_vector
                 tabu_list.append(next_demands)
-                logger.debug("add next_demands to tabu_list: %s", next_demands)
                 current_error = alpha(next_demands)
-                logger.debug("Current error: %f, Search error: %f", current_error, search_error)
+                logger.debug("fond neighber so the next price vector is: %s,demands = %s", next_price_vector,next_demands)
                 if current_error < search_error:
+                    logger.debug("Current error: %f, < Search error: %f soo c = 0", current_error, search_error)
+
                     search_error = current_error
                     c = 0
                 else:
                     c += 1
+                    logger.debug("Current error: %f, => Search error: %f soo c = %d", current_error, search_error,c)
 
                 if current_error < best_error:
+                    logger.info("New best_price_vector is %s, best error: %f ", price_vector, current_error)
                     best_error = current_error
                     best_price_vector = price_vector
-                    logger.info("New best price vector found with error: %f", best_error)
+                    if best_error == 0:
+                        break
     logger.info("A-CEEI algorithm completed. Best price vector: %s with error: %f", best_price_vector, best_error)      
     return best_price_vector
 
@@ -149,17 +152,14 @@ def find_preference_order_for_each_student(valuations:dict, agent_capacities:dic
         >>> is_valid_schedule({"c1": 1, "c2": 1, "c3": 1}, item_conflicts, agent_conflicts, "Alice")
         False
         '''
-        logger.debug("Checking if schedule is valid, schedule: %s , item_conflicts: %s, agent_conflicts: %s, agent: %s ", schedule, item_conflicts, agent_conflicts, agent)
         # Check item conflicts
         for item, conflicts in item_conflicts.items():
-            # print(f"Item: {item}, Conflicts: {conflicts}")  # Debug print
             if schedule.get(item, 0) == 1:
                 for conflicted_item in conflicts:
                     if schedule.get(conflicted_item, 0) == 1:
                         return False
         # Check agent conflicts
         for conflicted_item in agent_conflicts.get(agent, []):
-            # print(f"Agent: {agent}, Conflict: {conflict}")  # Debug print
             if schedule.get(conflicted_item, 0) == 1:
                 return False
         return True
@@ -179,7 +179,6 @@ def find_preference_order_for_each_student(valuations:dict, agent_capacities:dic
         >>> generate_all_schedules(items, capacity)
         [{'c1': 1, 'c2': 0, 'c3': 0}, {'c1': 0, 'c2': 1, 'c3': 0}, {'c1': 0, 'c2': 0, 'c3': 1}, {'c1': 1, 'c2': 1, 'c3': 0}, {'c1': 1, 'c2': 0, 'c3': 1}, {'c1': 0, 'c2': 1, 'c3': 1}]
         '''
-        logger.debug("Generating all possible schedules for items: %s and capacity: %s", items, capacity)
         all_schedules = []
         for num_courses_per_agent in range(1, capacity + 1):
             for schedule in combinations(items, num_courses_per_agent):
@@ -188,7 +187,6 @@ def find_preference_order_for_each_student(valuations:dict, agent_capacities:dic
                     all_schedules.append(schedule_dict)
         return all_schedules
     
-    logger.info("Finding preference order for each student")
 
     preferred_schedules = dict()
 
@@ -218,8 +216,6 @@ def find_preference_order_for_each_student(valuations:dict, agent_capacities:dic
                 sorted_schedules.append(schedule)
 
         preferred_schedules[agent] = sorted_schedules
-        
-    logger.info("Preferred schedules: %s", preferred_schedules)
     return preferred_schedules
 
 
@@ -252,7 +248,6 @@ def compute_surplus_demand_for_each_course(price_vector: dict ,alloc: Allocation
     >>> compute_surplus_demand_for_each_course(price_vector,allocation , budget, preferred_schedule)
     {'c1': 2, 'c2': -1, 'c3': 0}
     """
-    logger.info("Calculating course demands")
     best_schedules = find_best_schedule(price_vector, budget, preferred_schedule)
     sol = np.sum(np.array(best_schedules), axis=0)
     # Convert item capacities to a list
@@ -263,7 +258,6 @@ def compute_surplus_demand_for_each_course(price_vector: dict ,alloc: Allocation
 
     # Perform the subtraction
     result = {name_item: int(sol[i] - item_capacities_array[i]) for i, name_item in enumerate(alloc.instance.items)}
-    logger.debug("Course demands: %s", result)
     return result
        
 
@@ -298,7 +292,6 @@ def find_best_schedule(price_vector: dict, budget : dict, preferred_schedule: di
     [[1, 0, 1], [0, 1, 0], [0, 0, 1]]
 
     """
-    logger.info("Finding the best schedule for students")
     best_schedule = []
     cuont = 0
     price_array = np.array([price_vector[key] for key in price_vector.keys()])
@@ -310,7 +303,6 @@ def find_best_schedule(price_vector: dict, budget : dict, preferred_schedule: di
                 best_schedule[cuont] = schedule[i]
                 break
         cuont += 1
-    logger.debug("Best schedule: %s", best_schedule)
     return best_schedule
                
         
@@ -333,9 +325,7 @@ def alpha(demands: dict):
     >>> alpha(demands)
     0.0
     """
-    logger.info("Calculating alpha value for demands: %s", demands)
     result = np.sqrt(sum([v**2 for v in demands.values()]))
-    logger.debug("Alpha value: %f", result)
     return result
 
 
@@ -370,14 +360,12 @@ def find_neighbors(price_vector: dict ,alloc: AllocationBuilder, budget : dict, 
     [{'c1': 1.2, 'c2': 0.9, 'c3': 1.0}, {'c1': 1.4, 'c2': 0.8, 'c3': 1.0}, {'c1': 1.1, 'c2': 1.0, 'c3': 1.0}, {'c1': 1.0, 'c2': 0.0, 'c3': 1.0}]
 
     """
-    logger.info("Finding neighbors for price vector: %s", price_vector)
     demands = compute_surplus_demand_for_each_course(price_vector, alloc, budget, preferred_schedule)
     list_of_neighbors = generate_gradient_neighbors(price_vector, demands, steps)
     list_of_neighbors.extend(generate_individual_adjustment_neighbors(price_vector, alloc, demands, budget, preferred_schedule))
 
     #sort list_of_neighbors dict values by alpha
     sorted_neighbors = sorted(list_of_neighbors, key=lambda neighbor: alpha(compute_surplus_demand_for_each_course(neighbor, alloc, budget, preferred_schedule)))
-    logger.debug("Sorted neighbors: %s", sorted_neighbors)
     return sorted_neighbors
 
 
@@ -414,27 +402,24 @@ def generate_individual_adjustment_neighbors(price_vector: dict, alloc: Allocati
     [{'c1': 1.1, 'c2': 1.0, 'c3': 1.0}, {'c1': 1.0, 'c2': 0.0, 'c3': 1.0}]
 
     """
-    logger.info("Generating individual adjustment neighbors")
-    limit_loop = 100000
     step=0.1
     neighbors = []
     for k in demands.keys():
         if demands[k] == 0:
             continue
         new_price_vector = price_vector.copy()
-        new_demands= demands.copy()
-        counter=0
+        new_demands = demands.copy()
+        count=0
         if demands[k] > 0:
-            while (demands == new_demands) and counter < limit_loop :
+            while (demands == new_demands) :
                 new_price_vector.update({k: new_price_vector[k] + step})
                 new_demands = compute_surplus_demand_for_each_course(new_price_vector, alloc, budget, preferred_schedule)
-                counter+=1
+                count+=1
         elif demands[k] < 0:
             new_price_vector.update({k: 0.0})
-        if counter < limit_loop:
-            neighbors.append(new_price_vector.copy())  # Ensure to append a copy
+            new_demands = compute_surplus_demand_for_each_course(new_price_vector, alloc, budget, preferred_schedule)
+        neighbors.append(new_price_vector.copy())  # Ensure to append a copy
 
-    logger.debug("Individual adjustment neighbors: %s", neighbors)
     return neighbors
 
 def generate_gradient_neighbors(price_vector: dict, demands: dict, steps: list):
@@ -472,16 +457,13 @@ def generate_gradient_neighbors(price_vector: dict, demands: dict, steps: list):
     >>> generate_gradient_neighbors(price_vector, demands, steps)
     [{'c1': 1.2, 'c2': 0.9, 'c3': 1.0}, {'c1': 1.4, 'c2': 0.8, 'c3': 1.0}, {'c1': 1.6, 'c2': 0.7, 'c3': 1.0}, {'c1': 1.8, 'c2': 0.6, 'c3': 1.0}, {'c1': 2.0, 'c2': 0.5, 'c3': 1.0}]
     """
-    logger.info("Generating gradient neighbors")
     neighbors = []
     for step in steps:
         new_price_vector = dict()
         for k,p in price_vector.items():
             new_price_vector[k] = max(0.0, p + (step * demands[k]))
 
-        # new_price_vector = {k: price_vector.get(k) + (step * demands.get(k)) for k in price_vector.keys()}
         neighbors.append(new_price_vector)
-        logger.debug("Gradient neighbors: %s", neighbors)
     return neighbors  
 
 def find_preferred_schedule_adapter(alloc: AllocationBuilder):
@@ -505,11 +487,11 @@ def find_preferred_schedule_adapter(alloc: AllocationBuilder):
     >>> find_preferred_schedule_adapter(allocation)
     {'Alice': [[1, 1, 0], [1, 0, 1], [1, 0, 0], [0, 1, 1], [0, 1, 0], [0, 0, 1]], 'Bob': [[1, 1, 0], [0, 1, 1], [0, 1, 0], [1, 0, 1], [1, 0, 0], [0, 0, 1]], 'Tom': [[0, 0, 1], [1, 0, 0], [0, 1, 0]]}
     '''
-    logger.info("Preparing to find preferred schedule")
     item_conflicts={item:  alloc.instance.item_conflicts(item) for item in alloc.instance.items}
     agent_conflicts={agent:  alloc.instance.agent_conflicts(agent) for agent in alloc.instance.agents}
     return find_preference_order_for_each_student(alloc.instance._valuations , alloc.instance._agent_capacities , item_conflicts , agent_conflicts)
-    
+
 if __name__ == "__main__":
     import doctest
-    doctest.testmod()
+    print(doctest.testmod())
+
