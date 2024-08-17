@@ -769,8 +769,6 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
     logger.info(f"Creating envy graph for curr_bundles -> {curr_bundles}")
     envy_graph.clear_edges()
     envy_graph.add_nodes_from(curr_bundles.keys())
-    if callback:
-        callback(helper_generate_directed_graph_base64(envy_graph,category=category,iteration=iteration))
     for agent1, bundle1 in curr_bundles.items():
         for agent2, bundle_agent2 in curr_bundles.items():
             if agent1 is not agent2:  # make sure w're not comparing same agent to himself
@@ -781,8 +779,8 @@ def helper_update_envy_graph(curr_bundles: dict, valuation_func: callable, envy_
                     #print(f"{agent1} envies {agent2}")  # works great .
                     # we need to add edge from the envier to the envyee
                     envy_graph.add_edge(agent1, agent2)
-                    if callback:
-                        callback(helper_generate_directed_graph_base64(envy_graph,category=category,iteration=iteration))
+    if callback:# no need to capture image in each iteration ...
+        callback(helper_generate_directed_graph_base64(envy_graph, category=category, iteration=iteration))
     logger.info(f"envy_graph.edges after update -> {envy_graph.edges}")
 
 # def visualize_graph(envy_graph):
@@ -1246,12 +1244,12 @@ def helper_validate_item_categories(item_categories:dict[str, list]):
         raise ValueError(f"item categories is supposed to be dict[str,list] but u entered {type(item_categories)}")
 
 
-def helper_generate_directed_graph_base64(graph, seed=42,category:str='',iteration:int=None):
+def helper_generate_directed_graph_base64(graph, seed=42,category:str='',iteration:int=None,text:str=None):
     #logger.info(f'**********\nRunning helper_generate_directed_graph_base64\n**********')
 
     plt.figure()
     plt.title('Envy Graph',fontsize=16)
-    additional_text=f'category -> {category} iteration -> {iteration}'
+    additional_text=f'category -> {category} iteration -> {iteration}' if text is None else text
     plt.figtext(0.5, 0.85, additional_text, wrap=True, horizontalalignment='center', fontsize=10)
     pos = nx.spring_layout(graph, seed=seed)  # Use a seed for reproducibility
     nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10, arrows=True)
@@ -1266,11 +1264,11 @@ def helper_generate_directed_graph_base64(graph, seed=42,category:str='',iterati
     return base64_image
 
 
-def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str):
+def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str,text:str=None):
     #logger.info(f'**********\nRunning helper_generate_bipartite_graph_base64\n**********')
     plt.figure()
     plt.title('Agent-Item Bipartite Graph', fontsize=16)
-    additional_text=f'category -> {category} iteration -> {iteration}'
+    additional_text=f'category -> {category} iteration -> {iteration}' if text is None else text
     plt.figtext(0.5, 0.85, additional_text, wrap=True, horizontalalignment='center', fontsize=10)
     try:
         top_nodes = {n for n, d in graph.nodes(data=True) if d['bipartite'] == 0}
@@ -1319,19 +1317,36 @@ def helper_get_logs(log_stream):
 if __name__ == "__main__":
     import doctest, sys
     #print("\n", doctest.testmod(), "\n")
+    import  time
+
+    images_data = []
+
+
+    def store_visualization(img_base64):  # used to get us the images from fairpyx !
+        images_data.append(img_base64)
+
 
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
 
-    order=['Agent1','Agent2','Agent3','Agent4']
-    items=['m1','m2','m3','m4']
-    item_categories = {'c1': ['m1', 'm2','m3'],'c2':['m4']}
-    agent_category_capacities = {'Agent1': {'c1':3,'c2':2}, 'Agent2': {'c1':3,'c2':2},'Agent3': {'c1':3,'c2':2},'Agent4': {'c1':3,'c2':2}} # in the papers its written capacity=size(catergory)
-    valuations = {'Agent1':{'m1':2,'m2':1,'m3':1,'m4':10},'Agent2':{'m1':1,'m2':2,'m3':1,'m4':10},'Agent3':{'m1':1,'m2':1,'m3':2,'m4':10},'Agent4':{'m1':1,'m2':1,'m3':1,'m4':10}}
+    order= ['Agent10', 'Agent8', 'Agent5', 'Agent7', 'Agent2', 'Agent9', 'Agent4', 'Agent3', 'Agent1', 'Agent6']
+    items=['m1']
+    item_categories = {'c1': ['m1'], 'c2': [], 'c3': [], 'c4': [], 'c5': [], 'c6': [], 'c7': [], 'c8': [], 'c9': [], 'c10': []}
+    agent_category_capacities = {'Agent1': {'c1': 20, 'c2': 15, 'c3': 8, 'c4': 1, 'c5': 2, 'c6': 10, 'c7': 1, 'c8': 11, 'c9': 4, 'c10': 12}, 'Agent2': {'c1': 19, 'c2': 3, 'c3': 1, 'c4': 1, 'c5': 5, 'c6': 6, 'c7': 7, 'c8': 9, 'c9': 18, 'c10': 16}, 'Agent3': {'c1': 5, 'c2': 10, 'c3': 11, 'c4': 2, 'c5': 2, 'c6': 8, 'c7': 10, 'c8': 4, 'c9': 7, 'c10': 12}, 'Agent4': {'c1': 15, 'c2': 19, 'c3': 1, 'c4': 15, 'c5': 4, 'c6': 13, 'c7': 11, 'c8': 12, 'c9': 5, 'c10': 7}, 'Agent5': {'c1': 5, 'c2': 16, 'c3': 4, 'c4': 13, 'c5': 5, 'c6': 9, 'c7': 15, 'c8': 16, 'c9': 4, 'c10': 16}, 'Agent6': {'c1': 14, 'c2': 17, 'c3': 18, 'c4': 6, 'c5': 10, 'c6': 4, 'c7': 1, 'c8': 6, 'c9': 1, 'c10': 18}, 'Agent7': {'c1': 19, 'c2': 5, 'c3': 3, 'c4': 17, 'c5': 4, 'c6': 3, 'c7': 11, 'c8': 14, 'c9': 17, 'c10': 8}, 'Agent8': {'c1': 10, 'c2': 1, 'c3': 11, 'c4': 19, 'c5': 12, 'c6': 3, 'c7': 3, 'c8': 4, 'c9': 4, 'c10': 19}, 'Agent9': {'c1': 15, 'c2': 4, 'c3': 18, 'c4': 19, 'c5': 15, 'c6': 10, 'c7': 2, 'c8': 5, 'c9': 11, 'c10': 12}, 'Agent10': {'c1': 9, 'c2': 12, 'c3': 3, 'c4': 20, 'c5': 17, 'c6': 1, 'c7': 1, 'c8': 7, 'c9': 20, 'c10': 15}}
+    valuations = {'Agent1': {'m1': 100}, 'Agent2': {'m1': 100}, 'Agent3': {'m1': 100}, 'Agent4': {'m1': 100}, 'Agent5': {'m1': 100}, 'Agent6': {'m1': 100}, 'Agent7': {'m1': 100}, 'Agent8': {'m1': 100}, 'Agent9': {'m1': 100}, 'Agent10': {'m1': 100}}
     sum_agent_category_capacities={agent:sum(cap.values()) for agent,cap in agent_category_capacities.items()}
     instance=Instance(valuations=valuations,items=items,agent_capacities=sum_agent_category_capacities)
-    print(instance)
-    divide(algorithm=per_category_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
+    #print(instance)
+    start_time=time.perf_counter()
+    divide(algorithm=per_category_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order)
+    end_time=time.perf_counter()
+    print(f'time taken{end_time-start_time}')
+    # with callback (storing graph images)
+    start_time = time.perf_counter()
+    divide(algorithm=per_category_capped_round_robin, instance=instance, item_categories=item_categories,
+           agent_category_capacities=agent_category_capacities, initial_agent_order=order,callback=store_visualization)
+    end_time = time.perf_counter()
+    print(f'time taken{end_time - start_time}')
     # divide(algorithm=two_categories_capped_round_robin,instance=instance,item_categories=item_categories,agent_category_capacities=agent_category_capacities,initial_agent_order=order,target_category_pair=("c1","c2"))
     #
     # items=['m1','m2','m3']
