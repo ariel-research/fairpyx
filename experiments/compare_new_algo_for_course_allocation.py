@@ -155,7 +155,7 @@ def run_szws_experiment():
         "random_seed": range(5),
         "solver": [None],
     }
-    experiment.run_with_time_limit(course_allocation_with_random_instance_szws, input_ranges_none_solver, time_limit=TIME_LIMIT)
+    # experiment.run_with_time_limit(course_allocation_with_random_instance_szws, input_ranges_none_solver, time_limit=TIME_LIMIT)
 
     input_ranges_specific_solver = {
         "num_of_agents": [100],
@@ -170,7 +170,7 @@ def run_szws_experiment():
         "random_seed": range(5),
         "solver": [None, cp.CBC, cp.MOSEK, cp.SCIP, cp.XPRESS], #, cp.COPT, cp.CPLEX, cp.GUROBI
     }
-    experiment.run_with_time_limit(course_allocation_with_random_instance_szws, input_ranges_specific_solver, time_limit=TIME_LIMIT)
+    # experiment.run_with_time_limit(course_allocation_with_random_instance_szws, input_ranges_specific_solver, time_limit=TIME_LIMIT)
 
     input_ranges_specific_solver = {
         "num_of_agents": [200, 300],
@@ -185,7 +185,7 @@ def run_szws_experiment():
         "random_seed": range(5),
         "solver": [None, cp.CBC, cp.MOSEK, cp.SCIP],  #, cp.XPRESS , cp.COPT, cp.CPLEX, cp.GUROBI
     }
-    experiment.run_with_time_limit(course_allocation_with_random_instance_szws, input_ranges_specific_solver, time_limit=TIME_LIMIT)
+    # experiment.run_with_time_limit(course_allocation_with_random_instance_szws, input_ranges_specific_solver, time_limit=TIME_LIMIT)
 
     input_ranges_specific_solver = {
         "num_of_agents": [100, 200, 300],
@@ -198,7 +198,7 @@ def run_szws_experiment():
         "nonfavorite_item_value_bounds": [(0, 50)],
         "algorithm": algorithms_with_specific_solver,
         "random_seed": range(5),
-        "solver": [cp.GLPK_MI],  #cp.SCIPY,
+        "solver": [cp.SCIPY]
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_szws, input_ranges_specific_solver, time_limit=TIME_LIMIT)
 
@@ -234,7 +234,7 @@ def run_ariel_experiment():
         "max_total_agent_capacity": [1000, 1115, 1500, 2000],
         "algorithm": algorithms_with_none_solver,
         "random_seed": range(10),
-        "solver": [None],
+        "solver": [cp.CBC, cp.MOSEK, cp.SCIP, cp.SCIPY]
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_sample, input_ranges_none_solver, time_limit=TIME_LIMIT)
 
@@ -242,7 +242,7 @@ def run_ariel_experiment():
         "max_total_agent_capacity": [1000, 1115, 1500, 2000],
         "algorithm": algorithms_with_specific_solver,
         "random_seed": range(10),
-        "solver": [cp.CBC, cp.MOSEK, cp.SCIP, cp.GLPK_MI], #, cp.XPRESS, cp.COPT, cp.CPLEX, cp.GUROBI, cp.SCIPY,
+        "solver": [cp.SCIPY]
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_sample, input_ranges_specific_solver, time_limit=TIME_LIMIT)
 
@@ -256,6 +256,6 @@ if __name__ == "__main__":
 
     # TTC_logger.setLevel(logging.INFO)
     # TTC_logger.addHandler(logging.StreamHandler())
-    run_uniform_experiment() #done
-    # run_szws_experiment() #done
-    # run_ariel_experiment() #done
+    #run_uniform_experiment() #done
+    #run_szws_experiment() #done
+    run_ariel_experiment() #done
