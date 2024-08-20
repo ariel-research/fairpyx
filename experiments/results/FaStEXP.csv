@@ -1,0 +1,4 @@
+num_of_agents,num_of_items,algorithm,sum_item_values,sum_agent_values,min_item,max_item,min_agent,max_agent,runtime
+100,25,fairpyx.algorithms.Optimization_Matching.FaSt,80607,80607,66,62442,1,999,0.019751999992877245
+200,25,fairpyx.algorithms.Optimization_Matching.FaSt,173785,173785,78,157398,1,1000,0.020543199963867664
+300,25,fairpyx.algorithms.Optimization_Matching.FaSt,272218,272218,42,256223,1,1000,0.033783200196921825

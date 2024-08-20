@@ -81,6 +81,7 @@ def multi_multi_plot_results(results_csv_file:str, save_to_file_template:str, fi
      x_field:str, y_fields:list[str], z_field:str, mean:bool, 
      legend_properties:dict):
      for y_field in y_fields:
+        plt.clf()
         save_to_file = save_to_file_template.format(y_field)    # Path where the plot will be saved
         single_plot_results(
             results_csv_file=results_csv_file,
@@ -94,12 +95,11 @@ def multi_multi_plot_results(results_csv_file:str, save_to_file_template:str, fi
         )
 
 def plot_course_allocation_results():
-    filter={"algorithm": "fairpyx.algorithms.Optimization_Matching.FaSt"}
     y_fields=["sum_item_values","sum_agent_values", "min_item", "max_item",  "min_agent", "max_agent"]
     multi_multi_plot_results(
         results_csv_file="results/FaStEXP.csv", 
         save_to_file_template="results/FaStEXP_{}.png",
-        filter=filter, 
+        filter={}, 
         x_field="num_of_agents", y_fields=y_fields, z_field="algorithm", mean=True,
         legend_properties={"size":6}, 
         )

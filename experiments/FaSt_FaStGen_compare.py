@@ -98,7 +98,7 @@ def run_algorithm_with_random_instance_uniform(num_of_agents, num_of_items, algo
 
 def run_uniform_experiment():
     # Run on uniformly-random data:
-    experiment = experiments_csv.Experiment("results/", "FaStVsFaStGen.csv", backup_folder="results/backup/")
+    experiment = experiments_csv.Experiment("results/", "FaStVsFaStGenEXP.csv", backup_folder="results/backup/")
     input_ranges = {
         "num_of_agents": [100,200,300],         
         "num_of_items":  [25],                   
@@ -111,7 +111,8 @@ def multi_multi_plot_results(results_csv_file:str, save_to_file_template:str, fi
      x_field:str, y_fields:list[str], z_field:str, mean:bool, 
      legend_properties:dict):
      for y_field in y_fields:
-        save_to_file = save_to_file_template.format(y_field)    # Path where the plot will be saved
+        plt.clf()
+        save_to_file=save_to_file_template.format(y_field)
         single_plot_results(
             results_csv_file=results_csv_file,
             save_to_file=save_to_file,
@@ -124,17 +125,16 @@ def multi_multi_plot_results(results_csv_file:str, save_to_file_template:str, fi
         )
 
 def plot_course_allocation_results():
-    filter={"algorithm": "fairpyx.algorithms.Optimization_Matching.FaSt"}
     y_fields=["sum_item_values","sum_agent_values", "min_item", "max_item",  "min_agent", "max_agent"]
     multi_multi_plot_results(
-        results_csv_file="results/FaStEXP.csv", 
-        save_to_file_template="results/FaStEXP_{}.png",
-        filter=filter, 
+        results_csv_file="results/FaStVsFaStGenEXP.csv", 
+        save_to_file_template="results/FaStFaStVSFaStGenEXP_{}.png",
+        filter={}, 
         x_field="num_of_agents", y_fields=y_fields, z_field="algorithm", mean=True,
         legend_properties={"size":6}, 
         )
-
+    
 if __name__ == "__main__":
     experiments_csv.logger.setLevel(logging.INFO)
     run_uniform_experiment()
-    # plot_experiment_results_from_csv("results/FaStVsFaStGen.csv")
+    plot_course_allocation_results()
