@@ -163,32 +163,39 @@ def utilitarian_algorithm(instance):
 
 
 def egalitarian_algorithm(instance):
-    # Egalitarian algorithm
     # Step 1: Form the valuation matrix
     valuation_matrix = [
         [instance.agent_item_value(agent, item) for item in instance.items]
         for agent in instance.agents
     ]
+
     # Step 2: Compute the fractional egalitarian allocation
     not_rounded_egal = fractional_egalitarian_allocation(
         Instance(valuation_matrix), normalize_utilities=False
     )
+
     # Step 3: Multiply the fractions by the original valuation matrix
-    not_rounded_egalitarian_valuations_matrix = [
+    not_rounded_egalitarian_bundle_matrix = [
         [
             not_rounded_egal[agent][item] * valuation_matrix[agent][item]
             for item in range(len(instance.items))
         ]
         for agent in range(len(instance.agents))
-    ]# this gives us the matrix of allocation , now search for the minimum in a matrix
-    # Flatten the matrix and then find the minimum value
-    min_egalitarian_algorithm_value = min(
-        min(row) for row in not_rounded_egalitarian_valuations_matrix
-    )
-    total_sum = sum(sum(row) for row in not_rounded_egalitarian_valuations_matrix) # sum of bundles (for the sake of comparison with utilitarian algorithm)
+    ]
+
+    # Step 4: Calculate the total value each agent receives from their allocation
+    agent_total_values = [
+        sum(not_rounded_egalitarian_bundle_matrix[agent])
+        for agent in range(len(instance.agents))
+    ]
+
+    # Step 5: Find the minimum value among these totals
+    min_egalitarian_algorithm_value = min(agent_total_values)
+
+    # Step 6: Calculate the total sum of all allocations (for comparison)
+    total_sum = sum(agent_total_values)
 
     return total_sum, min_egalitarian_algorithm_value
-
 
 if __name__ == '__main__':
     #experiments_csv.logger.setLevel(logging.INFO)
