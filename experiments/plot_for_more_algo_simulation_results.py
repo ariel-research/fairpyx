@@ -34,19 +34,16 @@ def plot_course_allocation_results_szws():
 
 
 def plot_course_allocation_results_ariel():
-     filter = {"solver": "", "solver": "SCIPY"}
+     filter = {"solver": ["no_solver", "SCIPY"]}
      y_fields=["utilitarian_value","egalitarian_value", "max_envy", "mean_envy",  "mean_deficit", "max_deficit", "num_with_top_1", "num_with_top_2", "num_with_top_3","runtime"]
      multi_multi_plot_results(
           results_csv_file="results/with_solver_algo_for_course_allocation_ariel.csv",
           save_to_file_template="results/with_solver_algo_for_course_allocation_ariel_{}.png",
           filter=filter, 
           x_field="random_seed", y_fields=y_fields, z_field="algorithm", mean=True,
-          subplot_field="max_total_agent_capacity", subplot_rows=4, subplot_cols=1, sharey=True, sharex=True,
+          subplot_field="max_total_agent_capacity", subplot_rows=2, subplot_cols=2, sharey=True, sharex=True,
           legend_properties={"size":6}, 
           )
-
-
-
 
 def plot_course_allocation_results_uniform():
      filter = {}
@@ -99,7 +96,7 @@ def plot_course_allocation_results_solvers_ariel(algo):
           save_to_file_template=save_to_file_template,
           filter=filter,
           x_field="random_seed", y_fields=y_fields, z_field=z_field, mean=True,
-          subplot_field="max_total_agent_capacity", subplot_rows=4, subplot_cols=2, sharey=True, sharex=True,
+          subplot_field="max_total_agent_capacity", subplot_rows=2, subplot_cols=2, sharey=True, sharex=True,
           legend_properties={"size": 6},
      )
 
