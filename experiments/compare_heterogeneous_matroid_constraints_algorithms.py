@@ -1,3 +1,5 @@
+import experiments_csv
+
 from fairpyx.algorithms.fractional_egalitarian import fractional_egalitarian_allocation
 from fairpyx.algorithms.heterogeneous_matroid_constraints_algorithms import *
 from fairpyx.utils.test_heterogeneous_matroid_constraints_algorithms_utils import *
@@ -102,13 +104,14 @@ def run_experiment(equal_capacities:bool,equal_valuations:bool,binary_valuations
         capped_round_robin: {'alloc', 'item_categories', 'agent_category_capacities',
                              'initial_agent_order', 'target_category'},
         two_categories_capped_round_robin: {'alloc', 'item_categories', 'agent_category_capacities', 'initial_agent_order','target_category_pair'},
+        per_category_capped_round_robin: {'alloc', 'agent_category_capacities', 'item_categories', 'initial_agent_order'},
         iterated_priority_matching: {'alloc', 'item_categories', 'agent_category_capacities'},
         egalitarian_algorithm:{'instance'},
         utilitarian_algorithm:{'instance'},
         iterated_maximum_matching:{'alloc'}
 
     }
-
+    #print(f'algorithm{algorithm.__name__} , binary valuations ->{binary_valuations}')
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(
         equal_capacities=equal_capacities,
         equal_valuations=equal_valuations,
@@ -134,6 +137,7 @@ def run_experiment(equal_capacities:bool,equal_valuations:bool,binary_valuations
         current_algorithm_bundle_sum,current_algorithm_bundle_min_value = utilitarian_algorithm(instance)
     # our algorithm
     else:# one of our algorithms then !
+        print(f'filtered kwargs->{filtered_kwargs["alloc"].instance._valuations}')
         algorithm(**filtered_kwargs)
         current_algorithm_bundle_min_value=min(alloc.agent_bundle_value(agent,bundle) for agent,bundle in alloc.bundles.items())# to compare with egalitarian algorithm
         current_algorithm_bundle_sum=sum(alloc.agent_bundle_value(agent,bundle)for agent,bundle in alloc.bundles.items())# to compare with utilitarian
@@ -176,8 +180,11 @@ def egalitarian_algorithm(instance):
             for item in range(len(instance.items))
         ]
         for agent in range(len(instance.agents))
-    ]
-    min_egalitarian_algorithm_value = min(not_rounded_egalitarian_valuations_matrix)  # egalitarian value
+    ]# this gives us the matrix of allocation , now search for the minimum in a matrix
+    # Flatten the matrix and then find the minimum value
+    min_egalitarian_algorithm_value = min(
+        min(row) for row in not_rounded_egalitarian_valuations_matrix
+    )
     total_sum = sum(sum(row) for row in not_rounded_egalitarian_valuations_matrix) # sum of bundles (for the sake of comparison with utilitarian algorithm)
 
     return total_sum, min_egalitarian_algorithm_value
@@ -185,7 +192,7 @@ def egalitarian_algorithm(instance):
 
 if __name__ == '__main__':
     #experiments_csv.logger.setLevel(logging.INFO)
-    compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian()
+    #compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian()
     experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms_bigData.csv',filter={},x_field='num_of_agents',y_field='current_algorithm_bundle_min_value',z_field='algorithm',save_to_file='results/egalitarian_comparison_heterogeneous_constraints_algorithms_bigData.png') # egalitarian ratio plot
     experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms_bigData.csv',filter={},x_field='num_of_agents',y_field='current_algorithm_bundle_sum',z_field='algorithm',save_to_file='results/utilitarian_comparison_heterogeneous_constraints_algorithms_bigData.png') # utilitarian ratio plot
     experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms_bigData.csv',filter={},x_field='num_of_agents',y_field='runtime',z_field='algorithm',save_to_file='results/runtime_comparison_heterogeneous_constraints_algorithms_bigData.png') # runtime plot
