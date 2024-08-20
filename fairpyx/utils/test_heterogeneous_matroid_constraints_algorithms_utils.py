@@ -177,7 +177,6 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
 
     result_instance = Instance(valuations=normalized_random_agent_item_valuation, item_capacities=item_capacities,
                                agent_capacities=result_instance.agent_capacity)
-    #experiments_csv.logger.info(f'valuations of instance are -> {normalized_random_agent_item_valuation}')
     return result_instance, agent_category_capacities, categories, initial_agent_order  #✅#✅#✅
 
 
