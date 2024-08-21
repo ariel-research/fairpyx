@@ -26,6 +26,10 @@ algorithms_with_specific_solver = [
     crs.OC_function,
 ]
 
+algorithm_only_oc = [
+    crs.OC_function,
+]
+
 algorithms_with_none_solver = [
     crs.iterated_maximum_matching_unadjusted,
     crs.iterated_maximum_matching_adjusted,
@@ -37,7 +41,7 @@ def evaluate_algorithm_on_instance(algorithm, instance, solver):
     if algorithm in algorithms_with_none_solver:
         allocation = divide(algorithm, instance)
     else:
-        allocation = divide(algorithm, instance, solver=solver) #, explanation_logger=console_explanation_logger)
+        allocation = divide(algorithm, instance, solver=solver, explanation_logger=console_explanation_logger)
     matrix = AgentBundleValueMatrix(instance, allocation)
     matrix.use_normalized_values()
     return {
@@ -236,21 +240,34 @@ def run_ariel_experiment():
         "random_seed": range(10),
         "solver": [cp.CBC, cp.MOSEK, cp.SCIP, cp.SCIPY]
     }
-    experiment.run_with_time_limit(course_allocation_with_random_instance_sample, input_ranges_none_solver, time_limit=TIME_LIMIT)
+    # experiment.run_with_time_limit(course_allocation_with_random_instance_sample, input_ranges_none_solver, time_limit=TIME_LIMIT)
 
     input_ranges_specific_solver = {
         "max_total_agent_capacity": [1000, 1115, 1500, 2000],
         "algorithm": algorithms_with_specific_solver,
         "random_seed": range(10),
-        "solver": [cp.SCIPY]
+        "solver": [cp.XPRESS]
     }
     experiment.run_with_time_limit(course_allocation_with_random_instance_sample, input_ranges_specific_solver, time_limit=TIME_LIMIT)
+
+#######TEST FOR OC##########
+def run_uniform_oc_experiment():
+    experiment = experiments_csv.Experiment("results/", "test_for_oc_course_allocation_uniform.csv", backup_folder="results/backup/")
+    input_ranges_none_solver = {
+        "num_of_agents": [300],
+        "num_of_items":  [25],
+        "value_noise_ratio": [0.5],
+        "algorithm": algorithm_only_oc,
+        "random_seed": range(1,2),
+        "solver": [cp.SCIPY],
+    }
+    experiment.run_with_time_limit(course_allocation_with_random_instance_uniform, input_ranges_none_solver, time_limit=TIME_LIMIT)
 
 ######### MAIN PROGRAM ##########
 
 if __name__ == "__main__":
     import logging, experiments_csv
-    experiments_csv.logger.setLevel(logging.INFO)
+    experiments_csv.logger.setLevel(logging.DEBUG)
 
     from fairpyx.algorithms.Optimization_based_Mechanisms.TTC import logger as TTC_logger
 
@@ -258,4 +275,5 @@ if __name__ == "__main__":
     # TTC_logger.addHandler(logging.StreamHandler())
     #run_uniform_experiment() #done
     #run_szws_experiment() #done
-    run_ariel_experiment() #done
+    # run_ariel_experiment() #done
+    run_uniform_oc_experiment()
