@@ -35,29 +35,29 @@ def test_with_two_students_one_course():
     assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': [], 's2': ['c1']}, "ERROR"
 
 def test_optimal_improve_cardinal_and_ordinal_results():
-    s1 = {"c1": 50, "c2": 30, "c3": 20}  # c1: 1, c2: 2, c3: 3
-    s2 = {"c1": 40, "c2": 50, "c3": 10}
-    s3 = {"c1": 60, "c2": 11, "c3": 29}
+    s1 = {"c1": 50, "c2": 30, "c3": 20}  # c1: 50, c2: 30, c3: 30
+    s2 = {"c1": 40, "c2": 50, "c3": 10}  # c2: 50, c1: 40, c3: 10
+    s3 = {"c1": 60, "c2": 11, "c3": 29}  # c1: 60, c3: 29, c2: 11
     instance = fairpyx.Instance(
         agent_capacities={"s1": 2, "s2": 2, "s3": 2},
         item_capacities={"c1": 2, "c2": 3, "c3": 1},
         valuations={"s1": s1, "s2": s2, "s3": s3}
     )
 
-    assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': ['c1', 'c2'], 's2': ['c2'],  's3': ['c1', 'c3']}, "ERROR"
+    assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': ['c1', 'c2'], 's2': ['c2', 'c3'],  's3': ['c1', 'c2']}, "ERROR"
 
 
 def test_sub_round_within_sub_round():
-    s1 = {"c1": 40, "c2": 10, "c3": 20, "c4": 30}
-    s2 = {"c1": 50, "c2": 10, "c3": 15, "c4": 25}
-    s3 = {"c1": 60, "c2": 30, "c3": 2, "c4": 8}
+    s1 = {"c1": 40, "c2": 10, "c3": 20, "c4": 30}       #c1:40, c4:30, c3:20, c2:10
+    s2 = {"c1": 50, "c2": 10, "c3": 15, "c4": 25}       #c1:50, c4:25, c3:15, c2:10
+    s3 = {"c1": 60, "c2": 30, "c3": 2, "c4": 8}         #c1:60, c2:30, c4:8, c3:2
     instance = fairpyx.Instance(
         agent_capacities={"s1": 2, "s2": 2, "s3": 2},
         item_capacities={"c1": 1, "c2": 2, "c3": 2, "c4": 1},
         valuations={"s1": s1, "s2": s2, "s3": s3}
     )
 
-    assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': ['c3', 'c4'], 's2': ['c1', 'c3'], 's3': ['c2']}, "ERROR"
+    assert fairpyx.divide(fairpyx.algorithms.SP_O_function, instance=instance) == {'s1': ['c3', 'c4'], 's2': ['c1', 'c2'], 's3': ['c2', 'c3']}, "ERROR"
 
 def test_for_Erel():
     s1 = {"c1": 40, "c2": 20, "c3": 10, "c4": 30}
