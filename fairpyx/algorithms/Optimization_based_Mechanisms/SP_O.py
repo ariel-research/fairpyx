@@ -159,7 +159,9 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
             for i, student in enumerate(alloc.remaining_agents()):
                 for j, course in enumerate(alloc.remaining_items()):
                     if x_values[j, i] == 1:
+                        #remove the price of the course and save the bids to pass on
                         map_student_to_his_sum_bids[student] -= p_values[j]
+                        map_student_to_his_sum_bids[student] += alloc.effective_value(student, course)
                         explanation_logger.info("student %s payed: %f for course %s", student, p_values[j], course, agents=student)
                         explanation_logger.debug("student %s have in dict: %f", student, map_student_to_his_sum_bids[student])
             rank_mat = optimal.give_items_according_to_allocation_matrix(alloc, x, explanation_logger, rank_mat)
@@ -227,7 +229,7 @@ if __name__ == "__main__":
     #     f"s{i + 1}": f"logs/s{i + 1}.log"
     #     for i in range(num_of_agents)
     # }, mode='w', language="he")
-    string_explanation_logger = StringsExplanationLogger([f"s{i + 1}" for i in range(num_of_agents)], level=logging.INFO)
+    string_explanation_logger = StringsExplanationLogger([f"s{i + 1}" for i in range(num_of_agents)], level=logging.DEBUG)
 
     # print("\n\nIterated Maximum Matching without adjustments:")
     # divide_random_instance(algorithm=iterated_maximum_matching, adjust_utilities=False,
@@ -235,7 +237,6 @@ if __name__ == "__main__":
     #                        item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
     #                        random_seed=1)
 
-    print("\n\nIterated Maximum Matching with adjustments:")
     divide_random_instance(algorithm=SP_O_function,
                            # explanation_logger=console_explanation_logger,
                            #    explanation_logger = files_explanation_logger,
