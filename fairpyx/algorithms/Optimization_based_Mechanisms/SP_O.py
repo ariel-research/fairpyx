@@ -67,7 +67,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
 
     explanation_logger.info("\nAlgorithm SP-O starts.\n")
     global map_student_to_his_sum_bids
-
+    all_agents = set(alloc.remaining_agents())
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in
                          alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
     explanation_logger.debug("Max iterations: %d", max_iterations)
@@ -78,6 +78,15 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
     rank_mat = optimal.createRankMat(alloc, explanation_logger)
     for iteration in range(max_iterations):
         explanation_logger.info("\nIteration number: %d", iteration+1)
+        agents_who_need_an_item_in_current_iteration = set(
+            alloc.remaining_agents())  # only the agents that still need courses
+
+        # Find the difference between all_agents and agents_who_need_an_item_in_current_iteration
+        agents_not_in_need = all_agents - agents_who_need_an_item_in_current_iteration
+        # If you need the result as a list:
+        agents_not_in_need_list = list(agents_not_in_need)
+        for student in agents_not_in_need_list:
+            explanation_logger.info("There are no more items you can get", agents=student)
         if len(alloc.remaining_agent_capacities) == 0 or len(alloc.remaining_item_capacities) == 0:  # check if all the agents got their courses or there are no more
             explanation_logger.info("There are no more agents (%d) or items(%d) ", len(alloc.remaining_agent_capacities),len(alloc.remaining_item_capacities))
             break
@@ -117,7 +126,7 @@ def SP_O_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogge
         constraints_Wt1 += condition_14
 
         problem = cp.Problem(objective_Wt1, constraints=constraints_Wt1)
-        explanation_logger.info("solver: %s", solver)
+        explanation_logger.debug("solver: %s", solver)
         result_Wt1 = problem.solve(solver=solver)  # This is the optimal value of program (12)(13)(14).
 
         explanation_logger.debug("result_Wt1 - the optimum Wt1: %s", result_Wt1)
@@ -213,12 +222,12 @@ if __name__ == "__main__":
     num_of_agents = 5
     num_of_items = 3
 
-    console_explanation_logger = ConsoleExplanationLogger(level=logging.INFO)
+    # console_explanation_logger = ConsoleExplanationLogger(level=logging.INFO)
     # files_explanation_logger = FilesExplanationLogger({
     #     f"s{i + 1}": f"logs/s{i + 1}.log"
     #     for i in range(num_of_agents)
     # }, mode='w', language="he")
-    # string_explanation_logger = StringsExplanationLogger(f"s{i + 1}" for i in range(num_of_agents))
+    string_explanation_logger = StringsExplanationLogger([f"s{i + 1}" for i in range(num_of_agents)], level=logging.INFO)
 
     # print("\n\nIterated Maximum Matching without adjustments:")
     # divide_random_instance(algorithm=iterated_maximum_matching, adjust_utilities=False,
@@ -228,9 +237,9 @@ if __name__ == "__main__":
 
     print("\n\nIterated Maximum Matching with adjustments:")
     divide_random_instance(algorithm=SP_O_function,
-                           explanation_logger=console_explanation_logger,
+                           # explanation_logger=console_explanation_logger,
                            #    explanation_logger = files_explanation_logger,
-                           # explanation_logger=string_explanation_logger,
+                           explanation_logger=string_explanation_logger,
                            num_of_agents=num_of_agents, num_of_items=num_of_items, agent_capacity_bounds=[2, 5],
                            item_capacity_bounds=[3, 12],
                            item_base_value_bounds=[1, 100], item_subjective_ratio_bounds=[0.5, 1.5],
@@ -238,5 +247,5 @@ if __name__ == "__main__":
                            random_seed=1)
 
     # print(string_explanation_logger.map_agent_to_explanation())
-    # print(string_explanation_logger.map_agent_to_explanation()["s1"])
+    print(string_explanation_logger.map_agent_to_explanation()["s1"])
 

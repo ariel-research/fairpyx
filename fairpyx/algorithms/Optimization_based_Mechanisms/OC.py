@@ -67,7 +67,7 @@ def OC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger 
                      + conflicts_condition(alloc, x, explanation_logger)
 
     problem = cp.Problem(objective_Z1, constraints=constraints_Z1)
-    explanation_logger.info("solver: %s", solver)
+    explanation_logger.debug("solver: %s", solver)
     result_Z1 = problem.solve(solver=solver)
     explanation_logger.debug("\nRank optimization: result_Z1 = %s, x = \n%s", result_Z1, x.value)
 

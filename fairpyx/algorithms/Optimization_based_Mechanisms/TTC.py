@@ -32,10 +32,7 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
     explanation_logger.info("\nAlgorithm TTC starts.\n")
 
     map_agent_to_best_item = {}               # dict of the max bids for each agent in specific iteration (from the article: max{i, b})
-    all_agents = []
-    # Iterate over remaining agents and append each one to all_agents
-    for agent in alloc.remaining_agents():
-        all_agents.append(agent)
+    all_agents = set(alloc.remaining_agents())
     max_iterations = max(alloc.remaining_agent_capacities[agent] for agent in alloc.remaining_agents())  # the amount of courses of student with maximum needed courses
     explanation_logger.debug("Max iterations: %d", max_iterations)
     for iteration in range(max_iterations):   # External loop of algorithm: in each iteration, each student gets 1 seat (if possible).
@@ -46,11 +43,8 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
             break
         agents_who_need_an_item_in_current_iteration = set(alloc.remaining_agents())  # only the agents that still need courses
 
-        ###testttt
-        # Convert all_agents to a set if it's not already a set
-        all_agents_set = set(all_agents)
         # Find the difference between all_agents and agents_who_need_an_item_in_current_iteration
-        agents_not_in_need = all_agents_set - agents_who_need_an_item_in_current_iteration
+        agents_not_in_need = all_agents - agents_who_need_an_item_in_current_iteration
         # If you need the result as a list:
         agents_not_in_need_list = list(agents_not_in_need)
         for student in agents_not_in_need_list:
@@ -67,7 +61,7 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
                     agents_with_no_potential_items.add(current_agent)
                     explanation_logger.info("There are no more items you can get", agents=current_agent)
                 else:
-                    explanation_logger.info("\n the cources you can get are: %s", potential_items_for_agent, agents=current_agent)
+                    explanation_logger.debug("\n the cources you can get are: %s", potential_items_for_agent, agents=current_agent)
                     map_agent_to_best_item[current_agent] = max(potential_items_for_agent,
                                                           key=lambda item: alloc.effective_value(current_agent, item))  # for each agent save the course with the max bids from the potential courses only
 
@@ -87,8 +81,6 @@ def TTC_function(alloc: AllocationBuilder, explanation_logger: ExplanationLogger
                 remaining_capacity = int(alloc.remaining_item_capacities[course]) # the amount of seats left in the current course
                 # if not isinstance(remaining_capacity, int):
                 #     remaining_capacity = 0
-                if remaining_capacity <= len(sorted_students_pointing_to_course):
-                    explanation_logger.info("course %s is out of places after that round", course)
                 explanation_logger.debug("remaining_capacity = %s, type(remaining_capacity) = %s", remaining_capacity, type(remaining_capacity))
                 sorted_students_who_can_get_course = sorted_students_pointing_to_course[:remaining_capacity]  # list of the student that can get the course
                 for student in sorted_students_who_can_get_course:
