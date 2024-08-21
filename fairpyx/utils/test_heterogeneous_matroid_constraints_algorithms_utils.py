@@ -123,13 +123,18 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
                                category in categories}  # this is going to be assigned to each agent
         agent_category_capacities = {agent: category_capacities for agent in result_instance.agents}  #✅
     if equal_valuations:
-        random_valuation = np.random.uniform(low=item_base_value_bounds[0], high=item_base_value_bounds[1] + 1,
+        random_valuation = np.random.randint(low=item_base_value_bounds[0], high=item_base_value_bounds[1] + 1,
                                              size=num_of_items)
+        print(f"random valuation is -> {random_valuation}")
         # we need to normalize is
         sum_of_valuations = np.sum(random_valuation)
         normalized_sum_of_values=sum_of_valuations if item_base_value_bounds == (0, 1) else normalized_sum_of_values
-        normalized_random_values = np.round(random_valuation * normalized_sum_of_values / sum_of_valuations).astype(
-            int) # change to float if needed
+        if item_base_value_bounds != (0, 1):
+            normalized_random_values = np.round(random_valuation * normalized_sum_of_values / sum_of_valuations).astype(
+                int) # change to float if needed
+        else:#binary valuations , no need for normalization ! since we are constrained
+            normalized_random_values = np.round(random_valuation).astype(
+                int)  # change to float if needed
 
         normalized_random_agent_item_valuation = {
             agent: dict(zip(result_instance.items, normalized_random_values
@@ -172,7 +177,6 @@ def random_uniform_extended(num_of_agents: int, num_of_items: int,
 
     result_instance = Instance(valuations=normalized_random_agent_item_valuation, item_capacities=item_capacities,
                                agent_capacities=result_instance.agent_capacity)
-    #experiments_csv.logger.info(f'valuations of instance are -> {normalized_random_agent_item_valuation}')
     return result_instance, agent_category_capacities, categories, initial_agent_order  #✅#✅#✅
 
 
