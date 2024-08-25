@@ -2,5 +2,6 @@ numpy>=1.21.3
 scipy>=1.6.1
 -e file:///C:/Users/yuval/PycharmProjects/pythonProject6/fairpyx/Lib/site-packages/networkz
 cvxpy_base>=1.1.17
+
 Flask>=2.0.0
 
