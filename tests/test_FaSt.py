@@ -8,7 +8,7 @@ We used chat-Gpt and our friends from the university for ideas of cases.
 
 import pytest
 from fairpyx import Instance
-import FaSt
+from fairpyx.algorithms.Optimization_Matching.FaSt import FaSt
 
 def test_FaSt_basic_case():
     """
