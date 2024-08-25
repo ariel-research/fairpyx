@@ -8,7 +8,7 @@ We used chat-GPT and our friends from the university for ideas of cases.
 
 import pytest
 from fairpyx import AllocationBuilder
-import Demote
+from fairpyx.algorithms.Optimization_Matching.FaSt import Demote
 
 
 def test_demote_simple():
