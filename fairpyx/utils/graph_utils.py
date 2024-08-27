@@ -142,3 +142,24 @@ def many_to_many_matching_using_node_cloning(items:list, item_capacity: callable
 if __name__ == "__main__":
     import doctest
     print(doctest.testmod(report=True,optionflags=doctest.NORMALIZE_WHITESPACE))
+
+    import numpy as np
+    matrix = np.array([
+        [1, 2, 3], 
+        [4, 1, 2], 
+        [3, 6, 1]])
+    agent_vector = np.array([1, 1, 1])
+    task_vector = np.array([1, 1, 1])
+
+    item_capacities = {f"item_{i}": task_vector[i] for i in range(len(task_vector))}
+    agent_capacities = {f"agent_{i}": agent_vector[i] for i in range(len(agent_vector))}
+    valuations = {f"agent_{i}": {f"item_{j}": matrix[i][j] for j in range(len(matrix[i]))} for i in range(len(matrix))}
+
+    res = many_to_many_matching_using_network_flow(
+        items = item_capacities.keys(), 
+        item_capacity = item_capacities.__getitem__,
+        agents = agent_capacities.keys(),
+        agent_capacity = agent_capacities.__getitem__,
+        agent_item_value = lambda agent,item: - valuations[agent][item],  # Negative value = cost
+        allow_negative_value_assignments=True)  # solve a min-cost problem
+    print(f'Faipyx result:\n{res}')

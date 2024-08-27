@@ -1,23 +1,6 @@
-from experiments_csv import single_plot_results, multi_plot_results
+from experiments_csv import single_plot_results, multi_plot_results, multi_multi_plot_results
 from matplotlib import pyplot as plt
 from pathlib import Path
-import sys
-
-def multi_multi_plot_results(results_csv_file:str, save_to_file_template:str, filter:dict, 
-     x_field:str, y_fields:list[str], z_field:str, mean:bool, 
-     subplot_field:str, subplot_rows:int, subplot_cols:int, sharey:bool, sharex:bool,
-     legend_properties:dict):
-     for y_field in y_fields:
-          save_to_file=save_to_file_template.format(y_field)
-          print(y_field, save_to_file)
-          multi_plot_results(
-               results_csv_file=results_csv_file,
-               save_to_file=save_to_file,
-               filter=filter, 
-               x_field=x_field, y_field=y_field, z_field=z_field, mean=mean, 
-               subplot_field=subplot_field, subplot_rows=subplot_rows, subplot_cols=subplot_cols, sharey=sharey, sharex=sharex,
-               legend_properties=legend_properties,
-               )
 
 
 def plot_course_allocation_results_szws():
@@ -68,8 +51,6 @@ def plot_course_allocation_results_uniform():
 
 # plot_course_allocation_results_uniform()
 plot_course_allocation_results_szws()
-
-
 
 ######## OLD PLOTS
 
