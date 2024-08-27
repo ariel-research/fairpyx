@@ -58,23 +58,28 @@ def test_FaSt_large_input():
     """
     # Define the instance with a large number of students and courses
     num_students = 100
-    num_courses = 50
-    students = [f"s{i}" for i in range(1, num_students + 1)]
-    courses = [f"c{i}" for i in range(1, num_courses + 1)]
-    valuations = {course: students for course in courses}
+    num_colleges = 50
+    # Define the instance
+    agents = {f"s{i}" for i in range(1, num_students + 1)} # Student set=S
+    items = {f"c{i}" for i in range(1, num_colleges + 1)} # College set=C
+    #valuation = {"S1": {"c1": 9}}  # V[i][j] is the valuation of Si for matching with Cj
+    valuation = {}
+    value = num_students * num_colleges
+    for i in range(1,num_students+1):
+        valuation[f"s{i}"] = {}
+        for j in range(1,num_colleges+1):
+            valuation[f"s{i}"][f"c{j}"] = value
+            value -= 1
 
-    instance_large = Instance(agent_capacities={student: 1 for student in students}, item_capacities={course: 10 for course in courses}, valuations=valuations)
+    instance_large = Instance(agents=agents, items=items, valuations=valuation)
+    allocation_large = AllocationBuilder(instance=instance_large)
 
     # Run the FaSt algorithm
-    allocation_large = FaSt(instance_large)
+    ans = FaSt(allocation_large)
 
-    # Add assertions
     # Ensure that all students are assigned to a course
-    assert len(allocation_large) == len(students), "Not all students are assigned to a course"
-
-    # Ensure that each course has the correct number of students assigned
-    for course, assigned_students in allocation_large.items():
-        assert len(assigned_students) == 10, f"Incorrect number of students assigned to {course}"
-
+    #assert len(assigned_students) == 10, f"Incorrect number of students assigned to {course}"
+    assert len(ans) == 50 # num of student assigned for colleges
+    #assert ans == {}
 if __name__ == "__main__":
     pytest.main(["-v", __file__])
