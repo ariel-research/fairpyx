@@ -34,6 +34,10 @@ def Demote(matching:dict, student_index:int, down_index:int, up_index:int)-> dic
     >>> I = 2
     >>> Demote(matching, I, DOWN, UP)
     {1: [6], 2: [3, 1], 3: [4, 5, 2]}"""
+    # Check if matching is empty
+    if not matching:
+        raise ValueError("Demote algorithm failed on empty input")
+
     # Move student to college 'down' while reducing the number of students in 'up'
     # Set t to student_index
     t = student_index

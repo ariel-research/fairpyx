@@ -1,102 +1,117 @@
-# """
-# Test that Demote algorithm returns a feasible solution.
-#
-# Programmers: Hadar Bitan, Yuval Ben-Simhon
-# Date: 19.5.2024
-# We used chat-GPT and our friends from the university for ideas of cases.
-# """
-#
-# import pytest
-# from fairpyx import AllocationBuilder
-# from fairpyx.algorithms.Optimization_Matching.FaSt import Demote
-#
-#
-# def test_demote_simple():
-#     """
-#     Test the Demote algorithm with a simple scenario.
-#     """
-#     # Create an AllocationBuilder instance
-#     alloc = AllocationBuilder(agent_capacities={"s1": 1, "s2": 1, "s3": 1, "s4": 1, "s5": 1},
-#                               item_capacities={"c1": 2, "c2": 2, "c3": 2})
-#
-#     # Initial matching
-#     alloc.add_allocation(0, 0)  # s1 -> c1
-#     alloc.add_allocation(1, 1)  # s2 -> c2
-#     alloc.add_allocation(2, 1)  # s3 -> c2
-#     alloc.add_allocation(3, 2)  # s4 -> c3
-#     alloc.add_allocation(4, 2)  # s5 -> c3
-#
-#     # Apply Demote algorithm
-#     Demote(alloc, 2, 2, 1)
-#
-#     # Expected result after demotion
-#     expected_result = {'s1': ['c1'], 's2': ['c2'], 's3': ['c3'], 's4': ['c3'], 's5': ['c3']}
-#
-#     # Check if the result matches the expected result
-#     assert alloc.get_allocation() == expected_result, "Demote algorithm test failed"
-#
-# def test_demote_edge_cases():
-#     """
-#     Test edge cases for the Demote algorithm.
-#     """
-#     # Case 1: Moving the last student to the first college
-#     alloc1 = AllocationBuilder(agent_capacities={"s1": 1}, item_capacities={"c1": 1})
-#     alloc1.add_allocation(0, 0)  # s1 -> c1
-#     Demote(alloc1, 0, 1, 0)
-#     assert alloc1.get_allocation() == {'s1': ['c1']}, "Demote algorithm edge case 1 failed"
-#
-#     # Case 2: Moving the first student to the last college
-#     alloc2 = AllocationBuilder(agent_capacities={"s1": 1}, item_capacities={"c1": 1})
-#     alloc2.add_allocation(0, 0)  # s1 -> c1
-#     Demote(alloc2, 0, 2, 0)
-#     assert alloc2.get_allocation() == {'s1': ['c3']}, "Demote algorithm edge case 2 failed"
-#
-#     # Case 3: Moving a student to the same college (no change expected)
-#     alloc3 = AllocationBuilder(agent_capacities={"s1": 1}, item_capacities={"c1": 1})
-#     alloc3.add_allocation(0, 0)  # s1 -> c1
-#     Demote(alloc3, 0, 0, 0)
-#     assert alloc3.get_allocation() == {'s1': ['c1']}, "Demote algorithm edge case 3 failed"
-#
-#     # Case 4: Moving a student when all other colleges are full
-#     alloc4 = AllocationBuilder(agent_capacities={"s1": 1}, item_capacities={"c1": 1, "c2": 1})
-#     alloc4.add_allocation(0, 0)  # s1 -> c1
-#     alloc4.add_allocation(1, 1)  # s2 -> c2
-#     Demote(alloc4, 0, 2, 0)
-#     assert alloc4.get_allocation() == {'s1': ['c1'], 's2': ['c2']}, "Demote algorithm edge case 4 failed"
-#
-# def test_demote_large_input():
-#     """
-#     Test the Demote algorithm on a large input.
-#     """
-#     num_students = 1000
-#     num_colleges = 100
-#     student_indices = [f"s{i}" for i in range(1, num_students + 1)]
-#     college_indices = [f"c{i}" for i in range(1, num_colleges + 1)]
-#
-#     agent_capacities = {student: 1 for student in student_indices}
-#     item_capacities = {college: 10 for college in college_indices}
-#
-#     alloc = AllocationBuilder(agent_capacities=agent_capacities, item_capacities=item_capacities)
-#
-#     # Initial allocation
-#     for i, student in enumerate(student_indices):
-#         alloc.add_allocation(i, i % num_colleges)
-#
-#     # Move the last student to the last college
-#     Demote(alloc, num_students - 1, num_colleges - 1, 0)
-#
-#     # Add assertions
-#     allocation = alloc.get_allocation()
-#     assert len(allocation) == num_students, "Demote algorithm large input failed"
-#     assert all(len(courses) <= 10 for courses in allocation.values()), "Demote algorithm large input capacity failed"
-#
-# def test_demote_empty_input():
-#     """
-#     Test the Demote algorithm with empty input.
-#     """
-#     alloc_empty = AllocationBuilder(agent_capacities={}, item_capacities={})
-#     Demote(alloc_empty, 0, 0, 0)
-#     assert alloc_empty.get_allocation() == {}, "Demote algorithm failed on empty input"
-#
-# if __name__ == "__main__":
-#     pytest.main(["-v", __file__])
+"""
+Test that Demote algorithm returns a feasible solution.
+
+Programmers: Hadar Bitan, Yuval Ben-Simhon
+Date: 19.5.2024
+We used chat-GPT and our friends from the university for ideas of cases.
+"""
+
+import pytest
+from fairpyx import AllocationBuilder, Instance
+from fairpyx.algorithms.Optimization_Matching.FaSt import Demote
+from fairpyx.algorithms.Optimization_Matching.FaStGen import create_stable_matching
+
+
+def test_demote_simple():
+    """
+    Test the Demote algorithm with a simple scenario.
+    """
+    matching = {1: [1, 6], 2: [2, 3], 3: [4, 5]}
+    UP = 1
+    DOWN = 3
+    I = 2
+    # Apply Demote algorithm
+    ans= Demote(matching, I, DOWN, UP)
+
+    # Expected result after demotion
+    expected_result = {1: [6], 2: [3, 1], 3: [4, 5, 2]}
+
+    # Check if the result matches the expected result
+    assert ans == expected_result, "Demote algorithm test failed"
+
+def test_demote_edge_cases():
+    """
+    Test edge cases for the Demote algorithm.
+    """
+    # Case 1: Moving the last student to the second college
+    matching = {1: [1, 6], 2: [2, 3], 3: [4, 5]}
+    ans= Demote(matching, 6, 2, 1)
+    # Expected result after demotion
+    expected_result = {1: [1], 2: [2, 3, 6], 3: [4, 5]}
+
+    # Check if the result matches the expected result
+    assert ans == expected_result, "Demote algorithm test failed"
+
+    # Case 2: multiple steps
+    # Moving the second student to the last college
+    matching = {1: [1, 6], 2: [3 ,2], 3: [4, 5]}
+    expected_result = {1: [1, 6], 2: [3], 3: [4, 5, 2]}
+    ans = Demote(matching, student_index=2, down_index=3, up_index=2)
+    assert ans == expected_result, "Demote algorithm test failed"
+
+    # Case 3: not present student
+    # Student not present in the initial college
+    matching = {1: [1, 6], 2: [3], 3: [4, 5]}
+    try:
+        ans = Demote(matching, student_index=2, down_index=2, up_index=1)
+    except ValueError as e:
+        assert str(e) == "Student 2 should be in matching to college 1", "Demote algorithm test failed"
+    else:
+        assert False, "Demote algorithm test failed: expected ValueError"
+
+    # Case 4: Demoting when the student is already in the lowest-ranked college
+    matching = {1: [1, 6], 2: [3, 2], 3: [4, 5]}
+    expected_result = matching.copy()
+    ans = Demote(matching, student_index=2, down_index=3, up_index=1)
+    assert ans == expected_result, "Demote algorithm test failed"
+
+    # Case 5: Moving a student up instead of down (should raise an error)
+    matching = {1: [1, 6], 2: [2, 3], 3: [4, 5]}
+    try:
+        ans = Demote(matching, student_index=2, down_index=2, up_index=3)
+    except ValueError as e:
+        # Invalid index values: up_index=3, down_index=2
+        assert str(e) == "Student 2 should be in matching to college 1", "Demote algorithm test failed"
+    else:
+        assert False, "Demote algorithm test failed: expected ValueError"
+
+def test_demote_large_input():
+    """
+    Test the Demote algorithm on a large input.
+    """
+
+    def test_demote_large_input():
+        # Create a large matching scenario
+        num_students = 1000
+        matching = {i: list(range(i, num_students + i, 10)) for i in range(1, 11)}
+
+        # We will demote a student who is initially in college 9
+        student_index = 991  # Adjust this to match the pattern in the matching dictionary
+        down_index = 10
+        up_index = 9
+
+        # Ensure that the student_index exists in the correct college
+        assert student_index in matching[up_index], f"Student {student_index} not found in college {up_index}"
+
+        # Expected result: the student should move from college 9 to college 10
+        expected_result = matching.copy()
+        expected_result[up_index].remove(student_index)
+        expected_result[down_index].append(student_index)
+
+        # Run the Demote function
+        ans = Demote(matching, student_index, down_index, up_index)
+
+        # Check that the resulting matching is as expected
+        assert ans == expected_result, "Demote algorithm large input test failed"
+
+def test_demote_empty_input():
+    """
+    Test the Demote algorithm with empty input.
+    """
+    try:
+        ans = Demote({}, 0, 0, 0)
+    except ValueError as e:
+        assert str(e) == "Demote algorithm failed on empty input", "Demote algorithm test failed"
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])
