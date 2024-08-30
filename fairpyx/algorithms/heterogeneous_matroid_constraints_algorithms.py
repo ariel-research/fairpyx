@@ -1496,7 +1496,7 @@ if __name__ == "__main__":
             plt.axis('off')  # Hide axes for a cleaner look
             plt.show()
 
-    logger.setLevel(logging.DEBUG)
+    #logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
 
     order = ['Agent1', 'Agent8', 'Agent5', 'Agent7', 'Agent2', 'Agent9', 'Agent4', 'Agent3', 'Agent10', 'Agent6']
