@@ -267,7 +267,7 @@ def expected_value_of_specific_report_for_randomness(random_utilities: dict, ran
               2 for contested EF-TB
     :param report: our student's utility
 
-    >>> from fairpyx.algorithms.ACEEI_algorithms.ACEEI_algorithms import find_ACEEI_with_EFTB, EFTBStatus
+    >>> from fairpyx.algorithms.ACEEI_algorithms.ACEEI import find_ACEEI_with_EFTB, EFTBStatus
     >>> random_utilities = {"avi":{"x":5, "y":5, "z":5},"beni":{"x":4, "y":6, "z":3}}
     >>> random_budgets = [{"avi": 5, "beni":2},{"avi": 5, "beni":2},{"avi": 5, "beni":2},{"avi": 5, "beni":2},{"avi": 5, "beni":2},{"avi": 5, "beni":2},{"avi": 5, "beni":2},{"avi": 5, "beni":2},{"avi": 5, "beni":2},{"avi": 5, "beni":2}]
     >>> mechanism = find_ACEEI_with_EFTB
