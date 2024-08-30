@@ -237,11 +237,10 @@ def expected_value_of_specific_report_for_population(random_utilities: list[dict
     """
     sum_utilities = 0
     for budgets, valuations in zip(random_budgets, random_utilities):
-        # todo: ask erel how to test it
         utilities = {agent: (report if agent == student else utility) for agent,utility in valuations.items()}
 
         new_instance = Instance(valuations=utilities, agent_capacities=instance.agent_capacity, item_capacities=instance.item_capacity)
-        allocation = divide(mechanism, instance=new_instance, initial_budgets=budgets, **kwargs)  # todo: change to kwargs
+        allocation = divide(mechanism, instance=new_instance, initial_budgets=budgets, **kwargs)
         current_utility_found = instance.agent_bundle_value(student, allocation[student])
         sum_utilities += current_utility_found
     return sum_utilities / NUMBER_OF_ITERATIONS
@@ -325,7 +324,6 @@ def criteria_population(mechanism: callable, student: str, current_best_manipula
         if current_expected_value > max_expected_value:
             max_expected_value = current_expected_value
             best_manipulation_found = misreport
-            #todo:  change to arg max
 
     return best_manipulation_found
 

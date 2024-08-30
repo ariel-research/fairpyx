@@ -817,31 +817,6 @@ if __name__ == "__main__":
     def random_initial_budgets(num):
         return {f"s{key}": random.uniform(1, 1 + random_beta) for key in range(1, num + 1)}
 
-
-    # num_of_agents = 3
-    # utilities = {f"s{i}": {f"c{num_of_agents + 1 - j}": j for j in range(num_of_agents, 0, -1)} for i in
-    #              range(1, num_of_agents + 1)}
-    # instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
-    # initial_budgets = {f"s{key}": (num_of_agents + 1 - key) for key in range(1, num_of_agents + 1)}
-    # logger.error(f"initial_budgets = {initial_budgets}")
-    # logger.error(f"random_beta = {random_beta}")
-    # # initial_budgets = {f"s{key}": (random_beta + key) for key in range(1, num_of_agents + 1)}
-    # allocation = divide(tabu_search, instance=instance,
-    #                     initial_budgets=initial_budgets,
-    #                     beta=random_beta, delta=random_delta)
-    # for i in range(1, num_of_agents + 1):
-    #     assert (f"c{i}" in allocation[f"s{i}"])
-
-    # seed = random.randint(1, 10000)
-    # # seed = 2006
-    # # random.seed(seed)
-    # logger.debug(f"seed is {seed}")
-    #
-    # # Write the seed to a new file
-    # with open('seed.txt', 'a') as file:
-    #     file.write(f"seed is {seed}\n")
-    #
-
     random.seed(0)
     instance = Instance(
         valuations={'s1': {'c1': 275, 'c2': 79, 'c3': 59, 'c4': 63, 'c5': 54, 'c6': 226, 'c7': 133, 'c8': 110},
@@ -855,22 +830,3 @@ if __name__ == "__main__":
                        's4': 1.000078616581918, 's5': 1.0008131880118405}
     beta = 0.001
     divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={0.34})
-    # # # "{ami:['x', 'y'], tami:['y', 'z']}"
-    #
-    # # instance = Instance(valuations = {"ami": {"x": 4, "y": 3, "z": 2}, "tami": {"x": 5, "y": 1, "z": 2}},
-    # #     agent_capacities = 2, item_capacities = {"x": 1, "y": 1, "z": 1})
-    # # initial_budgets = {"ami": 5, "tami": 3}
-    # # beta = 6
-    # # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={0.91})
-    # # # "{ami:['x', 'y'], tami:['z']}"
-    # #
-    # # Example run 3
-    # # random.seed(1000)
-    # instance = Instance(valuations = {"ami": {"x": 3, "y": 3, "z": 3}, "tami": {"x": 3, "y": 3, "z": 3}, "tzumi": {"x": 4, "y": 4, "z": 4}},
-    #     agent_capacities = 2, item_capacities = {"x": 1, "y": 2, "z": 2})
-    # initial_budgets = {"ami": 4, "tami": 5, "tzumi": 2}
-    # beta = 5
-    # divide(tabu_search, instance=instance, initial_budgets=initial_budgets, beta=beta, delta={0.34})
-    # # "{ami:['y', 'z'], tami:['x', 'y'], tzumi:['z']}"
-    #
-    #

@@ -147,17 +147,17 @@ def test_case_6():
 
 
 if __name__ == "__main__":
-    # logger.addHandler(logging.StreamHandler())
-    # logger.setLevel(logging.INFO)
-    # pytest.main(["-v", __file__])
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+    pytest.main(["-v", __file__])
 
-    instance = Instance.random_uniform(num_of_agents=100, num_of_items=10, agent_capacity_bounds=(4, 8),
-                                       item_capacity_bounds=(200, 200), item_base_value_bounds=(1, 5),
-                                       item_subjective_ratio_bounds=(0.5, 1.5),
-                                       normalized_sum_of_values=1000)
-    allocation = divide(find_ACEEI_with_EFTB, instance=instance,
-                        initial_budgets=random_initial_budgets(instance.num_of_agents),
-                        delta=random_value, epsilon=random_value, t=random_t)
-    logs = log_capture_handler.get_logs()
+    # instance = Instance.random_uniform(num_of_agents=100, num_of_items=10, agent_capacity_bounds=(4, 8),
+    #                                    item_capacity_bounds=(200, 200), item_base_value_bounds=(1, 5),
+    #                                    item_subjective_ratio_bounds=(0.5, 1.5),
+    #                                    normalized_sum_of_values=1000)
+    # allocation = divide(find_ACEEI_with_EFTB, instance=instance,
+    #                     initial_budgets=random_initial_budgets(instance.num_of_agents),
+    #                     delta=random_value, epsilon=random_value, t=random_t)
+    # logs = log_capture_handler.get_logs()
     # ans = check_envy_in_allocation(instance, allocation, initial_budgets, t, prices)
-    print(logs)
+    # print(logs)

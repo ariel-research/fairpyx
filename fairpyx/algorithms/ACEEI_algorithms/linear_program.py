@@ -149,9 +149,6 @@ def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instan
                 list(map_student_to_best_bundle_per_budget[student].values()).index(bundle)]  # Extract the price from dictionary a
             new_budgets[student] = (price, bundle)
 
-    # print("New budgets:", new_budgets)
-    # print("Objective Value:", model.objective_value)
-    # print("Excess Demand:", excess_demand)
     logging.info("\nNew budgets: %s\nObjective Value: %s\nExcess Demand: %s", new_budgets, model.objective_value,
                  excess_demand_per_course)
     logger.info("FINISH LINEAR_PROGRAM\n")
@@ -232,19 +229,12 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
                         # Add key to bundle_j
                         bundle_j.append(key)
 
-                # logger.info(f"----------{t}---------")
-                # logger.info(f"bundle_j of {other_student} = {bundle_j}")
-
                 sorted_bundle_j = sorted(bundle_j, key=lambda course: instance.agent_item_value(student, course),
                                          reverse=True)
-                # logger.info(f"sorted_bundle_j by {student} valuation = {sorted_bundle_j}")
 
                 sorted_bundle_j = sorted_bundle_j[:instance.agent_capacity(student)]
-                # logger.info(f"instance.agent_capacity = {instance.agent_capacity(student)}")
-                # logger.info(f"sorted_bundle_j of {student} = {sorted_bundle_j}")
 
                 bundle_j = tuple(sorted_bundle_j)
-                # logger.info(f"finish update bundle_j of {student} = {bundle_j}")
 
             if instance.agent_bundle_value(student, bundle_j) > instance.agent_bundle_value(student, bundle_i):
                 result.append((bundle_i, original_bundle_j))
