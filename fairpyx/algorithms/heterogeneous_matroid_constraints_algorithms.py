@@ -21,7 +21,7 @@ import io
 import base64
 
 logger = logging.getLogger(__name__)
-
+logger.setLevel(logging.INFO)
 
 def per_category_round_robin(alloc: AllocationBuilder, item_categories: dict[str,list], agent_category_capacities: dict[str,dict[str,int]],
                              initial_agent_order: list,callback:callable=None):
