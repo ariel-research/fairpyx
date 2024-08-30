@@ -1275,61 +1275,112 @@ def helper_validate_item_categories(item_categories:dict[str, list]):
         raise ValueError(f"item categories is supposed to be dict[str,list] but u entered {type(item_categories)}")
 
 
-def helper_generate_directed_graph_base64(graph, seed=42,category:str='',iteration:int=None,text:str=None):
-    #logger.info(f'**********\nRunning helper_generate_directed_graph_base64\n**********')
+# def helper_generate_directed_graph_base64(graph, seed=42,category:str='',iteration:int=None,text:str=None):
+#     #logger.info(f'**********\nRunning helper_generate_directed_graph_base64\n**********')
+#
+#     plt.figure()
+#     plt.title('Envy Graph',fontsize=16)
+#     additional_text=f'category -> {category} iteration -> {iteration}' if text is None else text
+#     plt.figtext(0.5, 0.85, additional_text, wrap=True, horizontalalignment='center', fontsize=10)
+#     pos = nx.spring_layout(graph, seed=seed)  # Use a seed for reproducibility
+#     nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10, arrows=True)
+#
+#     img_bytes = io.BytesIO()
+#     plt.savefig(img_bytes, format='png')
+#     plt.close()
+#     img_bytes.seek(0)
+#
+#     base64_image = base64.b64encode(img_bytes.read()).decode('utf-8')
+#     print("Generated image data:", base64_image[:100])  # Print the first 100 characters of the image data
+#     return base64_image
+#
+#
+# def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str,text:str=None):
+#     #logger.info(f'**********\nRunning helper_generate_bipartite_graph_base64\n**********')
+#     plt.figure()
+#     plt.title('Agent-Item Bipartite Graph', fontsize=16)
+#     additional_text=f'category -> {category} iteration -> {iteration}' if text is None else text
+#     plt.figtext(0.5, 0.85, additional_text, wrap=True, horizontalalignment='center', fontsize=10)
+#     try:
+#         top_nodes = {n for n, d in graph.nodes(data=True) if d['bipartite'] == 0}
+#         bottom_nodes = set(graph) - top_nodes
+#
+#         # Create fixed positions
+#         pos = {}
+#         pos.update((node, (1, index)) for index, node in enumerate(top_nodes))  # x=1 for top_nodes
+#         pos.update((node, (2, index)) for index, node in enumerate(bottom_nodes))  # x=2 for bottom_nodes
+#
+#         # Assign colors to the nodes based on their group
+#         color_map = ['red' if node in top_nodes else 'blue' for node in graph.nodes]
+#     except nx.NetworkXError:
+#         # Fallback to spring layout if there's an error
+#         pos = nx.spring_layout(graph)
+#         # Assign default colors if layout falls back
+#         color_map = ['red' for node in graph.nodes]
+#
+#     nx.draw(graph, pos, with_labels=True, node_color=color_map, edge_color='gray', node_size=500, font_size=10)
+#
+#     # Adjust the layout to make sure the title is visible
+#     plt.tight_layout(rect=[0, 0, 1, 0.90])
+#
+#     img_bytes = io.BytesIO()
+#     plt.savefig(img_bytes, format='png')
+#     plt.close()
+#     img_bytes.seek(0)
+#
+#     return base64.b64encode(img_bytes.read()).decode('utf-8')
 
-    plt.figure()
-    plt.title('Envy Graph',fontsize=16)
-    additional_text=f'category -> {category} iteration -> {iteration}' if text is None else text
-    plt.figtext(0.5, 0.85, additional_text, wrap=True, horizontalalignment='center', fontsize=10)
-    pos = nx.spring_layout(graph, seed=seed)  # Use a seed for reproducibility
-    nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10, arrows=True)
+def helper_generate_directed_graph_base64(graph, seed=42, category: str = '', iteration: int = None, text: str = None):
+    plt.figure(figsize=(14, 10), dpi=100)  # Figure size and DPI for quality
+    plt.title('Envy Graph', fontsize=24, pad=60)  # Increased padding to separate title from additional text
+
+    # Additional text with better placement
+    additional_text = f'Category: {category} | Iteration: {iteration}' if text is None else text
+    plt.figtext(0.5, 0.88, additional_text, wrap=True, horizontalalignment='center', fontsize=16)  # Lowered text position
+
+    pos = nx.spring_layout(graph, seed=seed)
+    nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=2000, font_size=16, arrows=True)
 
     img_bytes = io.BytesIO()
-    plt.savefig(img_bytes, format='png')
+    plt.savefig(img_bytes, format='png', bbox_inches='tight')  # Save with tight bounding box for better layout
     plt.close()
     img_bytes.seek(0)
 
     base64_image = base64.b64encode(img_bytes.read()).decode('utf-8')
-    print("Generated image data:", base64_image[:100])  # Print the first 100 characters of the image data
     return base64_image
 
 
-def helper_generate_bipartite_graph_base64(graph,iteration:int,category:str,text:str=None):
-    #logger.info(f'**********\nRunning helper_generate_bipartite_graph_base64\n**********')
-    plt.figure()
-    plt.title('Agent-Item Bipartite Graph', fontsize=16)
-    additional_text=f'category -> {category} iteration -> {iteration}' if text is None else text
-    plt.figtext(0.5, 0.85, additional_text, wrap=True, horizontalalignment='center', fontsize=10)
+def helper_generate_bipartite_graph_base64(graph, iteration: int, category: str, text: str = None):
+    plt.figure(figsize=(14, 10), dpi=100)  # Figure size and DPI for quality
+    plt.title('Agent-Item Bipartite Graph', fontsize=24, pad=60)  # Increased padding to separate title from additional text
+
+    # Additional text with better placement
+    additional_text = f'Category: {category} | Iteration: {iteration}' if text is None else text
+    plt.figtext(0.5, 0.88, additional_text, wrap=True, horizontalalignment='center', fontsize=16)  # Lowered text position
+
     try:
         top_nodes = {n for n, d in graph.nodes(data=True) if d['bipartite'] == 0}
         bottom_nodes = set(graph) - top_nodes
 
-        # Create fixed positions
         pos = {}
         pos.update((node, (1, index)) for index, node in enumerate(top_nodes))  # x=1 for top_nodes
         pos.update((node, (2, index)) for index, node in enumerate(bottom_nodes))  # x=2 for bottom_nodes
 
-        # Assign colors to the nodes based on their group
         color_map = ['red' if node in top_nodes else 'blue' for node in graph.nodes]
     except nx.NetworkXError:
-        # Fallback to spring layout if there's an error
         pos = nx.spring_layout(graph)
-        # Assign default colors if layout falls back
         color_map = ['red' for node in graph.nodes]
 
-    nx.draw(graph, pos, with_labels=True, node_color=color_map, edge_color='gray', node_size=500, font_size=10)
+    nx.draw(graph, pos, with_labels=True, node_color=color_map, edge_color='gray', node_size=2000, font_size=16)
 
-    # Adjust the layout to make sure the title is visible
-    plt.tight_layout(rect=[0, 0, 1, 0.90])
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
 
     img_bytes = io.BytesIO()
-    plt.savefig(img_bytes, format='png')
+    plt.savefig(img_bytes, format='png', bbox_inches='tight')  # Save with tight bounding box for better layout
     plt.close()
     img_bytes.seek(0)
 
     return base64.b64encode(img_bytes.read()).decode('utf-8')
-
 def helper_configure_logger():
     #logger.info(f'**********\nRunning helper_configure_logger\n**********')
     # Create a string stream to capture logs
@@ -1347,77 +1398,137 @@ def helper_get_logs(log_stream):
 
 if __name__ == "__main__":
     import doctest, sys
+    import time
+    #
+    # print("\n", doctest.testmod(), "\n")
+    # sys.exit(1)
+    #
+    # logger.setLevel(logging.INFO)
+    # logger.addHandler(logging.StreamHandler())
+    # logger.addHandler(logging.FileHandler('fairpy.log'))
+    #
+    # order = ['Agent14', 'Agent2', 'Agent16', 'Agent3', 'Agent6', 'Agent12', 'Agent8', 'Agent15', 'Agent19', 'Agent4',
+    #          'Agent13', 'Agent9', 'Agent5', 'Agent11', 'Agent17', 'Agent7', 'Agent1', 'Agent10', 'Agent18']
+    # items = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9', 'm10']
+    # item_categories = {'c1': ['m5'], 'c2': ['m1'], 'c3': ['m4'], 'c4': ['m10'], 'c5': ['m8'], 'c6': ['m9'],
+    #                    'c7': ['m6'], 'c8': ['m2'], 'c9': ['m3'], 'c10': ['m7']}
+    #
+    # equal_capacity = {'c1': 10, 'c2': 11, 'c3': 11, 'c4': 11, 'c5': 10, 'c6': 11, 'c7': 10, 'c8': 10, 'c9': 11,
+    #                   'c10': 10}
+    # agent_category_capacities = {
+    #     'Agent1': equal_capacity,
+    #     'Agent2': equal_capacity,
+    #     'Agent3': equal_capacity,
+    #     'Agent4': equal_capacity,
+    #     'Agent5': equal_capacity,
+    #     'Agent6': equal_capacity,
+    #     'Agent7': equal_capacity,
+    #     'Agent8': equal_capacity,
+    #     'Agent9': equal_capacity,
+    #     'Agent10': equal_capacity,
+    #     'Agent11': equal_capacity,
+    #     'Agent12': equal_capacity,
+    #     'Agent13': equal_capacity,
+    #     'Agent14': equal_capacity,
+    #     'Agent15': equal_capacity,
+    #     'Agent16': equal_capacity,
+    #     'Agent17': equal_capacity,
+    #     'Agent18': equal_capacity,
+    #     'Agent19': equal_capacity,
+    # }
+    #
+    # valuations = {'Agent1': {'m1': 1, 'm2': 0, 'm3': 1, 'm4': 1, 'm5': 0, 'm6': 1, 'm7': 1, 'm8': 1, 'm9': 0, 'm10': 0},
+    #               'Agent2': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 1, 'm5': 0, 'm6': 1, 'm7': 0, 'm8': 1, 'm9': 0, 'm10': 0},
+    #               'Agent3': {'m1': 0, 'm2': 0, 'm3': 1, 'm4': 1, 'm5': 1, 'm6': 1, 'm7': 1, 'm8': 0, 'm9': 1, 'm10': 0},
+    #               'Agent4': {'m1': 1, 'm2': 0, 'm3': 1, 'm4': 0, 'm5': 1, 'm6': 1, 'm7': 0, 'm8': 0, 'm9': 0, 'm10': 1},
+    #               'Agent5': {'m1': 1, 'm2': 1, 'm3': 0, 'm4': 0, 'm5': 1, 'm6': 0, 'm7': 0, 'm8': 1, 'm9': 0, 'm10': 0},
+    #               'Agent6': {'m1': 0, 'm2': 1, 'm3': 0, 'm4': 1, 'm5': 0, 'm6': 1, 'm7': 0, 'm8': 1, 'm9': 1, 'm10': 0},
+    #               'Agent7': {'m1': 0, 'm2': 1, 'm3': 0, 'm4': 1, 'm5': 0, 'm6': 1, 'm7': 0, 'm8': 0, 'm9': 0, 'm10': 0},
+    #               'Agent8': {'m1': 1, 'm2': 1, 'm3': 0, 'm4': 1, 'm5': 0, 'm6': 1, 'm7': 1, 'm8': 0, 'm9': 1, 'm10': 0},
+    #               'Agent9': {'m1': 0, 'm2': 0, 'm3': 0, 'm4': 0, 'm5': 1, 'm6': 1, 'm7': 0, 'm8': 0, 'm9': 0, 'm10': 0},
+    #               'Agent10': {'m1': 1, 'm2': 1, 'm3': 0, 'm4': 0, 'm5': 1, 'm6': 0, 'm7': 1, 'm8': 1, 'm9': 1,
+    #                           'm10': 1},
+    #               'Agent11': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 1, 'm5': 1, 'm6': 1, 'm7': 1, 'm8': 0, 'm9': 0,
+    #                           'm10': 1},
+    #               'Agent12': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 0, 'm5': 0, 'm6': 1, 'm7': 0, 'm8': 0, 'm9': 1,
+    #                           'm10': 0},
+    #               'Agent13': {'m1': 1, 'm2': 0, 'm3': 1, 'm4': 0, 'm5': 0, 'm6': 1, 'm7': 0, 'm8': 0, 'm9': 0,
+    #                           'm10': 0},
+    #               'Agent14': {'m1': 0, 'm2': 1, 'm3': 0, 'm4': 1, 'm5': 0, 'm6': 0, 'm7': 1, 'm8': 1, 'm9': 1,
+    #                           'm10': 1},
+    #               'Agent15': {'m1': 0, 'm2': 0, 'm3': 1, 'm4': 0, 'm5': 1, 'm6': 1, 'm7': 1, 'm8': 1, 'm9': 0,
+    #                           'm10': 0},
+    #               'Agent16': {'m1': 1, 'm2': 0, 'm3': 0, 'm4': 1, 'm5': 1, 'm6': 1, 'm7': 0, 'm8': 0, 'm9': 0,
+    #                           'm10': 1},
+    #               'Agent17': {'m1': 1, 'm2': 0, 'm3': 1, 'm4': 0, 'm5': 0, 'm6': 0, 'm7': 1, 'm8': 1, 'm9': 0,
+    #                           'm10': 1},
+    #               'Agent18': {'m1': 0, 'm2': 1, 'm3': 0, 'm4': 0, 'm5': 1, 'm6': 0, 'm7': 0, 'm8': 0, 'm9': 0,
+    #                           'm10': 0},
+    #               'Agent19': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 1, 'm5': 1, 'm6': 1, 'm7': 1, 'm8': 1, 'm9': 0,
+    #                           'm10': 0}}
+    #
+    # inst = Instance(valuations=valuations, items=items)
+    # print(inst)
+    # divide(algorithm=per_category_round_robin, instance=inst,
+    #        item_categories=item_categories, agent_category_capacities=agent_category_capacities,
+    #        initial_agent_order=order)
 
-    print("\n", doctest.testmod(), "\n")
-    sys.exit(1)
+    from IPython.display import display, Image
+    import base64
+    images_data = []
 
-    logger.setLevel(logging.INFO)
+
+    def store_visualization(img_base64):  # used to get us the images from fairpyx !
+        images_data.append(img_base64)
+
+
+    import matplotlib.pyplot as plt
+    import base64
+    from io import BytesIO
+    from PIL import Image
+
+
+    def display_all_images_with_matplotlib(images_data):
+        for img_base64 in images_data:
+            img_data = base64.b64decode(img_base64)
+            img = Image.open(BytesIO(img_data))
+            plt.imshow(img)
+            plt.axis('off')  # Hide axes for a cleaner look
+            plt.show()
+
+    logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
-    logger.addHandler(logging.FileHandler('fairpy.log'))
 
-    order = ['Agent14', 'Agent2', 'Agent16', 'Agent3', 'Agent6', 'Agent12', 'Agent8', 'Agent15', 'Agent19', 'Agent4',
-             'Agent13', 'Agent9', 'Agent5', 'Agent11', 'Agent17', 'Agent7', 'Agent1', 'Agent10', 'Agent18']
-    items = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9', 'm10']
-    item_categories = {'c1': ['m5'], 'c2': ['m1'], 'c3': ['m4'], 'c4': ['m10'], 'c5': ['m8'], 'c6': ['m9'],
-                       'c7': ['m6'], 'c8': ['m2'], 'c9': ['m3'], 'c10': ['m7']}
-
-    equal_capacity = {'c1': 10, 'c2': 11, 'c3': 11, 'c4': 11, 'c5': 10, 'c6': 11, 'c7': 10, 'c8': 10, 'c9': 11,
-                      'c10': 10}
+    order = ['Agent1', 'Agent8', 'Agent5', 'Agent7', 'Agent2', 'Agent9', 'Agent4', 'Agent3', 'Agent10', 'Agent6']
+    items = ['m1']
+    item_categories = {'c1': ['m1'], 'c2': [], 'c3': [], 'c4': [], 'c5': [], 'c6': [], 'c7': [], 'c8': [], 'c9': [],
+                       'c10': []}
     agent_category_capacities = {
-        'Agent1': equal_capacity,
-        'Agent2': equal_capacity,
-        'Agent3': equal_capacity,
-        'Agent4': equal_capacity,
-        'Agent5': equal_capacity,
-        'Agent6': equal_capacity,
-        'Agent7': equal_capacity,
-        'Agent8': equal_capacity,
-        'Agent9': equal_capacity,
-        'Agent10': equal_capacity,
-        'Agent11': equal_capacity,
-        'Agent12': equal_capacity,
-        'Agent13': equal_capacity,
-        'Agent14': equal_capacity,
-        'Agent15': equal_capacity,
-        'Agent16': equal_capacity,
-        'Agent17': equal_capacity,
-        'Agent18': equal_capacity,
-        'Agent19': equal_capacity,
-    }
-
-    valuations = {'Agent1': {'m1': 1, 'm2': 0, 'm3': 1, 'm4': 1, 'm5': 0, 'm6': 1, 'm7': 1, 'm8': 1, 'm9': 0, 'm10': 0},
-                  'Agent2': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 1, 'm5': 0, 'm6': 1, 'm7': 0, 'm8': 1, 'm9': 0, 'm10': 0},
-                  'Agent3': {'m1': 0, 'm2': 0, 'm3': 1, 'm4': 1, 'm5': 1, 'm6': 1, 'm7': 1, 'm8': 0, 'm9': 1, 'm10': 0},
-                  'Agent4': {'m1': 1, 'm2': 0, 'm3': 1, 'm4': 0, 'm5': 1, 'm6': 1, 'm7': 0, 'm8': 0, 'm9': 0, 'm10': 1},
-                  'Agent5': {'m1': 1, 'm2': 1, 'm3': 0, 'm4': 0, 'm5': 1, 'm6': 0, 'm7': 0, 'm8': 1, 'm9': 0, 'm10': 0},
-                  'Agent6': {'m1': 0, 'm2': 1, 'm3': 0, 'm4': 1, 'm5': 0, 'm6': 1, 'm7': 0, 'm8': 1, 'm9': 1, 'm10': 0},
-                  'Agent7': {'m1': 0, 'm2': 1, 'm3': 0, 'm4': 1, 'm5': 0, 'm6': 1, 'm7': 0, 'm8': 0, 'm9': 0, 'm10': 0},
-                  'Agent8': {'m1': 1, 'm2': 1, 'm3': 0, 'm4': 1, 'm5': 0, 'm6': 1, 'm7': 1, 'm8': 0, 'm9': 1, 'm10': 0},
-                  'Agent9': {'m1': 0, 'm2': 0, 'm3': 0, 'm4': 0, 'm5': 1, 'm6': 1, 'm7': 0, 'm8': 0, 'm9': 0, 'm10': 0},
-                  'Agent10': {'m1': 1, 'm2': 1, 'm3': 0, 'm4': 0, 'm5': 1, 'm6': 0, 'm7': 1, 'm8': 1, 'm9': 1,
-                              'm10': 1},
-                  'Agent11': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 1, 'm5': 1, 'm6': 1, 'm7': 1, 'm8': 0, 'm9': 0,
-                              'm10': 1},
-                  'Agent12': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 0, 'm5': 0, 'm6': 1, 'm7': 0, 'm8': 0, 'm9': 1,
-                              'm10': 0},
-                  'Agent13': {'m1': 1, 'm2': 0, 'm3': 1, 'm4': 0, 'm5': 0, 'm6': 1, 'm7': 0, 'm8': 0, 'm9': 0,
-                              'm10': 0},
-                  'Agent14': {'m1': 0, 'm2': 1, 'm3': 0, 'm4': 1, 'm5': 0, 'm6': 0, 'm7': 1, 'm8': 1, 'm9': 1,
-                              'm10': 1},
-                  'Agent15': {'m1': 0, 'm2': 0, 'm3': 1, 'm4': 0, 'm5': 1, 'm6': 1, 'm7': 1, 'm8': 1, 'm9': 0,
-                              'm10': 0},
-                  'Agent16': {'m1': 1, 'm2': 0, 'm3': 0, 'm4': 1, 'm5': 1, 'm6': 1, 'm7': 0, 'm8': 0, 'm9': 0,
-                              'm10': 1},
-                  'Agent17': {'m1': 1, 'm2': 0, 'm3': 1, 'm4': 0, 'm5': 0, 'm6': 0, 'm7': 1, 'm8': 1, 'm9': 0,
-                              'm10': 1},
-                  'Agent18': {'m1': 0, 'm2': 1, 'm3': 0, 'm4': 0, 'm5': 1, 'm6': 0, 'm7': 0, 'm8': 0, 'm9': 0,
-                              'm10': 0},
-                  'Agent19': {'m1': 1, 'm2': 1, 'm3': 1, 'm4': 1, 'm5': 1, 'm6': 1, 'm7': 1, 'm8': 1, 'm9': 0,
-                              'm10': 0}}
-
-    inst = Instance(valuations=valuations, items=items)
-    print(inst)
-    divide(algorithm=per_category_round_robin, instance=inst,
-           item_categories=item_categories, agent_category_capacities=agent_category_capacities,
-           initial_agent_order=order)
-
+        'Agent1': {'c1': 20, 'c2': 15, 'c3': 8, 'c4': 1, 'c5': 2, 'c6': 10, 'c7': 1, 'c8': 11, 'c9': 4, 'c10': 12},
+        'Agent2': {'c1': 19, 'c2': 3, 'c3': 1, 'c4': 1, 'c5': 5, 'c6': 6, 'c7': 7, 'c8': 9, 'c9': 18, 'c10': 16},
+        'Agent3': {'c1': 5, 'c2': 10, 'c3': 11, 'c4': 2, 'c5': 2, 'c6': 8, 'c7': 10, 'c8': 4, 'c9': 7, 'c10': 12},
+        'Agent4': {'c1': 15, 'c2': 19, 'c3': 1, 'c4': 15, 'c5': 4, 'c6': 13, 'c7': 11, 'c8': 12, 'c9': 5, 'c10': 7},
+        'Agent5': {'c1': 5, 'c2': 16, 'c3': 4, 'c4': 13, 'c5': 5, 'c6': 9, 'c7': 15, 'c8': 16, 'c9': 4, 'c10': 16},
+        'Agent6': {'c1': 14, 'c2': 17, 'c3': 18, 'c4': 6, 'c5': 10, 'c6': 4, 'c7': 1, 'c8': 6, 'c9': 1, 'c10': 18},
+        'Agent7': {'c1': 19, 'c2': 5, 'c3': 3, 'c4': 17, 'c5': 4, 'c6': 3, 'c7': 11, 'c8': 14, 'c9': 17, 'c10': 8},
+        'Agent8': {'c1': 10, 'c2': 1, 'c3': 11, 'c4': 19, 'c5': 12, 'c6': 3, 'c7': 3, 'c8': 4, 'c9': 4, 'c10': 19},
+        'Agent9': {'c1': 15, 'c2': 4, 'c3': 18, 'c4': 19, 'c5': 15, 'c6': 10, 'c7': 2, 'c8': 5, 'c9': 11, 'c10': 12},
+        'Agent10': {'c1': 9, 'c2': 12, 'c3': 3, 'c4': 20, 'c5': 17, 'c6': 1, 'c7': 1, 'c8': 7, 'c9': 20, 'c10': 15}}
+    valuations = {'Agent1': {'m1': 100}, 'Agent2': {'m1': 100}, 'Agent3': {'m1': 100}, 'Agent4': {'m1': 100},
+                  'Agent5': {'m1': 100}, 'Agent6': {'m1': 100}, 'Agent7': {'m1': 100}, 'Agent8': {'m1': 100},
+                  'Agent9': {'m1': 100}, 'Agent10': {'m1': 100}}
+    sum_agent_category_capacities = {agent: sum(cap.values()) for agent, cap in agent_category_capacities.items()}
+    instance = Instance(valuations=valuations, items=items, agent_capacities=sum_agent_category_capacities)
+    # print(instance)
+    start_time = time.perf_counter()
+    divide(algorithm=per_category_capped_round_robin, instance=instance, item_categories=item_categories,
+           agent_category_capacities=agent_category_capacities, initial_agent_order=order)
+    end_time = time.perf_counter()
+    print(f'time taken{end_time - start_time}')
+    # with callback (storing graph images)
+    start_time = time.perf_counter()
+    divide(algorithm=per_category_capped_round_robin, instance=instance, item_categories=item_categories,
+           agent_category_capacities=agent_category_capacities, initial_agent_order=order, callback=store_visualization)
+    end_time = time.perf_counter()
+    print(f'time taken{end_time - start_time}')
+    display_all_images_with_matplotlib(images_data)
