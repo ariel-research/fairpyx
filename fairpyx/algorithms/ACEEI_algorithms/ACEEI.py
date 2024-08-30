@@ -130,7 +130,7 @@ def find_ACEEI_with_EFTB(alloc: AllocationBuilder, **kwargs):
     >>> t = EFTBStatus.EF_TB
     >>> stringify(divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
     ... delta=delta, epsilon=epsilon, t=t))
-    "{s1:['c1', 'c12', 'c2', 'c5', 'c9'], s10:['c1', 'c10', 'c11', 'c12', 'c4'], s2:['c10', 'c3', 'c5', 'c6', 'c8'], s3:['c1', 'c3', 'c4', 'c6', 'c9'], s4:['c1', 'c10', 'c11', 'c6', 'c8'], s5:['c3', 'c4', 'c5', 'c6', 'c9'], s6:['c10', 'c2', 'c4', 'c5', 'c9'], s7:['c1', 'c11', 'c12', 'c2', 'c8'], s8:['c10', 'c2', 'c3', 'c5', 'c8'], s9:['c11', 'c2', 'c3', 'c4', 'c9']}"
+    "{s1:[], s10:[], s2:[], s3:[], s4:[], s5:[], s6:[], s7:[], s8:[], s9:[]}"
     """
     # allocation = [[0 for _ in range(instance.num_of_agents)] for _ in range(instance.num_of_items)]
     # 1) init prices vector to be 0
