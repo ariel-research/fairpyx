@@ -1389,7 +1389,7 @@ def helper_configure_logger():
     formatter = logging.Formatter('%(message)s')
     logger.addHandler(stream_handler)
     stream_handler.setFormatter(formatter)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     return log_stream
 
 def helper_get_logs(log_stream):
