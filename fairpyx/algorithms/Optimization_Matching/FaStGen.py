@@ -19,7 +19,7 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
 
     :param alloc: an allocation builder, which tracks the allocation and the remaining capacity for items and agents.
     :param items_valuations: a dictionary represents how items valuates the agents
-    
+
     >>> from fairpyx.adaptors import divide
     >>> S = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
     >>> C = ["c1", "c2", "c3", "c4"]
@@ -31,10 +31,18 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
     {'c1': ['s1', 's2', 's3'], 'c2': ['s4'], 'c3': ['s5'], 'c4': ['s7', 's6']}
     """
     logger.info("Starting FaStGen algorithm")
-    
+
     agents = alloc.instance.agents
     items = alloc.instance.items
     agents_valuations = alloc.instance._valuations
+
+    if agents == []:
+        raise ValueError(f"Agents list can't be empty")
+    if items == []:
+        raise ValueError(f"Items list can't be empty")
+    if items_valuations == {}:
+        raise ValueError(f"Items valuations list can't be empty")
+
     #Convert the list of the agents and item to dictionary so that each agent\item will have its coresponding integer
     student_name_to_int = generate_dict_from_str_to_int(agents)
     college_name_to_int = generate_dict_from_str_to_int(items)
@@ -51,7 +59,7 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
     LowerFix = [college_name_to_int[items[len(items)-1]]]       # Inidces of colleges from which we cannot remove any more students.
     SoftFix = []
     UnFixed = [item for item in college_name_to_int.values() if item not in UpperFix]
-   
+
 
     #creating a dictionary of vj(µ) = Pi∈µ(cj) for each j in C
     matching_college_valuations = update_matching_valuations_sum(match=str_match, items_valuations=items_valuations)
@@ -62,10 +70,10 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
         up = min([j for j in college_name_to_int.values() if j not in LowerFix])
         down = min(UnFixed, key=lambda j: matching_college_valuations[int_to_college_name[j]])
         logger.debug(f"up: {up}, down: {down}")
-        
+
         SoftFix = [pair for pair in SoftFix if not (pair[1] <= up < pair[0])]
         logger.debug(f"Updating SoftFix to {SoftFix}")
-        
+
         logger.debug(f"vup(mu)={matching_college_valuations[int_to_college_name[up]]}, vdown(mu)={matching_college_valuations[int_to_college_name[down]]}")
         if (len(integer_match[up]) == 1) or (matching_college_valuations[int_to_college_name[up]] <= matching_college_valuations[int_to_college_name[down]]):
             LowerFix.append(up)
@@ -84,25 +92,25 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
             logger.info(f"Old match leximin tuple: {match_leximin_tuple}")
             new_match_leximin_tuple = create_leximin_tuple(match=new_match_str, agents_valuations=agents_valuations, items_valuations=items_valuations)
             logger.info(f"New match leximin tuple: {new_match_leximin_tuple}")
-            
+
             #Extarcting from the SourceDec function the problematic item or agent, if there isn't one then it will be ""
             problematic_component = sourceDec(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=match_leximin_tuple)
             logger.info(f"   problematic component: {problematic_component}")
-           
+
             if problematic_component == "":
                 logger.debug(f"New match is leximin-better than old match:")
-                integer_match = new_integer_match  
+                integer_match = new_integer_match
                 str_match = new_match_str
                 matching_college_valuations = update_matching_valuations_sum(match=str_match,items_valuations=items_valuations)
                 logger.debug(f"   Match updated to {str_match}")
                 logger.info(f"    matching_college_valuations: {matching_college_valuations}")
-            
+
             elif problematic_component == int_to_college_name[up]:
                 logger.debug(f"New match is leximin-worse because of c_up = c_{up}:")
                 LowerFix.append(up)
                 UpperFix.append(up + 1)
                 logger.info(f"   Updated LowerFix and UpperFix with {up}")
-            
+
             elif problematic_component in alloc.instance.agents:
                 sd = problematic_component
                 logger.debug(f"New match is leximin-worse because of student {sd}: ")
@@ -113,15 +121,15 @@ def FaStGen(alloc: AllocationBuilder, items_valuations:dict)->dict:
                 A = [j for j in UnFixed if (j > t + 1)]
                 SoftFix.extend((j, t+1) for j in A)
                 logger.debug(f"   Updating SoftFix to {SoftFix}")
-            
+
             else:
                 logger.debug(f"New match is leximin-worse because of college {sourceDec(new_match_leximin_tuple, match_leximin_tuple)}: ")
                 str_match, LowerFix, UpperFix, SoftFix = LookAheadRoutine((agents, items, agents_valuations, items_valuations), integer_match, down, LowerFix, UpperFix, SoftFix)
                 logger.debug(f"   LookAheadRoutine result: match={str_match}, LowerFix={LowerFix}, UpperFix={UpperFix}, SoftFix={SoftFix}")
-        
+
         UnFixed = [
-            j for j in college_name_to_int.values() 
-            if (j not in UpperFix) or 
+            j for j in college_name_to_int.values()
+            if (j not in UpperFix) or
             any((j, _j) not in SoftFix for _j in college_name_to_int.values() if _j > j)
             ]
         logger.debug(f"   Updating UnFixed to {UnFixed}")
@@ -143,13 +151,13 @@ def LookAheadRoutine(I:tuple, integer_match:dict, down:int, LowerFix:list, Upper
     :param UpperFix: The group of colleges whose upper limit is fixed.
     :param SoftFix: A set of temporary upper limits.
     *We will asume that in the colleges list in index 0 there is college 1 in index 1 there is coll
-    
+
     >>> from fairpyx.adaptors import divide
     >>> S = ["s1", "s2", "s3", "s4", "s5"]
     >>> C = ["c1", "c2", "c3", "c4"]
-    >>> V = {"c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10},"c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26},"c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28},"c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15}}                               
-    >>> U = {"s1" : {"c1":16,"c2":10,"c3":6,"c4":5},"s2" : {"c1":36,"c2":20,"c3":10,"c4":1},"s3" : {"c1":29,"c2":24,"c3":12,"c4":10},"s4" : {"c1":41,"c2":24,"c3":5,"c4":3},"s5" : {"c1":36,"c2":19,"c3":9,"c4":6}}                              
-    >>> match = {1 : [1,2],2 : [3],3 : [4],4 : [5]}
+    >>> V = {"c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10},"c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26},"c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28},"c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15}}
+    >>> U = {"s1" : {"c1":16,"c2":10,"c3":6,"c4":5},"s2" : {"c1":36,"c2":20,"c3":10,"c4":1},"s3" : {"c1":29,"c2":24,"c3":12,"c4":10},"s4" : {"c1":41,"c2":24,"c3":5,"c4":3},"s5" : {"c1":36,"c2":19,"c3":9,"c4":6}}
+    >>> match = {1: [1,2],  2: [3], 3: [4], 4: [5]}
     >>> I = (S,C,U,V)
     >>> down = 4
     >>> LowerFix = [4]
@@ -157,11 +165,20 @@ def LookAheadRoutine(I:tuple, integer_match:dict, down:int, LowerFix:list, Upper
     >>> SoftFix = []
     >>> LookAheadRoutine(I, match, down, LowerFix, UpperFix, SoftFix)
     ({'c1': ['s1', 's2'], 'c2': ['s3'], 'c3': ['s4'], 'c4': ['s5']}, [4], [1, 4], [])
-    """    
+    """
     agents, items, agents_valuations, items_valuations = I
 
+    if agents == []:
+        raise ValueError(f"Agents list can't be empty")
+    if items == []:
+        raise ValueError(f"Items list can't be empty")
+    if agents_valuations == {}:
+        raise ValueError(f"Agents valuations list can't be empty")
+    if items_valuations == {}:
+        raise ValueError(f"Items valuations list can't be empty")
+
     student_name_to_int = generate_dict_from_str_to_int(agents)
-    college_name_to_int = generate_dict_from_str_to_int(items) 
+    college_name_to_int = generate_dict_from_str_to_int(items)
     int_to_student_name = generate_dict_from_int_to_str(agents)
     int_to_college_name = generate_dict_from_int_to_str(items)
 
@@ -187,13 +204,13 @@ def LookAheadRoutine(I:tuple, integer_match:dict, down:int, LowerFix:list, Upper
 
             new_str_match = integer_to_str_matching(integer_match=new_integer_match, items_dict=college_name_to_int, agent_dict=student_name_to_int)
             matching_college_valuations = update_matching_valuations_sum(match=new_str_match,items_valuations=items_valuations)
-            
+
             old_match_leximin_tuple = create_leximin_tuple(match=given_str_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
             new_match_leximin_tuple = create_leximin_tuple(match=new_str_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
             logger.info(f"   Old match leximin tuple: {old_match_leximin_tuple}")
             new_match_leximin_tuple = create_leximin_tuple(match=new_str_match, agents_valuations=agents_valuations, items_valuations=items_valuations)
             logger.info(f"   New match leximin tuple: {new_match_leximin_tuple}")
-            
+
                 #Extarcting from the SourceDec function the problematic item or agent, if there isn't one then it will be ""
             problematic_component = sourceDec(new_match_leximin_tuple=new_match_leximin_tuple, old_match_leximin_tuple=old_match_leximin_tuple)
             logger.info(f"   problematic component: {problematic_component}")
@@ -244,18 +261,18 @@ def create_leximin_tuple(match:dict, agents_valuations:dict, items_valuations:di
     Example:
     >>> match = {"c1":["s1","s2","s3","s4"], "c2":["s5"], "c3":["s6"], "c4":["s7"]}
     >>> items_valuations = {       #the colleges valuations
-    ... "c1":{"s1":50, "s2":23, "s3":21, "s4":13, "s5":10, "s6":6, "s7":5}, 
-    ... "c2":{"s1":45, "s2":40, "s3":32, "s4":29, "s5":26, "s6":11, "s7":4}, 
-    ... "c3":{"s1":90, "s2":79, "s3":60, "s4":35, "s5":28, "s6":20, "s7":15}, 
+    ... "c1":{"s1":50, "s2":23, "s3":21, "s4":13, "s5":10, "s6":6, "s7":5},
+    ... "c2":{"s1":45, "s2":40, "s3":32, "s4":29, "s5":26, "s6":11, "s7":4},
+    ... "c3":{"s1":90, "s2":79, "s3":60, "s4":35, "s5":28, "s6":20, "s7":15},
     ... "c4":{"s1":80, "s2":48, "s3":36, "s4":29, "s5":15, "s6":7, "s7":1},
     ... }
-    >>> agents_valuations = {       #the students valuations   
-    ... "s1":{"c1":16, "c2":10, "c3":6, "c4":5}, 
-    ... "s2":{"c1":36, "c2":20, "c3":10, "c4":1}, 
-    ... "s3":{"c1":29, "c2":24, "c3":12, "c4":10}, 
-    ... "s4":{"c1":41, "c2":24, "c3":5, "c4":3}, 
-    ... "s5":{"c1":36, "c2":19, "c3":9, "c4":6}, 
-    ... "s6":{"c1":39, "c2":30, "c3":18, "c4":7}, 
+    >>> agents_valuations = {       #the students valuations
+    ... "s1":{"c1":16, "c2":10, "c3":6, "c4":5},
+    ... "s2":{"c1":36, "c2":20, "c3":10, "c4":1},
+    ... "s3":{"c1":29, "c2":24, "c3":12, "c4":10},
+    ... "s4":{"c1":41, "c2":24, "c3":5, "c4":3},
+    ... "s5":{"c1":36, "c2":19, "c3":9, "c4":6},
+    ... "s6":{"c1":39, "c2":30, "c3":18, "c4":7},
     ... "s7":{"c1":40, "c2":29, "c3":6, "c4":1}
     ... }
     >>> create_leximin_tuple(match, agents_valuations, items_valuations)
@@ -264,7 +281,7 @@ def create_leximin_tuple(match:dict, agents_valuations:dict, items_valuations:di
     >>> match = {"c1":["s1","s2","s3"], "c2":["s4"], "c3":["s5"], "c4":["s7","s6"]}
     >>> create_leximin_tuple(match, agents_valuations, items_valuations)
     [('s7', 1), ('s6', 7), ('c4', 8), ('s5', 9), ('s1', 16), ('s4', 24), ('c3', 28), ('c2', 29), ('s3', 29), ('s2', 36), ('c1', 94)]
-    """ 
+    """
     leximin_tuple = []
     matching_college_valuations = update_matching_valuations_sum(match=match, items_valuations=items_valuations)
     logger.debug(f"matching_college_valuations: {matching_college_valuations}")
@@ -275,7 +292,7 @@ def create_leximin_tuple(match:dict, agents_valuations:dict, items_valuations:di
             leximin_tuple.append((item, matching_college_valuations[item]))
         for agent in match[item]:
             leximin_tuple.append((agent,agents_valuations[agent][item]))
-    
+
     leximin_tuple = sorted(leximin_tuple, key=lambda x: (x[1], x[0]))
     return leximin_tuple
 
@@ -307,7 +324,7 @@ def sourceDec(new_match_leximin_tuple:list, old_match_leximin_tuple:list)->str:
         elif new_match_leximin_tuple[k][1] > old_match_leximin_tuple[k][1]:
             return ""
         else:   #new_match_leximin_tuple[k][1] < old_match_leximin_tuple[k][1]
-            return new_match_leximin_tuple[k][0]  
+            return new_match_leximin_tuple[k][0]
     return ""
 
 def get_lowest_ranked_student(item_int:int, match_int:dict, items_valuations:dict, int_to_college_name:dict, int_to_student_name:dict):
@@ -325,8 +342,8 @@ def get_lowest_ranked_student(item_int:int, match_int:dict, items_valuations:dic
     # Example:
     >>> match = {1:[1,2,3,4], 2:[5], 3:[6], 4:[7]}
     >>> items_valuations = {       #the colleges valuations
-    ... "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
-    ... "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
+    ... "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5},
+    ... "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4},
     ... "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
     ... "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}
     ... }
@@ -357,8 +374,8 @@ def update_matching_valuations_sum(match:dict, items_valuations:dict)->dict:
     Example:
     >>> match = {"c1":["s1","s2","s3","s4"], "c2":["s5"], "c3":["s6"], "c4":["s7"]}
     >>> items_valuations = {       #the colleges valuations
-    ... "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
-    ... "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
+    ... "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5},
+    ... "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4},
     ... "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
     ... "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":7,"s7":1}
     ... }
@@ -370,7 +387,7 @@ def update_matching_valuations_sum(match:dict, items_valuations:dict)->dict:
     {'c1': 94, 'c2': 29, 'c3': 28, 'c4': 8}
     """
     matching_valuations_sum = { #in the artical it looks like this: vj(mu)
-        colleague: sum(items_valuations[colleague][student] for student in students) 
+        colleague: sum(items_valuations[colleague][student] for student in students)
         for colleague, students in match.items()
         }
     return matching_valuations_sum
@@ -407,7 +424,7 @@ def create_stable_matching(agents, agents_dict, items, items_dict):
     # Assign the remaining students to cj for j >= 2
     for j in range(1, len(items)):
         matching[items_dict[items[j]]] = [agents_dict[agents[len(agents) - (len(items) - j)]]]
-    
+
     return matching
 
 def generate_dict_from_str_to_int(input_list:list)->dict:
@@ -431,7 +448,7 @@ def generate_dict_from_str_to_int(input_list:list)->dict:
     {'c1': 1, 'c2': 2, 'c3': 3, 'c4': 4}
     """
     return {item: index + 1 for index, item in enumerate(input_list)}
-    
+
 def generate_dict_from_int_to_str(input_list:list)->dict:
     """
     Creating a dictionary that includes for each string item in the list an index representing it, key=integer.
@@ -476,7 +493,7 @@ def integer_to_str_matching(integer_match:dict, agent_dict:dict, items_dict:dict
     # Reverse the s_dict and c_dict to map integer values back to their string keys
     s_reverse_dict = {v: k for k, v in agent_dict.items()}
     c_reverse_dict = {v: k for k, v in items_dict.items()}
-    
+
     # Create the new dictionary with string keys and lists of string values
     return {c_reverse_dict[c_key]: [s_reverse_dict[s_val] for s_val in s_values] for c_key, s_values in integer_match.items()}
 
@@ -493,7 +510,7 @@ def get_match(match:dict, value:str)->any:
 
     Example:
     >>> match = {"c1":["s1","s2","s3","s4"], "c2":["s5"], "c3":["s6"], "c4":["s7"]}
-    
+
     >>> value = "c1"
     >>> get_match(match, value)
     ['s1', 's2', 's3', 's4']
@@ -522,7 +539,7 @@ def Demote(matching:dict, student_index:int, down_index:int, up_index:int, item_
     :param down_index: Index of the college to move the student to.
     :param up_index: Index of the upper bound college.
 
-        #*** The test is the same as the running example we gave in Ex2.***
+        #* The test is the same as the running example we gave in Ex2.*
 #    ...   valuations       = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}},
 
     >>> matching = {1: [1, 2, 3, 4], 2: [5], 3: [6], 4: [7]}
@@ -530,8 +547,8 @@ def Demote(matching:dict, student_index:int, down_index:int, up_index:int, item_
     >>> DOWN = 4
     >>> student_index = 6
     >>> items_valuations = {       #the colleges valuations
-    ... "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5}, 
-    ... "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4}, 
+    ... "c1" : {"s1":50,"s2":23,"s3":21,"s4":13,"s5":10,"s6":6,"s7":5},
+    ... "c2" : {"s1":45,"s2":40,"s3":32,"s4":29,"s5":26,"s6":11,"s7":4},
     ... "c3" : {"s1":90,"s2":79,"s3":60,"s4":35,"s5":28,"s6":20,"s7":15},
     ... "c4" : {"s1":80,"s2":48,"s3":36,"s4":29,"s5":15,"s6":6,"s7":1}
     ... }
@@ -566,7 +583,7 @@ def Demote(matching:dict, student_index:int, down_index:int, up_index:int, item_
 
     return matching #Return the matching after the change
 
-if __name__ == "__main__":
+if __name__ == "_main_":
     import doctest, sys
     console=logging.StreamHandler() #writes to stderr (= cerr)
     logger.handlers=[console] # we want the logs to be written to console
