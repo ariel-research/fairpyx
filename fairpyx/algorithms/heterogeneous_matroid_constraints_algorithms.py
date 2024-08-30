@@ -856,7 +856,7 @@ def helper_remove_cycles(envy_graph:nx.DiGraph, alloc:AllocationBuilder, valuati
         {'Agent1': ['Item2'], 'Agent2': ['Item1'], 'Agent3': ['Item3']}
 
          Example 3: 2 Agents bundle switching
-         >>> valuations = {'Agent1': {'Item1': 1, 'Item2': 1,'Item3': 10}, 'Agent2': {'Item1': 10, 'Item2': 10 ,'Item3':1}}
+        >>> valuations = {'Agent1': {'Item1': 1, 'Item2': 1,'Item3': 10}, 'Agent2': {'Item1': 10, 'Item2': 10 ,'Item3':1}}
         >>> items = ['Item1', 'Item2','Item3']
         >>> instance = Instance(valuations=valuations, items=items)
         >>> alloc = AllocationBuilder(instance)
@@ -881,6 +881,33 @@ def helper_remove_cycles(envy_graph:nx.DiGraph, alloc:AllocationBuilder, valuati
         >>> alloc.sorted()
         {'Agent1': ['Item3'], 'Agent2': ['Item1', 'Item2']}
 
+
+
+        Example 4: 2 cycle of size 3
+        >>> valuations = {'Agent1': {'Item1': 1, 'Item2': 2,'Item3': 1}, 'Agent2': {'Item1': 1, 'Item2': 1 ,'Item3':3},'Agent3': {'Item1': 10, 'Item2': 1 ,'Item3':5}}
+        >>> items = ['Item1', 'Item2','Item3']
+        >>> instance = Instance(valuations=valuations, items=items)
+        >>> alloc = AllocationBuilder(instance)
+        >>> alloc.give('Agent1', 'Item1')
+        >>> alloc.give('Agent2', 'Item2')
+        >>> alloc.give('Agent3', 'Item3')
+        >>> item_categories = {'c1': ['Item1'],'c2':['Item2'],'c3':['Item3']}
+        >>> agent_category_capacities = {'Agent1': {'c1': 1,'c2': 1,'c3': 1}, 'Agent2': {'c1': 1,'c2': 1,'c3': 1},'Agent3': {'c1': 1,'c2': 1,'c3': 1}}
+        >>> envy_graph = nx.DiGraph()
+        >>> valuation_callable=alloc.instance.agent_item_value
+        >>> def valuation_func(agent, item): return valuation_callable(agent,item)
+        >>> envy_graph = helper_update_envy_graph(alloc.bundles, valuation_func, item_categories, agent_category_capacities)
+        >>> list(envy_graph.edges)
+        [('Agent1', 'Agent2'), ('Agent2', 'Agent3'), ('Agent3', 'Agent1')]
+        >>> not nx.is_directed_acyclic_graph(envy_graph)
+        True
+        >>> envy_graph = helper_remove_cycles(envy_graph, alloc, valuation_func, item_categories, agent_category_capacities)
+        >>> list(nx.simple_cycles(envy_graph))
+        []
+        >>> list(envy_graph.edges)
+        []
+        >>> alloc.sorted()
+        {'Agent1': ['Item2'], 'Agent2': ['Item3'], 'Agent3': ['Item1']}
         """
     #TODO add example with cycle of length 3
 
