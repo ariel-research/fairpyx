@@ -14,7 +14,7 @@ from contextlib import redirect_stdout
 import os
 
 from fairpyx import Instance
-from fairpyx.algorithms import ACEEI
+from fairpyx.algorithms import ACEEI_algorithms
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instan
         :return final courses prices, final budgets, final allocation
 
         >>> from fairpyx import Instance
-        >>> from fairpyx.algorithms import ACEEI
+        >>> from fairpyx.algorithms import ACEEI_algorithms
 
         Example run 6 iteration 5
         >>> instance = Instance(
@@ -48,7 +48,7 @@ def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instan
         >>> map_student_to_best_bundle_per_budget = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
         >>> initial_budgets = {"Alice": 5, "Bob": 4}
         >>> prices = {"x": 1.5, "y": 2, "z": 0}
-        >>> t = ACEEI.ACEEI.EFTBStatus.EF_TB
+        >>> t = ACEEI_algorithms.ACEEI.EFTBStatus.EF_TB
         >>> optimize_model(map_student_to_best_bundle_per_budget,instance,prices,t,initial_budgets)
         ({'Alice': (3, ('x', 'z')), 'Bob': (2, ('y', 'z'))}, 0.0, {'x': 0.0, 'y': 0.0, 'z': 0.0})
 
@@ -60,7 +60,7 @@ def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instan
         >>> map_student_to_best_bundle_per_budget = {'avi': {1.3: ('x',)}, 'beni': {0: ()}}
         >>> initial_budgets = {"avi": 1.1, "beni": 1}
         >>> prices = {"x": 1.3}
-        >>> t = ACEEI.ACEEI.EFTBStatus.EF_TB
+        >>> t = ACEEI_algorithms.ACEEI.EFTBStatus.EF_TB
         >>> optimize_model(map_student_to_best_bundle_per_budget,instance,prices,t,initial_budgets)
         ({'avi': (1.3, ('x',)), 'beni': (0, ())}, 0.0, {'x': 0.0})
 
@@ -118,10 +118,10 @@ def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instan
         model += xsum(x[student, bundle] for bundle in map_student_to_best_bundle_per_budget[student].values()) == 1
 
     # Add EF-TB constraints based on parameter t
-    if t == ACEEI.ACEEI.EFTBStatus.NO_EF_TB:
+    if t == ACEEI_algorithms.ACEEI.EFTBStatus.NO_EF_TB:
         pass  # No EF-TB constraints, no need to anything
 
-    elif t == ACEEI.ACEEI.EFTBStatus.EF_TB or t == ACEEI.ACEEI.EFTBStatus.CONTESTED_EF_TB:
+    elif t == ACEEI_algorithms.ACEEI.EFTBStatus.EF_TB or t == ACEEI_algorithms.ACEEI.EFTBStatus.CONTESTED_EF_TB:
         # Add EF-TB constraints here
         envy_constraints = get_envy_constraints(instance, initial_budgets, map_student_to_best_bundle_per_budget, t, prices)
         for constraint in envy_constraints:
@@ -149,9 +149,6 @@ def optimize_model(map_student_to_best_bundle_per_budget: dict, instance: Instan
                 list(map_student_to_best_bundle_per_budget[student].values()).index(bundle)]  # Extract the price from dictionary a
             new_budgets[student] = (price, bundle)
 
-    # print("New budgets:", new_budgets)
-    # print("Objective Value:", model.objective_value)
-    # print("Excess Demand:", excess_demand)
     logging.info("\nNew budgets: %s\nObjective Value: %s\nExcess Demand: %s", new_budgets, model.objective_value,
                  excess_demand_per_course)
     logger.info("FINISH LINEAR_PROGRAM\n")
@@ -177,7 +174,7 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
 
         Example run 6 iteration 5
         >>> from fairpyx import Instance
-        >>> from fairpyx.algorithms import ACEEI
+        >>> from fairpyx.algorithms import ACEEI_algorithms
 
         >>> instance = Instance(
         ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
@@ -186,7 +183,7 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
         >>> student = "Alice"
         >>> other_student = "Bob"
         >>> a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
-        >>> t = ACEEI.ACEEI.EFTBStatus.EF_TB
+        >>> t = ACEEI_algorithms.ACEEI.EFTBStatus.EF_TB
         >>> prices = {"x": 1.5, "y": 2, "z": 0}
         >>> check_envy(instance, student, other_student, a, t, prices)
         [(('x', 'z'), ('x', 'y'))]
@@ -198,7 +195,7 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
         >>> student = "Alice"
         >>> other_student = "Bob"
         >>> a = {'Alice': {0: (), 1.1: ('y')}, 'Bob': {1.1: ('y'), 1: ('x')}}
-        >>> t = ACEEI.ACEEI.EFTBStatus.EF_TB
+        >>> t = ACEEI_algorithms.ACEEI.EFTBStatus.EF_TB
         >>> prices = {"x": 1, "y": 1.1}
         >>> check_envy(instance, student, other_student, a, t, prices)
         [((), 'y'), ((), 'x')]
@@ -211,7 +208,7 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
         >>> student = "Alice"
         >>> other_student = "Bob"
         >>> a = {'Alice': {3.5: ('x', 'y')}, 'Bob': {3.5: ('x'), 2: ('y', 'z')}}
-        >>> t = ACEEI.ACEEI.EFTBStatus.CONTESTED_EF_TB
+        >>> t = ACEEI_algorithms.ACEEI.EFTBStatus.CONTESTED_EF_TB
         >>> prices = {"x": 1, "y": 0.1, "z": 0, "w": 0}
         >>> check_envy(instance, student, other_student, a, t, prices)
         [(('x', 'y'), 'x'), (('x', 'y'), ('y', 'z'))]
@@ -222,7 +219,7 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
     for bundle_i in a[student].values():
         for bundle_j in a[other_student].values():
             original_bundle_j = bundle_j
-            if t == ACEEI.ACEEI.EFTBStatus.CONTESTED_EF_TB:
+            if t == ACEEI_algorithms.ACEEI.EFTBStatus.CONTESTED_EF_TB:
                 bundle_j = list(bundle_j)  # Convert bundle_j to a list
 
                 # Iterate through keys in prices
@@ -232,19 +229,12 @@ def check_envy(instance: Instance, student: str, other_student: str, a: dict, t:
                         # Add key to bundle_j
                         bundle_j.append(key)
 
-                # logger.info(f"----------{t}---------")
-                # logger.info(f"bundle_j of {other_student} = {bundle_j}")
-
                 sorted_bundle_j = sorted(bundle_j, key=lambda course: instance.agent_item_value(student, course),
                                          reverse=True)
-                # logger.info(f"sorted_bundle_j by {student} valuation = {sorted_bundle_j}")
 
                 sorted_bundle_j = sorted_bundle_j[:instance.agent_capacity(student)]
-                # logger.info(f"instance.agent_capacity = {instance.agent_capacity(student)}")
-                # logger.info(f"sorted_bundle_j of {student} = {sorted_bundle_j}")
 
                 bundle_j = tuple(sorted_bundle_j)
-                # logger.info(f"finish update bundle_j of {student} = {bundle_j}")
 
             if instance.agent_bundle_value(student, bundle_j) > instance.agent_bundle_value(student, bundle_i):
                 result.append((bundle_i, original_bundle_j))
@@ -269,14 +259,14 @@ def get_envy_constraints(instance: Instance, initial_budgets: dict, a: dict, t: 
 
         Example run 6 iteration 5
         >>> from fairpyx import Instance
-        >>> from fairpyx.algorithms import ACEEI
+        >>> from fairpyx.algorithms import ACEEI_algorithms
         >>> instance = Instance(
         ...     valuations={"Alice":{"x":5, "y":4, "z":1}, "Bob":{"x":4, "y":6, "z":3}},
         ...     agent_capacities=2,
         ...     item_capacities={"x":1, "y":1, "z":2})
         >>> initial_budgets = {"Alice": 5, "Bob": 4}
         >>> a = {'Alice': {3.5: ('x', 'y'), 3: ('x', 'z')}, 'Bob': {3.5: ('x', 'y'), 2: ('y', 'z')}}
-        >>> t = ACEEI.ACEEI.EFTBStatus.EF_TB
+        >>> t = ACEEI_algorithms.ACEEI.EFTBStatus.EF_TB
         >>> prices = {"x": 1, "y": 1.1}
         >>> get_envy_constraints(instance, initial_budgets, a, t, prices)
         [(('Alice', ('x', 'z')), ('Bob', ('x', 'y')))]
@@ -287,7 +277,7 @@ def get_envy_constraints(instance: Instance, initial_budgets: dict, a: dict, t: 
         ...     item_capacities={"x":1, "y":1})
         >>> initial_budgets = {"Alice": 1.1, "Bob": 1}
         >>> a = {'Alice': {0: (), 1.1: ('y')}, 'Bob': {1.1: ('y'), 1: ('x')}}
-        >>> t = ACEEI.ACEEI.EFTBStatus.EF_TB
+        >>> t = ACEEI_algorithms.ACEEI.EFTBStatus.EF_TB
         >>> prices = {"x": 1, "y": 1.1}
         >>> get_envy_constraints(instance, initial_budgets, a, t, prices)
         [(('Alice', ()), ('Bob', 'y')), (('Alice', ()), ('Bob', 'x'))]
