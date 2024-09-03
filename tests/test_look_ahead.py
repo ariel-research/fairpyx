@@ -70,5 +70,5 @@ def test_look_ahead_routine_edge_cases():
     assert new_UpperFix_single == [], "Look Ahead Routine algorithm failed on single student and single course (UpperFix)"
     assert new_SoftFix_single == [], "Look Ahead Routine algorithm failed on single student and single course (SoftFix)"
 
-if __name__ == "_main_":
+if __name__ == "__main__":
     pytest.main(["-v", __file__])

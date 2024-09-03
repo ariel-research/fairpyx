@@ -57,5 +57,5 @@ def test_FaStGen_edge_cases():
     result = FaStGen(alloc=alloc, items_valuations=V_single)
     assert result == {"c1": ["s1"]}, "FaStGen algorithm failed on single student and single course"
 
-if __name__ == "_main_":
+if __name__ == "__main__":
     pytest.main(["-v", __file__])
