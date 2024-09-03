@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fairness and Stability in Many-to-One Matchings</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #e3f2fd;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+        }
+        .custom-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        h1, h3 {
+            color: #007bff;
+        }
+        pre {
+            background-color: #f1f1f1;
+            color: #333;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .result-box {
+            background-color: #f1f1f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .highlight {
+            background-color: #ffeb3b;
+        }
+    </style>
+     <main>
+        <div class="main-background">
+            <section class="overview">
+                <h1>Achieving Fairness and Stability in Many-to-One Matchings</h1>
+                <h3>Problem Overview</h3>
+                <p class="algorithm-description">
+                     The algorithms we will represent will addresses the challenge of achieving fairness in stable many-to-one matchings, particularly in scenarios where both sides of the matching have preferences, and these preferences are expressed using cardinal valuations. Traditional research on matching problems has focused predominantly on stability and fairness separately, often under the assumption of ordinal preferences.
+                </p>
+            </section>
+
+            <section class="algorithms-section">
+                <h3>Algorithms</h3>
+                <ul class="algorithms">
+                    <li>
+                        <span class="algorithm-name">FaSt (Fairness and Stability) :</span>
+                        <span class="algorithm-description">
+                            Find a leximin optimal stable matching under ranked isometric valuations.
+                        </span>
+                    </li>
+                    <li>
+                        <span class="algorithm-name">FaSt-Gen (Fairness and Stability - General):</span>
+                        <span class="algorithm-description">
+                            Find a matching for the general ranked valuations setting.
+                        </span>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="reference-section">
+                <p>
+                    Based on: "On Achieving Fairness and Stability in Many-to-One Matchings", by Shivika Narang, Arpita Biswas, and Y Narahari (2022)
+                    <a href="https://arxiv.org/abs/2009.05823" target="_blank" class="link">Link to the Paper</a>
+                </p>
+                <br>
+                <a href="https://github.com/AlgorithmsResearchfp/fairpyx/tree/yuval_hadar" target="_blank" class="link">GitHub Code</a>
+            </section>
+        <!-- Container for the button -->
+        <div class="button-container">
+            <a href="/demo" class="button">Try Demo</a>
+        </div>
+    </div>
+    </main>
+    <script>
+        function toggleFields() {
+            var algorithm = document.getElementById('algorithm').value;
+            var uField = document.getElementById('uField');
+            var valuationLabel = document.getElementById('valuationLabel');
+
+            if (algorithm === 'FaStGen') {
+                uField.style.display = 'block';
+                valuationLabel.textContent = 'V Values (JSON format)';
+            } else {
+                uField.style.display = 'none';
+                valuationLabel.textContent = 'Valuations (JSON format)';
+            }
+        }
+    </script>
+</head>
+<body>
+
+</body>
+</html>

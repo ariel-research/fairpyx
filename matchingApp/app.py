@@ -92,7 +92,8 @@ def index():
             error = str(e)
             logger.error("An error occurred: %s", error)
 
-    return render_template('index.html', error=error, result=result)
+    # return render_template('index.html', error=error, result=result)
+    return render_template('firstpage.html', error=error, result=result)
 
 if __name__ == "__main__":
     app.run(debug=True)

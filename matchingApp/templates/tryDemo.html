@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fairness and Stability in Many-to-One Matchings</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #e3f2fd;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+        }
+        .custom-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        h1, h3 {
+            color: #007bff;
+        }
+        pre {
+            background-color: #f1f1f1;
+            color: #333;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .result-box {
+            background-color: #f1f1f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .highlight {
+            background-color: #ffeb3b;
+        }
+    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fair Allocation - Home</title>
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
+    <script>
+        function randomizeNumbers() {
+            // Generate a random number of students between 1 and 10
+            var numStudents = Math.floor(Math.random() * 10) + 1;
+            // Generate a random number of courses between 1 and 10
+            var numCourses = Math.floor(Math.random() * 10) + 1;
+
+            // Set the values to the respective input fields
+            document.getElementById('num_students').value = numStudents;
+            document.getElementById('num_courses').value = numCourses;
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Algorithm Demo</h1>
+    </header>
+    <main>
+        <form action="/demo" method="post">
+            <label for="num_students">Number of students:</label>
+            <input type="number" id="num_students" name="num_students" min="1" required>
+            <br>
+            <label for="num_courses">Number of courses:</label>
+            <input type="number" id="num_courses" name="num_courses" min="1" required>
+            <br><br>
+            <button type="button" class="random-button" onclick="randomizeNumbers()">Randomize</button>
+            <button type="submit">Next</button>
+        </form>
+    </main>
+</body>
+</html>
