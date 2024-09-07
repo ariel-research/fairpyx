@@ -3,291 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Algorithm - Results</title>
+    <title>Algorithm Results</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f8f9fa;
-            margin: 0;
-            padding: 0;
-        }
-
-        header {
-            background-color: #007bff;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            position: relative;
-        }
-
-        header h1 {
-            margin: 0;
-        }
-
-        header .home-icon {
-            position: absolute;
-            left: 20px;
-            top: 20px;
-            color: white;
-            font-size: 1.5rem;
-            text-decoration: none;
-        }
-
-        .form {
-            margin: 20px auto;
-            max-width: 1200px;
-        }
-
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        .input-data, .results-table-container {
-            margin-top: 20px;
-        }
-
-        .results-table, .bids-table-result, table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        table th, table td {
-            padding: 12px;
-            border: 1px solid #ddd;
-            text-align: center;
-        }
-
-        table th {
-            background-color: #007bff;
-            color: white;
-        }
-
-        table tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-
-        .popup {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            width: 80%;
-            max-width: 600px;
-        }
-
-        .popup-content {
-            padding: 20px;
-        }
-
-        .popup-footer {
-            text-align: right;
-        }
-
-        .popup-footer .close-btn {
-            background-color: #dc3545;
-            color: white;
-        }
-
-        .popup-footer .close-btn:hover {
-            background-color: #c82333;
-        }
-
-        .try-another-demo {
-            text-align: center;
-            margin-top: 30px;
-        }
-
-        .try-another-demo .button {
-            text-decoration: none;
-            background-color: #28a745;
-            padding: 10px 20px;
-            color: white;
-            border-radius: 5px;
-        }
-
-        .try-another-demo .button:hover {
-            background-color: #218838;
-        }
-
-        footer {
-            background-color: #007bff;
-            color: white;
-            text-align: center;
-            padding: 20px;
-            position: relative;
-            margin-top: 40px;
-        }
-
-        footer p {
-            margin: 0;
-        }
-
-        footer a {
-            color: white;
-            text-decoration: underline;
-        }
-
-        footer a:hover {
-            color: #d1ecf1;
-        }
-
-        @media (max-width: 768px) {
-            header h1 {
-                font-size: 1.5rem;
-            }
-
-            .popup {
-                width: 90%;
-            }
-        }
-    </style>
-
-    <script>
-        function toggleInfo(studentId) {
-            var popup = document.getElementById('popup-' + studentId);
-            popup.style.display = popup.style.display === 'none' || popup.style.display === '' ? 'block' : 'none';
-        }
-
-        function closePopup(studentId) {
-            document.getElementById('popup-' + studentId).style.display = 'none';
-        }
-
-        function toggleInputData() {
-            var x = document.getElementById('input-data');
-            var button = document.getElementById('input-data-button');
-            if (x.style.display === "none") {
-                x.style.display = "block";
-                button.textContent = "Hide Input Data";
-            } else {
-                x.style.display = "none";
-                button.textContent = "Show Input Data";
-            }
-        }
-    </script>
 </head>
-
 <body>
-    <header>
-        <a href="/" class="home-icon">🏠</a>
-        <h1>Algorithm Demo</h1>
-    </header>
+    <div class="container">
+        <h1>Algorithm Results</h1>
 
-    <main>
-        <div class="form">
-            <h1>Algorithm Results</h1>
+        <h2>Algorithm: {{ algorithm }}</h2>
 
-            <button id="input-data-button" onclick="toggleInputData()">Show Input Data</button>
-            <div id="input-data" class="input-data" style="display: none;">
-                <h2>Input Data</h2>
-                <h3>Algorithm Used: </h3>
-                <h3>Solver Used: cp.CBC</h3>
+        <h2>Input Data</h2>
+        <p><strong>Number of Students:</strong> {{ num_students }}</p>
+        <p><strong>Number of Colleges:</strong> {{ num_colleges }}</p>
 
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Number of Students</th>
-                            <th>Number of Courses</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>9</td>
-                            <td>3</td>
-                        </tr>
-                    </tbody>
-                </table>
-                
-                <h3>Conflicts</h3>
-                <p>No conflicts found.</p>
+         <h3>Students' Valuations</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    {% for c in range(1, num_colleges|int + 1) %}
+                        <th>C{{ c }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for student, valuations in student_valuations.items() %}
+                    <tr>
+                        <td>{{ student }}</td>
+                        {% for college, value in valuations.items() %}
+                            <td>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
 
-                <h3>Students</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Courses Wanted</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Add student rows dynamically -->
-                    </tbody>
-                </table>
+        {% if algorithm == 'FaStGen' %}
+        <h3>Colleges' Valuations</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>College</th>
+                    {% for s in range(1, num_students|int + 1) %}
+                        <th>S{{ s }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for college, valuations in college_valuations.items() %}
+                    <tr>
+                        <td>{{ college }}</td>
+                        {% for student, value in valuations.items() %}
+                            <td>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
 
-                <h3>Courses</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Course</th>
-                            <th>Places</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Add course rows dynamically -->
-                    </tbody>
-                </table>
-
-                <h3>Bids</h3>
-                <table class="bids-table-result">
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>C1</th>
-                            <th>C2</th>
-                            <th>C3</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Add bid rows dynamically -->
-                    </tbody>
-                </table>
-            </div>
-
-            <h2>Results</h2>
-            <div class="results-table-container">
-                <table class="results-table">
-                    <thead>
-                        <tr>
-                            <th>Students</th>
-                            <th>Colleges valuations</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Add results dynamically -->
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="try-another-demo">
-                <a href="/demo" class="button">Try Another Demo</a>
-            </div>
-        </div>
-    </main>
-
-    <footer>
-        <p>Contributed by 
-            <a href="https://github.com/MoriyaEster" target="_blank">Moriya Ester Ohayon</a>, 
-            <a href="https://github.com/TamarBarIlan" target="_blank">Tammar Bar-Ilan</a> & 
-            <a href="https://github.com/ofekats" target="_blank">Ofek Kats</a>
-        <br> &copy; 2024. All rights reserved.</p>
-    </footer>
+        <h2>Algorithm Output</h2>
+        <!-- Add algorithm results here -->
+    </div>
 </body>
 </html>
