@@ -1,84 +1,385 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Fairness and Stability in Many-to-One Matchings</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fair Allocation - Home</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <style>
+        /* CSS unchanged */
         body {
-            background-color: #e3f2fd;
+            background-color: #f8f9fa;
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
         }
         .container {
-            margin-top: 50px;
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 70px;
+            background-color: #ffffff;
+            padding: 50px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
         }
-        .form-group {
-            margin-bottom: 1.5rem;
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        label {
+            font-size: 1.1rem;
+            color: #343a40;
+        }
+        .form-group-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        input[type="number"], select {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ced4da;
+            font-size: 1rem;
+            width: 100%;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .btn {
+            padding: 10px 20px;
+            font-size: 1.1rem;
+            color: white;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .btn-random {
+            background-color: #28a745;
+        }
+        .btn-submit {
+            background-color: #007bff;
+        }
+        .btn-clear {
+            background-color: #dc3545;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 15px;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+        input[type="number"] {
+            font-size: 1.2rem;
+            padding: 10px;
+            width: 80px;
+        }
+        .table-container {
+            display: none;
+            overflow: auto;
         }
         .error-message {
             color: red;
             font-weight: bold;
         }
-        .custom-btn {
-            background-color: #007bff;
-            color: white;
-        }
-        h1, h3 {
-            color: #007bff;
-        }
-        pre {
-            background-color: #f1f1f1;
-            color: #333;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .result-box {
-            background-color: #f1f1f1;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        .highlight {
-            background-color: #ffeb3b;
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+            .container {
+                margin-top: 30px;
+                padding: 20px;
+            }
+            .form-group-flex {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fair Allocation - Home</title>
-    <link rel="stylesheet" type="text/css" href="/static/style.css">
-    <script>
-        function randomizeNumbers() {
-            // Generate a random number of students between 1 and 10
-            var numStudents = Math.floor(Math.random() * 10) + 1;
-            // Generate a random number of courses between 1 and 10
-            var numCourses = Math.floor(Math.random() * 10) + 1;
 
-            // Set the values to the respective input fields
-            document.getElementById('num_students').value = numStudents;
-            document.getElementById('num_courses').value = numCourses;
+    <script>
+        // Function to toggle visibility of the college table based on the selected algorithm
+        function toggleFields() {
+            var algorithm = document.getElementById('algorithm').value;
+            var collegesTableContainer = document.getElementById('colleges-table-container');
+
+            if (algorithm === 'FaStGen') {
+                collegesTableContainer.style.display = 'block';
+            } else {
+                collegesTableContainer.style.display = 'none';
+            }
         }
+
+        // Function to generate random valuations and sort them in descending order
+        function generateRandomValuations(numItems) {
+            let valuations = [];
+            for (let i = 0; i < numItems; i++) {
+                valuations.push(Math.floor(Math.random() * 1000) + 1);
+            }
+            return valuations.sort((a, b) => b - a);  // Sort in descending order
+        }
+
+        // Randomize number of students between 2 and 6
+        function randomizeNumbers_students() {
+            let numStudents = Math.floor(Math.random() * 5) + 2;
+            document.getElementById('num_students').value = numStudents;
+            adjustTable();  // Update the table with the new number of students
+        }
+
+        // Randomize number of colleges between 2 and 6
+        function randomizeNumbers_colleges() {
+            let numColleges = Math.floor(Math.random() * 5) + 2;
+            document.getElementById('num_colleges').value = numColleges;
+            adjustTable();  // Update the table with the new number of colleges
+        }
+
+        // Function to adjust the table size and retain previous values
+        function adjustTable() {
+            const numStudents = parseInt(document.getElementById('num_students').value);
+            const numColleges = parseInt(document.getElementById('num_colleges').value);
+
+            if (!isNaN(numStudents) && !isNaN(numColleges)) {
+                generateTable(numStudents, numColleges);
+                toggleClearButton(true); // Change the button to "Clear Table"
+            }
+        }
+
+        // Generate or adjust the tables (students and colleges)
+        function generateTable(numStudents, numColleges) {
+            const tableContainer = document.getElementById('students-table-container');
+            const table = document.getElementById('valuation-table');
+            const previousStudentRows = table.querySelectorAll('tr');
+
+            const collegesTable = document.getElementById('colleges-valuation-table');
+            const previousCollegeRows = collegesTable.querySelectorAll('tr');
+
+            // Get current input values if tables already exist
+            let existingStudentValues = [];
+            previousStudentRows.forEach(row => {
+                let inputs = row.querySelectorAll('input');
+                if (inputs.length) {
+                    existingStudentValues.push(Array.from(inputs).map(input => input.value));
+                }
+            });
+
+            let existingCollegeValues = [];
+            previousCollegeRows.forEach(row => {
+                let inputs = row.querySelectorAll('input');
+                if (inputs.length) {
+                    existingCollegeValues.push(Array.from(inputs).map(input => input.value));
+                }
+            });
+
+            // Clear the tables before recreating them
+            table.innerHTML = '';
+            collegesTable.innerHTML = '';
+
+            // Create the header row for students
+            let headerRow = '<tr><th></th>';
+            for (let c = 1; c <= numColleges; c++) {
+                headerRow += `<th>C${c}</th>`;
+            }
+            headerRow += '</tr>';
+            table.innerHTML += headerRow;
+
+            // Create rows for students' valuations
+            for (let s = 1; s <= numStudents; s++) {
+                let row = `<tr><td>S${s}</td>`;
+                for (let c = 1; c <= numColleges; c++) {
+                    const existingValue = (existingStudentValues[s - 1] && existingStudentValues[s - 1][c - 1]) || '';
+                    row += `<td><input type="number" name="valuation[S${s}][C${c}]" min="1" value="${existingValue}" required></td>`;
+                }
+                row += '</tr>';
+                table.innerHTML += row;
+            }
+
+            // Create the header row for colleges
+            let collegesHeaderRow = '<tr><th></th>';
+            for (let s = 1; s <= numStudents; s++) {
+                collegesHeaderRow += `<th>S${s}</th>`;
+            }
+            collegesHeaderRow += '</tr>';
+            collegesTable.innerHTML += collegesHeaderRow;
+
+            // Create rows for colleges' valuations
+            for (let c = 1; c <= numColleges; c++) {
+                let row = `<tr><td>C${c}</td>`;
+                for (let s = 1; s <= numStudents; s++) {
+                    const existingValue = (existingCollegeValues[c - 1] && existingCollegeValues[c - 1][s - 1]) || '';
+                    row += `<td><input type="number" name="collegesValuation[C${c}][S${s}]" min="1" value="${existingValue}" required></td>`;
+                }
+                row += '</tr>';
+                collegesTable.innerHTML += row;
+            }
+
+            tableContainer.style.display = 'block';
+        }
+
+        // Clear the values of the table inputs
+        function clearTable() {
+            const inputs = document.querySelectorAll('table input');
+            inputs.forEach(input => input.value = '');
+            toggleClearButton(false); // Reset the button back to "Create Table"
+        }
+
+        // Toggle between "Create Table" and "Clear Table"
+        function toggleClearButton(isTableCreated) {
+            const button = document.getElementById('create-clear-btn');
+            if (isTableCreated) {
+                button.textContent = 'Clear Table';
+                button.classList.remove('btn-submit');
+                button.classList.add('btn-clear');
+                button.setAttribute('onclick', 'clearTable()');
+            } else {
+                button.textContent = 'Create Table';
+                button.classList.remove('btn-clear');
+                button.classList.add('btn-submit');
+                button.setAttribute('onclick', 'adjustTable()');
+            }
+        }
+
+        function randomizeTableData() {
+            const numStudents = document.getElementById('num_students').value;
+            const numColleges = document.getElementById('num_colleges').value;
+
+            if (numStudents && numColleges) {
+                adjustTable();  // Adjust the table based on the new values
+                fillTableWithRandomValuations(numStudents, numColleges);
+                fillCollegesValuations(numStudents, numColleges);
+            } else {
+                alert('Please specify the number of students and colleges.');
+            }
+        }
+
+        // Function to fill the student valuations table
+        function fillTableWithRandomValuations(numStudents, numColleges) {
+            const tableRows = document.querySelectorAll('#valuation-table tr');
+            for (let i = 1; i <= numStudents; i++) {
+                let inputs = tableRows[i].querySelectorAll('input');
+                let randomValuations = generateRandomValuations(numColleges);
+                inputs.forEach((input, index) => {
+                    input.value = randomValuations[index];
+                });
+            }
+        }
+
+        // Function to fill the colleges valuations table
+        function fillCollegesValuations(numStudents, numColleges) {
+            const tableRows = document.querySelectorAll('#colleges-valuation-table tr');
+            for (let i = 1; i <= numColleges; i++) {
+                let inputs = tableRows[i].querySelectorAll('input');
+                let randomValuations = generateRandomValuations(numStudents);
+                inputs.forEach((input, index) => {
+                    input.value = randomValuations[index];
+                });
+            }
+        }
+
+        function validateTable() {
+            const tableRows = document.querySelectorAll('#valuation-table tr');
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.innerHTML = '';
+
+            for (let i = 1; i < tableRows.length; i++) {
+                const inputs = tableRows[i].querySelectorAll('input');
+                const values = Array.from(inputs).map(input => parseInt(input.value));
+
+                for (let j = 0; j < values.length - 1; j++) {
+                    if (values[j] <= values[j + 1] || values.includes(0)) {
+                        errorMessage.innerHTML = `Error in row S${i}: Values must be descending and non-zero without duplicates.`;
+                        return false;
+                    }
+                }
+
+                if (new Set(values).size !== values.length) {
+                    errorMessage.innerHTML = `Error in row S${i}: Values must not contain duplicates.`;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
     </script>
 </head>
 <body>
     <header>
         <h1>Algorithm Demo</h1>
     </header>
-    <main>
-        <form action="/demo" method="post">
-            <label for="num_students">Number of students:</label>
-            <input type="number" id="num_students" name="num_students" min="1" required>
-            <br>
-            <label for="num_courses">Number of courses:</label>
-            <input type="number" id="num_courses" name="num_courses" min="1" required>
-            <br><br>
-            <button type="button" class="random-button" onclick="randomizeNumbers()">Randomize</button>
-            <button type="submit">Next</button>
-        </form>
+    <main class="d-flex justify-content-center align-items-center">
+        <div class="container">
+            <form action="/results" method="post" onsubmit="return validateTable()">
+
+                <div class="form-group-flex">
+                    <label for="num_students">Number of Students:</label>
+                    <button type="button" class="btn btn-random" onclick="randomizeNumbers_students()">Randomize students</button>
+                    <input type="number" id="num_students" name="num_students" min="1" required>
+                </div>
+
+                <div class="form-group-flex">
+                    <label for="num_colleges">Number of Colleges:</label>
+                    <button type="button" class="btn btn-random" onclick="randomizeNumbers_colleges()">Randomize colleges</button>
+                    <input type="number" id="num_colleges" name="num_colleges" min="1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="algorithm">Algorithm</label>
+                    <select class="form-control" id="algorithm" name="algorithm" onchange="toggleFields()" required>
+                        <option value="">Select Algorithm</option>
+                        <option value="FaSt">FaSt</option>
+                        <option value="FaStGen">FaStGen</option>
+                    </select>
+                </div>
+
+                <div class="buttons">
+                    <button type="button" class="btn btn-random" onclick="randomizeTableData()">Randomize Valuations</button>
+                    <button type="button" id="create-clear-btn" class="btn btn-submit" onclick="adjustTable()">Create Table</button>
+                </div>
+
+                <!-- Table for Students' Valuations -->
+                <div class="table-container" id="students-table-container">
+                    <h4>Valuation Table</h4>
+                    <table id="valuation-table">
+                    </table>
+                </div>
+
+                <!-- Table for Colleges' Valuations (hidden initially) -->
+                <div class="table-container" id="colleges-table-container" style="display:none;">
+                    <h4>Colleges Valuation Table</h4>
+                    <table id="colleges-valuation-table">
+                    </table>
+                </div>
+
+                <div id="error-message" class="error-message"></div> <!-- Error message div -->
+
+                <div class="buttons">
+                    <button type="submit" class="btn btn-submit">Submit</button>
+                </div>
+            </form>
+        </div>
     </main>
 </body>
 </html>
