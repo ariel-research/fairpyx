@@ -5,18 +5,106 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Algorithm Results</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+
+        .container {
+            margin-top: 30px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h2, h3 {
+            color: #007bff;
+        }
+
+        table th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+            text-align: center;
+            padding: 12px;
+        }
+
+        table {
+            margin-bottom: 30px;
+        }
+
+        .explanation {
+            background-color: #e9f7ff;
+            padding: 20px;
+            border-left: 4px solid #007bff;
+            border-radius: 5px;
+        }
+
+        ul {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+
+        ul li {
+            margin-bottom: 10px;
+        }
+
+        footer {
+            background-color: #007bff;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            position: relative;
+            margin-top: 30px;
+        }
+
+        footer p {
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
+    <header>
         <h1>Algorithm Results</h1>
+    </header>
 
+    <div class="container">
         <h2>Algorithm: {{ algorithm }}</h2>
 
         <h2>Input Data</h2>
         <p><strong>Number of Students:</strong> {{ num_students }}</p>
         <p><strong>Number of Colleges:</strong> {{ num_colleges }}</p>
 
-         <h3>Students' Valuations</h3>
+        <h3>Students' Valuations</h3>
         <table class="table">
             <thead>
                 <tr>
@@ -63,7 +151,54 @@
         {% endif %}
 
         <h2>Algorithm Output</h2>
-        <!-- Add algorithm results here -->
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>College</th>
+                    <th>Assigned Students</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for college, students in results.items() %}
+                    <tr>
+                        <td>{{ college }}</td>
+                        <td>{{ students | join(', ') }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if algorithm == 'FaSt' %}
+        <!-- Explanation of the FaSt Algorithm -->
+        <div class="explanation">
+            <h3>Explanation of the FaSt Algorithm</h3>
+            <p>FaSt (Fair and Stable matching) is an efficient algorithm designed to compute a fair and stable matching between students and colleges under ranked isometric valuations.</p>
+            <p>The key features of this algorithm are:</p>
+            <ul>
+                <li><strong>Isometric Valuations</strong>: The valuation of a student for a college is the same as the college's valuation for that student, ensuring fairness from both perspectives.</li>
+                <li><strong>Leximin Optimality</strong>: FaSt ensures that the worst-off agent (student or college) is as well-off as possible in the final matching, and among those matchings, it further optimizes the second-worst-off, and so on.</li>
+                <li><strong>Stability</strong>: The algorithm guarantees that there are no blocking pairs, meaning no student and college would prefer to switch their assignments, maintaining a stable matching.</li>
+            </ul>
+            <p>FaSt systematically finds the leximin optimal matching by iterating over the space of stable matchings, improving fairness at each step while ensuring stability.</p>
+        </div>
+        {% endif %}
+
+        {% if algorithm == 'FaStGen' %}
+        <!-- Explanation of the FaSt-Gen Algorithm -->
+        <div class="explanation">
+            <h3>Explanation of the FaSt-Gen Algorithm</h3>
+            <p>FaSt-Gen (Generalized Fair and Stable matching) extends the FaSt algorithm to more complex and generalized settings where valuations are not necessarily isometric but still ranked.</p>
+            <p>The key features of this algorithm are:</p>
+            <ul>
+                <li><strong>Generalized Ranked Valuations</strong>: FaSt-Gen works in scenarios where students and colleges have rankings, but the valuations (preferences) of students and colleges for each other may differ.</li>
+                <li><strong>Leximin Optimality</strong>: Similar to FaSt, this algorithm aims to maximize fairness by ensuring that the worst-off agent is as well-off as possible, and further optimizes the second-worst-off, and so on.</li>
+                <li><strong>Flexibility</strong>: Unlike FaSt, which is restricted to isometric valuations, FaSt-Gen can handle general valuations, making it applicable to a broader range of matching problems.</li>
+                <li><strong>Efficiency</strong>: The algorithm finds the optimal matching in quadratic time relative to the number of students and colleges, even in these more general settings.</li>
+            </ul>
+            <p>FaSt-Gen is designed to handle more generalized scenarios where fairness and stability are still paramount, ensuring balanced and optimal matchings between students and colleges.</p>
+        </div>
+        {% endif %}
     </div>
+
 </body>
 </html>

@@ -200,17 +200,17 @@
             // Create the header row for students
             let headerRow = '<tr><th></th>';
             for (let c = 1; c <= numColleges; c++) {
-                headerRow += `<th>C${c}</th>`;
+                headerRow += `<th>c${c}</th>`;
             }
             headerRow += '</tr>';
             table.innerHTML += headerRow;
 
             // Create rows for students' valuations
             for (let s = 1; s <= numStudents; s++) {
-                let row = `<tr><td>S${s}</td>`;
+                let row = `<tr><td>s${s}</td>`;
                 for (let c = 1; c <= numColleges; c++) {
                     const existingValue = (existingStudentValues[s - 1] && existingStudentValues[s - 1][c - 1]) || '';
-                    row += `<td><input type="number" name="valuation[S${s}][C${c}]" min="1" value="${existingValue}"></td>`;
+                    row += `<td><input type="number" name="valuation[s${s}][c${c}]" min="1" value="${existingValue}"></td>`;
                 }
                 row += '</tr>';
                 table.innerHTML += row;
@@ -219,17 +219,17 @@
             // Create the header row for colleges
             let collegesHeaderRow = '<tr><th></th>';
             for (let s = 1; s <= numStudents; s++) {
-                collegesHeaderRow += `<th>S${s}</th>`;
+                collegesHeaderRow += `<th>s${s}</th>`;
             }
             collegesHeaderRow += '</tr>';
             collegesTable.innerHTML += collegesHeaderRow;
 
             // Create rows for colleges' valuations
             for (let c = 1; c <= numColleges; c++) {
-                let row = `<tr><td>C${c}</td>`;
+                let row = `<tr><td>c${c}</td>`;
                 for (let s = 1; s <= numStudents; s++) {
                     const existingValue = (existingCollegeValues[c - 1] && existingCollegeValues[c - 1][s - 1]) || '';
-                    row += `<td><input type="number" name="colleges_valuation[C${c}][S${s}]" min="1" value="${existingValue}"></td>`;
+                    row += `<td><input type="number" name="colleges_valuation[c${c}][s${s}]" min="1" value="${existingValue}"></td>`;
                 }
                 row += '</tr>';
                 collegesTable.innerHTML += row;
@@ -303,30 +303,39 @@
             const algorithm = document.getElementById('algorithm').value;
             const tableRows = document.querySelectorAll('#valuation-table tr');
             const collegesTableRows = document.querySelectorAll('#colleges-valuation-table tr');
-            const errorMessage = document.getElementById('error-message');
-            errorMessage.innerHTML = '';
+
+            // Separate error message elements for students and colleges
+            const studentsErrorMessage = document.getElementById('students-error-message');
+            const collegesErrorMessage = document.getElementById('colleges-error-message');
+
+            // Clear previous error messages
+            studentsErrorMessage.innerHTML = '';
+            if (collegesErrorMessage) collegesErrorMessage.innerHTML = '';
+
+            let hasError = false;
 
             // Validate Students' Valuations Table
             for (let i = 1; i < tableRows.length; i++) {
                 const inputs = tableRows[i].querySelectorAll('input');
                 const values = Array.from(inputs).map(input => parseInt(input.value));
 
+                // Check for descending order and other validations
                 for (let j = 0; j < values.length - 1; j++) {
                     if (values[j] <= values[j + 1] || values.includes(0)) {
-                        errorMessage.innerHTML = `Error in row S${i}: Values must be descending and non-zero without duplicates.`;
-                        return false;
+                        studentsErrorMessage.innerHTML = `Error in row s${i}: Values must be descending and non-zero without duplicates.`;
+                        hasError = true;
+                        break;
                     }
                 }
-
                 if (new Set(values).size !== values.length) {
-                    errorMessage.innerHTML = `Error in row S${i}: Values must not contain duplicates.`;
-                    return false;
+                    studentsErrorMessage.innerHTML = `Error in row s${i}: Values must not contain duplicates.`;
+                    hasError = true;
+                    break;
                 }
-
-                // Ensure no empty fields for FaSt or FaStGen
                 if (Array.from(inputs).some(input => input.value.trim() === "" || isNaN(input.value.trim()))) {
-                    errorMessage.innerHTML = `Error in row S${i}: Missing valuations for students.`;
-                    return false;
+                    studentsErrorMessage.innerHTML = `Error in row s${i}: Missing valuations for students.`;
+                    hasError = true;
+                    break;
                 }
             }
 
@@ -334,16 +343,38 @@
             if (algorithm === 'FaStGen') {
                 for (let i = 1; i < collegesTableRows.length; i++) {
                     const inputs = collegesTableRows[i].querySelectorAll('input');
+                    const values = Array.from(inputs).map(input => parseInt(input.value));
 
+                    // Check for descending order and other validations
+                    for (let j = 0; j < values.length - 1; j++) {
+                        if (values[j] <= values[j + 1] || values.includes(0)) {
+                            collegesErrorMessage.innerHTML = `Error in row c${i}: Values must be descending and non-zero without duplicates.`;
+                            hasError = true;
+                            break;
+                        }
+                    }
+                    if (new Set(values).size !== values.length) {
+                        collegesErrorMessage.innerHTML = `Error in row c${i}: Values must not contain duplicates.`;
+                        hasError = true;
+                        break;
+                    }
                     if (Array.from(inputs).some(input => input.value.trim() === "" || isNaN(input.value.trim()))) {
-                        errorMessage.innerHTML = `Error in row C${i}: Missing valuations for colleges.`;
-                        return false;
+                        collegesErrorMessage.innerHTML = `Error in row c${i}: Missing valuations for colleges.`;
+                        hasError = true;
+                        break;
                     }
                 }
             }
 
+            // Return false if there is an error in any table
+            if (hasError) {
+                return false;
+            }
+
+            // Otherwise, return true to submit the form
             return true;
         }
+
 
         // Add event listeners to dynamically adjust the table on input change
         document.addEventListener('DOMContentLoaded', () => {
@@ -397,14 +428,14 @@
                     </table>
                 </div>
 
+                <div id="students-error-message" class="text-danger error-message"></div>
                 <!-- Table for Colleges' Valuations (hidden initially) -->
                 <div class="table-container" id="colleges-table-container" style="display:none;">
                     <h4>Colleges Valuation Table</h4>
                     <table id="colleges-valuation-table">
                     </table>
+                    <div id="colleges-error-message" class="text-danger error-message"></div>
                 </div>
-
-                <div id="error-message" class="error-message"></div> <!-- Error message div -->
 
                 <div class="buttons">
                     <button type="submit" class="btn btn-submit">Submit</button>
