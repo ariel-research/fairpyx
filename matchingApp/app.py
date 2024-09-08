@@ -107,4 +107,5 @@ def results_demo():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # app.run(debug=True)
+    app.run(host="0.0.0.0", port=8888)  # Replace 8080 with your desired port number
