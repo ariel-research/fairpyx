@@ -141,12 +141,18 @@
 
         // Function to generate random valuations and sort them in descending order
         function generateRandomValuations(numItems) {
-            let valuations = [];
-            for (let i = 0; i < numItems; i++) {
-                valuations.push(Math.floor(Math.random() * 1000) + 1);
+            let valuations = new Set();  // Use a Set to ensure uniqueness
+
+            // Generate random unique values
+            while (valuations.size < numItems) {
+                let randomValue = Math.floor(Math.random() * 1000) + 1;  // Random number between 1 and 1000
+                valuations.add(randomValue);  // Add to the Set (duplicates are automatically handled)
             }
-            return valuations.sort((a, b) => b - a);  // Sort in descending order
+
+            // Convert the Set to an array and sort it in descending order
+            return Array.from(valuations).sort((a, b) => b - a);
         }
+
 
         // Randomize number of students between 2 and 6
         function randomizeNumbers_students() {
@@ -294,74 +300,74 @@
         }
 
         // Function to fill the valuations table
-function fillTableWithRandomValuations_fast(numStudents, numColleges) {
-    const tableContainer = document.getElementById('students-table-container');
-    const table = document.getElementById('valuation-table');
+        function fillTableWithRandomValuations_fast(numStudents, numColleges) {
+            const tableContainer = document.getElementById('students-table-container');
+            const table = document.getElementById('valuation-table');
 
-    // Clear the table before recreating it
-    table.innerHTML = '';
+            // Clear the table before recreating it
+            table.innerHTML = '';
 
-    // Create a set of random unique values
-    let uniqueValues = [];
-    const totalValues = numStudents * numColleges;
+            // Create a set of random unique values
+            let uniqueValues = [];
+            const totalValues = numStudents * numColleges;
 
-    // Fill array with random unique values
-    while (uniqueValues.length < totalValues) {
-        const randomValue = Math.floor(Math.random() * 1000) + 1; // Random value between 1 and 1000
-        if (!uniqueValues.includes(randomValue)) {
-            uniqueValues.push(randomValue);
+            // Fill array with random unique values
+            while (uniqueValues.length < totalValues) {
+                const randomValue = Math.floor(Math.random() * 1000) + 1; // Random value between 1 and 1000
+                if (!uniqueValues.includes(randomValue)) {
+                    uniqueValues.push(randomValue);
+                }
+            }
+
+            // Sort the values in descending order
+            uniqueValues.sort((a, b) => b - a);
+
+            // Create the header row for students
+            let headerRow = '<tr><th></th>';
+            for (let c = 1; c <= numColleges; c++) {
+                headerRow += `<th>c${c}</th>`;
+            }
+            headerRow += '</tr>';
+            table.innerHTML += headerRow;
+
+            // Create a matrix to store the values
+            let matrix = Array.from({ length: numStudents }, () => []);
+
+            // Fill the matrix ensuring descending order in rows and columns
+            for (let s = 0; s < numStudents; s++) {
+                for (let c = 0; c < numColleges; c++) {
+                    matrix[s][c] = uniqueValues.shift();
+                }
+            }
+
+            // Sort each row in descending order
+            for (let s = 0; s < numStudents; s++) {
+                matrix[s].sort((a, b) => b - a);
+            }
+
+            // Ensure each column is in descending order
+            for (let c = 0; c < numColleges; c++) {
+                // Extract the column, sort it, and then put it back
+                let column = matrix.map(row => row[c]);
+                column.sort((a, b) => b - a);
+                for (let s = 0; s < numStudents; s++) {
+                    matrix[s][c] = column[s];
+                }
+            }
+
+            // Populate the table with the matrix values
+            for (let s = 0; s < numStudents; s++) {
+                let row = `<tr><td>s${s + 1}</td>`;
+                for (let c = 0; c < numColleges; c++) {
+                    row += `<td><input type="number" name="valuation[s${s + 1}][c${c + 1}]" min="1" value="${matrix[s][c]}" readonly></td>`;
+                }
+                row += '</tr>';
+                table.innerHTML += row;
+            }
+
+            // Show the table
+            tableContainer.style.display = 'block';
         }
-    }
-
-    // Sort the values in descending order
-    uniqueValues.sort((a, b) => b - a);
-
-    // Create the header row for students
-    let headerRow = '<tr><th></th>';
-    for (let c = 1; c <= numColleges; c++) {
-        headerRow += `<th>c${c}</th>`;
-    }
-    headerRow += '</tr>';
-    table.innerHTML += headerRow;
-
-    // Create a matrix to store the values
-    let matrix = Array.from({ length: numStudents }, () => []);
-
-    // Fill the matrix ensuring descending order in rows and columns
-    for (let s = 0; s < numStudents; s++) {
-        for (let c = 0; c < numColleges; c++) {
-            matrix[s][c] = uniqueValues.shift();
-        }
-    }
-
-    // Sort each row in descending order
-    for (let s = 0; s < numStudents; s++) {
-        matrix[s].sort((a, b) => b - a);
-    }
-
-    // Ensure each column is in descending order
-    for (let c = 0; c < numColleges; c++) {
-        // Extract the column, sort it, and then put it back
-        let column = matrix.map(row => row[c]);
-        column.sort((a, b) => b - a);
-        for (let s = 0; s < numStudents; s++) {
-            matrix[s][c] = column[s];
-        }
-    }
-
-    // Populate the table with the matrix values
-    for (let s = 0; s < numStudents; s++) {
-        let row = `<tr><td>s${s + 1}</td>`;
-        for (let c = 0; c < numColleges; c++) {
-            row += `<td><input type="number" name="valuation[s${s + 1}][c${c + 1}]" min="1" value="${matrix[s][c]}" readonly></td>`;
-        }
-        row += '</tr>';
-        table.innerHTML += row;
-    }
-
-    // Show the table
-    tableContainer.style.display = 'block';
-}
 
         // Function to fill the valuations table
         function fillTableWithRandomValuations_fastgen(numStudents, numColleges) {
@@ -400,6 +406,13 @@ function fillTableWithRandomValuations_fast(numStudents, numColleges) {
             // Clear previous error messages
             studentsErrorMessage.innerHTML = '';
             if (collegesErrorMessage) collegesErrorMessage.innerHTML = '';
+            let numStudents= document.getElementById('num_students').value;
+            let numColleges= document.getElementById('num_colleges').value;
+            if (numStudents<numColleges)
+            {
+                studentsErrorMessage.innerHTML = `Error: Number of students must be at least as Number of colleges.<br/>`;
+                return false;
+            }
 
             let hasError = false;
 

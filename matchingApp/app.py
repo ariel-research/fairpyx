@@ -1,12 +1,14 @@
 import json
-from flask import Flask, render_template, request, redirect, url_for
+import io
+from flask import Flask, render_template, request
 from fairpyx import Instance, AllocationBuilder
 from fairpyx.algorithms.Optimization_Matching.FaSt import FaSt
 from fairpyx.algorithms.Optimization_Matching.FaStGen import FaStGen
 import logging
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
+# Configure logging to capture logs in a string buffer
+log_stream = io.StringIO()
+logging.basicConfig(stream=log_stream, level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -44,6 +46,10 @@ def try_demo():
 # Route for the 'Results Demo' page
 @app.route('/results', methods=['POST'])
 def results_demo():
+    # Clear previous log contents
+    log_stream.truncate(0)
+    log_stream.seek(0)
+
     # Get the algorithm type
     algorithm = request.form['algorithm']
 
@@ -80,7 +86,6 @@ def results_demo():
         raw_results = FaStGen(alloc, items_valuations=college_valuations)
         # Result is already college-centric
         formatted_results = raw_results
-
     else:
         raw_results = FaSt(alloc)
         # FaSt returns student-centric data, so we need to convert it to college-centric
@@ -89,23 +94,31 @@ def results_demo():
             for student in students:
                 formatted_results[f"c{college}"].append(f"s{student}")
 
-    # # Log for debugging
-    # logger.debug(request.form)
-    # logger.debug(f"Algorithm: {algorithm}")
-    # logger.debug(f"Number of Students: {num_students}")
-    # logger.debug(f"Number of Colleges: {num_colleges}")
-    # logger.debug(f"Student Valuations: {json.dumps(student_valuations, indent=4)}")
+    # Log the required information for debugging
+    logger.debug(f"Algorithm: {algorithm}")
+    logger.debug(f"Number of Students: {num_students}")
+    logger.debug(f"Number of Colleges: {num_colleges}")
+    logger.debug(f"Student Valuations: {json.dumps(student_valuations, indent=4)}")
+
     if algorithm == 'FaStGen':
         logger.debug(f"College Valuations: {json.dumps(college_valuations, indent=4)}")
 
-    # Process the data with the selected algorithm
-    # FaSt or FaStGen processing can go here
+    # Capture the logs and display them
+    log_stream.seek(0)  # Go to the start of the stream to read logs
+    log_output = log_stream.read()
 
-    # Pass all data to the resultsDemo.html template
-    return render_template('resultsDemo.html', algorithm=algorithm, num_students=num_students, num_colleges=num_colleges,
-                           student_valuations=student_valuations, college_valuations=college_valuations,results=formatted_results)
+    # Pass all data, including the logs, to the resultsDemo.html template
+    return render_template(
+        'resultsDemo.html',
+        algorithm=algorithm,
+        num_students=num_students,
+        num_colleges=num_colleges,
+        student_valuations=student_valuations,
+        college_valuations=college_valuations,
+        results=formatted_results,
+        logs=log_output
+    )
 
 
 if __name__ == "__main__":
-    # app.run(debug=True)
-    app.run(host="0.0.0.0", port=8888)  # Replace 8080 with your desired port number
+    app.run(host="0.0.0.0", port=8888, debug=True)  # Replace 8080 with your desired port number

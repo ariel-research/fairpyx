@@ -243,7 +243,7 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     # Now V look like this:
     # "Alice": {"c1":2, "c2": 3, "c3": 4},
     # "Bob": {"c1": 4, "c2": 5, "c3": 6}
-    logger.info('FaSt(%s,%s,%s)',S,C,V)
+    #logger.info('FaSt(%s,%s,%s)',S,C,V)
     n=len(S)# number of students
     m = len(C)  # number of colleges
     i = n - 1  # start from the last student
@@ -260,14 +260,16 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     pos= build_pos_array(initial_matching, V)
     college_values=build_college_values(initial_matching,V)
     logger.debug('Initial i:%d', i)
-    logger.debug('Initial j:%d', j)
+    # logger.debug('Initial j:%d', j)
+    logger.debug('Number of colleges:%d', j)
+
      # Initialize F as a list of two lists: one for students, one for colleges
     F_students = []
     F_colleges = []
     F_students.append(n)  # Add sn to the student list in F
     #logger.debug('Initialized F_students: %s, F_colleges: %s',  F_stduents, F_colleges)
 
-    logger.debug('\n**initial_matching %s**', initial_matching)
+    logger.debug('\nInitial_matching %s', initial_matching)
 
     iteration = 1   # For logging
     while i > j - 1 and j > 1:
