@@ -130,8 +130,6 @@
             if (collegesErrorMessage) collegesErrorMessage.innerHTML = '';
 
             var algorithm = document.getElementById('algorithm').value;
-            const algoErrorMessage = document.getElementById('students-error-message');
-            algoErrorMessage.innerHTML = ''
             var collegesTableContainer = document.getElementById('colleges-table-container');
 
             if (algorithm === 'FaStGen') {
@@ -413,20 +411,47 @@ function fillTableWithRandomValuations_fast(numStudents, numColleges) {
                 // Check for descending order and other validations
                 for (let j = 0; j < values.length - 1; j++) {
                     if (values[j] <= values[j + 1] || values.includes(0)) {
-                        studentsErrorMessage.innerHTML = `Error in row s${i}: Values must be descending and non-zero without duplicates.`;
+                        studentsErrorMessage.innerHTML += `Error in row s${i}: Values must be descending and non-zero without duplicates.<br/>`;
                         hasError = true;
                         break;
                     }
                 }
                 if (new Set(values).size !== values.length) {
-                    studentsErrorMessage.innerHTML = `Error in row s${i}: Values must not contain duplicates.`;
+                    studentsErrorMessage.innerHTML += `Error in row s${i}: Values must not contain duplicates.<br/>`;
                     hasError = true;
                     break;
                 }
                 if (Array.from(inputs).some(input => input.value.trim() === "" || isNaN(input.value.trim()))) {
-                    studentsErrorMessage.innerHTML = `Error in row s${i}: Missing valuations for students.`;
+                    studentsErrorMessage.innerHTML += `Error in row s${i}: Missing valuations for students.<br/>`;
                     hasError = true;
                     break;
+                }
+            }
+            // For FaSt algorithm, validate that columns are also in descending order
+            if (algorithm === 'FaSt') {
+                const numCols = tableRows[0].querySelectorAll('th').length - 1; // Get number of columns (excluding the first header column)
+                for (let c = 1; c <= numCols; c++) {
+                    let columnValues = [];
+                    for (let r = 1; r < tableRows.length; r++) {
+                        const cellValue = parseInt(tableRows[r].querySelectorAll('input')[c - 1].value);
+                        columnValues.push(cellValue);
+                    }
+
+                    // Check if the column values are in descending order
+                    for (let j = 0; j < columnValues.length - 1; j++) {
+                        if (columnValues[j] <= columnValues[j + 1] || columnValues.includes(0)) {
+                            studentsErrorMessage.innerHTML += `Error in column c${c}: Column values must be descending and non-zero.<br/>`;
+                            hasError = true;
+                            break;
+                        }
+                    }
+
+                    // Check for duplicate values in the column
+                    if (new Set(columnValues).size !== columnValues.length) {
+                        studentsErrorMessage.innerHTML += `Error in column c${c}: Column values must not contain duplicates.<br/>`;
+                        hasError = true;
+                        break;
+                    }
                 }
             }
 
@@ -439,18 +464,18 @@ function fillTableWithRandomValuations_fast(numStudents, numColleges) {
                     // Check for descending order and other validations
                     for (let j = 0; j < values.length - 1; j++) {
                         if (values[j] <= values[j + 1] || values.includes(0)) {
-                            collegesErrorMessage.innerHTML = `Error in row c${i}: Values must be descending and non-zero without duplicates.`;
+                            collegesErrorMessage.innerHTML += `Error in row c${i}: Values must be descending and non-zero without duplicates.<br/>`;
                             hasError = true;
                             break;
                         }
                     }
                     if (new Set(values).size !== values.length) {
-                        collegesErrorMessage.innerHTML = `Error in row c${i}: Values must not contain duplicates.`;
+                        collegesErrorMessage.innerHTML += `Error in row c${i}: Values must not contain duplicates.<br/>`;
                         hasError = true;
                         break;
                     }
                     if (Array.from(inputs).some(input => input.value.trim() === "" || isNaN(input.value.trim()))) {
-                        collegesErrorMessage.innerHTML = `Error in row c${i}: Missing valuations for colleges.`;
+                        collegesErrorMessage.innerHTML += `Error in row c${i}: Missing valuations for colleges.<br/>`;
                         hasError = true;
                         break;
                     }
