@@ -123,7 +123,15 @@
     <script>
         // Function to toggle visibility of the college table based on the selected algorithm
         function toggleFields() {
+            const studentsErrorMessage = document.getElementById('students-error-message');
+            const collegesErrorMessage = document.getElementById('colleges-error-message');
+            // Clear previous error messages
+            studentsErrorMessage.innerHTML = '';
+            if (collegesErrorMessage) collegesErrorMessage.innerHTML = '';
+
             var algorithm = document.getElementById('algorithm').value;
+            const algoErrorMessage = document.getElementById('students-error-message');
+            algoErrorMessage.innerHTML = ''
             var collegesTableContainer = document.getElementById('colleges-table-container');
 
             if (algorithm === 'FaStGen') {
@@ -264,18 +272,101 @@
         function randomizeTableData() {
             const numStudents = document.getElementById('num_students').value;
             const numColleges = document.getElementById('num_colleges').value;
+            const algo = document.getElementById('algorithm').value;
+            const algoErrorMessage = document.getElementById('students-error-message');
+            algoErrorMessage.innerHTML = '';
+            if (algo === "FaStGen") {
+                adjustTable();  // Adjust the table based on the new values
+                fillTableWithRandomValuations_fastgen(numStudents, numColleges);
+                fillCollegesValuations(numStudents, numColleges);
+            }
+            else if (algo === "FaSt") {
+                adjustTable();  // Adjust the table based on the new values
+                fillTableWithRandomValuations_fast(numStudents, numColleges);
+            }
+            else {
+                algoErrorMessage.innerHTML = 'Please select algorithm first';
+            }
 
             if (numStudents && numColleges) {
                 adjustTable();  // Adjust the table based on the new values
-                fillTableWithRandomValuations(numStudents, numColleges);
-                fillCollegesValuations(numStudents, numColleges);
             } else {
                 alert('Please specify the number of students and colleges.');
             }
         }
 
-        // Function to fill the student valuations table
-        function fillTableWithRandomValuations(numStudents, numColleges) {
+        // Function to fill the valuations table
+function fillTableWithRandomValuations_fast(numStudents, numColleges) {
+    const tableContainer = document.getElementById('students-table-container');
+    const table = document.getElementById('valuation-table');
+
+    // Clear the table before recreating it
+    table.innerHTML = '';
+
+    // Create a set of random unique values
+    let uniqueValues = [];
+    const totalValues = numStudents * numColleges;
+
+    // Fill array with random unique values
+    while (uniqueValues.length < totalValues) {
+        const randomValue = Math.floor(Math.random() * 1000) + 1; // Random value between 1 and 1000
+        if (!uniqueValues.includes(randomValue)) {
+            uniqueValues.push(randomValue);
+        }
+    }
+
+    // Sort the values in descending order
+    uniqueValues.sort((a, b) => b - a);
+
+    // Create the header row for students
+    let headerRow = '<tr><th></th>';
+    for (let c = 1; c <= numColleges; c++) {
+        headerRow += `<th>c${c}</th>`;
+    }
+    headerRow += '</tr>';
+    table.innerHTML += headerRow;
+
+    // Create a matrix to store the values
+    let matrix = Array.from({ length: numStudents }, () => []);
+
+    // Fill the matrix ensuring descending order in rows and columns
+    for (let s = 0; s < numStudents; s++) {
+        for (let c = 0; c < numColleges; c++) {
+            matrix[s][c] = uniqueValues.shift();
+        }
+    }
+
+    // Sort each row in descending order
+    for (let s = 0; s < numStudents; s++) {
+        matrix[s].sort((a, b) => b - a);
+    }
+
+    // Ensure each column is in descending order
+    for (let c = 0; c < numColleges; c++) {
+        // Extract the column, sort it, and then put it back
+        let column = matrix.map(row => row[c]);
+        column.sort((a, b) => b - a);
+        for (let s = 0; s < numStudents; s++) {
+            matrix[s][c] = column[s];
+        }
+    }
+
+    // Populate the table with the matrix values
+    for (let s = 0; s < numStudents; s++) {
+        let row = `<tr><td>s${s + 1}</td>`;
+        for (let c = 0; c < numColleges; c++) {
+            row += `<td><input type="number" name="valuation[s${s + 1}][c${c + 1}]" min="1" value="${matrix[s][c]}" readonly></td>`;
+        }
+        row += '</tr>';
+        table.innerHTML += row;
+    }
+
+    // Show the table
+    tableContainer.style.display = 'block';
+}
+
+        // Function to fill the valuations table
+        function fillTableWithRandomValuations_fastgen(numStudents, numColleges) {
             const tableRows = document.querySelectorAll('#valuation-table tr');
             for (let i = 1; i <= numStudents; i++) {
                 let inputs = tableRows[i].querySelectorAll('input');
@@ -374,7 +465,6 @@
             // Otherwise, return true to submit the form
             return true;
         }
-
 
         // Add event listeners to dynamically adjust the table on input change
         document.addEventListener('DOMContentLoaded', () => {
