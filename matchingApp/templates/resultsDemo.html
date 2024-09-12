@@ -182,10 +182,6 @@
             <p>FaSt systematically finds the leximin optimal matching by iterating over the space of stable matchings, improving fairness at each step while ensuring stability.</p>
         </div>
         {% endif %}
-        <div>
-            <h3>Logs:</h3>
-            <pre>{{ logs }}</pre> <!-- Display the captured logs here -->
-        </div>
         {% if algorithm == 'FaStGen' %}
         <!-- Explanation of the FaSt-Gen Algorithm -->
         <div class="explanation">
@@ -202,6 +198,10 @@
         </div>
 
         {% endif %}
+        <div>
+            <h3>Logs:</h3>
+            <pre>{{ logs }}</pre> <!-- Display the captured logs here -->
+        </div>
     </div>
 
 </body>
