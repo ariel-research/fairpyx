@@ -406,8 +406,8 @@
             // Clear previous error messages
             studentsErrorMessage.innerHTML = '';
             if (collegesErrorMessage) collegesErrorMessage.innerHTML = '';
-            let numStudents= document.getElementById('num_students').value;
-            let numColleges= document.getElementById('num_colleges').value;
+            let numStudents= parseInt(document.getElementById('num_students').value);
+            let numColleges= parseInt(document.getElementById('num_colleges').value);
             if (numStudents<numColleges)
             {
                 studentsErrorMessage.innerHTML = `Error: Number of students must be at least as Number of colleges.<br/>`;
