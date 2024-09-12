@@ -6,11 +6,24 @@ from fairpyx.algorithms.Optimization_Matching.FaSt import FaSt
 from fairpyx.algorithms.Optimization_Matching.FaStGen import FaStGen
 import logging
 
+
+# Define a custom logging formatter to omit severity and logger name
 # Configure logging to capture logs in a string buffer
 log_stream = io.StringIO()
-logging.basicConfig(stream=log_stream, level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+class CustomFormatter(logging.Formatter):
+    def format(self, record):
+        # Remove DEBUG level and logger name from log output
+        message = record.getMessage()
+        return f"{message}"  # Simply return the message content
 
+
+# Set up logging configuration
+handler = logging.StreamHandler(log_stream)
+formatter = CustomFormatter()
+handler.setFormatter(formatter)
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)  # Set log level to DEBUG
+logger.addHandler(handler)
 app = Flask(__name__)
 
 
@@ -47,8 +60,8 @@ def try_demo():
 @app.route('/results', methods=['POST'])
 def results_demo():
     # Clear previous log contents
-    log_stream.truncate(0)
-    log_stream.seek(0)
+    log_stream.truncate(0)# Clear the log stream
+    log_stream.seek(0)# Move the stream pointer back to the start
 
     # Get the algorithm type
     algorithm = request.form['algorithm']

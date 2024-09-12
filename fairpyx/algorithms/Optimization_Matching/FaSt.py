@@ -259,7 +259,8 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     # Initialize the position array pos, F, college_values
     pos= build_pos_array(initial_matching, V)
     college_values=build_college_values(initial_matching,V)
-    logger.debug('Initial i:%d', i)
+    # logger.debug('Initial i:%d', i)
+    logger.debug('Number of Students - 1:%d', i)
     # logger.debug('Initial j:%d', j)
     logger.debug('Number of colleges:%d', j)
 
@@ -267,7 +268,7 @@ def FaSt(alloc: AllocationBuilder)-> dict:
     F_students = []
     F_colleges = []
     F_students.append(n)  # Add sn to the student list in F
-    #logger.debug('Initialized F_students: %s, F_colleges: %s',  F_stduents, F_colleges)
+    logger.debug('Initialized F_students: %s, F_colleges: %s',  F_students, F_colleges)
 
     logger.debug('\nInitial_matching %s', initial_matching)
 
@@ -277,21 +278,22 @@ def FaSt(alloc: AllocationBuilder)-> dict:
         logger.debug('Current i:%d', i)
         logger.debug('Current j:%d  ', j)
     
-        logger.debug('V: %s',  V)
-        logger.debug('V[i][j-1]: %d',  V[i][j-1])
-        logger.debug('college_values:%s ', college_values)
-        logger.debug('college_values[j]: %d',  college_values[j])
+        logger.debug('Valuations: %s',  V)
+        # logger.debug('V[i][j-1]: %d',  V[i][j-1])
+        logger.debug('Colleges values:%s ', college_values)
+        # logger.debug('college_values[j]: %d',  college_values[j])
         # IMPORTANT! in the variable college_values we use in j and not j-1 because it build like this:  {1: 35, 2: 3, 3: 1}
         # So this: college_values[j] indeed gave us the right index ! [i.e. different structure!]
         if college_values[j] >= V[i][j-1]:  # In the algo the college_values is actually v
             j -= 1
         else:
-            logger.info("index i:%s", i )
-            logger.info("index j: %s", j)
-            logger.debug('V[i][j]: %d',  V[i][j])
+            #loggers for debugging DEMOTE
+            # logger.info("index i:%s", i )
+            # logger.info("index j: %s", j)
+            # logger.debug('V[i][j]: %d',  V[i][j])
             if V[i][j] > college_values[j]: #Raw 11 in the article- different indixes because of different structures.
                 initial_matching = Demote(initial_matching, i, j, 1)
-                logger.debug('initial_matching after demote: %s',  initial_matching)
+                logger.debug('Matching after demote: %s',  initial_matching)
 
             else:
                 if V[i][j] < college_values[j]:#Raw 14
@@ -333,11 +335,11 @@ def FaSt(alloc: AllocationBuilder)-> dict:
         college_values = build_college_values(initial_matching, V)  
         # Update leximin tuple 
         lex_tupl = get_leximin_tuple(initial_matching, V) 
-        logger.debug('lex_tupl: %s',  lex_tupl)
+        logger.debug('Leximin tuple for the current matching: %s',  lex_tupl)
 
         # Update position array
         pos = build_pos_array(initial_matching, V) 
-        logger.debug('pos: %s',  pos)
+        logger.debug('Position array: %s',  pos)
 
          # Update F
         # Insert all students from i to n
@@ -349,11 +351,12 @@ def FaSt(alloc: AllocationBuilder)-> dict:
             if college not in F_colleges:
                 F_colleges.append(college)
 
-        logger.debug('Updated F_students: %s, F_colleges: %s',  F_students, F_colleges)
+        logger.debug('Finished processing students (F_students): %s',  F_students)
+        logger.debug('Finished processing colleges (F_colleges): %s', F_colleges)
 
         i -= 1
         iteration += 1
-        logger.debug('END while, i: %d, j: %d',i, j)
+        logger.debug('END of the loop, i: %d, j: %d',i, j)
     logger.debug(f"  final match:    {initial_matching}")
     return initial_matching
 
