@@ -1,4 +1,4 @@
-from experiments_csv import single_plot_results, multi_plot_results
+from experiments_csv.plot_results import single_plot_results, multi_plot_results
 from matplotlib import pyplot as plt
 from pathlib import Path
 import sys
