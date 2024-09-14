@@ -91,7 +91,7 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Union[Dict[
     step = 0
     while(was_an_offer_declined):
         step += 1
-        logger.info(f"Starting step #{step}")
+        logger.info(f"\n *** Starting round #{step} ***")
         was_an_offer_declined = False
         logger.info("Each student who is rejected from k > 0 courses in the previous step proposes to his best remaining k courses based on his stated preferences")
         for student in alloc.remaining_agents():
@@ -126,11 +126,8 @@ def gale_shapley(alloc: AllocationBuilder, course_order_per_student: Union[Dict[
             logger.info("In case there is a tie, the tie-breaking lottery is used to determine who is rejected and who will be kept on hold.")
             on_hold_students_sorted_and_tie_breaked = sort_and_tie_break(course_to_offerings, tie_braking_lottery)
             course_to_on_hold_students[course_name].clear()
-            try:
-                for key, value in on_hold_students_sorted_and_tie_breaked[:course_capacity]:
-                    course_to_on_hold_students[course_name][key] = value
-            except Exception as e:
-                print(e)
+            for key, value in on_hold_students_sorted_and_tie_breaked[:course_capacity]:
+                course_to_on_hold_students[course_name][key] = value
                 
             rejected_students = on_hold_students_sorted_and_tie_breaked[course_capacity:]
             for rejected_student, bid in rejected_students:
@@ -225,3 +222,23 @@ def generate_naive_course_order_for_student(student: str, alloc: AllocationBuild
 if __name__ == "__main__":
     import doctest
     print(doctest.testmod())
+
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler())
+
+    from fairpyx import Instance, divide
+
+    s1 = {"c1": 20, "c2": 15, "c3": 35, "c4": 10, "c5": 20}
+    s2 = {"c1": 30, "c2": 15, "c3": 20, "c4": 20, "c5": 15}
+    s3 = {"c1": 40, "c2": 10, "c3": 25, "c4": 10, "c5": 15}
+    s4 = {"c1": 10, "c2": 10, "c3": 15, "c4": 30, "c5": 35}
+    s5 = {"c1": 25, "c2": 20, "c3": 30, "c4": 10, "c5": 15}
+    agent_capacities = {"Alice": 3, "Bob": 3, "Chana": 3, "Dana": 3, "Dor": 3}
+    course_capacities = {"c1": 4, "c2": 4, "c3": 2, "c4": 3, "c5": 2}
+    valuations = {"Alice": s1, "Bob": s2, "Chana": s3, "Dana": s4, "Dor": s5}
+    course_order_per_student = {"Alice": ["c5", "c3", "c1", "c2", "c4"], "Bob": ["c1", "c4", "c5", "c2", "c3"], "Chana": ["c5", "c1", "c4", "c3", "c2"], "Dana": ["c3", "c4", "c1", "c5", "c2"], "Dor": ["c5", "c1", "c4", "c3", "c2"]}
+    tie_braking_lottery = {"Alice": 0.6, "Bob": 0.4, "Chana": 0.3, "Dana": 0.8, "Dor": 0.2}
+    instance = Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
+    divide(gale_shapley, instance=instance, course_order_per_student=course_order_per_student, tie_braking_lottery=tie_braking_lottery)
+    {'Alice': ['c1', 'c3', 'c5'], 'Bob': ['c1', 'c2', 'c4'], 'Chana': ['c1', 'c2', 'c4'], 'Dana': ['c2', 'c4', 'c5'], 'Dor': ['c1', 'c2', 'c3']}
+

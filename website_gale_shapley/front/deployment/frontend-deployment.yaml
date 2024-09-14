@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: frontend-image
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 50011
+        envFrom:
+            - configMapRef:
+                name: frontend-secret
+        env:
+        - name: PORT
+          value: "50011"
