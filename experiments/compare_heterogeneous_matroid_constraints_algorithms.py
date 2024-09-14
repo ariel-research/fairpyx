@@ -1,3 +1,5 @@
+import experiments_csv
+
 from fairpyx.algorithms.fractional_egalitarian import fractional_egalitarian_allocation
 from fairpyx.algorithms.heterogeneous_matroid_constraints_algorithms import *
 from fairpyx.utils.test_heterogeneous_matroid_constraints_algorithms_utils import *
@@ -102,13 +104,14 @@ def run_experiment(equal_capacities:bool,equal_valuations:bool,binary_valuations
         capped_round_robin: {'alloc', 'item_categories', 'agent_category_capacities',
                              'initial_agent_order', 'target_category'},
         two_categories_capped_round_robin: {'alloc', 'item_categories', 'agent_category_capacities', 'initial_agent_order','target_category_pair'},
+        per_category_capped_round_robin: {'alloc', 'agent_category_capacities', 'item_categories', 'initial_agent_order'},
         iterated_priority_matching: {'alloc', 'item_categories', 'agent_category_capacities'},
         egalitarian_algorithm:{'instance'},
         utilitarian_algorithm:{'instance'},
         iterated_maximum_matching:{'alloc'}
 
     }
-
+    #print(f'algorithm{algorithm.__name__} , binary valuations ->{binary_valuations}')
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(
         equal_capacities=equal_capacities,
         equal_valuations=equal_valuations,
@@ -134,6 +137,7 @@ def run_experiment(equal_capacities:bool,equal_valuations:bool,binary_valuations
         current_algorithm_bundle_sum,current_algorithm_bundle_min_value = utilitarian_algorithm(instance)
     # our algorithm
     else:# one of our algorithms then !
+        print(f'filtered kwargs->{filtered_kwargs["alloc"].instance._valuations}')
         algorithm(**filtered_kwargs)
         current_algorithm_bundle_min_value=min(alloc.agent_bundle_value(agent,bundle) for agent,bundle in alloc.bundles.items())# to compare with egalitarian algorithm
         current_algorithm_bundle_sum=sum(alloc.agent_bundle_value(agent,bundle)for agent,bundle in alloc.bundles.items())# to compare with utilitarian
@@ -159,33 +163,43 @@ def utilitarian_algorithm(instance):
 
 
 def egalitarian_algorithm(instance):
-    # Egalitarian algorithm
     # Step 1: Form the valuation matrix
     valuation_matrix = [
         [instance.agent_item_value(agent, item) for item in instance.items]
         for agent in instance.agents
     ]
+
     # Step 2: Compute the fractional egalitarian allocation
     not_rounded_egal = fractional_egalitarian_allocation(
         Instance(valuation_matrix), normalize_utilities=False
     )
+
     # Step 3: Multiply the fractions by the original valuation matrix
-    not_rounded_egalitarian_valuations_matrix = [
+    not_rounded_egalitarian_bundle_matrix = [
         [
             not_rounded_egal[agent][item] * valuation_matrix[agent][item]
             for item in range(len(instance.items))
         ]
         for agent in range(len(instance.agents))
     ]
-    min_egalitarian_algorithm_value = min(not_rounded_egalitarian_valuations_matrix)  # egalitarian value
-    total_sum = sum(sum(row) for row in not_rounded_egalitarian_valuations_matrix) # sum of bundles (for the sake of comparison with utilitarian algorithm)
+
+    # Step 4: Calculate the total value each agent receives from their allocation
+    agent_total_values = [
+        sum(not_rounded_egalitarian_bundle_matrix[agent])
+        for agent in range(len(instance.agents))
+    ]
+
+    # Step 5: Find the minimum value among these totals
+    min_egalitarian_algorithm_value = min(agent_total_values)
+
+    # Step 6: Calculate the total sum of all allocations (for comparison)
+    total_sum = sum(agent_total_values)
 
     return total_sum, min_egalitarian_algorithm_value
 
-
 if __name__ == '__main__':
     #experiments_csv.logger.setLevel(logging.INFO)
-    compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian()
+    #compare_heterogeneous_matroid_constraints_algorithms_egalitarian_utilitarian()
     experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms_bigData.csv',filter={},x_field='num_of_agents',y_field='current_algorithm_bundle_min_value',z_field='algorithm',save_to_file='results/egalitarian_comparison_heterogeneous_constraints_algorithms_bigData.png') # egalitarian ratio plot
     experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms_bigData.csv',filter={},x_field='num_of_agents',y_field='current_algorithm_bundle_sum',z_field='algorithm',save_to_file='results/utilitarian_comparison_heterogeneous_constraints_algorithms_bigData.png') # utilitarian ratio plot
     experiments_csv.single_plot_results('results/egalitarian_utilitarian_comparison_heterogeneous_constraints_algorithms_bigData.csv',filter={},x_field='num_of_agents',y_field='runtime',z_field='algorithm',save_to_file='results/runtime_comparison_heterogeneous_constraints_algorithms_bigData.png') # runtime plot

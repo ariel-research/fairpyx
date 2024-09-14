@@ -18,15 +18,15 @@ normalized_sum_of_values = 1000
 TIME_LIMIT = 100
 
 algorithms_to_check = [
-    # crs.utilitarian_matching, 
-    # crs.iterated_maximum_matching_unadjusted, 
-    # crs.iterated_maximum_matching_adjusted, 
-    # crs.serial_dictatorship,                  # Very bad performance
-    # crs.round_robin,
-    # crs.bidirectional_round_robin,
-    # crs.almost_egalitarian_without_donation,
-    # crs.almost_egalitarian_with_donation,
-    crs.gale_shapley
+    crs.gale_shapley,
+    crs.utilitarian_matching,
+    crs.iterated_maximum_matching_unadjusted,
+    crs.iterated_maximum_matching_adjusted,
+    crs.serial_dictatorship,                  # Very bad performance
+    crs.round_robin,
+    crs.bidirectional_round_robin,
+    crs.almost_egalitarian_without_donation,
+    crs.almost_egalitarian_with_donation,
     ]
 
 def evaluate_algorithm_on_instance(algorithm, instance):
@@ -50,7 +50,7 @@ def evaluate_algorithm_on_instance(algorithm, instance):
 ######### EXPERIMENT WITH UNIFORMLY-RANDOM DATA ##########
 
 def course_allocation_with_random_instance_uniform(
-    num_of_agents:int, num_of_items:int, 
+    num_of_agents:int, num_of_items:int,
     value_noise_ratio:float,
     algorithm:Callable,
     random_seed: int,):
@@ -58,7 +58,7 @@ def course_allocation_with_random_instance_uniform(
     item_capacity_bounds = (40,40)
     np.random.seed(random_seed)
     instance = Instance.random_uniform(
-        num_of_agents=num_of_agents, num_of_items=num_of_items, 
+        num_of_agents=num_of_agents, num_of_items=num_of_items,
         normalized_sum_of_values=normalized_sum_of_values,
         agent_capacity_bounds=agent_capacity_bounds, 
         item_capacity_bounds=item_capacity_bounds, 
@@ -71,9 +71,9 @@ def run_uniform_experiment():
     # Run on uniformly-random data:
     experiment = experiments_csv.Experiment("results/", "course_allocation_uniform.csv", backup_folder="results/backup/")
     input_ranges = {
-        "num_of_agents": [100,200,300],         
-        "num_of_items":  [25],                   
-        "value_noise_ratio": [0, 0.2, 0.5, 0.8, 1],                        
+        "num_of_agents": [100,200,300],
+        "num_of_items":  [25],
+        "value_noise_ratio": [0, 0.2, 0.5, 0.8, 1],
         "algorithm": algorithms_to_check,
         "random_seed": range(5),
     }
@@ -84,7 +84,7 @@ def run_uniform_experiment():
 ######### EXPERIMENT WITH DATA GENERATED ACCORDING TO THE SZWS MODEL ##########
 
 def course_allocation_with_random_instance_szws(
-    num_of_agents:int, num_of_items:int, 
+    num_of_agents:int, num_of_items:int,
     agent_capacity:int,
     supply_ratio:float,
     num_of_popular_items:int,
@@ -96,8 +96,8 @@ def course_allocation_with_random_instance_szws(
     np.random.seed(random_seed)
     instance = Instance.random_szws(
         num_of_agents=num_of_agents, num_of_items=num_of_items, normalized_sum_of_values=normalized_sum_of_values,
-        agent_capacity=agent_capacity, 
-        supply_ratio=supply_ratio, 
+        agent_capacity=agent_capacity,
+        supply_ratio=supply_ratio,
         num_of_popular_items=num_of_popular_items,
         mean_num_of_favorite_items=mean_num_of_favorite_items,
         favorite_item_value_bounds=favorite_item_value_bounds,
@@ -109,9 +109,9 @@ def run_szws_experiment():
     # Run on SZWS simulated data:
     experiment = experiments_csv.Experiment("results/", "course_allocation_szws.csv", backup_folder="results/backup/")
     input_ranges = {
-        "num_of_agents": [100,200,300],         
+        "num_of_agents": [100,200,300],
         "num_of_items":  [25],                            # in SZWS: 25
-        "agent_capacity": [5],                            # as in SZWS 
+        "agent_capacity": [5],                            # as in SZWS
         "supply_ratio": [1.1, 1.25, 1.5],                    # as in SZWS
         "num_of_popular_items": [6, 9],                   # as in SZWS
         "mean_num_of_favorite_items": [2.6, 3.85],        # as in SZWS code https://github.com/marketdesignresearch/Course-Match-Preference-Simulator/blob/main/preference_generator_demo.ipynb
@@ -133,7 +133,7 @@ with open(filename, "r", encoding="utf-8") as file:
     ariel_5783_input = json.load(file)
 
 def course_allocation_with_random_instance_sample(
-    max_total_agent_capacity:int, 
+    max_total_agent_capacity:int,
     algorithm:Callable,
     random_seed: int,):
     np.random.seed(random_seed)
@@ -141,10 +141,10 @@ def course_allocation_with_random_instance_sample(
     (valuations, agent_capacities, item_capacities, agent_conflicts, item_conflicts) = \
         (ariel_5783_input["valuations"], ariel_5783_input["agent_capacities"], ariel_5783_input["item_capacities"], ariel_5783_input["agent_conflicts"], ariel_5783_input["item_conflicts"])
     instance = Instance.random_sample(
-        max_num_of_agents = max_total_agent_capacity, 
+        max_num_of_agents = max_total_agent_capacity,
         max_total_agent_capacity = max_total_agent_capacity,
         prototype_agent_conflicts=agent_conflicts,
-        prototype_agent_capacities=agent_capacities, 
+        prototype_agent_capacities=agent_capacities,
         prototype_valuations=valuations,
         item_capacities=item_capacities,
         item_conflicts=item_conflicts)
@@ -170,5 +170,4 @@ if __name__ == "__main__":
     # run_uniform_experiment()
     # run_szws_experiment()
     # run_ariel_experiment()
-    #
-
+    

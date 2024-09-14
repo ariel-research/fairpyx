@@ -1,7 +1,7 @@
 """
 "Practical algorithms and experimentally validated incentives
 for equilibrium-based fair division (A-CEEI)"
-tests for algorithm 1 - ACEEI
+tests for algorithm 1 - ACEEI_algorithms
 
 Programmers: Erga Bar-Ilan, Ofir Shitrit and Renana Turgeman.
 Since: 2024-01
@@ -12,10 +12,13 @@ import pytest
 import logging
 import fairpyx
 from fairpyx import Instance, divide
-# from fairpyx.algorithms import ACEEI
+# from fairpyx.algorithms import ACEEI_algorithms
 # from fairpyx.algorithms.linear_program import optimize_model
-from fairpyx.algorithms.ACEEI.ACEEI import EFTBStatus, logger, find_ACEEI_with_EFTB
+from fairpyx.algorithms.ACEEI_algorithms.ACEEI import EFTBStatus, logger, find_ACEEI_with_EFTB
+from fairpyx.algorithms.ACEEI_algorithms import ACEEI
 import numpy as np
+
+from fairpyx.algorithms.ACEEI_algorithms.log_capture_handler import LogCaptureHandler
 
 
 def random_initial_budgets(num):
@@ -114,6 +117,25 @@ def test_case_5():
     fairpyx.validate_allocation(instance, allocation, title="validate Algorithm 1")
 
 
+log_capture_handler = LogCaptureHandler()
+logging.getLogger().addHandler(log_capture_handler)
+# Checks if there is any envy in the allocation.
+def test_case_6():
+    instance = Instance.random_uniform(num_of_agents=random.randint(50, 150), num_of_items=random.randint(5, 30), agent_capacity_bounds=(5, 10),
+                                       item_capacity_bounds=(50, 100), item_base_value_bounds=(1, 5),
+                                       item_subjective_ratio_bounds=(0.5, 1.5),
+                                       normalized_sum_of_values=1000)
+    t = EFTBStatus.EF_TB
+    allocation = divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=random_initial_budgets(instance.num_of_agents),
+                        delta=random_value, epsilon=random_value, t=t)
+
+    prices = log_capture_handler.extract_prices()
+    initial_budgets = random_initial_budgets(instance.num_of_agents)
+
+    ans = ACEEI.check_envy_in_allocation(instance, allocation, initial_budgets, t, prices)
+    assert ans == False
+
+
 # def test_case_5_mini():
 #     instance = Instance.random_uniform(num_of_agents=10, num_of_items=30, agent_capacity_bounds=(3, 3),
 #                                        item_capacity_bounds=(20, 20), item_base_value_bounds=(1, 5),
@@ -125,6 +147,17 @@ def test_case_5():
 
 
 if __name__ == "__main__":
-    # logger.addHandler(logging.StreamHandler())
-    # logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
     pytest.main(["-v", __file__])
+
+    # instance = Instance.random_uniform(num_of_agents=100, num_of_items=10, agent_capacity_bounds=(4, 8),
+    #                                    item_capacity_bounds=(200, 200), item_base_value_bounds=(1, 5),
+    #                                    item_subjective_ratio_bounds=(0.5, 1.5),
+    #                                    normalized_sum_of_values=1000)
+    # allocation = divide(find_ACEEI_with_EFTB, instance=instance,
+    #                     initial_budgets=random_initial_budgets(instance.num_of_agents),
+    #                     delta=random_value, epsilon=random_value, t=random_t)
+    # logs = log_capture_handler.get_logs()
+    # ans = check_envy_in_allocation(instance, allocation, initial_budgets, t, prices)
+    # print(logs)
