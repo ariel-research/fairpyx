@@ -32,7 +32,7 @@ pydantic==2.7.1
 pydantic-settings==2.2.1
 pydantic_core==2.18.2
 Pygments==2.18.0
-pytest==8.2.0
+pytest==8.3.2
 python-dotenv==1.0.1
 python-multipart==0.0.9
 PyYAML==6.0.1
@@ -50,4 +50,4 @@ virtualenv==20.26.1
 watchfiles==0.21.0
 websockets==12.0
 aiohttp==3.9.5
--e git+https://github.com/zachibs/fairpyx.git
+-e git+https://github.com/zachibs/fairpyx.git#egg=fairpyx
