@@ -18,6 +18,7 @@ normalized_sum_of_values = 1000
 TIME_LIMIT = 100
 
 algorithms_to_check = [
+    crs.gale_shapley,
     crs.utilitarian_matching,
     crs.iterated_maximum_matching_unadjusted,
     crs.iterated_maximum_matching_adjusted,
@@ -53,16 +54,16 @@ def course_allocation_with_random_instance_uniform(
     value_noise_ratio:float,
     algorithm:Callable,
     random_seed: int,):
-    agent_capacity_bounds =  [6,6]
-    item_capacity_bounds = [40,40]
+    agent_capacity_bounds =  (6,6)
+    item_capacity_bounds = (40,40)
     np.random.seed(random_seed)
     instance = Instance.random_uniform(
         num_of_agents=num_of_agents, num_of_items=num_of_items,
         normalized_sum_of_values=normalized_sum_of_values,
-        agent_capacity_bounds=agent_capacity_bounds,
-        item_capacity_bounds=item_capacity_bounds,
-        item_base_value_bounds=[1,max_value],
-        item_subjective_ratio_bounds=[1-value_noise_ratio, 1+value_noise_ratio]
+        agent_capacity_bounds=agent_capacity_bounds, 
+        item_capacity_bounds=item_capacity_bounds, 
+        item_base_value_bounds=(1,max_value),
+        item_subjective_ratio_bounds=(1-value_noise_ratio, 1+value_noise_ratio)
         )
     return evaluate_algorithm_on_instance(algorithm, instance)
 
@@ -127,6 +128,7 @@ def run_szws_experiment():
 
 import json
 filename = "data/ariel_5783_input.json"
+# filename = "experiments/data/ariel_5783_input.json"
 with open(filename, "r", encoding="utf-8") as file:
     ariel_5783_input = json.load(file)
 
@@ -165,7 +167,7 @@ def run_ariel_experiment():
 if __name__ == "__main__":
     import logging, experiments_csv
     experiments_csv.logger.setLevel(logging.INFO)
-    run_uniform_experiment()
+    # run_uniform_experiment()
     # run_szws_experiment()
     # run_ariel_experiment()
     

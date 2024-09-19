@@ -2,6 +2,7 @@ from fairpyx.algorithms.almost_egalitarian import almost_egalitarian_allocation,
 from fairpyx.algorithms.iterated_maximum_matching import iterated_maximum_matching, iterated_maximum_matching_adjusted, iterated_maximum_matching_unadjusted
 from fairpyx.algorithms.picking_sequence import round_robin, bidirectional_round_robin, serial_dictatorship
 from fairpyx.algorithms.utilitarian_matching import utilitarian_matching
+from fairpyx.algorithms.Gale_Shapley_pareto_dominant_market_mechanism import gale_shapley
 from fairpyx.algorithms.ACEEI_algorithms.tabu_search import tabu_search
 from fairpyx.algorithms.ACEEI_algorithms.ACEEI import find_ACEEI_with_EFTB
 from fairpyx.algorithms.ACEEI_algorithms.find_profitable_manipulation import find_profitable_manipulation
