@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: frontend-secret
-  labels:
-    app: frontend
-data:
-  BACKEND_BASE_URL: http://backend-service:50010/api

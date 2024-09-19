@@ -1,7 +1,9 @@
 #!/bin/bash
 
 cd front/deployment
-sh stop.sh
+docker stop front-container
+docker rm front-container
 
 cd ../../back/deployment
-sh stop.sh
+docker stop back-container
+docker rm back-container

@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
 // Create an Axios instance with default configuration
 const apiClient: AxiosInstance = axios.create({
-    baseURL: process.env.BACKEND_BASE_URL, // Replace with your backend URL
+    baseURL: "http://localhost:50010/api", // Replace with your backend URL
     timeout: 10000, // Optional: adjust the timeout as needed
     headers: {
         'Content-Type': 'application/json',

@@ -1,0 +1,1 @@
+docker run -d -p 50011:50011 --network host --name front-container frontend-image
