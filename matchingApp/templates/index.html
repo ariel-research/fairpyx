@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fairness and Stability in Many-to-One Matchings</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #e3f2fd;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+        }
+        .custom-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        h1, h3 {
+            color: #007bff;
+        }
+        pre {
+            background-color: #f1f1f1;
+            color: #333;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .result-box {
+            background-color: #f1f1f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .highlight {
+            background-color: #ffeb3b;
+        }
+    </style>
+    <script>
+        function toggleFields() {
+            var algorithm = document.getElementById('algorithm').value;
+            var uField = document.getElementById('uField');
+            var valuationLabel = document.getElementById('valuationLabel');
+            
+            if (algorithm === 'FaStGen') {
+                uField.style.display = 'block';
+                valuationLabel.textContent = 'V Values (JSON format)';
+            } else {
+                uField.style.display = 'none';
+                valuationLabel.textContent = 'Valuations (JSON format)';
+            }
+        }
+    </script>
+</head>
+<body>
+<div class="container">
+    <h1 class="text-center">Fairness and Stability in Many-to-One Matchings</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            {% if error %}
+                <p class="error-message">{{ error }}</p>
+            {% endif %}
+            <form method="post" action="{{ url_for('index') }}">
+                <div class="form-group">
+                    <label for="algorithm">Algorithm</label>
+                    <select class="form-control" id="algorithm" name="algorithm" onchange="toggleFields()" required>
+                        <option value="">Select Algorithm</option>
+                        <option value="FaSt">FaSt</option>
+                        <option value="FaStGen">FaStGen</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="k">Number of Students (n)</label>
+                    <input type="number" class="form-control" id="k" name="k" required>
+                </div>
+                <div class="form-group">
+                    <label for="m">Number of Colleges (m)</label>
+                    <input type="number" class="form-control" id="m" name="m" required>
+                </div>
+                <div class="form-group">
+                    <label id="valuationLabel" for="valuation">Valuations (JSON format)</label>
+                    <textarea class="form-control" id="valuation" name="valuation" rows="5" required></textarea>
+                </div>
+
+
+                <div class="form-group" id="uField" style="display:none;">
+                    <label for="uValues">U Values (JSON format)</label>
+                    <textarea class="form-control" id="uValues" name="uValues" rows="5"></textarea>
+                </div>
+                <button type="submit" class="btn custom-btn">Submit</button>
+            </form>
+            {% if result %}
+            <div class="result-box">
+                <h3>Result:</h3>
+                <pre>{{ result }}</pre>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -70,7 +70,6 @@ def get_combinations_courses_sorted(instance: Instance):
         capacity = instance.agent_capacity(student)
         for r in range(1, capacity + 1):
             combinations_for_student.extend(combinations(instance.items, r))
-        # logger.info(f"FINISH combinations for {student}")
 
         #  We would like to meet the requirement of the number of courses a student needs, therefore if
         #  the current combination meets the requirement we will give it more weight
