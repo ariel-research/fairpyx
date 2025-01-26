@@ -50,6 +50,9 @@ Then, use the function `fairpyx.divide` to run an algorithm on the instance. For
 
 1. [Various input formats](examples/input_formats.md), to easily use by both researchers and end-users;
 
+1. [A demo of a the simple round-robin algorithm](examples/picking_sequence_demo.md);
+
+
 
 ## Contributing new algorithms
 
