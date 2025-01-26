@@ -1,9 +1,4 @@
-"""
-Demo for picking_sequence.
-
-Programmer: Erel Segal-Halevi.
-Since: 2023-07.
-"""
+#' # Demo of picking-sequence algorithms
 
 import fairpyx
 from fairpyx.algorithms.picking_sequence import round_robin
@@ -19,8 +14,6 @@ valuations = {
 }
 agent_capacities = {"Alice": 2, "Bob": 1}
 course_capacities = {"c1": 2, "c2": 1, "c3": 1}
-
-# print(fairpyx.divide(round_robin, agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations))
 
 instance = fairpyx.Instance(agent_capacities=agent_capacities, item_capacities=course_capacities, valuations=valuations)
 print(fairpyx.divide(round_robin, instance=instance))

@@ -1,6 +1,7 @@
 """
 Run all the example files and convert them to markdown files containing the output.
-Uses `pweave`.
+
+To run this, you have to `pip install pweave`.
 """
 
 import pweave, datetime, glob, os
