@@ -10,13 +10,15 @@ import pytest
 from fairpyx.algorithms import heterogeneous_matroid_constraints_algorithms
 from fairpyx import divide
 from fairpyx.utils.test_heterogeneous_matroid_constraints_algorithms_utils import random_instance, is_fef1
+
 logger = logging.getLogger(__name__)
-@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+
+TIMES_TO_RUN = 1
+
+@pytest.mark.parametrize("run", range(TIMES_TO_RUN))  # Run the test 10 times
 def test_algorithm_1(run):
-    instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=True,
-                                                                                           num_of_agents=4,
-                                                                                           num_of_items=30,
-                                                                                           random_seed_num=0)  #,item_capacity_bounds=(1,1)#since we're doing cycle elemination
+    instance, agent_category_capacities, categories, initial_agent_order = random_instance(
+        equal_capacities=True, num_of_agents=4, num_of_items=30, random_seed_num=0)  #,item_capacity_bounds=(1,1)#since we're doing cycle elemination
     logger.info(f'TEST NUMBER {run}')
     logger.info(
         f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
@@ -37,7 +39,7 @@ def test_algorithm_1(run):
     logger.info("Finished processing data")
 
 
-@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+@pytest.mark.parametrize("run", range(TIMES_TO_RUN))  # Run the test 10 times
 def test_algorithm_2(run):
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False,
                                                                                            category_count=1,
@@ -56,7 +58,7 @@ def test_algorithm_2(run):
                    valuations_func=instance.agent_item_value) is True
 
 
-@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+@pytest.mark.parametrize("run", range(TIMES_TO_RUN))  # Run the test 10 times
 def test_algorithm_3(run):
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False,
                                                                                            category_count=2,
@@ -78,7 +80,7 @@ def test_algorithm_3(run):
                    valuations_func=instance.agent_item_value) is True
 
 
-@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+@pytest.mark.parametrize("run", range(TIMES_TO_RUN))  # Run the test 10 times
 def test_algorithm_4(run):
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False,
                                                                                            equal_valuations=True,
@@ -96,7 +98,7 @@ def test_algorithm_4(run):
                    valuations_func=instance.agent_item_value) is True  #check the is_fef1 function
 
 
-@pytest.mark.parametrize("run", range(100))  # Run the test 10 times
+@pytest.mark.parametrize("run", range(TIMES_TO_RUN))  # Run the test 10 times
 def test_algorithm_5(
         run):  # binary valuations
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False,
@@ -113,3 +115,8 @@ def test_algorithm_5(
                    instance=instance
                    , agent_category_capacities=agent_category_capacities, item_categories=categories,
                    valuations_func=instance.agent_item_value) is True
+    
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])

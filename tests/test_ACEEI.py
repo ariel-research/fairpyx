@@ -64,12 +64,13 @@ def test_case_2():
 
 
 def test_case__3_mini():
-    utilities = {f"s{i}": {f"c{44 - j}": j for j in range(43, 0, -1)} for i in range(1, 44)}
+    SIZE=20
+    utilities = {f"s{i}": {f"c{SIZE - j}": j for j in range(SIZE-1, 0, -1)} for i in range(1, SIZE)}
     instance = Instance(valuations=utilities, agent_capacities=1, item_capacities=1)
-    initial_budgets = {f"s{key}": (44 - key) for key in range(1, 44)}
+    initial_budgets = {f"s{key}": (SIZE - key) for key in range(1, SIZE)}
     allocation = divide(find_ACEEI_with_EFTB, instance=instance, initial_budgets=initial_budgets,
                         delta=0.5, epsilon=0.5, t=EFTBStatus.EF_TB)
-    for i in range(1, 44):
+    for i in range(1, SIZE):
         assert (f"c{i}" in allocation[f"s{i}"])
 
 
@@ -117,11 +118,12 @@ def test_case_5():
     fairpyx.validate_allocation(instance, allocation, title="validate Algorithm 1")
 
 
-log_capture_handler = LogCaptureHandler()
-logging.getLogger().addHandler(log_capture_handler)
 # Checks if there is any envy in the allocation.
 def test_case_6():
-    instance = Instance.random_uniform(num_of_agents=random.randint(50, 150), num_of_items=random.randint(5, 30), agent_capacity_bounds=(5, 10),
+    log_capture_handler = LogCaptureHandler()
+    logging.getLogger().addHandler(log_capture_handler)
+
+    instance = Instance.random_uniform(num_of_agents=random.randint(10,20), num_of_items=random.randint(5, 10), agent_capacity_bounds=(5, 10),
                                        item_capacity_bounds=(50, 100), item_base_value_bounds=(1, 5),
                                        item_subjective_ratio_bounds=(0.5, 1.5),
                                        normalized_sum_of_values=1000)

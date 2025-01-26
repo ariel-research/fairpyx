@@ -1209,8 +1209,8 @@ def helper_validate_valuations(agent_item_valuations: dict[str, dict[str, int]],
             if not isinstance(key,str) or not isinstance(value,dict):
                 raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly")
             for inner_key,inner_value in value.items():
-                if not isinstance(inner_key,str) or not isinstance(inner_value,(int,np.int64,float)):
-                    raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly,inner value type is {type(inner_value)}")
+                if not isinstance(inner_key,str) or not isinstance(inner_value,(int,np.int32,np.int64,float)):
+                    raise ValueError(f"agent_item_valuations {agent_item_valuations} isn't structured correctly, inner value type is {type(inner_value)}")
 
         if is_identical:
             # Check for identical valuations
@@ -1399,9 +1399,10 @@ def helper_get_logs(log_stream):
 if __name__ == "__main__":
     import doctest, sys
     import time
-    #
-    # print("\n", doctest.testmod(), "\n")
-    # sys.exit(1)
+    
+    print("\n", doctest.testmod(), "\n")
+    sys.exit(1)
+    
     #
     # logger.setLevel(logging.INFO)
     # logger.addHandler(logging.StreamHandler())
