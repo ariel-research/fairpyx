@@ -122,7 +122,7 @@ class Instance:
         self.agents = agents or agent_value_keys or agent_capacity_keys or agent_entitlement_keys 
         assert (self.agents is not None)
         self.num_of_agents = len(self.agents)
-        self.items  = items  or item_capacity_keys or item_value_keys
+        self.items  = items or item_capacity_keys or item_value_keys
         assert (self.items is not None)
         self.num_of_items = len(self.items)
 
@@ -140,6 +140,24 @@ class Instance:
         self._item_capacities  = item_capacities
         self.item_weights      = item_weights
         self._valuations       = valuations
+
+        self.validate()
+    
+
+    def validate(self):
+        """
+        Verify that the instance is valid.
+        """
+        # Verify that every item has a capacity and a weight.
+        for item in self.items:
+            try:
+                self.item_capacity(item)
+            except Exception as ex:
+                raise ValueError(f"Item {item} has no capacity: {ex}")
+            try:
+                self.item_weight(item)
+            except Exception as ex:
+                raise ValueError(f"Item {item} has no weight: {ex}")
 
 
     def agent_bundle_value(self, agent:any, bundle:list[any]):
