@@ -17,8 +17,9 @@ class Instance:
     """
     Represents an instance of the fair course-allocation problem.
     Exposes the following functions:
-     * agent_capacity:       maps an agent name/index to its capacity (num of seats required).
-     * item_capacity:        maps an item  name/index to its capacity (num of seats allocated).
+     * agent_capacity:       maps an agent name/index to its capacity or weight(num of seats required/num of credit points).
+     * item_capacity:        maps an item  name/index to its capacity(num of seats allocated).
+     * item_weight:          maps an item  name/index to its weight(num of credit points).
      * agent_conflicts:      maps an agent name/index to a set of items that conflict with it (- cannot be allocated to this agent).
      * item_conflicts:       maps an item  name/index to a set of items that conflict with it (- cannot be allocated together).
      * agent_item_value:     maps an agent,item pair to the agent's value for the item.
@@ -107,7 +108,7 @@ class Instance:
     {'Alice'}
     """
 
-    def __init__(self, valuations:any, agent_capacities:any=None, agent_entitlements:any=None, item_capacities:any=None, agent_conflicts:any=None, item_conflicts:any=None, agents:list=None, items:list=None):
+    def __init__(self, valuations:any, agent_capacities:any=None, agent_entitlements:any=None, item_capacities:any=None, item_weights:any=None, agent_conflicts:any=None, item_conflicts:any=None, agents:list=None, items:list=None):
         """
         Initialize an instance from the given 
         """
@@ -116,6 +117,7 @@ class Instance:
         agent_capacity_keys, agent_capacity_func = get_keys_and_mapping(agent_capacities)
         agent_entitlement_keys, agent_entitlement_func = get_keys_and_mapping(agent_entitlements)
         item_capacity_keys , item_capacity_func  = get_keys_and_mapping(item_capacities)
+        item_weight_keys , item_weight_func  = get_keys_and_mapping(item_weights)
 
         self.agents = agents or agent_value_keys or agent_capacity_keys or agent_entitlement_keys 
         assert (self.agents is not None)
@@ -127,6 +129,7 @@ class Instance:
         self.agent_capacity = agent_capacity_func or constant_function(len(self.items))
         self.agent_entitlement = agent_entitlement_func or constant_function(1)
         self.item_capacity  = item_capacity_func  or constant_function(1)
+        self.item_weight = item_weight_func or constant_function(1)
         self.agent_item_value = agent_item_value_func
 
         self.agent_conflicts = get_conflicts(agent_conflicts) or constant_function(set())
@@ -135,6 +138,7 @@ class Instance:
         # Keep the input parameters, for debug
         self._agent_capacities = agent_capacities
         self._item_capacities  = item_capacities
+        self.item_weights      = item_weights
         self._valuations       = valuations
 
 
