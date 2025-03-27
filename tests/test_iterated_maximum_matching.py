@@ -17,8 +17,9 @@ def test_feasibility():
         np.random.seed(i)
         instance = fairpyx.Instance.random_uniform(
             num_of_agents=70, num_of_items=10, normalized_sum_of_values=1000,
-            agent_capacity_bounds=[2,6], 
+            agent_capacity_bounds=[2,20], 
             item_capacity_bounds=[20,40], 
+            item_weight_bounds=[2,4],
             item_base_value_bounds=[1,1000],
             item_subjective_ratio_bounds=[0.5, 1.5]
             )

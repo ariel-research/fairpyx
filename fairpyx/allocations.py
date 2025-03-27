@@ -18,6 +18,7 @@ def validate_allocation(instance:Instance, allocation:dict, title:str="", allow_
     >>> instance = Instance(
     ...   agent_capacities = {"Alice": 2, "Bob": 3}, 
     ...   item_capacities  = {"c1": 1, "c2": 2, "c3": 3}, 
+    ...   item_weights     = {"c1": 1, "c2": 1, "c3": 1}, 
     ...   valuations       = {"Alice": {"c1": 11, "c2": 22, "c3": 33}, "Bob": {"c1": 33, "c2": 44, "c3": 55}})
     >>> validate_allocation(instance, allocation = {"Alice": ["c1", "c2"]})
     >>> validate_allocation(instance, allocation = {"Alice": ["c1", "c2", "c3"]})
@@ -46,11 +47,13 @@ def validate_allocation(instance:Instance, allocation:dict, title:str="", allow_
     agents_below_their_capacity = []
     for agent,bundle in allocation.items():
         agent_capacity = instance.agent_capacity(agent)
-        if len(bundle) > agent_capacity:
-            raise ValueError(f"{title}: Agent {agent} has capacity {agent_capacity}, but received more items: {bundle}.")
+        bundle_weights = [instance.item_weight(item) for item in bundle]
+        bundle_total_weight = sum(bundle_weights)
+        if bundle_total_weight > agent_capacity and bundle_total_weight - max(bundle_weights) >= agent_capacity: 
+            raise ValueError(f"{title}: Agent {agent} has capacity {agent_capacity}, but received more items: {bundle} with total weight: {bundle_total_weight}.")
         if (not allow_multiple_copies) and len(set(bundle))!=len(bundle):
             raise ValueError(f"{title}: Agent {agent} received two or more copies of the same item. Bundle: {bundle}.")
-        if len(bundle) < agent_capacity:
+        if bundle_total_weight < agent_capacity:
             agents_below_their_capacity.append(agent)
 
     ### validate item capacity:
@@ -115,6 +118,7 @@ class AllocationBuilder:
     >>> instance = Instance(
     ...   agent_capacities = {"Alice": 2, "Bob": 3}, 
     ...   item_capacities  = {"c1": 4, "c2": 5}, 
+    ...   item_weights     = {"c1": 1, "c2": 1},
     ...   valuations       = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}})
     >>> alloc = AllocationBuilder(instance)
     >>> alloc.give('Alice', 'c1')
@@ -128,6 +132,7 @@ class AllocationBuilder:
     >>> instance = Instance(
     ...   agent_capacities = {"Alice": 2, "Bob": 3}, 
     ...   item_capacities  = {"c1": 4, "c2": 5}, 
+    ...   item_weights     = {"c1": 1, "c2": 1},
     ...   valuations       = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}},
     ...   agent_conflicts  = {"Bob": ["c2"]},
     ...   item_conflicts  = {"c1": ["c2"]})
@@ -187,6 +192,7 @@ class AllocationBuilder:
             agent_conflicts=self.instance.agent_conflicts,             # agent conflicts are the same as in the original instance
             agents=self.remaining_agents(),                            # agent list may be smaller than in the original instance
             item_capacities=self.remaining_item_capacities,            # item capacities may be smaller than in the original instance 
+            item_weights=self.instance.item_weights,                   # base item weights are the same as in the original instance
             item_conflicts=self.instance.item_conflicts,               # item conflicts are the same as in the original instance   
             items=self.remaining_items())                              # item list may be smaller than in the original instance 
     
@@ -228,9 +234,9 @@ class AllocationBuilder:
             self.bundles[agent].add(item)
         if logger is not None:
             logger.info("Agent %s takes item %s with value %s", agent, item, self.instance.agent_item_value(agent, item))
-
+        
         # Update capacities:
-        self.remaining_agent_capacities[agent] -= 1
+        self.remaining_agent_capacities[agent] -= self.instance.item_weight(item)
         if self.remaining_agent_capacities[agent] <= 0:
             self.remove_agent_from_loop(agent)
         self.remaining_item_capacities[item] -= 1
@@ -252,6 +258,7 @@ class AllocationBuilder:
         NOTE: No validity check is done - use at your own risk!
         """
         map_agent_to_num_of_items = {agent: len(bundle) for agent,bundle in new_bundles.items()}
+        map_agent_to_weights_of_items = {agent: sum([self.instance.item_weight(item)] for item in bundle) for agent,bundle in new_bundles.items()}
         map_item_to_num_of_owners = {item: 0 for item in self.instance.items}
         for agent,bundle in new_bundles.items():
             for item in bundle:
@@ -261,7 +268,7 @@ class AllocationBuilder:
             if num_of_items==0: continue
             if agent not in self.remaining_agent_capacities or self.remaining_agent_capacities[agent]<num_of_items:
                 raise ValueError(f"Agent {agent} has no remaining capacity for {num_of_items} new items")
-            self.remaining_agent_capacities[agent] -= num_of_items
+            self.remaining_agent_capacities[agent] -= map_agent_to_weights_of_items[agent]
             if self.remaining_agent_capacities[agent] <= 0:
                 self.remove_agent_from_loop(agent)
 
