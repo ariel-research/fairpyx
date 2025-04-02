@@ -258,7 +258,7 @@ class AllocationBuilder:
         NOTE: No validity check is done - use at your own risk!
         """
         map_agent_to_num_of_items = {agent: len(bundle) for agent,bundle in new_bundles.items()}
-        map_agent_to_weights_of_items = {agent: sum([self.instance.item_weight(item)] for item in bundle) for agent,bundle in new_bundles.items()}
+        map_agent_to_weights_of_items = {agent: sum([self.instance.item_weight(item) for item in bundle]) for agent,bundle in new_bundles.items()}
         map_item_to_num_of_owners = {item: 0 for item in self.instance.items}
         for agent,bundle in new_bundles.items():
             for item in bundle:
