@@ -30,6 +30,7 @@ class Instance:
     >>> instance = Instance(
     ...   agent_capacities = {"Alice": 2, "Bob": 3}, 
     ...   item_capacities  = {"c1": 4, "c2": 5}, 
+    ...   item_weights     = {"c1": 4, "c2": 2}, 
     ...   valuations       = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}})
     >>> list(instance.agents)
     ['Alice', 'Bob']
@@ -39,6 +40,8 @@ class Instance:
     2
     >>> instance.item_capacity("c2")
     5
+    >>> instance.item_weight("c1")
+    4
     >>> instance.agent_item_value("Bob", "c1")
     33
     >>> instance.agent_bundle_value("Bob", ["c1","c2"])
@@ -46,7 +49,7 @@ class Instance:
     >>> instance.agent_fractionalbundle_value("Bob", {"c1":1, "c2":0.5})
     55.0
     >>> instance.agent_maximum_value("Alice")
-    33
+    22
     >>> instance.agent_maximum_value("Bob")
     77
     >>> instance.agent_ranking("Alice", [])
@@ -58,13 +61,16 @@ class Instance:
 
     ### dict of lists:
     >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 2, "Bob": 3}, 
+    ...   agent_capacities = {"Alice": 7, "Bob": 10}, 
     ...   item_capacities  = [1,2,3,4], 
+    ...   item_weights     = [2,4,4,3],
     ...   valuations       = {"Alice": [22,33,44,55], "Bob": [66,77,88,99]})
     >>> instance.agent_capacity("Alice")
-    2
+    7
     >>> instance.item_capacity(2)
     3
+    >>> instance.item_weight(1)
+    4
     >>> instance.agent_item_value("Alice", 3)
     55
     >>> instance.agent_maximum_value("Alice")
@@ -78,6 +84,8 @@ class Instance:
     >>> instance.agent_capacity("avi")
     2
     >>> instance.item_capacity("x")
+    1
+    >>> instance.item_weight("x")
     1
     >>> instance.agent_item_value("beni", "y")
     3
@@ -106,25 +114,6 @@ class Instance:
     {2, 3, 4}
     >>> instance.item_conflicts(2)
     {'Alice'}
-
-    ### item weight:
-    >>> instance = Instance(
-    ...   agent_capacities = {"Alice": 12, "Bob": 10}, 
-    ...   item_capacities  = [1,2,3,4], 
-    ...   item_weights     = [3,3,4,4],
-    ...   valuations       = {"Alice": [22,33,44,55], "Bob": [66,77,88,99]})
-    >>> instance.agent_capacity("Alice")
-    12
-    >>> instance.item_capacity(2)
-    3
-    >>> instance.item_weight(2)
-    4
-    >>> instance.agent_item_value("Alice", 3)
-    55
-    >>> instance.agent_maximum_value("Alice")
-    99
-    >>> instance.agent_maximum_value("Bob")
-    264
     """
 
     def __init__(self, valuations:any, agent_capacities:any=None, agent_entitlements:any=None, item_capacities:any=None, item_weights:any=None, agent_conflicts:any=None, item_conflicts:any=None, agents:list=None, items:list=None):
@@ -141,7 +130,7 @@ class Instance:
         self.agents = agents or agent_value_keys or agent_capacity_keys or agent_entitlement_keys 
         assert (self.agents is not None)
         self.num_of_agents = len(self.agents)
-        self.items  = items or item_capacity_keys or item_value_keys
+        self.items  = items or item_capacity_keys or item_value_keys or item_weight_keys
         assert (self.items is not None)
         self.num_of_items = len(self.items)
 
@@ -157,7 +146,7 @@ class Instance:
         # Keep the input parameters, for debug
         self._agent_capacities = agent_capacities
         self._item_capacities  = item_capacities
-        self.item_weights      = item_weights
+        self._item_weights     = item_weights
         self._valuations       = valuations
 
         self.validate()
@@ -223,7 +212,7 @@ class Instance:
  * agent capacities: { {agent: self.agent_capacity(agent) for agent in self.agents} }
  * agent conflicts:  { {agent: self.agent_conflicts(agent) for agent in self.agents} }
  * item capacities:  { {item: self.item_capacity(item) for item in self.items} }
- * item weights:  { {item: self.item_weight(item) for item in self.items} }
+ * item weights:     { {item: self.item_weight(item) for item in self.items} }
  * item conflicts:  { {item: self.item_conflicts(item) for item in self.items} }
  * valuations: {dict(self._valuations)}
  """
@@ -233,7 +222,7 @@ class Instance:
         """
         Return the maximum possible value of an agent: the sum of the top x items, where x is the agent's capacity.
         """
-        sorted_items = sorted([self.agent_item_value(agent,item) for item in self.items],reverse=True)
+        sorted_items = sorted(self.items, key=lambda item: self.agent_item_value(agent, item), reverse=True)
         capacity = self.agent_capacity(agent)
         total_value = 0
         total_weight = 0
@@ -262,12 +251,12 @@ class Instance:
     def random_uniform(num_of_agents:int, num_of_items:int, 
                agent_capacity_bounds:tuple[int,int],
                item_capacity_bounds:tuple[int,int],
-               item_weight_bounds:tuple[float,float],
                item_base_value_bounds:tuple[int,int],
                item_subjective_ratio_bounds:tuple[float,float],
                normalized_sum_of_values:int,
                agent_name_template="s{index}", item_name_template="c{index}",
                random_seed:int=None,
+               item_weight_bounds:tuple[float,float]=None,
                ):
         """
         Generate a random instance by drawing values from uniform distributions.
@@ -280,7 +269,6 @@ class Instance:
         items   = [item_name_template.format(index=i+1) for i in range(num_of_items)]
         agent_capacities  = {agent: np.random.randint(agent_capacity_bounds[0], agent_capacity_bounds[1]+1) for agent in agents}
         item_capacities   = {item: np.random.randint(item_capacity_bounds[0], item_capacity_bounds[1]+1) for item in items}
-        item_weights      = {item: np.round(np.random.uniform(item_weight_bounds[0], item_weight_bounds[1]+1)) for item in items}
         base_values = normalized_valuation(random_valuation(num_of_items, item_base_value_bounds), normalized_sum_of_values)
         valuations = {
             agent: dict(zip(items, normalized_valuation(
@@ -289,6 +277,9 @@ class Instance:
             )))
             for agent in agents
         }
+        item_weights = None
+        if item_weight_bounds:
+            item_weights = {item: np.round(np.random.uniform(item_weight_bounds[0], item_weight_bounds[1]+1)) for item in items}    
         return Instance(valuations=valuations, agent_capacities=agent_capacities, item_capacities=item_capacities, item_weights=item_weights)
     
 
@@ -341,7 +332,7 @@ class Instance:
     @staticmethod
     def random_sample(max_num_of_agents:int, max_total_agent_capacity:int,
         prototype_valuations:dict, prototype_agent_capacities:dict, prototype_agent_conflicts:dict,
-        item_capacities:dict, item_weights:dict, item_conflicts:dict, 
+        item_capacities:dict, item_conflicts:dict, item_weights:dict=None,
         random_seed:int=None,
         ):
         """
@@ -574,7 +565,7 @@ if __name__ == "__main__":
 
     random_instance = Instance.random_uniform(
         num_of_agents=5, num_of_items=3, 
-        agent_capacity_bounds=[2,6], item_capacity_bounds=[30,50], 
+        agent_capacity_bounds=[2,6], item_capacity_bounds=[30,50],
         item_base_value_bounds=[1,200], item_subjective_ratio_bounds=[0.5,1.5],
         # agent_name_template="agent{index}", item_name_template="item{index}",
         normalized_sum_of_values=1000)
