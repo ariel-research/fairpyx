@@ -47,7 +47,7 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
     "{avi:['w', 'x', 'y', 'z'], beni:['w', 'x', 'y', 'z']}"
 
     ### item weights
-    >>> instance = Instance(valuations={"avi": {"x":5, "y":4, "z":3, "w":2}, "beni": {"x":2, "y":3, "z":4, "w":5}}, agent_capacities=8, item_capacities=1, item_weights=4)
+    >>> instance = Instance(valuations={"avi": {"x":5, "y":4, "z":3, "w":2}, "beni": {"x":2, "y":3, "z":4, "w":5}}, agent_capacities=8, item_capacities=1, item_weights=4.5)
     >>> map_agent_name_to_bundle = divide(iterated_maximum_matching,instance=instance)
     >>> stringify(map_agent_name_to_bundle)
     "{avi:['x', 'y'], beni:['w', 'z']}"

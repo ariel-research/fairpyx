@@ -29,7 +29,7 @@ class Instance:
     ### dict of dicts:
     >>> instance = Instance(
     ...   agent_capacities = {"Alice": 2, "Bob": 3}, 
-    ...   item_capacities  = {"c1": 4, "c2": 5}, 
+    ...   item_capacities  = {"c1": 4.5, "c2": 5}, 
     ...   item_weights     = {"c1": 4, "c2": 2}, 
     ...   valuations       = {"Alice": {"c1": 11, "c2": 22}, "Bob": {"c1": 33, "c2": 44}})
     >>> list(instance.agents)
