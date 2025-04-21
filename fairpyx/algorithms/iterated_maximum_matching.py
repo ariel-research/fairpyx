@@ -93,6 +93,10 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
             "he": "כפיצוי, הוספנו את ההפרש %g לקורס הכי טוב שנשאר לך, %s.",
             "en": "As compensation, we added the difference %g to your best remaining course, %s.",
         },
+        "no_remaining_courses": {
+            "he": "לא נותרו עוד קורסים!",
+            "en": "There are no more remaining courses!",
+        }
     }
     def _(code:str): return TEXTS[code][explanation_logger.language]
 
@@ -151,8 +155,8 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
                                 pass
             else:
                 for agent,item in map_agent_to_item.items():
-                    explanation_logger.info("The maximum possible value you could get in this iteration is %g. You get course %s whose value for you is %g.", map_agent_to_max_possible_value[agent], item, map_agent_to_value[agent], agents=agent)
-                explanation_logger.info("\nThere are no more remaining courses!", agents=map_agent_to_item.keys())
+                    explanation_logger.info(_("your_course_this_iteration"), map_agent_to_max_possible_value[agent], item, map_agent_to_value[agent], agents=agent)
+                explanation_logger.info(f'\n{_("no_remaining_courses")}', agents=map_agent_to_item.keys())
 
         else:   # Simple algorithm: do not adjust utilities 
             for agent,item in map_agent_to_item.items():

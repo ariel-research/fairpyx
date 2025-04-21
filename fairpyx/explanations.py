@@ -17,8 +17,8 @@ TEXTS = {
 		"en": "These are the values you assigned to the courses:",
 	},
 	"you_need": {
-		"he": "ביקשת %d קורסים, אז הערך הגבוה ביותר האפשרי עבורך הוא %g.",
-		"en": "You need %d courses, so your maximum possible value is %g.",
+		"he": "ביקשת %d נקודות זכות, אז הערך הגבוה ביותר האפשרי עבורך הוא %g.",
+		"en": "You need %d credit points, so your maximum possible value is %g.",
 	},
 	"your_bundle": {
 		"he": "אלה הקורסים שקיבלת:",
@@ -29,12 +29,12 @@ TEXTS = {
 		"en": "Your fractional bundle is:",
 	},
 	"your_course": {
-		"he": "%s (מספר %d בדירוג שלך), עם %g נקודות",
-		"en": "Course %s (number %d in your ranking), with value %g",
+		"he": "%s (מספר %d בדירוג שלך), עם %g נקודות ומשקל %.2f",
+		"en": "Course %s (number %d in your ranking), with value %g and weight %.2f",
 	},
 	"your_maximum_value": {
-		"he": "הניקוד הגבוה ביותר שיכולת לקבל על  %d קורסים הוא %g.",
-		"en": "The maximum possible value you could get for %d courses is %g.",
+		"he": "הניקוד הגבוה ביותר שיכולת לקבל על  %d נקודות זכות הוא %g.",
+		"en": "The maximum possible value you could get for %d credit points is %g.",
 	},
 	"your_actual_value": {
 		"he": "הניקוד הכולל של הקורסים שקיבלת הוא %g, שהוא %g%% מהמקסימום.",
@@ -77,7 +77,7 @@ class ExplanationLogger:
             self.info(_("your_bundle"), agents=agent)
             ranking = instance.agent_ranking(agent, bundle)
             for item in sorted(bundle, key=ranking.__getitem__):
-                self.info(" * " + _("your_course"), map_course_to_name.get(item,item), ranking[item], instance.agent_item_value(agent,item), agents=agent)
+                self.info(" * " + _("your_course"), map_course_to_name.get(item,item), ranking[item], instance.agent_item_value(agent,item), instance.item_weight(item), agents=agent)
             absolute_value = instance.agent_bundle_value(agent,bundle)
             maximum_value  = instance.agent_maximum_value(agent)
             relative_value = absolute_value/maximum_value*100
@@ -221,7 +221,7 @@ class StringsExplanationLogger(ExplanationLoggerPerAgent):
             logger.setLevel(level)
             logger.addHandler(logging.StreamHandler(self.map_agent_to_stream[agent]))
             map_agent_to_logger[agent] = logger
-        super().__init__(map_agent_to_logger, language="en")
+        super().__init__(map_agent_to_logger, language=language)
 
     def agent_string(self, agent):
         return str(self.map_agent_to_stream[agent])
