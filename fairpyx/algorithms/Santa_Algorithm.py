@@ -48,6 +48,7 @@ def is_threshold_feasible(valuations: np.ndarray, threshold: float) -> bool:
     >>> is_threshold_feasible(valuations, 0.4)
     True
     """
+    pass
 
 def solve_configuration_lp(valuations: np.ndarray, threshold: float) -> Dict[int, List[Set[int]]]:
     """
@@ -64,6 +65,7 @@ def solve_configuration_lp(valuations: np.ndarray, threshold: float) -> Dict[int
     >>> solve_configuration_lp(valuations, 0.5)  # doctest: +ELLIPSIS
     {1: [{1}], 2: [{2}]}
     """
+    pass
 
 def classify_items(valuations: np.ndarray, threshold: float) -> Tuple[Set[int], Set[int]]:
     """
@@ -80,6 +82,7 @@ def classify_items(valuations: np.ndarray, threshold: float) -> Tuple[Set[int], 
     >>> classify_items(valuations, 0.9)
     ({1}, {2})
     """
+    pass
 
 def build_hypergraph(valuations: np.ndarray, allocation: Dict[int, List[Set[int]]], fat_items: Set[int], thin_items: Set[int], threshold: float) -> Hypergraph:
     """
@@ -98,6 +101,7 @@ def build_hypergraph(valuations: np.ndarray, allocation: Dict[int, List[Set[int]
     >>> build_hypergraph(valuations, allocation, fat_items, thin_items, 0.4)  # doctest: +ELLIPSIS
     <...Hypergraph object...>
     """
+    pass
 
 def local_search_perfect_matching(hypergraph: Hypergraph) -> Dict[int, Set[int]]:
     """
@@ -118,3 +122,12 @@ def local_search_perfect_matching(hypergraph: Hypergraph) -> Dict[int, Set[int]]
     >>> local_search_perfect_matching(H)
     {1: {2}, 2: {2}}
     """
+    pass
+
+if __name__ == "__main__":
+    # 1. Run the doctests:
+    import doctest, sys
+    print("\n", doctest.testmod(), "\n")
+
+    # 2. run with logging or real examples
+    # Currently not implemented for this algorithm.
