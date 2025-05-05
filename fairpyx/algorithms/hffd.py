@@ -11,9 +11,6 @@ Programmer : **Nadav Shabtai**
 Date    : **05 / 2025**
 
 
-Programmer: Nadav Shabtai
-Since: 2025-05
-=======
 ---------------------------------------------------------------------------
 Algorithm 1 (Heterogeneous First-Fit Decreasing — HFFD)
 ---------------------------------------------------------------------------
