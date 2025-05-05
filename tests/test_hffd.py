@@ -1,12 +1,17 @@
-"""
-Initial failing tests for the (empty) HFFD skeleton.
-Run:  pytest -q
-"""
-
+import random, numpy as np
 import pytest
-import numpy as np
-import fairpyx
 from fairpyx.algorithms.hffd import hffd
+import fairpyx
+
+# ----------  preserve RNG state so we don't break other tests  ----------
+@pytest.fixture(autouse=True)
+def _preserve_random_state():
+    state_py   = random.getstate()
+    state_np   = np.random.get_state()
+    yield
+    random.setstate(state_py)
+    np.random.set_state(state_np)
+# -----------------------------------------------------------------------
 
 def test_allocation_not_empty():
     costs = np.array([[8,5,5,2],
@@ -22,3 +27,4 @@ def test_respect_capacities():
     allocation = fairpyx.divide(hffd, inst)
     fairpyx.validate_allocation(inst, allocation,
                                 title="HFFD capacity check")
+
