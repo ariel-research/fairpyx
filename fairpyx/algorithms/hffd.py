@@ -7,7 +7,7 @@ Implementation of:
 
 Algorithm 1 — Heterogeneous First Fit Decreasing (HFFD)
 
-Programmer: Nadav <family-name>
+Programmer: Nadav Shabtai
 Since: 2025-05
 """
 
