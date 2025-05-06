@@ -4,6 +4,8 @@ This module contains unit tests for the algorithm, including edge cases and fixe
 
 It also includes randomized property tests to ensure the algorithm's correctness and fairness.
     
+Programmer: Shaked Shvartz
+Since: 2025-05
 """
 
 
@@ -24,7 +26,7 @@ def make_instance(agent_caps, item_caps, valuations):
 # --- Edge case tests ---
 
 def test_empty_agents():
-    # אין סוכנים
+    # no agents
     agent_caps = {}
     item_caps = {'a':1}
     valuations = {}
@@ -34,7 +36,7 @@ def test_empty_agents():
 
 
 def test_empty_items():
-    # אין פריטים
+    # no items
     agent_caps = {'A':1,'B':1}
     item_caps = {}
     valuations = {'A':{},'B':{}}
@@ -45,7 +47,7 @@ def test_empty_items():
 
 
 def test_invalid_k_even_rounds():
-    # k זוגי אך לא שווה לסך הקיבולות
+    # k is not even
     agent_caps = {'A':2,'B':2}
     item_caps = {'x':2,'y':2}
     valuations = {'A':{'x':1,'y':1},'B':{'x':1,'y':1}}
@@ -61,7 +63,9 @@ def test_two_agents_two_rounds_example():
     vals = {'A':{'a':4,'b':1}, 'B':{'a':2,'b':3}}
     alloc = make_instance(agent_caps, item_caps, vals)
     result = two_agents_two_rounds(alloc)
-    # מצופה: A picks a then b; B ההפך
+    # expected allocation:
+    # 1: A→{a},B→{b}
+    # 2: A→{b},B→{a}
     assert result[1]['A'] == ['a'] and result[2]['A'] == ['b']
     assert result[1]['B'] == ['b'] and result[2]['B'] == ['a']
 
@@ -72,7 +76,7 @@ def test_two_agents_even_rounds_example():
     vals = {'A':{'x':3,'y':1}, 'B':{'x':1,'y':3}}
     alloc = make_instance(agent_caps, item_caps, vals)
     result = two_agents_even_rounds(alloc, k=4)
-    # בכל סבב EF1
+    # check for 
     for bundle in result.values():
         assert len(bundle) == 1
 
@@ -83,23 +87,26 @@ def test_multi_agent_cyclic_example():
     vals = {i:{ch:1 for ch in item_caps} for i in ['1','2','3']}
     alloc = make_instance(agent_caps, item_caps, vals)
     result = multi_agent_cyclic(alloc, k=3)
-    # כל סוכן מקבל בכל סבב בדיוק פריט אחד
-    for s in [1,2,3]:
-        assert all(len(result[s][i]) == 1 for i in ['1','2','3'])
+    # expected allocation:
+    # 1: 1→{a,b},2→{c,d},3→{e,f}
+    # 2: 1→{c,d},2→{e,f},3→{a,b}
+    # 3: 1→{e,f},2→{a,b},3→{c,d}
+    assert result[1]['1'] == ['a','b'] and result[2]['1'] == ['c','d'] and result[3]['1'] == ['e','f']
+    assert result[1]['2'] == ['c','d'] and result[2]['2'] == ['e','f'] and result[3]['2'] == ['a','b']
+    assert result[1]['3'] == ['e','f'] and result[2]['3'] == ['a','b'] and result[3]['3'] == ['c','d']
 
 # --- Randomized property tests ---
 
 
 def test_two_agents_even_rounds_random():
-    # בדיקה שרק התוצאה מקיימת EF1 ולא קנאה גלובלית
+    # check EF1 in each round:
+    # check that the allocation is EF1 in each round
     agent_caps = {'A':2,'B':2}
     item_caps = {'x':2,'y':2}
     vals = {'A':{'x':random.randint(1,10),'y':random.randint(1,10)},
             'B':{'x':random.randint(1,10),'y':random.randint(1,10)}}
     alloc = make_instance(agent_caps, item_caps, vals)
     result = two_agents_even_rounds(alloc, k=4)
-    # בדוק EF1 בכל סבב:
-    # הפרש התועלות לכל סוכן בכל סבב <= max פרט
     for s, bundles in result.items():
         uA = sum(vals['A'][item] for item in bundles['A'])
         uB = sum(vals['B'][item] for item in bundles['B'])
@@ -108,7 +115,8 @@ def test_two_agents_even_rounds_random():
 
 
 def test_multi_agent_cyclic_random():
-    # בדיקה של EF גלובלית: תועלת מצטברת זהה
+    # check global fairness:
+    # check that all agents have the same total value after k rounds
     n = 4
     m = 8
     k = 4
