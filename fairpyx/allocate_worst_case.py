@@ -4,7 +4,7 @@ An implementation of the algorithm in:
 by E. Markakis and C. Psomas (2011), http://pages.cs.aueb.gr/~markakis/research/wine11-Vn.pdf,
 https://link.springer.com/chapter/10.1007/978-3-642-25510-6_24
 Programmer: Ibrahem Hurani
-Date: 2025-04-27
+Date: 2025-05-6
 """
 
 def allocate(value_matrix: list[list[float]], threshold: list[float]) -> dict[int, list[int]]:
