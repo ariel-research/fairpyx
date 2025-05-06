@@ -41,7 +41,6 @@ def test_empty_items():
     item_caps = {}
     valuations = {'A':{},'B':{}}
     alloc = make_instance(agent_caps, item_caps, valuations)
-    # אמור להחזיר הקצאה ריקה בכל סבב
     result = two_agents_two_rounds(alloc)
     assert all(bundle == [] for bundle in result.values())
 
@@ -76,7 +75,7 @@ def test_two_agents_even_rounds_example():
     vals = {'A':{'x':3,'y':1}, 'B':{'x':1,'y':3}}
     alloc = make_instance(agent_caps, item_caps, vals)
     result = two_agents_even_rounds(alloc, k=4)
-    # check for 
+    # check that the allocation is EF1 in each round
     for bundle in result.values():
         assert len(bundle) == 1
 
