@@ -1,0 +1,3 @@
+Requirement already satisfied: cvxpy_base in c:\users\shake\desktop\fair\fairpyx\fresh_env\lib\site-packages (1.6.5)
+Requirement already satisfied: numpy>=1.21.6 in c:\users\shake\desktop\fair\fairpyx\fresh_env\lib\site-packages (from cvxpy_base) (2.2.5)
+Requirement already satisfied: scipy>=1.11.0 in c:\users\shake\desktop\fair\fairpyx\fresh_env\lib\site-packages (from cvxpy_base) (1.15.2)

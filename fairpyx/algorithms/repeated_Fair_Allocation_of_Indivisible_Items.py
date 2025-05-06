@@ -27,7 +27,7 @@ def two_agents_two_rounds(alloc: AllocationBuilder):
     It satisfies the EF1 condition in each round, and the allocation is done in a way that ensures fairness.
     The algorithm starts with a global EF+PO allocation, then splits the items into two sets: I1 and I2, and the remaining items O.
     
-    דוגמה רצה:
+    דוגמת הרצה:
 
 
     example allocation (n=2, k=2):    
@@ -52,7 +52,7 @@ def two_agents_even_rounds(alloc: AllocationBuilder, k: int):
     It uses a block of EF allocation of size 2, and repeats it k/2 times.
     By doing so, it ensures that the allocation is fair and satisfies the EF1 condition in each round.
 
-    דוגמה רצה (n=2, k=4):
+    דוגמת הרצה (n=2, k=4):
 
     example allocation (n=2, k=4):
     agents=A,B; items={x,y}; values are reversed for each agent.
@@ -78,7 +78,7 @@ def multi_agent_cyclic(alloc: AllocationBuilder, k: int):
     the algorithm works by dividing the items into n sets, one for each agent, and then performing a cyclic shift over k rounds.
     This ensures that each agent gets a fair share of the items in each round.
 
-    דוגמה רצה (n=3, k=3):
+    דוגמת הרצה (n=3, k=3):
     סוכנים=1,2,3; פריטים={a,b,c}; ערכים שווים לכל סוכן.
     
     example allocation (n=3, k=3):
