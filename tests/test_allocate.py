@@ -1,49 +1,69 @@
 import pytest
-from fairpyx.allocate_worst_case import allocate
+from fairpyx import Instance, divide
+from fairpyx.allocate_worst_case import algorithm1_worst_case_allocation
 
-# דוגמה 1 
 def test_example_1():
-    value_matrix = [[6, 3, 1], [2, 5, 5]]
-    threshold = [6, 6]
-    result = allocate(value_matrix, threshold)
-    assert result == {0: [0], 1: [1, 2]}
+    instance = Instance(
+        valuations={"A": {"1": 6, "2": 3, "3": 1}, "B": {"1": 2, "2": 5, "3": 5}}
+    )
+    alloc = divide(algorithm=algorithm1_worst_case_allocation, instance=instance)
+    assert set(alloc.bundles["A"]) == {"1", "3"}
+    assert set(alloc.bundles["B"]) == {"2"}
 
-#דוגמה 2
 def test_example_2():
-    value_matrix = [[7, 2, 1, 1], [3, 6, 1, 2], [2, 3, 5, 5]]
-    threshold = [7, 6, 9]
-    result = allocate(value_matrix, threshold)
-    assert result == {2: [2, 3], 0: [0], 1: [1]}
+    instance = Instance(
+        valuations={
+            "A": {"1": 7, "2": 2, "3": 1, "4": 1},
+            "B": {"1": 3, "2": 6, "3": 1, "4": 2},
+            "C": {"1": 2, "2": 3, "3": 5, "4": 5},
+        }
+    )
+    alloc = divide(algorithm=algorithm1_worst_case_allocation, instance=instance)
+    assert set(alloc.bundles["C"]) == {"3", "4"}
+    for agent in instance.valuations:
+        value = sum(instance.valuations[agent][item] for item in alloc.bundles[agent])
+        assert value >= instance.worst_case_value(agent)
 
-# קלט ריק
-def test_empty_input():
-    assert allocate([], []) == {}
+def test_empty_instance():
+    instance = Instance(valuations={})
+    with pytest.raises(ValueError):
+        list(divide(algorithm=algorithm1_worst_case_allocation, instance=instance))
 
-# קלט לא תקני – מימדים שונים
-def test_invalid_input_length():
-    value_matrix = [[1, 2], [3, 4]]
-    threshold = [5]  # פחות מדי ספים
-    with pytest.raises(Exception):
-        allocate(value_matrix, threshold)
+def test_single_agent_all_items():
+    instance = Instance(valuations={"A": {"1": 10, "2": 5}})
+    alloc = divide(algorithm=algorithm1_worst_case_allocation, instance=instance)
+    assert set(alloc.bundles["A"]) == {"1", "2"}
 
-# קלט קצה – ערכים נמוכים מאוד
-def test_zero_thresholds():
-    value_matrix = [[0, 0], [0, 0]]
-    threshold = [0, 0]
-    result = allocate(value_matrix, threshold)
-    assert set(result.keys()) == {0, 1}
+def test_large_random_instance():
+    import random
+    random.seed(42)
+    agents = [f"A{i}" for i in range(10)]
+    items = [str(i) for i in range(15)]
+    valuations = {
+        agent: {item: random.randint(1, 10) for item in items}
+        for agent in agents
+    }
+    instance = Instance(valuations)
+    alloc = divide(algorithm=algorithm1_worst_case_allocation, instance=instance)
+    for agent in agents:
+        value = sum(valuations[agent][item] for item in alloc.bundles[agent])
+        assert value >= instance.worst_case_value(agent)
 
-# קלט אקראי והשוואה לאלגוריתם נאיבי (חיפוש שלם או תנאי תקינות)
-import random
-
-def test_random_input_non_empty_allocation():
-    agents = 5
-    items = 10
-    value_matrix = [[random.randint(1, 10) for _ in range(items)] for _ in range(agents)]
-    threshold = [sum(row) / len(row) / 2 for row in value_matrix]  # חצי מממוצע הערכים לסוכן
-    result = allocate(value_matrix, threshold)
-
-    # בדיקה: כל סוכן שהוקצה לו משהו עומד בתנאי הסף
-    for agent, bundle in result.items():
-        value = sum(value_matrix[agent][item] for item in bundle)
-        assert value >= threshold[agent]
+def test_with_capacities():
+    from collections import Counter
+    instance = Instance(
+        valuations={
+            "Alice": {"c1": 8, "c2": 6, "c3": 10},
+            "Bob": {"c1": 8, "c2": 10, "c3": 6},
+            "Chana": {"c1": 6, "c2": 8, "c3": 10},
+            "Dana": {"c1": 6, "c2": 8, "c3": 10}
+        },
+        agent_capacities={"Alice": 2, "Bob": 3, "Chana": 2, "Dana": 3},
+        item_capacities={"c1": 2, "c2": 3, "c3": 4}
+    )
+    alloc = divide(algorithm=algorithm1_worst_case_allocation, instance=instance)
+    for agent, cap in instance.agent_capacities.items():
+        assert len(alloc.bundles[agent]) <= cap
+    counter = Counter(item for bundle in alloc.bundles.values() for item in bundle)
+    for item, cap in instance.item_capacities.items():
+        assert counter[item] <= cap
