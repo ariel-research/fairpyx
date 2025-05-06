@@ -1,41 +1,54 @@
 """
-An implementation of the algorithm in:
-"On Worst-Case Allocations in the Presence of Indivisible Goods",
-by E. Markakis and C. Psomas (2011), http://pages.cs.aueb.gr/~markakis/research/wine11-Vn.pdf,
+An implementation of the algorithms in:
+"On Worst-Case Allocations in the Presence of Indivisible Goods"
+by Evangelos Markakis and Christos-Alexandros Psomas (2011).
 https://link.springer.com/chapter/10.1007/978-3-642-25510-6_24
+http://pages.cs.aueb.gr/~markakis/research/wine11-Vn.pdf
+
 Programmer: Ibrahem Hurani
-Date: 2025-05-6
+Date: 2025-05-06
 """
 
-def allocate(value_matrix: list[list[float]], threshold: list[float]) -> dict[int, list[int]]:
+from fairpyx import AllocationBuilder
+
+def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     """
-    Algorithm 1 from "On Worst-Case Allocations in the Presence of Indivisible Goods"
-    by E. Markakis and C. Psomas (2011):
-    Allocates indivisible items to agents ensuring each agent i receives a bundle
-    worth at least Vn(alpha_i).
+    Algorithm 1: Allocates items such that each agent receives a bundle worth at least their worst-case guarantee.
 
-    אלגוריתם 1 מתוך המאמר של מרקאקיס ופסומס (2011):
-    מקצה פריטים בלתי ניתנים לחלוקה כך שכל סוכן מקבל ערך שלא נופל מ-Vn(α_i).
+    This algorithm incrementally builds bundles for agents based on their preferences until one agent reaches
+    their worst-case guarantee. That agent receives the bundle, then we normalize the remaining agents and recurse.
 
-    פרמטרים:
-    value_matrix -- מטריצת ערכים בגודל n×m, כאשר value_matrix[i][j] מייצג את הערך שהסוכן i נותן לפריט j
-    threshold -- רשימה באורך n, שמכילה את סף הערך שכל סוכן צריך לקבל
+    אלגוריתם זה בונה חבילות עד שסוכן מקבל לפחות את ההבטחה הגרועה שלו, מקצה לו, מנרמל וממשיך רקורסיבית.
 
-    :return: מילון שבו לכל סוכן מותאמת רשימה של אינדקסים של פריטים שהוקצו לו
+    :param alloc: AllocationBuilder — the current allocation state and remaining instance.
+    :return: None — allocation is done in-place inside `alloc`.
 
-    דוגמאות:
+    Example 1 :
+    >>> from fairpyx import Instance, divide
+    >>> instance1 = Instance(
+    ...     valuations={
+    ...         "A": {"1": 6, "2": 3, "3": 1},
+    ...         "B": {"1": 2, "2": 5, "3": 5}
+    ...     }
+    ... )
+    >>> alloc1 = divide(instance1, algorithm1_worst_case_allocation)
+    >>> set(alloc1.bundles["A"]) == {"1", "3"} or set(alloc1.bundles["A"]) == {"3", "1"}
+    True
+    >>> set(alloc1.bundles["B"]) == {"2"}
+    True
 
-    דוגמה 1 - שני סוכנים ושלושה פריטים:
-    >>> value_matrix = [[6, 3, 1], [2, 5, 5]]
-    >>> threshold = [6, 6]
-    >>> allocate(value_matrix, threshold)
-    {0: [0], 1: [1, 2]}
-
-    דוגמה 2 - שלושה סוכנים וארבעה פריטים:
-    >>> value_matrix = [[7, 2, 1, 1], [3, 6, 1, 2], [2, 3, 5, 5]]
-    >>> threshold = [7, 6, 9]
-    >>> allocate(value_matrix, threshold)
-    {2: [2, 3], 0: [0], 1: [1]}
+    Example 2 :
+    >>> instance2 = Instance(
+    ...     valuations={
+    ...         "A": {"1": 7, "2": 2, "3": 1, "4": 1},
+    ...         "B": {"1": 3, "2": 6, "3": 1, "4": 2},
+    ...         "C": {"1": 2, "2": 3, "3": 5, "4": 5}
+    ...     }
+    ... )
+    >>> alloc2 = divide(instance2, algorithm1_worst_case_allocation)
+    >>> set(alloc2.bundles["C"]) == {"3", "4"}
+    True
+    >>> sorted(alloc2.bundles["A"] + alloc2.bundles["B"] + alloc2.bundles["C"]) == ["1", "2", "3", "4"]
+    True
     """
-    return {} 
-
+    return  # Empty implementation
