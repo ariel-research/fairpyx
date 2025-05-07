@@ -51,6 +51,7 @@ INF = float("inf")
 MAX_NAME_SIZE = 512  # for variables and constraints
 
 lib_path = None
+has_gurobi = False
 
 if "GUROBI_HOME" in environ:
     if platform.lower().startswith("win"):
@@ -93,9 +94,9 @@ if lib_path is None:
 
 
 if lib_path is None:
-    found = False
+    has_gurobi = False
 else:
-    found = True
+    has_gurobi = True
     grblib = ffi.dlopen(lib_path)
 
     ffi.cdef(
@@ -339,7 +340,7 @@ class SolverGurobi(Solver):
     def __init__(self, model: Model, name: str, sense: str, modelp: CData = ffi.NULL):
         """modelp should be informed if a model should not be created,
         but only allow access to an existing one"""
-        if not found:
+        if not has_gurobi:
             raise FileNotFoundError(
                 """Gurobi not found. Plase check if the
             Gurobi dynamic loadable library is reachable or define
@@ -775,7 +776,14 @@ class SolverGurobi(Solver):
         if status == 3:  # INFEASIBLE
             return OptimizationStatus.INFEASIBLE
         if status == 4:  # INF_OR_UNBD
-            return OptimizationStatus.UNBOUNDED
+            # Special case by gurobi, where an additional run has to be made
+            # to determine infeasibility or unbounded problem
+            # For this run dual reductions must be disabled
+            # See gurobi support article online - How do I resolve the error "Model is infeasible or unbounded"?
+            # self.set_int_param("DualReductions", 0)
+            # GRBoptimize(self._model)
+            # return OptimizationStatus.INFEASIBLE if self.get_int_attr("Status") == 3 else OptimizationStatus.UNBOUNDED
+            return OptimizationStatus.INF_OR_UNBD
         if status == 5:  # UNBOUNDED
             return OptimizationStatus.UNBOUNDED
         if status == 6:  # CUTOFF
