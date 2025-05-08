@@ -41,6 +41,30 @@ def two_agents_two_rounds(alloc: AllocationBuilder):
     """
     logger.info("Running 2-agents, 2-rounds allocation")
     raise NotImplementedError
+  
+  
+def ef1_po_exhaustive_two_rounds(alloc: AllocationBuilder):
+    """
+    מיישם את הגרסה האקספוננציאלית של EF1+PO עבור שני סוכנים ושני סבבים (n=2, k=2).
+    האלגוריתם בודק אקספוננציאלית את כל החלוקות האפשריות של קבוצת הפריטים הניתנים להחלפה (O),
+    עד שמתקבלות שתי חלוקות (סבב 1 וסבב 2) שמקיימות גם EF1 בכל סבב וגם EF+PO מצטבר.
+
+    This is an exponential-time algorithm for two agents and two rounds.
+    It performs a full search over all partitions of the movable item set (O) to find an allocation
+    that satisfies EF1 per round and EF+PO overall. Only suitable for very small instances.
+
+    ⚠ זמן ריצה: O(2^|O|)
+
+    דוגמת הרצה:
+
+    items: a,b;  A: u(a)=4,u(b)=1;  B: u(a)=2,u(b)=3
+
+    output:
+      1: A→{a}, B→{b}
+      2: A→{b}, B→{a}
+    """
+    logger.info("Running exhaustive EF1+PO for 2 agents, 2 rounds (exponential time)")
+    raise NotImplementedError
 
 
 def two_agents_even_rounds(alloc: AllocationBuilder, k: int):
@@ -93,6 +117,22 @@ def multi_agent_cyclic(alloc: AllocationBuilder, k: int):
       3: 1→{b},2→{c},3→{a}
     """
     logger.info("Running multi-agent cyclic allocation (k=%d)", k)
+    raise NotImplementedError
+
+def fractional_prop_rounding(alloc: AllocationBuilder, k: int):
+    """
+    This algorithm starts with a fractional EF+PO allocation (which always exists),
+    then converts it into k integral rounds while ensuring PROP[1,1] in each round.
+    Suitable for theoretical guarantees but may require solving LPs and large rounding.
+
+    ⚠ זמן ריצה תלוי במספר הסיבובים והדיוק (פסאודו־פולינומי או יותר)
+
+    דוגמת הרצה:
+    סוכנים=Alice, Bob, Chana; קיבולת={3,3,3}; פריטים={x,y,z}; תועלות כלליות.
+
+    output: כל סבב מקיים PROP[1,1]; המצטבר EF+PO
+    """
+    logger.info("Running fractional EF+PO with PROP[1,1] rounding for k=%d rounds", k)
     raise NotImplementedError
 
 
