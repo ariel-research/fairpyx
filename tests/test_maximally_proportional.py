@@ -134,6 +134,8 @@ def test_envy_free():
     alloc = divide(maximally_proportional_allocation, instance)
     matrix = AgentBundleValueMatrix(instance, alloc, normalized=False)
     matrix.make_envy_matrix()
+    # any agent should not get empty bundle
+    assert len(next(iter(alloc.values()))) > 0
     assert matrix.max_envy() <= 0
 
 
