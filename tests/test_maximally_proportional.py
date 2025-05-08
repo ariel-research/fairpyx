@@ -6,7 +6,7 @@ Since:  2025-05
 """
 
 import pytest
-from fairpyx import Instance, divide, validate_allocation
+from fairpyx import Instance, divide, validate_allocation, AgentBundleValueMatrix
 from fairpyx.algorithms import maximally_proportional_allocation
 
 
@@ -47,7 +47,7 @@ def test_proportional():
     assert is_proportional(alloc, instance) == True
 
     # random instance
-    RAND_SEED = 4
+    RAND_SEED = 23
     instance = Instance.random_uniform(
         num_of_agents=5,
         num_of_items=10,
@@ -59,7 +59,9 @@ def test_proportional():
         random_seed=RAND_SEED,
     )
     alloc = divide(maximally_proportional_allocation, instance)
-    assert is_proportional(alloc, instance) == True
+    assert (
+        is_proportional(alloc, instance) == True
+    ), "At least one player did not get a proportional bundle"
 
 
 def test_maximallity():
@@ -122,6 +124,34 @@ def test_pareto_optimal():
     instance = Instance(valuations=[[35, 40, 25], [40, 35, 25], [40, 25, 35]])
     alloc = divide(maximally_proportional_allocation, instance)
     assert alloc == {0: [1], 1: [0], 2: [2]}
+
+
+def test_envy_free():
+    """
+    With 2 agents, a complete proportional allocation is also envy free
+    """
+    instance = Instance(valuations=[[35, 30, 10, 25], [25, 21, 34, 20]])
+    alloc = divide(maximally_proportional_allocation, instance)
+    matrix = AgentBundleValueMatrix(instance, alloc, normalized=False)
+    matrix.make_envy_matrix()
+    assert matrix.max_envy() <= 0
+
+
+def test_large_input():
+    nagents, nitems = 10, 17
+    title = f"Large Input. Agents - {nagents}. Items - {nitems}"
+    instance = Instance.random_uniform(
+        num_of_agents=nagents,
+        num_of_items=nitems,
+        item_capacity_bounds=(1, 1),
+        agent_capacity_bounds=(1, 1),
+        item_base_value_bounds=(20, 100),
+        item_subjective_ratio_bounds=(0.5, 2.4),
+        normalized_sum_of_values=100,
+        random_seed=45,
+    )
+    alloc = divide(maximally_proportional_allocation, instance)
+    validate_allocation(instance=instance, allocation=alloc, title=title)
 
 
 if __name__ == "__main__":
