@@ -9,7 +9,8 @@ Date: 2025-05
 """
 
 from fairpyx import Instance, AllocationBuilder, divide
-from typing import Any, List, Iterable, Callable
+from typing import Any
+from collections.abc import Iterable, Callable
 import logging
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
     pass
 
 
-def get_minimal_bundles(alloc: AllocationBuilder, agent: Any) -> List:
+def get_minimal_bundles(alloc: AllocationBuilder, agent: Any) -> list:
     """
     Finds all of the agent's minimal bundles and returns them in descending
     order by their total value.
