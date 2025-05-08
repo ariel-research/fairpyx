@@ -112,6 +112,58 @@ def test_multi_agent_cyclic_example():
     assert result[2] == {'1': ['c','d'], '2': ['e','f'], '3': ['a','b']}
     # Round 3
     assert result[3] == {'1': ['e','f'], '2': ['a','b'], '3': ['c','d']}
+    
+    
+def test_two_agents_two_rounds_pareto_optimal():
+    """
+    Test Pareto-Optimality of the two_agents_two_rounds allocation.
+    A division π is Pareto-Optimal if there is no other allocation π' such that 
+    every agent i receives u_i(π'_i) ≥ u_i(π_i) and at least one agent gets a
+    strict improvement.
+    """
+    agent_caps = {'A':2,'B':2}
+    item_caps = {'a':1,'b':1}
+    vals = {'A':{'a':4,'b':1}, 'B':{'a':2,'b':3}}
+    alloc = make_instance(agent_caps, item_caps, vals)
+    result = two_agents_two_rounds(alloc)
+    
+    # Calculate utilities for current allocation
+    a_utility = sum(sum(vals['A'][item] for item in result[round]['A']) for round in result)
+    b_utility = sum(sum(vals['B'][item] for item in result[round]['B']) for round in result)
+    
+    # Check all possible alternative allocations
+    possible_allocations = [
+        # Round 1: A gets 'a', B gets 'b'; Round 2: A gets 'b', B gets 'a' (current allocation)
+        {'A': ['a', 'b'], 'B': ['b', 'a']},
+        # Round 1: A gets 'b', B gets 'a'; Round 2: A gets 'a', B gets 'b'
+        {'A': ['b', 'a'], 'B': ['a', 'b']},
+        # Round 1: A gets 'a', B gets 'b'; Round 2: A gets 'a', B gets 'b'
+        {'A': ['a', 'a'], 'B': ['b', 'b']},
+        # Round 1: A gets 'b', B gets 'a'; Round 2: A gets 'b', B gets 'a'
+        {'A': ['b', 'b'], 'B': ['a', 'a']},
+    ]
+    
+    # For each possible allocation, check if it's better for at least one agent
+    # without being worse for any other agent
+    for alt_alloc in possible_allocations:
+        # Calculate alternative utilities
+        alt_a_utility = sum(vals['A'][item] for item in alt_alloc['A'])
+        alt_b_utility = sum(vals['B'][item] for item in alt_alloc['B'])
+        
+        # Check if this alternative is a Pareto improvement
+        a_better = alt_a_utility > a_utility
+        b_better = alt_b_utility > b_utility
+        a_same_or_better = alt_a_utility >= a_utility
+        b_same_or_better = alt_b_utility >= b_utility
+        
+        # If both agents are same or better AND at least one is strictly better,
+        # then the current allocation is NOT Pareto-optimal
+        is_pareto_improvement = (a_same_or_better and b_same_or_better and 
+                                (a_better or b_better))
+        
+        # Verify no Pareto improvements exist
+        assert not is_pareto_improvement, f"Found Pareto improvement: {alt_alloc}"
+    # If we reach here, the allocation is Pareto-optimal
 
 # --- Randomized property tests ---
 
