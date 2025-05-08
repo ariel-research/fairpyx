@@ -37,8 +37,7 @@ example_instance = Instance(
         "Agent1": {"o1": 0, "o2": -1, "o3": -4, "o4": -5, "o5": 0, "o6": 2},
         "Agent2": {"o1": 0, "o2": -1, "o3": -2, "o4": -1, "o5": -1, "o6": 0},
     },
-    agent_capacities={"Agent1": 3, "Agent2": 3},
-    # item_capacities={"o1": 1, "o2": 1, "o3": 1, "o4": 1, "o5": 1, "o6": 1},
+    # agent_capacities={"Agent1": 3, "Agent2": 3},
     item_categories={
         "o1": "cat1", "o2": "cat1", "o3": "cat1", "o4": "cat1",  # 4 items in category 1
         "o5": "cat2", "o6": "cat2"                               # 2 items in category 2
@@ -94,12 +93,25 @@ def fair_capacity_algorithm(alloc: AllocationBuilder) -> None:
     ...         "A": {"o1": 1, "o2": -1, "o3": 1, "o4": 1.5},
     ...         "B": {"o1": 1, "o2": -1, "o3": 1, "o4": 1},
     ...     },
-    ...     item_capacities={"o1": 1, "o2": 1, "o3": 1},
+    ...     item_capacities={"o1": 1, "o2": 1, "o3": 1, "o4": 1},
     ...     item_categories={"o1": "g", "o2": "g", "o3": "c", "o4": "c"},
     ...     category_capacities={"g": 1, "c": 2},
     ... )
     >>> divide(fair_capacity_algorithm, instance2)
     {'A': ['o1', 'o3'], 'B': ['o2', 'o4']}
+
+    >>> instance5 = Instance(
+    ...     valuations={
+    ...         "A": {"o1": 0, "o2": -1, "o3": -4, "o4": -5, "o5": 0, "o6": 2},
+    ...         "B": {"o1": 0, "o2": -1, "o3": -2, "o4": -1, "o5": -1, "o6": 0},
+    ...     },
+    ...     item_capacities={"o1": 1, "o2": 1, "o3": 1,"o4": 1, "o5": 1, "o6": 1},
+    ...     item_categories={"o1": "1", "o2": "1", "o3": "1", "o4": "1", "o5": "2", "o6": "2"},
+    ...     category_capacities={"1": 2, "2": 1},
+    ... )
+    >>> divide(fair_capacity_algorithm, instance2)
+    {'A': ['o1', 'o2', 'o5'], 'B': ['o3', 'o4', 'o6']}
+
     """
     pass
     return 0  # Empty implementation

@@ -3,6 +3,8 @@ from fairpyx import Instance, divide
 from NFD import fair_capacity_algorithm
 import random
 
+from fairpyx.utils.test_heterogeneous_matroid_constraints_algorithms_utils import is_fef1
+
 
 def generate_random_instance(seed=42):
     random.seed(seed)
@@ -139,7 +141,7 @@ def test_single_item():
     Ensures the item is allocated and respects capacity constraints.
     """
     instance = Instance(
-        valuations={"A": {"x": 10}, "B": {"x": 5}},
+        valuations={"A": {"x": 10}, "B": {"x": 10}},
         agent_capacities={"A": 1, "B": 1},
         item_capacities={"x": 1},
         item_categories={"x": "cat1"},
@@ -171,7 +173,7 @@ def test_empty_instance():
 def test_large_balanced():
     """
     Tests a large instance with 100 items and 10 categories.
-    Ensures all items are allocated and each agent respects category constraints.
+    Ensures all items are allocated and each agent respects category constraints, EF1\EF11, and PO.
     """
     agents = ["A", "B"]
     items = {f"i{k}": k for k in range(100)}
