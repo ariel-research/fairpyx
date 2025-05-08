@@ -40,7 +40,9 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
     pass
 
 
-def get_minimal_bundles(alloc: AllocationBuilder, agent: Any) -> list:
+def get_minimal_bundles(
+    alloc: AllocationBuilder, agent: Any, sort_bundle: bool = True
+) -> list:
     """
     Finds all of the agent's minimal bundles and returns them in descending
     order by their total value.
@@ -101,4 +103,4 @@ def is_minimal_bundle(
 if __name__ == "__main__":
     import doctest
 
-    doctest.testmod(verbose=True)
+    doctest.testmod(verbose=False)
