@@ -1,6 +1,6 @@
 import pytest
 from fairpyx import Instance, divide
-from fairpyx.allocate_worst_case import algorithm1_worst_case_allocation
+from fairpyx.algorithms.markakis_psomas import algorithm1_worst_case_allocation
 
 def test_example_1():
     instance = Instance(
