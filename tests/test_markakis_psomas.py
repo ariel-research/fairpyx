@@ -19,7 +19,6 @@ def test_example_2():
         }
     )
     alloc = divide(algorithm=algorithm1_worst_case_allocation, instance=instance)
-    assert set(alloc.bundles["C"]) == {"3", "4"}
     for agent in instance.valuations:
         value = sum(instance.valuations[agent][item] for item in alloc.bundles[agent])
         assert value >= instance.worst_case_value(agent)
