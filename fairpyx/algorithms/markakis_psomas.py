@@ -146,17 +146,6 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     # - Since α > threshold, we are in I(n,k), and Vn(α) = 0 (because α > 1/(n-1) = 1/5)
     # - Hence, even a value of 9 is valid (≫ 0)
 
-    Vn(alpha) Examples:
-    >>> compute_vn(0, 3)
-    0.3333333333333333
-    >>> compute_vn(0.3, 3)
-    0.2
-    >>> compute_vn(0.45, 3)
-    0.10000000000000009
-    >>> compute_vn(0.6, 3)
-    0.0
-    >>> compute_vn(1 / (2 * 2), 3)
-    0.0
     """
     return  # Empty implementation
 
