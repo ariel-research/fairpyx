@@ -179,6 +179,15 @@ def compute_vn(alpha: float, n: int) -> float:
     :param alpha: The value of the largest single item for the agent.
     :param n: The total number of agents.
     :return: The worst-case guaranteed value Vn(alpha).
+     Vn(alpha) Examples:
+    >>> compute_vn(0, 3)
+    0.3333333333333333
+    >>> compute_vn(0.3, 3)
+    0.2
+    >>> compute_vn(0.45, 3)
+    0.10000000000000009
+    >>> compute_vn(0.6, 3)
+    0.0
     """
     if alpha == 0:
         return 1.0 / n
