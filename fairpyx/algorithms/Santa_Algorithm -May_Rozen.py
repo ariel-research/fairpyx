@@ -157,7 +157,7 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
     ...     "Bob":   {"c1": 10, "c2": 0}
     ... }
     >>> solve_configuration_lp(valuations, 5)
-    {'Alice': [{'0.5*c1'}], 'Bob': [{'0.5*c2'}]}
+    {'Alice': [{'c1'}], 'Bob': [{'c1'}]}
     """
     pass
 
