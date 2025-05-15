@@ -22,17 +22,21 @@ def hffd(
     Heterogeneous First Fit Decreasing (HFFD) algorithm for fair chore allocation.
 
     Allocates chores to agents with heterogeneous costs under Identical-Order Preference (IDO),
-    packing chores in non-increasing cost order to keep each agent's cost within their threshold.
+    creating n bundles in non-increasing cost order, assigning each to an agent within their threshold.
 
     Parameters:
     - builder - AllocationBuilder - Mutable allocation helper, tracks instance and assignments.
-    - universal_order - Optional[List[Union[str, int]]] - Chore order (largest to smallest cost); defaults to average cost sort.
+    - universal_order - Optional[List[Union[str, int]]] - Chore order (largest to smallest cost); defaults to index order.
     - thresholds - Optional[Union[float, List[float], Dict[Union[str, int], float]]] - Max cost per agent; defaults to alpha * MMS.
-    - agent_conflicts - Optional[Dict[Union[str, int], List[Union[str, int]]]] - Chores agents cannot receive; raises NotImplementedError.
+    - agent_conflicts - Optional[Dict[Union[str, int], List[Union[str, int]]]] - Forbidden chores per agent; raises NotImplementedError.
     - alpha - Optional[float] - MMS approximation ratio; defaults to 8/7 (n=2), 15/13 (n=3), etc.
 
     Returns:
         None. Modifies builder in-place with chore assignments.
+
+    Raises:
+        NotImplementedError: If agent_conflicts are provided.
+        ValueError: If universal_order or thresholds are invalid.
 
     Examples:
         >>> import fairpyx, numpy as np
@@ -40,13 +44,13 @@ def hffd(
         >>> vals = np.array([[8, 5, 5, 2], [8, 5, 5, 2]])
         >>> inst = fairpyx.Instance(valuations=vals, agent_capacities=[10, 10])
         >>> fairpyx.divide(hffd, inst, thresholds=[10, 10])
-        {0: [0], 1: [1, 2, 3]}
+        {0: [0, 3], 1: [1, 2]}
 
         >>> # Example 2: Incomplete allocation
         >>> vals = np.array([[9, 8, 4], [9, 8, 4]])
         >>> inst = fairpyx.Instance(valuations=vals, agent_capacities=[10, 10])
         >>> fairpyx.divide(hffd, inst, thresholds=[10, 10])
-        {0: [2], 1: [0]}
+        {0: [0], 1: [2]}
 
         >>> # Example 3: Branch coverage
         >>> vals = np.array([[6, 5, 2], [6, 5, 2]])
@@ -59,7 +63,7 @@ def hffd(
         >>> vals = rng.integers(1, 8, size=(3, 7))
         >>> inst = fairpyx.Instance(valuations=vals, agent_capacities=[12]*3)
         >>> fairpyx.divide(hffd, inst, thresholds=[12]*3)
-        {0: [0, 4], 1: [1, 5, 6], 2: [2, 3]}
+        {0: [0, 4], 1: [1, 5], 2: [2]}
 
         >>> # Example 5: Paper counter-example
         >>> vals_A = [51, 28, 27, 27, 27, 26, 12, 12, 11, 11, 11, 11, 11, 11, 10]
@@ -73,6 +77,6 @@ def hffd(
         >>> vals = np.array([[8, 7, 2, 1], [8, 7, 2, 1]])
         >>> inst = fairpyx.Instance(valuations=vals, agent_capacities=[10, 10])
         >>> fairpyx.divide(hffd, inst, thresholds=[10, 10])
-        {0: [0], 1: [1, 2, 3]}
+        {0: [0, 3], 1: [1, 2]}
     """
-    pass  # Implement in the next stage
+    pass  # Implementation to be added
