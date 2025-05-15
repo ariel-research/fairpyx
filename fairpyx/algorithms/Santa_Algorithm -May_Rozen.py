@@ -13,9 +13,19 @@ import numpy as np
 from typing import Dict, List, Set, Tuple
 from hypernetx import Hypergraph as HNXHypergraph
 from fairpyx import Instance, AllocationBuilder
+import logging
+
+# הגדרת הלוגר
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str]]:
+    # יצירת ה-instance כאן
+    your_instance = Instance()
+    # יצירת AllocationBuilder עם ה-instance
+    allocation_builder = AllocationBuilder(instance=your_instance)
+
     # כאן אנחנו מניחים ש- allocation_builder יספק את הערכים הנדרשים כמו valuations.
     valuations = allocation_builder.to_valuations_array()
     agent_names = allocation_builder.agent_names()     # ['Alice', 'Bob', ...]
@@ -50,9 +60,10 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
 
 def test_santa_claus_main():
     """
-    >>> from fairpyx import AllocationBuilder
+    >>> from fairpyx import AllocationBuilder, instances
+    >>> instance = Instance()
+    >>> allocation_builder = AllocationBuilder(instance=instance)
     >>> # Test 1: Simple case with 2 players and 3 items
-    >>> allocation_builder = AllocationBuilder()
     >>> # Define valuations for players and items
     >>> allocation_builder.add_valuation("Alice", {"c1": 5, "c2": 0, "c3": 6})
     >>> allocation_builder.add_valuation("Bob", {"c1": 0, "c2": 8, "c3": 0})
@@ -77,8 +88,8 @@ def test_santa_claus_main():
     >>> allocation_builder = AllocationBuilder()
     >>> # For large case, we assign each player a valuation such that Player_i values item_i the most
     >>> for i in range(100):
-    >>>     valuations = {f"c{j+1}": (1 if j == i else 0) for j in range(100)}  # Player_i values only item_i
-    >>>     allocation_builder.add_valuation(f"Player_{i+1}", valuations)
+    ...     valuations = {f"c{j+1}": (1 if j == i else 0) for j in range(100)}  # Player_i values only item_i
+    ...     allocation_builder.add_valuation(f"Player_{i+1}", valuations)
     >>> result = santa_claus_main(allocation_builder)
     >>> # Expecting each player to get exactly their corresponding item
     >>> result
@@ -131,6 +142,18 @@ def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: fl
     >>> is_threshold_feasible(valuations, 7)
     False
     """
+    logger.debug("Starting threshold feasibility check for threshold: %f", threshold)
+
+    for player, items in valuations.items():
+        total_value = sum(value for value in items.values())
+        logger.debug("Player %s has total value: %f", player, total_value)
+
+        if total_value < threshold:
+            logger.warning("Player %s's total value %f is below threshold %f", player, total_value, threshold)
+            return False
+
+    logger.info("Threshold feasibility check passed, all players can receive at least %f value", threshold)
+    return True
 
 
 def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: float) -> Dict[str, List[Set[str]]]:
@@ -149,19 +172,31 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
     ...     "Bob":   {"c1": 0,  "c2": 8, "c3": 0}
     ... }
     >>> solve_configuration_lp(valuations, 8)
-    { "Alice": {"c1": 0, "c2": 0, "c3": 1},
-      "Bob":   {"c1": 0,  "c2": 1, "c3": 0}}
+    { 'Alice': 1*{'c1', 'c3'}, 'Bob': 1*{'c2'}
 
     Example 2: 2 Players, 2 Items (conflict)
     >>> valuations = {
-    ...     "Alice": {"c1": 10, "c2": 0},
-    ...     "Bob":   {"c1": 10, "c2": 0}
+    ...     "Alice": {"c1": 10, "c2": 5},
+    ...     "Bob":  {"c1": 10, "c2": 5}
     ... }
     >>> solve_configuration_lp(valuations, 5)
-    {"Alice": {"c1": 1, "c2": 0},
-     "Bob":   {"c1": 1, "c2": 0}}
+    {'Alice': 0.5*{'c1'}, 0.5*{'c2'}, 'Bob': 0.5*{'c1'}, 0.5*{'c2'}} # סכום עבור כל ילד הוא 1 וגם סכום עבור כל מתנה
     """
-    pass
+
+    logger.debug("Applying fractional allocation with multiplier: %f", multiplier)
+
+    fractional_allocation = {}
+
+    for player, items in allocation.items():
+        fractional_allocation[player] = {}
+        for item, value in items.items():
+            fractional_value = value * multiplier
+            fractional_allocation[player][item] = fractional_value
+            logger.debug("Player %s: Item %s value updated to %f", player, item, fractional_value)
+
+    logger.info("Fractional allocation completed: %s", fractional_allocation)
+    return fractional_allocation
+
 
 def classify_items(valuations: Dict[str, Dict[str, float]], threshold: float) -> Tuple[Set[str], Set[str]]:
     """
@@ -190,14 +225,29 @@ def classify_items(valuations: Dict[str, Dict[str, float]], threshold: float) ->
     >>> classify_items(valuations, 0.4)
     ({'c1'}, {'c2'})
     """
-    pass
+    logger.debug("Starting item classification with threshold %f", threshold)
+
+    fat_items = set()
+    thin_items = set()
+
+    for player, items in valuations.items():
+        for item, value in items.items():
+            if value >= threshold / 4:
+                fat_items.add(item)
+                logger.debug("Item %s classified as fat", item)
+            else:
+                thin_items.add(item)
+                logger.debug("Item %s classified as thin", item)
+
+    logger.info("Classification completed. Fat items: %s, Thin items: %s", fat_items, thin_items)
+    return fat_items, thin_items
 
 def build_hypergraph(valuations: Dict[str, Dict[str, float]],
                          allocation: Dict[str, List[Set[str]]],
                          fat_items: Set[str],
                          thin_items: Set[str],
                          threshold: float) -> HNXHypergraph:
-        """
+    """
     בונה היפרגרף דו־צדדי, שבו קשתות הן חבילות (fat או thin) שערכן לפחות הסף הנתון.
 
     הסבר:
@@ -232,8 +282,8 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
     >>> allocation_builder = AllocationBuilder()
     >>> # For large case, we assign each player a valuation such that Player_i values item_(101-i) the most
     >>> for i in range(100):
-    >>>     valuations = {f"c{j+1}": (1 if j == 100-i-1 else 0) for j in range(100)}  # Player_i values item_(101-i) the most
-    >>>     allocation_builder.add_valuation(f"Player_{i+1}", valuations)
+    ...     valuations = {f"c{j+1}": (1 if j == 100-i-1 else 0) for j in range(100)}  # Player_i values item_(101-i) the most
+    ...     allocation_builder.add_valuation(f"Player_{i+1}", valuations)
     >>> result = santa_claus_main(allocation_builder)
     >>> # Now verify each player receives the item at the reverse index
     >>> # Expecting each player to get exactly one item: Player_1 gets c100, Player_2 gets c99, ..., Player_100 gets c1
@@ -246,7 +296,21 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
     >>> len(result) == 100  # Check that we have 100 players in the result
     True
     """
-    pass
+
+    logger.info("Building hypergraph based on allocation")
+
+    H = HNXHypergraph()
+    for player, items in allocation.items():
+        for item in items:
+            if item in fat_items:
+                logger.debug("Adding edge for fat item %s and player %s", item, player)
+                H.add_edge([player, item])
+            elif item in thin_items:
+                logger.debug("Adding edge for thin item %s and player %s", item, player)
+                H.add_edge([player, item])
+
+    logger.info("Hypergraph construction completed with %d nodes and %d edges", len(H.nodes), len(H.edges))
+    return H
 
 def local_search_perfect_matching(hypergraph: HNXHypergraph) -> Dict[str, Set[str]]:
     """
@@ -289,7 +353,34 @@ def local_search_perfect_matching(hypergraph: HNXHypergraph) -> Dict[str, Set[st
     True
     """
 
-    pass
+    logger.info("Starting local search for perfect matching in the hypergraph")
+
+    matching = {}
+
+    while len(matching) < len(hypergraph.nodes):
+        unmatched_players = set(hypergraph.nodes) - set(matching.keys())
+        if not unmatched_players:
+            logger.info("All players are matched")
+            break
+
+        player = unmatched_players.pop()
+        logger.debug("Trying to find match for player %s", player)
+
+        found_match = False
+        for edge in hypergraph.edges:
+            if player in edge:
+                edge_players = [n for n in edge if n != player]
+                if len(edge_players) == 1:
+                    matching[player] = edge_players[0]
+                    logger.debug("Player %s matched with item %s", player, edge_players[0])
+                    found_match = True
+                    break
+
+        if not found_match:
+            logger.warning("No match found for player %s", player)
+
+    logger.info("Local search completed. Matching: %s", matching)
+    return matching
 
 if __name__ == "__main__":
     # 1. Run the doctests:
