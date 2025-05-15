@@ -149,7 +149,8 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
     ...     "Bob":   {"c1": 0,  "c2": 8, "c3": 0}
     ... }
     >>> solve_configuration_lp(valuations, 8)
-    {'Alice': [{'c1'},{'c3'}], 'Bob': [{'c2'}]}
+    { "Alice": {"c1": 0, "c2": 0, "c3": 1},
+      "Bob":   {"c1": 0,  "c2": 1, "c3": 0}}
 
     Example 2: 2 Players, 2 Items (conflict)
     >>> valuations = {
@@ -157,7 +158,8 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
     ...     "Bob":   {"c1": 10, "c2": 0}
     ... }
     >>> solve_configuration_lp(valuations, 5)
-    {'Alice': [{'c1'}], 'Bob': [{'c1'}]}
+    {"Alice": {"c1": 1, "c2": 0},
+     "Bob":   {"c1": 1, "c2": 0}}
     """
     pass
 
