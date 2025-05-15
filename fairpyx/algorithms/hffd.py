@@ -14,9 +14,7 @@ __all__ = ["hffd"]
 def hffd(
     builder: AllocationBuilder,
     universal_order: Optional[List[Union[str, int]]]=None,
-    thresholds: Optional[Union[float, List[float], Dict[Union[str, int], float]]]=None,
-    agent_conflicts: Optional[Dict[Union[str, int], List[Union[str, int]]]]=None,
-    alpha: Optional[float]=None
+    thresholds: Optional[Union[float, List[float], Dict[Union[str, int], float]]]=None
 ) -> None:
     """
     Heterogeneous First Fit Decreasing (HFFD) algorithm for fair chore allocation.
@@ -28,8 +26,6 @@ def hffd(
     - builder - AllocationBuilder - Mutable allocation helper, tracks instance and assignments.
     - universal_order - Optional[List[Union[str, int]]] - Chore order (largest to smallest cost); defaults to index order.
     - thresholds - Optional[Union[float, List[float], Dict[Union[str, int], float]]] - Max cost per agent; defaults to alpha * MMS.
-    - agent_conflicts - Optional[Dict[Union[str, int], List[Union[str, int]]]] - Forbidden chores per agent; raises NotImplementedError.
-    - alpha - Optional[float] - MMS approximation ratio; defaults to 8/7 (n=2), 15/13 (n=3), etc.
 
     Returns:
         None. Modifies builder in-place with chore assignments.
