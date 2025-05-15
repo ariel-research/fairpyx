@@ -1,8 +1,7 @@
 """
-Basic (failing-by-design) unit-tests for the yet-to-be-implemented HFFD algorithm.
-
-Programmer: <Nadav-Shabtai>
-Since:      2025-05
+"A Reduction from Chores Allocation to Job Scheduling", by Xin Huang and Erel Segal-Halevi (2024), https://arxiv.org/abs/2302.04581
+Programmer : Nadav Shabtai
+Date : 2025-05
 """
 
 import random
