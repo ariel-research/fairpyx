@@ -40,7 +40,7 @@ def hffd(
         >>> vals = np.array([[9, 8, 4], [9, 8, 4]])
         >>> inst = fairpyx.Instance(valuations=vals, agent_capacities=[10, 10])
         >>> fairpyx.divide(hffd, inst, thresholds=[10, 10])
-        {0: [0], 1: [2]}
+        {0: [0], 1: [1]}
 
         >>> # Example 3: Branch coverage
         >>> vals = np.array([[6, 5, 2], [6, 5, 2]])
