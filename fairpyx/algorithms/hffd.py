@@ -17,7 +17,6 @@ def hffd(
     thresholds: Optional[Union[float, List[float], Dict[Union[str, int], float]]]=None
 ) -> None:
     """
-    Heterogeneous First Fit Decreasing (HFFD) algorithm for fair chore allocation.
 
     Allocates chores to agents with heterogeneous costs under Identical-Order Preference (IDO),
     creating n bundles in non-increasing cost order, assigning each to an agent within their threshold.
@@ -29,10 +28,6 @@ def hffd(
 
     Returns:
         None. Modifies builder in-place with chore assignments.
-
-    Raises:
-        NotImplementedError: If agent_conflicts are provided.
-        ValueError: If universal_order or thresholds are invalid.
 
     Examples:
         >>> import fairpyx, numpy as np
