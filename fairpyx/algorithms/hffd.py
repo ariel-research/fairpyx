@@ -1,14 +1,8 @@
 """
-Implementation of the algorithm in
-----------------------------------
-
-*A Reduction from Chores Allocation to Job Scheduling*  
-by **Xin Huang**† (Technion & Kyushu U.) and **Erel Segal-Halevi**‡  
-(Ariel U.) — arXiv: <https://arxiv.org/abs/2302.04581>  
-**September 4, 2024**
-
-Programmer : **Nadav Shabtai**  
-Date    : **05 / 2025**
+An implementation of the algorithm in:
+"A Reduction from Chores Allocation to Job Scheduling", by Xin Huang and Erel Segal-Halevi (2024), https://arxiv.org/abs/2302.04581
+Programmer : Nadav Shabtai
+Date : 2025-05
 
 
 ---------------------------------------------------------------------------
