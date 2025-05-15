@@ -23,9 +23,9 @@ def hffd(
     creating n bundles in non-increasing cost order, assigning each to an agent within their threshold.
 
     Parameters:
-    - builder - AllocationBuilder - Mutable allocation helper, tracks instance and assignments.
-    - universal_order - Optional[List[Union[str, int]]] - Chore order (largest to smallest cost); defaults to index order.
-    - thresholds - Optional[Union[float, List[float], Dict[Union[str, int], float]]] - Max cost per agent; defaults to alpha * MMS.
+    - builder: AllocationBuilder - Mutable allocation helper, tracks instance and assignments.
+    - universal_order: Optional[List[Union[str, int]]] - Chore order (largest to smallest cost); defaults to index order.
+    - thresholds: Optional[Union[float, List[float], Dict[Union[str, int], float]]] - Max cost per agent; defaults to alpha * MMS.
 
     Returns:
         None. Modifies builder in-place with chore assignments.
