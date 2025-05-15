@@ -17,7 +17,6 @@ def hffd(
     thresholds: Optional[Union[float, List[float], Dict[Union[str, int], float]]]=None
 ) -> None:
     """
-
     Allocates chores to agents with heterogeneous costs under Identical-Order Preference (IDO),
     creating n bundles in non-increasing cost order, assigning each to an agent within their threshold.
 
