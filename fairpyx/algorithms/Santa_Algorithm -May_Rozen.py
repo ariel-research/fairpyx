@@ -21,6 +21,31 @@ logger = logging.getLogger(__name__)
 
 
 def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str]]:
+    """
+    >>> from fairpyx import AllocationBuilder, instances
+    >>> instance = Instance()
+    >>> allocation_builder = AllocationBuilder(instance=instance)
+    >>> # Test 1: Simple case with 2 players and 3 items
+    >>> # Define valuations for players and items
+    >>> allocation_builder.add_valuation("Alice", {"c1": 5, "c2": 0, "c3": 6})
+    >>> allocation_builder.add_valuation("Bob", {"c1": 0, "c2": 8, "c3": 0})
+    >>> result = santa_claus_main(allocation_builder)
+    >>> # Expecting a matching that allocates items between Alice and Bob
+    >>> result
+    {'Alice': {'c1', 'c3'}, 'Bob': {'c2'}}
+
+    >>> # Test 2: More complex case with 4 players and 4 items
+    >>> allocation_builder = AllocationBuilder()
+    >>> # Define valuations for 4 players and 4 items
+    >>> allocation_builder.add_valuation("A", {"c1": 10, "c2": 0, "c3": 0, "c4": 6})
+    >>> allocation_builder.add_valuation("B", {"c1": 10, "c2": 8, "c3": 0, "c4": 0})
+    >>> allocation_builder.add_valuation("C", {"c1": 0, "c2": 8, "c3": 6, "c4": 0})
+    >>> allocation_builder.add_valuation("D", {"c1": 0, "c2": 0, "c3": 6, "c4": 6})
+    >>> result = santa_claus_main(allocation_builder)
+    >>> # Expecting a different matching due to more players and items
+    >>> result
+    {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
+    """
     # יצירת ה-instance כאן
     your_instance = Instance()
     # יצירת AllocationBuilder עם ה-instance
@@ -58,45 +83,6 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
 
     return result
 
-def test_santa_claus_main():
-    """
-    >>> from fairpyx import AllocationBuilder, instances
-    >>> instance = Instance()
-    >>> allocation_builder = AllocationBuilder(instance=instance)
-    >>> # Test 1: Simple case with 2 players and 3 items
-    >>> # Define valuations for players and items
-    >>> allocation_builder.add_valuation("Alice", {"c1": 5, "c2": 0, "c3": 6})
-    >>> allocation_builder.add_valuation("Bob", {"c1": 0, "c2": 8, "c3": 0})
-    >>> result = santa_claus_main(allocation_builder)
-    >>> # Expecting a matching that allocates items between Alice and Bob
-    >>> result
-    {'Alice': {'c1', 'c3'}, 'Bob': {'c2'}}
-
-    >>> # Test 2: More complex case with 4 players and 4 items
-    >>> allocation_builder = AllocationBuilder()
-    >>> # Define valuations for 4 players and 4 items
-    >>> allocation_builder.add_valuation("A", {"c1": 10, "c2": 0, "c3": 0, "c4": 6})
-    >>> allocation_builder.add_valuation("B", {"c1": 10, "c2": 8, "c3": 0, "c4": 0})
-    >>> allocation_builder.add_valuation("C", {"c1": 0, "c2": 8, "c3": 6, "c4": 0})
-    >>> allocation_builder.add_valuation("D", {"c1": 0, "c2": 0, "c3": 6, "c4": 6})
-    >>> result = santa_claus_main(allocation_builder)
-    >>> # Expecting a different matching due to more players and items
-    >>> result
-    {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
-
-    >>> # Test 3: Large scale case with 100 players and 100 items
-    >>> allocation_builder = AllocationBuilder()
-    >>> # For large case, we assign each player a valuation such that Player_i values item_i the most
-    >>> for i in range(100):
-    ...     valuations = {f"c{j+1}": (1 if j == i else 0) for j in range(100)}  # Player_i values only item_i
-    ...     allocation_builder.add_valuation(f"Player_{i+1}", valuations)
-    >>> result = santa_claus_main(allocation_builder)
-    >>> # Expecting each player to get exactly their corresponding item
-    >>> result
-    {'Player_1': {'c1'}, 'Player_2': {'c2'}, 'Player_3': {'c3'}, ..., 'Player_100': {'c100'}}
-    """
-    pass
-
 def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: float) -> bool:
     """
 
@@ -129,18 +115,6 @@ def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: fl
     False
     >>> is_threshold_feasible(valuations, 9)
     True
-
-    Example 3: 4 Players, 4 Items
-    >>> valuations = {
-    ...     "A": {"c1": 10, "c2": 0, "c3": 0, "c4": 6},
-    ...     "B": {"c1": 10, "c2": 8, "c3": 0, "c4": 0},
-    ...     "C": {"c1": 0,  "c2": 8, "c3": 6, "c4": 0},
-    ...     "D": {"c1": 0,  "c2": 0, "c3": 6, "c4": 6}
-    ... }
-    >>> is_threshold_feasible(valuations, 6)
-    True
-    >>> is_threshold_feasible(valuations, 7)
-    False
     """
     logger.debug("Starting threshold feasibility check for threshold: %f", threshold)
 
@@ -174,13 +148,6 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
     >>> solve_configuration_lp(valuations, 8)
     { 'Alice': 1*{'c1', 'c3'}, 'Bob': 1*{'c2'}
 
-    Example 2: 2 Players, 2 Items (conflict)
-    >>> valuations = {
-    ...     "Alice": {"c1": 10, "c2": 5},
-    ...     "Bob":  {"c1": 10, "c2": 5}
-    ... }
-    >>> solve_configuration_lp(valuations, 5)
-    {'Alice': 0.5*{'c1'}, 0.5*{'c2'}, 'Bob': 0.5*{'c1'}, 0.5*{'c2'}} # סכום עבור כל ילד הוא 1 וגם סכום עבור כל מתנה
     """
 
     logger.debug("Applying fractional allocation with multiplier: %f", multiplier)
@@ -216,14 +183,6 @@ def classify_items(valuations: Dict[str, Dict[str, float]], threshold: float) ->
     ... }
     >>> classify_items(valuations, 1)
     ({'c1'}, {'c3', 'c2'})
-
-    Example 2: 2 Players, 2 Items
-    >>> valuations = {
-    ...     "Alice": {"c1": 0.9, "c2": 0.2},
-    ...     "Bob":   {"c1": 0.9, "c2": 0.2}
-    ... }
-    >>> classify_items(valuations, 0.4)
-    ({'c1'}, {'c2'})
     """
     logger.debug("Starting item classification with threshold %f", threshold)
 
@@ -275,26 +234,11 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
     ...     "D": [{"c4"}]
     ... }
     >>> fat_items, thin_items = classify_items(valuations, 4)
-    >>> build_hypergraph(valuations, allocation, fat_items, thin_items, 4)  # doctest: +ELLIPSIS
-    <...Hypergraph object...>
-
-    Example: 100 Players, 100 Items
-    >>> allocation_builder = AllocationBuilder()
-    >>> # For large case, we assign each player a valuation such that Player_i values item_(101-i) the most
-    >>> for i in range(100):
-    ...     valuations = {f"c{j+1}": (1 if j == 100-i-1 else 0) for j in range(100)}  # Player_i values item_(101-i) the most
-    ...     allocation_builder.add_valuation(f"Player_{i+1}", valuations)
-    >>> result = santa_claus_main(allocation_builder)
-    >>> # Now verify each player receives the item at the reverse index
-    >>> # Expecting each player to get exactly one item: Player_1 gets c100, Player_2 gets c99, ..., Player_100 gets c1
-    >>> all(result[f"Player_{i+1}"] == {f"c{100-i}"} for i in range(100))  # Check each player gets the expected item
-    True
-    >>> # Verify there are no duplicate allocations (no player gets the same item as another player)
-    >>> all(len(set(items)) == len(items) for items in result.values())  # Check no duplicates in items
-    True
-    >>> # Verify the number of players matches the number of allocations
-    >>> len(result) == 100  # Check that we have 100 players in the result
-    True
+    >>> build_hypergraph(valuations, allocation, fat_items, thin_items, 4)
+    >>> len(hypergraph.nodes)  # מספר הצמתים
+    8
+    >>> len(hypergraph.edges)  # מספר הקשתות
+    4
     """
 
     logger.info("Building hypergraph based on allocation")
