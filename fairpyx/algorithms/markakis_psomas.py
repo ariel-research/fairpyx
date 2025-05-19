@@ -9,7 +9,52 @@ Programmer: Ibrahem Hurani
 Date: 2025-05-06
 """
 
-from fairpyx import AllocationBuilder
+from fairpyx import AllocationBuilder,divide,Instance
+
+
+def compute_vn(alpha: float, n: int) -> float:
+    """ 
+    Computes the worst-case guarantee value Vn(alpha) for a given agent.
+
+    This function implements the piecewise definition from Definition 1 in the paper:
+    - If alpha == 0 → Vn(alpha) = 1 / n
+    - If alpha >= 1 / (n-1) → Vn(alpha) = 0
+    - Else → determine k and calculate based on whether alpha ∈ I(n,k) or NI(n,k)
+
+    :param alpha: The value of the largest single item for the agent.
+    :param n: The total number of agents.
+    :return: The worst-case guaranteed value Vn(alpha).
+     Vn(alpha) Examples:
+    >>> compute_vn(0, 3)
+    0.3333333333333333
+    >>> compute_vn(0.3, 3)
+    0.2
+    >>> compute_vn(0.45, 3)
+    0.10000000000000009
+    >>> compute_vn(0.6, 3)
+    0.0
+    """
+    if n<=1:
+        return 0.0
+    if alpha == 0:
+        return 1.0 / n
+    if alpha >= 1.0 / (n - 1):
+        return 0.0
+    inv = 1.0 / ((n - 1) * alpha)
+    k_floor = int(inv)
+    if k_floor < 1:
+        k_floor = 1
+    cand = (1.0 / alpha + 1.0) / n - 1.0
+    k = k_floor
+    if abs(round(cand) - cand) < 1e-9:
+        k_candidate = int(round(cand))
+        if k_candidate >= 1:
+            k = k_candidate
+    threshold = (k + 1) / (k * (((k + 1) * n) - 1))
+    if alpha < threshold:
+        return 1.0 - ((k + 1) * (n - 1)) / (((k + 1) * n) - 1)
+    else:
+        return 1.0 - k * (n - 1) * alpha
 
 def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     """
@@ -48,7 +93,7 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     ...     }
     ... )
     >>> alloc1 = divide(instance1, algorithm1_worst_case_allocation)
-    >>> alloc1.bundles["A"]
+    >>> alloc1["A"]
     ['1', '3']
     # Explanation:
     # A has values [6,3,1], sum=10, max=6 ⇒ α = 6/10 = 0.6
@@ -69,17 +114,17 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     ...     }
     ... )
     >>> alloc2 = divide(instance2, algorithm1_worst_case_allocation)
-    >>> alloc2.bundles["A"]
+    >>> alloc2["A"]
     ['1']
-    >>> alloc2.bundles["B"]
+    >>> alloc2["B"]
     ['2']
-    >>> alloc2.bundles["C"]
+    >>> alloc2["C"]
     ['3', '4']
     >>> maxC = max(instance2.valuations["C"].values())
     >>> sumC = sum(instance2.valuations["C"].values())
     >>> alphaC = maxC / sumC
     >>> vnC = compute_vn(alphaC, n=3)
-    >>> valC = sum(instance2.valuations["C"][i] for i in alloc2.bundles["C"])
+    >>> valC = sum(instance2.valuations["C"][i] for i in alloc2["C"])
     >>> valC >= vnC
     True
 
@@ -93,17 +138,17 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     ...     }
     ... )
     >>> alloc3 = divide(instance3, algorithm1_worst_case_allocation)
-    >>> alloc3.bundles["Alice"]
+    >>> alloc3["Alice"]
     ['a', 'd']
-    >>> alloc3.bundles["Bob"]
+    >>> alloc3["Bob"]
     ['b']
-    >>> alloc3.bundles["Carol"]
+    >>> alloc3["Carol"]
     ['c', 'e']
     >>> maxCarol = max(instance3.valuations["Carol"].values())
     >>> sumCarol = sum(instance3.valuations["Carol"].values())
     >>> alphaCarol = maxCarol / sumCarol
     >>> vnCarol = compute_vn(alphaCarol, n=4)
-    >>> valCarol = sum(instance3.valuations["Carol"][i] for i in alloc3.bundles["Carol"])
+    >>> valCarol = sum(instance3.valuations["Carol"][i] for i in alloc3["Carol"])
     >>> valCarol >= vnCarol
     True
 
@@ -119,23 +164,23 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     ...     }
     ... )
     >>> alloc4 = divide(instance4, algorithm1_worst_case_allocation)
-    >>> alloc4.bundles["A"]
+    >>> alloc4["A"]
     ['1']
-    >>> alloc4.bundles["B"]
+    >>> alloc4["B"]
     ['2']
-    >>> alloc4.bundles["C"]
+    >>> alloc4["C"]
     ['3']
-    >>> alloc4.bundles["D"]
+    >>> alloc4["D"]
     ['4']
-    >>> alloc4.bundles["E"]
+    >>> alloc4["E"]
     ['5']
-    >>> alloc4.bundles["F"]
+    >>> alloc4["F"]
     ['6']
     >>> maxF = max(instance4.valuations["F"].values())
     >>> sumF = sum(instance4.valuations["F"].values())
     >>> alphaF = maxF / sumF
     >>> vnF = compute_vn(alphaF, n=6)
-    >>> valF = sum(instance4.valuations["F"][i] for i in alloc4.bundles["F"])
+    >>> valF = sum(instance4.valuations["F"][i] for i in alloc4["F"])
     >>> valF >= vnF
     True
 
@@ -147,7 +192,86 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     # - Hence, even a value of 9 is valid (≫ 0)
 
     """
-    return  # Empty implementation
+    
+    if alloc is None:
+        return {}
+    n = len(alloc.remaining_agents())
+    if n==1:
+        agent = next(iter(alloc.remaining_agents()))
+        items = list(alloc.remaining_items_for_agent(agent))
+        alloc.give_bundle(agent, items)
+        return
+   
+    # Step 1: Build Si bundles
+    bundles = {}
+    for agent in alloc.remaining_agents():
+        items = sorted(
+            alloc.remaining_items_for_agent(agent),
+            key=lambda item: alloc.effective_value(agent, item),
+            reverse=True
+            # effective_value:
+            # היא משמשת כדי להחזיר את שווי הפריט item עבור הסוכן agent,
+            #  תוך התחשבות בהקצאות הקודמות, בקונפליקטים ובמגבלות של משקל/כמות.
+        )
+        bundle = []
+        value = 0
+        max_value = max([alloc.effective_value(agent, item) for item in items], default=0)
+        total_value = sum([alloc.effective_value(agent, item) for item in items])
+        alpha = max_value / total_value if total_value > 0 else 0
+        Vn_alpha = compute_vn(alpha, n)
+        Vn_alpha_i = Vn_alpha * total_value
+
+        for item in items:
+            v = alloc.effective_value(agent, item)
+            if v == float('-inf'):
+                continue
+            bundle.append(item)
+            value += v
+            if value >= Vn_alpha_i:
+                break
+        bundles[agent] = (bundle, value, Vn_alpha_i)
+
+    # Step 2: Choose an agent whose bundle passes the threshold->Vn_Alpha_i
+    for agent, (bundle, value,Vn_alpha_i) in bundles.items():
+        if value >= Vn_alpha_i:
+            alloc.give_bundle(agent, bundle)
+            break
+    else:
+        return  # No agent met their threshold — should not happen with valid inputs
+
+    remaining_agents = [a for a in alloc.remaining_agents() if a != agent]
+    remaining_items = [i for i in alloc.remaining_items() if i not in bundle]
+
+    # Step 3: Handle the base case
+    if len(remaining_agents) == 1:
+        last_agent = remaining_agents[0]
+        alloc.give_bundle(last_agent, remaining_items)
+        return
+
+    # Step 4: Recursive step with normalized instance
+    instance = alloc.instance
+    reduced_valuations = {}
+    for a in remaining_agents:
+        vals = {}
+        remaining_total = sum(instance.agent_item_value(a, i) for i in remaining_items)
+        denom = remaining_total
+        for i in remaining_items:
+            original = instance.agent_item_value(a, i)
+            vals[i] = original / denom if denom > 0 else 0
+        reduced_valuations[a] = vals
+
+    reduced_instance = Instance(
+        valuations=reduced_valuations,
+        agent_capacities={a: instance.agent_capacity(a) for a in remaining_agents},
+        item_capacities={i: instance.item_capacity(i) for i in remaining_items},
+        item_weights={i: instance.item_weight(i) for i in remaining_items}
+    )
+
+    reduced_alloc = AllocationBuilder(reduced_instance)
+    algorithm1_worst_case_allocation(reduced_alloc)
+    for a in reduced_alloc.bundles:
+        alloc.give_bundle(a, reduced_alloc.bundles[a])
+
 
 """
 Note on normalization:
@@ -166,45 +290,3 @@ This is because the function Vn(alpha) is defined on the domain [0,1] as per the
 
 Sending raw values (e.g., 6) instead of normalized ratios will lead to incorrect results.
 """
-
-def compute_vn(alpha: float, n: int) -> float:
-    """ 
-    Computes the worst-case guarantee value Vn(alpha) for a given agent.
-
-    This function implements the piecewise definition from Definition 1 in the paper:
-    - If alpha == 0 → Vn(alpha) = 1 / n
-    - If alpha >= 1 / (n-1) → Vn(alpha) = 0
-    - Else → determine k and calculate based on whether alpha ∈ I(n,k) or NI(n,k)
-
-    :param alpha: The value of the largest single item for the agent.
-    :param n: The total number of agents.
-    :return: The worst-case guaranteed value Vn(alpha).
-     Vn(alpha) Examples:
-    >>> compute_vn(0, 3)
-    0.3333333333333333
-    >>> compute_vn(0.3, 3)
-    0.2
-    >>> compute_vn(0.45, 3)
-    0.10000000000000009
-    >>> compute_vn(0.6, 3)
-    0.0
-    """
-    if alpha == 0:
-        return 1.0 / n
-    if alpha >= 1.0 / (n - 1):
-        return 0.0
-    inv = 1.0 / ((n - 1) * alpha)
-    k_floor = int(inv)
-    if k_floor < 1:
-        k_floor = 1
-    cand = (1.0 / alpha + 1.0) / n - 1.0
-    k = k_floor
-    if abs(round(cand) - cand) < 1e-9:
-        k_candidate = int(round(cand))
-        if k_candidate >= 1:
-            k = k_candidate
-    threshold = (k + 1) / (k * (((k + 1) * n) - 1))
-    if alpha < threshold:
-        return 1.0 - ((k + 1) * (n - 1)) / (((k + 1) * n) - 1)
-    else:
-        return 1.0 - k * (n - 1) * alpha
