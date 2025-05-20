@@ -38,6 +38,7 @@ def parse_allocation_strings(allocation: Dict[str, str]) -> Dict[str, List[Set[s
                 parsed[agent] = []
         else:
             parsed[agent] = []
+    logger.debug("Parsing allocation strings: %s", allocation)
     return parsed
 
 def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str]]:
@@ -67,6 +68,10 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     instance = allocation_builder.instance
     agent_names = list(instance.agents)
     item_names = list(instance.items)
+    logger.info("Starting santa_claus_main")
+    logger.debug("Instance agents: %s", agent_names)
+    logger.debug("Instance items: %s", item_names)
+
     valuations = {
         agent: {
             item: instance.agent_item_value(agent, item)
@@ -79,10 +84,28 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     high = max(all_item_values) if all_item_values else 0
     low = 0
     best_matching: Dict[str, Set[str]] = {}
+    logger.debug("Initial valuations: %s", valuations)
+    logger.debug("Initial binary search range: low=%f, high=%f", low, high)
 
     while high - low > 1e-4:
         mid = (low + high) / 2
         if is_threshold_feasible(valuations, mid):
+            logger.debug("Feasibility at threshold %.4f: %s", mid, is_threshold_feasible(valuations, mid))
+            logger.info("Threshold %.4f is feasible, solving LP...", mid)
+
+            raw_allocation = solve_configuration_lp(valuations, mid)
+            allocation = parse_allocation_strings(raw_allocation)
+            fat_items, thin_items = classify_items(valuations, mid)
+            H = build_hypergraph(valuations, allocation, fat_items, thin_items, mid)
+
+            # רק כאן מותר להשתמש בלוגים
+            logger.debug("Raw allocation: %s", raw_allocation)
+            logger.debug("Parsed allocation: %s", allocation)
+            logger.debug("Fat items: %s", fat_items)
+            logger.debug("Thin items: %s", thin_items)
+            logger.info("Constructed hypergraph with %d nodes and %d edges", len(H.nodes), len(H.edges))
+
+            best_matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid)
             low = mid
             raw_allocation = solve_configuration_lp(valuations, mid)
             allocation = parse_allocation_strings(raw_allocation)
@@ -90,10 +113,12 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
             H = build_hypergraph(valuations, allocation, fat_items, thin_items, mid)
             best_matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid)
         else:
+            logger.info("Threshold %.4f is NOT feasible", mid)
             high = mid
 
     final_allocation = {agent: list(items) for agent, items in best_matching.items()}
     validate_allocation(instance, final_allocation)
+    logger.info("Final matching found at threshold %.4f: %s", low, best_matching)
     return {agent: set(items) for agent, items in final_allocation.items()}
 
 def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: float) -> bool:
@@ -146,6 +171,7 @@ def generate_all_subsets(items: List[str]) -> List[Set[str]]:
     """
     מחזירה את כל תתי-הקבוצות האפשריות (ללא הקבוצה הריקה).
     """
+    logger.info("Generating all subsets for items: %s", items)
     return [set(comb) for r in range(1, len(items)+1) for comb in combinations(items, r)]
 
 def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: float) -> Dict[str, str]:
@@ -181,6 +207,8 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
         else:
             allocation[agent] = "0.0*{}"
 
+    logger.info("Solving configuration LP with threshold %.4f", threshold)
+    logger.debug("Configuration LP solution: %s", allocation)
     return allocation
 
 
@@ -211,6 +239,10 @@ def classify_items(valuations: Dict[str, Dict[str, float]], threshold: float) ->
             fat_items.add(item)
         else:
             thin_items.add(item)
+
+    logger.info("Classifying items with threshold %.4f", threshold)
+    logger.debug("Fat items: %s", fat_items)
+    logger.debug("Thin items: %s", thin_items)
     return fat_items, thin_items
 
 def build_hypergraph(valuations: Dict[str, Dict[str, float]],
@@ -252,6 +284,8 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
     >>> len(hypergraph.edges)  # מספר הקשתות
     4
     """
+    logger.info("Building hypergraph based on allocation")
+
     H = HNXHypergraph()
     logger.info("Building hypergraph based on allocation")
 
@@ -328,6 +362,8 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
             player = prev_player
         matching[player] = edge
         used_items.update(H.edges[edge].elements - set(players))
+        logger.debug("Matching after augment: %s", matching)
+        logger.debug("Used items after augment: %s", used_items)
 
     def build_alternating_tree(start_player: str) -> bool:
         queue = deque([start_player])
@@ -340,6 +376,7 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
             for edge_name in H.edges:
                 if edge_name in visited_edges:
                     continue
+                logger.debug("Visiting edge %s", edge_name)
 
                 edge_nodes = set(H.edges[edge_name].elements)
                 if not edge_nodes & {current_player}:
@@ -363,6 +400,9 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
                             visited_players.add(p)
                             parent[p] = (current_player, edge_name)
                             queue.append(p)
+        logger.debug("Building alternating tree for player: %s", start_player)
+        logger.debug("Used items so far: %s", used_items)
+        logger.debug("Parent map: %s", parent)
         return False
 
     for player in players:
@@ -375,6 +415,12 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
     for player, edge_name in matching.items():
         items = H.edges[edge_name].elements - {player}
         result[player] = items - set(players)
+    logger.info("Starting local search for perfect matching")
+    logger.debug("Players: %s", players)
+    logger.debug("Threshold: %f", threshold)
+    logger.debug("Initial matching: %s", matching)
+    logger.info("Finished local search. Final matching: %s", matching)
+    logger.debug("Constructed allocation: %s", result)
     return result
 
 
