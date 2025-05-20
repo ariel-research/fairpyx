@@ -45,11 +45,11 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     True
     """
     instance = allocation_builder.instance
-    agent_names = allocation_builder.agents
-    item_names = allocation_builder.items
+    agent_names = list(instance.agents)
+    item_names = list(instance.items)
     valuations = {
         agent: {
-            item: allocation_builder.valuation(agent, item)
+            item: instance.agent_item_value(agent, item)
             for item in item_names
         }
         for agent in agent_names
@@ -67,7 +67,7 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
             allocation = solve_configuration_lp(valuations, mid)
             fat_items, thin_items = classify_items(valuations, mid)
             H = build_hypergraph(valuations, allocation, fat_items, thin_items, mid)
-            best_matching = local_search_perfect_matching(H, valuations, agent_names)
+            best_matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid)
         else:
             high = mid
 
@@ -317,7 +317,8 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
                 # 🚨 תנאי סינון: רק אם ערך הפריט לשחקן ≥ threshold
                 if valuations[current][item] < threshold:
                     continue
-
+                if valuations[current].get(item, 0) < threshold:
+                    continue
                 if item in visited_items:
                     continue
                 visited_items.add(item)
