@@ -1,3 +1,14 @@
+"""
+An implementation of the algorithms in:
+"On Worst-Case Allocations in the Presence of Indivisible Goods"
+by Evangelos Markakis and Christos-Alexandros Psomas (2011).
+https://link.springer.com/chapter/10.1007/978-3-642-25510-6_24
+http://pages.cs.aueb.gr/~markakis/research/wine11-Vn.pdf
+
+Programmer: Ibrahem Hurani
+Date: 2025-05-06
+"""
+
 import pytest
 from fairpyx import Instance, divide,AllocationBuilder
 from fairpyx.algorithms.markakis_psomas import algorithm1_worst_case_allocation, compute_vn

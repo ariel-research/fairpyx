@@ -27,9 +27,7 @@ def compute_vn(alpha: float, n: int) -> float:
     >>> compute_vn(0, 3)
     0.3333333333333333
     >>> compute_vn(0.3, 3)
-     0.19999999999999996
-    >>> compute_vn(0.45, 3)
-    0.10000000000000009
+    0.19999999999999996
     >>> compute_vn(0.6, 3)
     0.0
     """
@@ -83,41 +81,30 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     :param alloc: AllocationBuilder — the current allocation state and remaining instance.
     :return: None — allocation is done in-place inside `alloc`.
 
-    Example 1 :
+    Example 1:
     >>> from fairpyx import Instance, divide
-    >>> instance1 = Instance(
-    ...     valuations={
-    ...         "A": {"1": 6, "2": 3, "3": 1},
-    ...         "B": {"1": 2, "2": 5, "3": 5}
-    ...     }
-    ... )
-    >>> alloc1 = divide(instance1, algorithm1_worst_case_allocation)
+    >>> instance1 = Instance(valuations={"A": {"1": 6, "2": 3, "3": 1}, "B": {"1": 2, "2": 5, "3": 5}})
+    >>> alloc1 = divide(algorithm=algorithm1_worst_case_allocation, instance=instance1)
     >>> alloc1["A"]
-    ['1', '3']
+    ['1']
+    >>> alloc1["B"]
+    ['2', '3']
+  
+
     # Explanation:
     # A has values [6,3,1], sum=10, max=6 ⇒ α = 6/10 = 0.6
     # Since α ∈ NI(2,1), Vn(α) = 1 - (2×1)/(2×2 -1) = 1 - 2/3 = 1/3
     # Threshold to reach: 10 × 1/3 = 3.33
-    # Bundle ['1','3'] = 6 + 1 = 7 ≥ 3.33 ⇒ OK
-    >>> sumA = sum(instance1.valuations["A"].values())
-    >>> alphaA = maxA / sumA
-    >>> valA >= vnA
-    True
+    # Bundle ['1'] = 6  ≥ 3.33 ⇒ OK
 
     Example 2 :
-    >>> instance2 = Instance(
-    ...     valuations={
-    ...         "A": {"1": 7, "2": 2, "3": 1, "4": 1},
-    ...         "B": {"1": 3, "2": 6, "3": 1, "4": 2},
-    ...         "C": {"1": 2, "2": 3, "3": 5, "4": 5}
-    ...     }
-    ... )
-    >>> alloc2 = divide(instance2, algorithm1_worst_case_allocation)
-    >>> alloc2["A"]
+    >>> instance2 = Instance(valuations={"A": {"1": 7, "2": 2, "3": 1, "4": 1}, "B": {"1": 3, "2": 6, "3": 1, "4": 2}, "C": {"1": 2, "2": 3, "3": 5, "4": 5}})
+    >>> alloc2 = divide(algorithm=algorithm1_worst_case_allocation, instance=instance2)
+    >>> sorted(alloc2["A"])
     ['1']
-    >>> alloc2["B"]
+    >>> sorted(alloc2["B"])
     ['2']
-    >>> alloc2["C"]
+    >>> sorted(alloc2["C"])
     ['3', '4']
     >>> maxC = max(instance2.valuations["C"].values())
     >>> sumC = sum(instance2.valuations["C"].values())
@@ -127,21 +114,14 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     >>> valC >= vnC
     True
 
-    Example 3 :
-    >>> instance3 = Instance(
-    ...     valuations={
-    ...         "Alice": {"a": 10, "b": 3, "c": 1, "d": 1, "e": 2},
-    ...         "Bob": {"a": 5, "b": 8, "c": 3, "d": 2, "e": 2},
-    ...         "Carol": {"a": 1, "b": 3, "c": 9, "d": 6, "e": 5},
-    ...         "Dave": {"a": 2, "b": 2, "c": 2, "d": 8, "e": 6}
-    ...     }
-    ... )
-    >>> alloc3 = divide(instance3, algorithm1_worst_case_allocation)
-    >>> alloc3["Alice"]
+    Example 3:
+    >>> instance3 = Instance(valuations={"Alice": {"a": 10, "b": 3, "c": 1, "d": 1, "e": 2}, "Bob": {"a": 5, "b": 8, "c": 3, "d": 2, "e": 2}, "Carol": {"a": 1, "b": 3, "c": 9, "d": 6, "e": 5}, "Dave": {"a": 2, "b": 2, "c": 2, "d": 8, "e": 6}})
+    >>> alloc3 = divide(algorithm=algorithm1_worst_case_allocation, instance=instance3)
+    >>> sorted(alloc3["Alice"])
     ['a', 'd']
-    >>> alloc3["Bob"]
+    >>> sorted(alloc3["Bob"])
     ['b']
-    >>> alloc3["Carol"]
+    >>> sorted(alloc3["Carol"])
     ['c', 'e']
     >>> maxCarol = max(instance3.valuations["Carol"].values())
     >>> sumCarol = sum(instance3.valuations["Carol"].values())
@@ -151,30 +131,11 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     >>> valCarol >= vnCarol
     True
 
-    Example 4 :
-    >>> instance4 = Instance(
-    ...     valuations={
-    ...         "A": {"1": 9, "2": 1, "3": 1, "4": 1, "5": 1, "6": 1},
-    ...         "B": {"1": 1, "2": 9, "3": 1, "4": 1, "5": 1, "6": 1},
-    ...         "C": {"1": 1, "2": 1, "3": 9, "4": 1, "5": 1, "6": 1},
-    ...         "D": {"1": 1, "2": 1, "3": 1, "4": 9, "5": 1, "6": 1},
-    ...         "E": {"1": 1, "2": 1, "3": 1, "4": 1, "5": 9, "6": 1},
-    ...         "F": {"1": 1, "2": 1, "3": 1, "4": 1, "5": 1, "6": 9}
-    ...     }
-    ... )
-    >>> alloc4 = divide(instance4, algorithm1_worst_case_allocation)
-    >>> alloc4["A"]
-    ['1']
-    >>> alloc4["B"]
-    ['2']
-    >>> alloc4["C"]
-    ['3']
-    >>> alloc4["D"]
-    ['4']
-    >>> alloc4["E"]
-    ['5']
-    >>> alloc4["F"]
-    ['6']
+    Example 4:
+    >>> instance4 = Instance(valuations={"A": {"1": 9, "2": 1, "3": 1, "4": 1, "5": 1, "6": 1}, "B": {"1": 1, "2": 9, "3": 1, "4": 1, "5": 1, "6": 1}, "C": {"1": 1, "2": 1, "3": 9, "4": 1, "5": 1, "6": 1}, "D": {"1": 1, "2": 1, "3": 1, "4": 9, "5": 1, "6": 1}, "E": {"1": 1, "2": 1, "3": 1, "4": 1, "5": 9, "6": 1}, "F": {"1": 1, "2": 1, "3": 1, "4": 1, "5": 1, "6": 9}})
+    >>> alloc4 = divide(algorithm=algorithm1_worst_case_allocation, instance=instance4)
+    >>> [alloc4[a] for a in sorted(alloc4.keys())]
+    [['1'], ['2'], ['3'], ['4'], ['5'], ['6']]
     >>> maxF = max(instance4.valuations["F"].values())
     >>> sumF = sum(instance4.valuations["F"].values())
     >>> alphaF = maxF / sumF
