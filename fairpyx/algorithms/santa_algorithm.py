@@ -15,10 +15,30 @@ from hypernetx import Hypergraph as HNXHypergraph
 from fairpyx import Instance, AllocationBuilder
 from fairpyx import validate_allocation
 import logging
+from itertools import chain, combinations
 
 # הגדרת הלוגר
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+def parse_allocation_strings(allocation: Dict[str, str]) -> Dict[str, List[Set[str]]]:
+    """
+    מקבלת הקצאה בפורמט של מחרוזות כמו '1.0*{'c1', 'c3'}'
+    ומחזירה: {'Alice': [{'c1', 'c3'}], ...}
+    """
+    import ast
+    parsed = {}
+    for agent, bundle_str in allocation.items():
+        if "*{" in bundle_str:
+            try:
+                bundle_part = bundle_str.split("*", 1)[1]
+                bundle = ast.literal_eval(bundle_part)
+                parsed[agent] = [bundle]
+            except Exception:
+                parsed[agent] = []
+        else:
+            parsed[agent] = []
+    return parsed
 
 def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str]]:
     """
@@ -64,7 +84,8 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
         mid = (low + high) / 2
         if is_threshold_feasible(valuations, mid):
             low = mid
-            allocation = solve_configuration_lp(valuations, mid)
+            raw_allocation = solve_configuration_lp(valuations, mid)
+            allocation = parse_allocation_strings(raw_allocation)
             fat_items, thin_items = classify_items(valuations, mid)
             H = build_hypergraph(valuations, allocation, fat_items, thin_items, mid)
             best_matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid)
@@ -121,8 +142,13 @@ def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: fl
     logger.info("Threshold feasibility check passed, all players can receive at least %f value", threshold)
     return True
 
+def generate_all_subsets(items: List[str]) -> List[Set[str]]:
+    """
+    מחזירה את כל תתי-הקבוצות האפשריות (ללא הקבוצה הריקה).
+    """
+    return [set(comb) for r in range(1, len(items)+1) for comb in combinations(items, r)]
 
-def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: float) -> Dict[str, List[Set[str]]]:
+def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: float) -> Dict[str, str]:
     """
     פונקציה זו פותרת את הבעיה הליניארית (LP) של הקונפיגורציה ומחזירה הקצאה שברית של חבילות לשחקנים.
 
@@ -146,14 +172,14 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
         bundle = set()
         total_value = 0
         for item, val in items.items():
-            if val >= threshold / 2:
+            if val >= threshold / 4:
                 bundle.add(item)
                 total_value += val
         if bundle:
-            multiplier = min(round(threshold / threshold, 2), 1.0)
+            multiplier = min(round(threshold / threshold, 4), 1.0)
             allocation[agent] = f"{multiplier}*{{{', '.join(repr(item) for item in sorted(bundle))}}}"
         else:
-            allocation[agent] = "'0*{}'"
+            allocation[agent] = "0.0*{}"
 
     return allocation
 
@@ -282,76 +308,74 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
     >>> players = ["A", "B", "C", "D"]
     >>> best_matching = local_search_perfect_matching(H, valuations, players, threshold)
     >>> print(best_matching)
-    {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
     >>> best_matching == {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
     True
 
     """
-
     from collections import deque
 
-    matching: Dict[str, str] = {}  # player -> item
-    item_to_player: Dict[str, str] = {}  # reverse mapping
+    matching: Dict[str, str] = {}  # player -> edge_name
+    used_items: Set[str] = set()
 
-    def build_alternating_tree(start: str) -> bool:
-        queue = deque([start])
-        parent: Dict[str, str] = {}
-        visited_players = {start}
-        visited_items = set()
+    def is_valid_bundle(player: str, bundle: Set[str]) -> bool:
+        return sum(valuations[player].get(item, 0) for item in bundle) >= threshold
+
+    def augment_path(player: str, edge: str, parent: Dict[str, Tuple[str, str]]):
+        while player in parent:
+            prev_player, prev_edge = parent[player]
+            matching[player] = edge
+            edge = prev_edge
+            player = prev_player
+        matching[player] = edge
+        used_items.update(H.edges[edge].elements - set(players))
+
+    def build_alternating_tree(start_player: str) -> bool:
+        queue = deque([start_player])
+        parent: Dict[str, Tuple[str, str]] = {}  # player -> (parent_player, parent_edge)
+        visited_players: Set[str] = {start_player}
+        visited_edges: Set[str] = set()
 
         while queue:
-            current = queue.popleft()
-
+            current_player = queue.popleft()
             for edge_name in H.edges:
+                if edge_name in visited_edges:
+                    continue
+
                 edge_nodes = set(H.edges[edge_name].elements)
-                if current not in edge_nodes:
+                if not edge_nodes & {current_player}:
                     continue
 
-                other_nodes = edge_nodes - {current}
-                items = [n for n in other_nodes if n not in players]
-                if not items:
+                bundle = edge_nodes - {current_player}
+                bundle_items = bundle - set(players)
+                logger.debug(f"Checking edge {edge_name} with bundle {bundle_items} for player {current_player}")
+                if not is_valid_bundle(current_player, bundle_items):
                     continue
 
-                item = items[0]
+                visited_edges.add(edge_name)
 
-                # 🚨 תנאי סינון: רק אם ערך הפריט לשחקן ≥ threshold
-                if valuations[current][item] < threshold:
-                    continue
-                if valuations[current].get(item, 0) < threshold:
-                    continue
-                if item in visited_items:
-                    continue
-                visited_items.add(item)
-
-                if item not in item_to_player:
-                    # augmenting path found
-                    p = current
-                    i = item
-                    while p in parent:
-                        old_item = matching[p]
-                        matching[p] = i
-                        item_to_player[i] = p
-                        i = old_item
-                        p = parent[p]
-                    matching[p] = i
-                    item_to_player[i] = p
+                if bundle_items.isdisjoint(used_items):
+                    augment_path(current_player, edge_name, parent)
                     return True
-                else:
-                    next_player = item_to_player[item]
-                    if next_player not in visited_players:
-                        visited_players.add(next_player)
-                        parent[next_player] = current
-                        queue.append(next_player)
 
+                for p, e in matching.items():
+                    if not bundle_items.isdisjoint(H.edges[e].elements - set(players)):
+                        if p not in visited_players:
+                            visited_players.add(p)
+                            parent[p] = (current_player, edge_name)
+                            queue.append(p)
         return False
 
     for player in players:
         if player not in matching:
-            success = build_alternating_tree(player)
-            if not success:
+            if not build_alternating_tree(player):
                 return {}
 
-    return {p: {i} for p, i in matching.items()}
+    # Build final allocation
+    result: Dict[str, Set[str]] = {}
+    for player, edge_name in matching.items():
+        items = H.edges[edge_name].elements - {player}
+        result[player] = items - set(players)
+    return result
 
 
 if __name__ == "__main__":
