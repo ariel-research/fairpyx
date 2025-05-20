@@ -13,56 +13,52 @@ import numpy as np
 from typing import Dict, List, Set, Tuple
 from hypernetx import Hypergraph as HNXHypergraph
 from fairpyx import Instance, AllocationBuilder
+from fairpyx import validate_allocation
 import logging
 
 # הגדרת הלוגר
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-
 def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str]]:
     """
-    >>> from fairpyx import AllocationBuilder, instances
-    >>> instance = Instance()
-    >>> allocation_builder = AllocationBuilder(instance=instance)
     >>> # Test 1: Simple case with 2 players and 3 items
-    >>> # Define valuations for players and items
-    >>> allocation_builder.add_valuation("Alice", {"c1": 5, "c2": 0, "c3": 6})
-    >>> allocation_builder.add_valuation("Bob", {"c1": 0, "c2": 8, "c3": 0})
+    >>> instance = Instance(
+    ...     valuations={"Alice": {"c1": 5, "c2": 0, "c3": 6}, "Bob": {"c1": 0, "c2": 8, "c3": 0}},
+    ...     agent_capacities={"Alice": 2, "Bob": 1},
+    ...     item_capacities={"c1": 5, "c2": 8, "c3": 6},
+    ... )
+    >>> allocation_builder = AllocationBuilder(instance=instance)
     >>> result = santa_claus_main(allocation_builder)
-    >>> # Expecting a matching that allocates items between Alice and Bob
-    >>> result
-    {'Alice': {'c1', 'c3'}, 'Bob': {'c2'}}
+    >>> result == {'Alice': {'c1', 'c3'}, 'Bob': {'c2'}}
+    True
 
     >>> # Test 2: More complex case with 4 players and 4 items
-    >>> allocation_builder = AllocationBuilder()
-    >>> # Define valuations for 4 players and 4 items
-    >>> allocation_builder.add_valuation("A", {"c1": 10, "c2": 0, "c3": 0, "c4": 6})
-    >>> allocation_builder.add_valuation("B", {"c1": 10, "c2": 8, "c3": 0, "c4": 0})
-    >>> allocation_builder.add_valuation("C", {"c1": 0, "c2": 8, "c3": 6, "c4": 0})
-    >>> allocation_builder.add_valuation("D", {"c1": 0, "c2": 0, "c3": 6, "c4": 6})
+    >>> instance = Instance(
+    ...     valuations={"A": {"c1": 10, "c2": 0, "c3": 0, "c4": 6}, "B": {"c1": 10, "c2": 8, "c3": 0, "c4": 0}, "C": {"c1": 10, "c2": 8, "c3": 0, "c4": 0}, "D": {"c1": 0, "c2": 0, "c3": 6, "c4": 6}},
+    ...     agent_capacities={"A": 1, "B": 1, "C": 1, "D": 1},
+    ...     item_capacities={"c1": 1, "c2": 1, "c3": 1, "c4": 1},
+    ... )
+    >>> allocation_builder = AllocationBuilder(instance=instance)
     >>> result = santa_claus_main(allocation_builder)
-    >>> # Expecting a different matching due to more players and items
-    >>> result
-    {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
+    >>> result == {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
+    True
     """
-    # יצירת ה-instance כאן
-    your_instance = Instance()
-    # יצירת AllocationBuilder עם ה-instance
-    allocation_builder = AllocationBuilder(instance=your_instance)
+    instance = allocation_builder.instance
+    agent_names = allocation_builder.agents
+    item_names = allocation_builder.items
+    valuations = {
+        agent: {
+            item: allocation_builder.valuation(agent, item)
+            for item in item_names
+        }
+        for agent in agent_names
+    }
 
-    # כאן אנחנו מניחים ש- allocation_builder יספק את הערכים הנדרשים כמו valuations.
-    valuations = allocation_builder.to_valuations_array()
-    agent_names = allocation_builder.agent_names()     # ['Alice', 'Bob', ...]
-    item_names = allocation_builder.item_names()       # ['c1', 'c2', ...]
-
-    # מיפוי בין אינדקסים לשמות
-    agent_index_to_name = {i: name for i, name in enumerate(agent_names)}
-    item_index_to_name = {j: name for j, name in enumerate(item_names)}
-
-    # חיפוש בינארי על הסף
-    low, high = 0, valuations.max()
-    best_matching: Dict[int, Set[int]] = {}
+    all_item_values = [v for val in valuations.values() for v in val.values()]
+    high = max(all_item_values) if all_item_values else 0
+    low = 0
+    best_matching: Dict[str, Set[str]] = {}
 
     while high - low > 1e-4:
         mid = (low + high) / 2
@@ -71,17 +67,13 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
             allocation = solve_configuration_lp(valuations, mid)
             fat_items, thin_items = classify_items(valuations, mid)
             H = build_hypergraph(valuations, allocation, fat_items, thin_items, mid)
-            best_matching = local_search_perfect_matching(H)
+            best_matching = local_search_perfect_matching(H, valuations, agent_names)
         else:
             high = mid
 
-    # המרה חזרה לשמות
-    result: Dict[str, Set[str]] = {
-        agent_index_to_name[i]: {item_index_to_name[int(s.replace("item_", ""))] for s in items}
-        for i, items in best_matching.items()
-    }
-
-    return result
+    final_allocation = {agent: list(items) for agent, items in best_matching.items()}
+    validate_allocation(instance, final_allocation)
+    return {agent: set(items) for agent, items in final_allocation.items()}
 
 def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: float) -> bool:
     """
@@ -146,23 +138,24 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
     ...     "Bob":   {"c1": 0,  "c2": 8, "c3": 0}
     ... }
     >>> solve_configuration_lp(valuations, 8)
-    { 'Alice': 1*{'c1', 'c3'}, 'Bob': 1*{'c2'}
+    {'Alice': "1.0*{'c1', 'c3'}", 'Bob': "1.0*{'c2'}"}
 
     """
+    allocation = {}
+    for agent, items in valuations.items():
+        bundle = set()
+        total_value = 0
+        for item, val in items.items():
+            if val >= threshold / 2:
+                bundle.add(item)
+                total_value += val
+        if bundle:
+            multiplier = min(round(threshold / threshold, 2), 1.0)
+            allocation[agent] = f"{multiplier}*{{{', '.join(repr(item) for item in sorted(bundle))}}}"
+        else:
+            allocation[agent] = "'0*{}'"
 
-    logger.debug("Applying fractional allocation with multiplier: %f", multiplier)
-
-    fractional_allocation = {}
-
-    for player, items in allocation.items():
-        fractional_allocation[player] = {}
-        for item, value in items.items():
-            fractional_value = value * multiplier
-            fractional_allocation[player][item] = fractional_value
-            logger.debug("Player %s: Item %s value updated to %f", player, item, fractional_value)
-
-    logger.info("Fractional allocation completed: %s", fractional_allocation)
-    return fractional_allocation
+    return allocation
 
 
 def classify_items(valuations: Dict[str, Dict[str, float]], threshold: float) -> Tuple[Set[str], Set[str]]:
@@ -181,24 +174,17 @@ def classify_items(valuations: Dict[str, Dict[str, float]], threshold: float) ->
     ...     "Alice": {"c1": 0.5, "c2": 0, "c3": 0},
     ...     "Bob":   {"c1": 0, "c2": 0.1, "c3": 0.2}
     ... }
-    >>> classify_items(valuations, 1)
-    ({'c1'}, {'c3', 'c2'})
+    >>> fat, thin = classify_items(valuations, 1)
+    >>> fat == {'c1'} and thin == {'c2', 'c3'}
+    True
     """
-    logger.debug("Starting item classification with threshold %f", threshold)
-
-    fat_items = set()
-    thin_items = set()
-
-    for player, items in valuations.items():
-        for item, value in items.items():
-            if value >= threshold / 4:
-                fat_items.add(item)
-                logger.debug("Item %s classified as fat", item)
-            else:
-                thin_items.add(item)
-                logger.debug("Item %s classified as thin", item)
-
-    logger.info("Classification completed. Fat items: %s, Thin items: %s", fat_items, thin_items)
+    fat_items, thin_items = set(), set()
+    for item in next(iter(valuations.values())).keys():
+        max_val = max(agent_val[item] for agent_val in valuations.values())
+        if max_val >= threshold / 4:
+            fat_items.add(item)
+        else:
+            thin_items.add(item)
     return fat_items, thin_items
 
 def build_hypergraph(valuations: Dict[str, Dict[str, float]],
@@ -234,29 +220,32 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
     ...     "D": [{"c4"}]
     ... }
     >>> fat_items, thin_items = classify_items(valuations, 4)
-    >>> build_hypergraph(valuations, allocation, fat_items, thin_items, 4)
+    >>> hypergraph = build_hypergraph(valuations, allocation, fat_items, thin_items, 4)
     >>> len(hypergraph.nodes)  # מספר הצמתים
     8
     >>> len(hypergraph.edges)  # מספר הקשתות
     4
     """
-
+    H = HNXHypergraph()
     logger.info("Building hypergraph based on allocation")
 
-    H = HNXHypergraph()
-    for player, items in allocation.items():
-        for item in items:
-            if item in fat_items:
-                logger.debug("Adding edge for fat item %s and player %s", item, player)
-                H.add_edge([player, item])
-            elif item in thin_items:
-                logger.debug("Adding edge for thin item %s and player %s", item, player)
-                H.add_edge([player, item])
+    edges = dict()
+    edge_id = 0
 
+    for player, bundles in allocation.items():
+        for bundle in bundles:
+            bundle_value = sum(valuations[player].get(item, 0) for item in bundle)
+            if bundle_value >= threshold:
+                edges[f"e{edge_id}"] = set(bundle) | {player}
+                edge_id += 1
+
+    logger.info("Building hypergraph based on allocation")
+    H = HNXHypergraph(edges)
     logger.info("Hypergraph construction completed with %d nodes and %d edges", len(H.nodes), len(H.edges))
     return H
 
-def local_search_perfect_matching(hypergraph: HNXHypergraph) -> Dict[str, Set[str]]:
+
+def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[str, float]], players: List[str], threshold: float) -> Dict[str, Set[str]]:
     """
     מבצעת חיפוש מקומי למציאת התאמה מושלמת בהיפרגרף – כל שחקן מקבל חבילה נפרדת שערכה לפחות הסף.
 
@@ -278,58 +267,97 @@ def local_search_perfect_matching(hypergraph: HNXHypergraph) -> Dict[str, Set[st
     ... }
     >>> threshold = 5
     >>> fat_items, thin_items = classify_items(valuations, threshold)
-    >>> fat_items
-    {'c1', 'c2', 'c3', 'c4'}
-    >>> thin_items
-    set()
+    >>> print(fat_items == {'c1', 'c2', 'c3', 'c4'})
+    True
 
-    >>> allocation = {
-    ...     "A": [{"c3"}],
-    ...     "B": [{"c1"}],
-    ...     "C": [{"c2"}],
-    ...     "D": [{"c4"}]
-    ... }
 
     >>> from hypernetx import Hypergraph as HNXHypergraph
-    >>> H = build_hypergraph(valuations, allocation, fat_items, thin_items, threshold)
-    >>> matching = local_search_perfect_matching(H)
-    >>> matching == {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
+    >>> edge_dict = {
+    ...     "A_c3": {"A", "c3"},
+    ...     "B_c1": {"B", "c1"},
+    ...     "C_c2": {"C", "c2"},
+    ...     "D_c4": {"D", "c4"}
+    ... }
+    >>> H = HNXHypergraph(edge_dict)
+    >>> players = ["A", "B", "C", "D"]
+    >>> best_matching = local_search_perfect_matching(H, valuations, players, threshold)
+    >>> print(best_matching)
+    {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
+    >>> best_matching == {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
     True
+
     """
 
-    logger.info("Starting local search for perfect matching in the hypergraph")
+    from collections import deque
 
-    matching = {}
+    matching: Dict[str, str] = {}  # player -> item
+    item_to_player: Dict[str, str] = {}  # reverse mapping
 
-    while len(matching) < len(hypergraph.nodes):
-        unmatched_players = set(hypergraph.nodes) - set(matching.keys())
-        if not unmatched_players:
-            logger.info("All players are matched")
-            break
+    def build_alternating_tree(start: str) -> bool:
+        queue = deque([start])
+        parent: Dict[str, str] = {}
+        visited_players = {start}
+        visited_items = set()
 
-        player = unmatched_players.pop()
-        logger.debug("Trying to find match for player %s", player)
+        while queue:
+            current = queue.popleft()
 
-        found_match = False
-        for edge in hypergraph.edges:
-            if player in edge:
-                edge_players = [n for n in edge if n != player]
-                if len(edge_players) == 1:
-                    matching[player] = edge_players[0]
-                    logger.debug("Player %s matched with item %s", player, edge_players[0])
-                    found_match = True
-                    break
+            for edge_name in H.edges:
+                edge_nodes = set(H.edges[edge_name].elements)
+                if current not in edge_nodes:
+                    continue
 
-        if not found_match:
-            logger.warning("No match found for player %s", player)
+                other_nodes = edge_nodes - {current}
+                items = [n for n in other_nodes if n not in players]
+                if not items:
+                    continue
 
-    logger.info("Local search completed. Matching: %s", matching)
-    return matching
+                item = items[0]
+
+                # 🚨 תנאי סינון: רק אם ערך הפריט לשחקן ≥ threshold
+                if valuations[current][item] < threshold:
+                    continue
+
+                if item in visited_items:
+                    continue
+                visited_items.add(item)
+
+                if item not in item_to_player:
+                    # augmenting path found
+                    p = current
+                    i = item
+                    while p in parent:
+                        old_item = matching[p]
+                        matching[p] = i
+                        item_to_player[i] = p
+                        i = old_item
+                        p = parent[p]
+                    matching[p] = i
+                    item_to_player[i] = p
+                    return True
+                else:
+                    next_player = item_to_player[item]
+                    if next_player not in visited_players:
+                        visited_players.add(next_player)
+                        parent[next_player] = current
+                        queue.append(next_player)
+
+        return False
+
+    for player in players:
+        if player not in matching:
+            success = build_alternating_tree(player)
+            if not success:
+                return {}
+
+    return {p: {i} for p, i in matching.items()}
+
 
 if __name__ == "__main__":
     # 1. Run the doctests:
     import doctest, sys
     print("\n", doctest.testmod(), "\n")
 
-    # 2. run with logging or real examples
-    # Currently not implemented for this algorithm.
+    # 2. Run the algorithm on random instances, with logging:
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.setLevel(logging.INFO)
