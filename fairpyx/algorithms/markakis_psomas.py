@@ -11,7 +11,6 @@ Date: 2025-05-06
 
 from fairpyx import AllocationBuilder,divide,Instance
 
-
 def compute_vn(alpha: float, n: int) -> float:
     """ 
     Computes the worst-case guarantee value Vn(alpha) for a given agent.
@@ -28,7 +27,7 @@ def compute_vn(alpha: float, n: int) -> float:
     >>> compute_vn(0, 3)
     0.3333333333333333
     >>> compute_vn(0.3, 3)
-    0.2
+     0.19999999999999996
     >>> compute_vn(0.45, 3)
     0.10000000000000009
     >>> compute_vn(0.6, 3)

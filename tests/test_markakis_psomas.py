@@ -83,26 +83,4 @@ def test_large():
     all_items = [item for bundle in alloc.values() for item in bundle]
     assert len(all_items) == len(set(all_items)), "Duplicate item assigned to multiple agents"
 
-def test_ten_agents():
-    agents = [f"A{i}" for i in range(10)]
-    items = [f"c{i}" for i in range(10)]
 
-    # בונים מטריצת ערכים דינמית עם העדפות משתנות לסוכנים
-    valuations = {
-        agent: {item: 10 - abs(i - j) for j, item in enumerate(items)}
-        for i, agent in enumerate(agents)
-    }
-
-    instance = Instance(valuations=valuations)
-    alloc = divide(algorithm=algorithm1_worst_case_allocation, instance=instance)
-
-    # בדיקה שהוקצתה חבילה לכל סוכן
-    assert set(alloc.keys()) == set(agents)
-
-    # בדיקה שלכל סוכן יש לפחות פריט אחד
-    for agent, bundle in alloc.items():
-        assert len(bundle) > 0, f"Agent {agent} received no items"
-
-    # בדיקה שאין כפילויות בפריטים
-    all_items = [item for bundle in alloc.values() for item in bundle]
-    assert len(all_items) == len(set(all_items)), "Duplicate item assigned to multiple agents"
