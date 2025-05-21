@@ -180,8 +180,8 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
 
     הסבר:
     זהו שלב 2 של האלגוריתם – פתרון תכנות ליניארי (Configuration LP Relaxation).
-    נגדיר משתנים בינאריים x_{i,S} שמציינים אם שחקן i מקבל חבילה S ⊆ R שערכה הכולל לפחות t.
-    הפונקציה הזו פותרת את הבעיה הליניארית בצורת Relaxation ומחזירה עבור כל שחקן אוסף של חבילות אפשריות שערכן לפחות t.
+    נגדיר משתנים בינאריים x_{i,S} שמציינים אם שחקן i מקבל חבילה S ⊆ R שערכה הכולל לפחות 4/t.
+    הפונקציה הזו פותרת את הבעיה הליניארית בצורת Relaxation ומחזירה עבור כל שחקן אוסף של חבילות אפשריות שערכן לפחות 4/t.
     זוהי הקצאה חלקית ולא בהכרח שלמה, אך נשתמש בה בהמשך כדי לבנות את ההיפרגרף.
 
     Example 1: 2 Players, 3 Items
@@ -195,14 +195,14 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
     """
     allocation = {}
     for agent, items in valuations.items():
-        bundle = set()
+        bundle = set() # סט המתנות שהילד יקבל
         total_value = 0
         for item, val in items.items():
             if val >= threshold / 4:
                 bundle.add(item)
                 total_value += val
         if bundle:
-            multiplier = min(round(threshold / threshold, 4), 1.0)
+            multiplier = min(round(threshold / threshold, 4), 1.0) # מתבצע כאן עיגול!
             allocation[agent] = f"{multiplier}*{{{', '.join(repr(item) for item in sorted(bundle))}}}"
         else:
             allocation[agent] = "0.0*{}"
@@ -292,10 +292,15 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
     edges = dict()
     edge_id = 0
 
+    # עוברים על כל שחקן ועל כל חבילה שקיבל בהקצאה
     for player, bundles in allocation.items():
         for bundle in bundles:
+            # מחשבים את ערך החבילה עבור השחקן לפי הערכים בטבלת הערכים
             bundle_value = sum(valuations[player].get(item, 0) for item in bundle)
-            if bundle_value >= threshold:
+
+            # אם ערך החבילה עבור השחקן לפחות רבע מהסף, נכניס אותה כהקצה לגיטימית
+            if bundle_value >= threshold/4:
+                # יוצרים קשת חדשה לגרף ההיפר: צומת מהשחקן + כל הפריטים שבחבילה
                 edges[f"e{edge_id}"] = set(bundle) | {player}
                 edge_id += 1
 
@@ -355,51 +360,60 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
         return sum(valuations[player].get(item, 0) for item in bundle) >= threshold
 
     def augment_path(player: str, edge: str, parent: Dict[str, Tuple[str, str]]):
+        # כל עוד השחקן הנוכחי הופיע בעץ ההחלפה – נמשיך לטפס אחורה
         while player in parent:
             prev_player, prev_edge = parent[player]
+            # נעדכן: השחקן הנוכחי יקבל את הקשת החדשה (edge)
             matching[player] = edge
+            # ממשיכים לטפס אחורה – נתקדם לשחקן הקודם ולצלע הקודמת
             edge = prev_edge
             player = prev_player
+        # לבסוף, השורש (שחקן שלא היה לו הורה) יקבל גם הוא את הקשת
         matching[player] = edge
+        # נעדכן את קבוצת המתנות שהוקצו – נוריד את השחקנים מהקשת ונשמור רק את הפריטים
         used_items.update(H.edges[edge].elements - set(players))
         logger.debug("Matching after augment: %s", matching)
         logger.debug("Used items after augment: %s", used_items)
 
     def build_alternating_tree(start_player: str) -> bool:
-        queue = deque([start_player])
+        queue = deque([start_player]) # מתחילים לבנות עץ חלופי מהשחקן שעדיין לא קיבל חבילה
+        # parent: לכל שחקן נזכור מאיזה שחקן הגענו ולאיזו קשת
         parent: Dict[str, Tuple[str, str]] = {}  # player -> (parent_player, parent_edge)
-        visited_players: Set[str] = {start_player}
-        visited_edges: Set[str] = set()
+        visited_players: Set[str] = {start_player} # רשימת שחקנים שביקרנו בהם כבר בעץ
+        visited_edges: Set[str] = set() # רשימת קשתות שכבר בדקנו
 
-        while queue:
+        while queue: # נבנה עץ החלפה בצורה של BFS - הוא מנסה קודם את החילופים הכי פשוטים — כאלה שדורשים הכי מעט "הזזה" של חבילות
             current_player = queue.popleft()
-            for edge_name in H.edges:
+            for edge_name in H.edges: # נעבור על כל הקשתות האפשריות בהיפרגרף
                 if edge_name in visited_edges:
-                    continue
+                    continue # אם כבר בדקנו את הקשת – נמשיך הלאה
                 logger.debug("Visiting edge %s", edge_name)
 
-                edge_nodes = set(H.edges[edge_name].elements)
-                if not edge_nodes & {current_player}:
+                edge_nodes = set(H.edges[edge_name].elements) # ניקח את הקודקודים שמחוברים לקשת הזו
+                if not edge_nodes & {current_player}: # אם הקשת לא כוללת את השחקן הנוכחי – לא רלוונטית
                     continue
 
-                bundle = edge_nodes - {current_player}
-                bundle_items = bundle - set(players)
+                bundle = edge_nodes - {current_player} # נפריד את החבילה מתוך הקשת (ללא השחקן הנוכחי)
+                bundle_items = bundle - set(players)  # כלומר רק פריטים, לא שחקנים
                 logger.debug(f"Checking edge {edge_name} with bundle {bundle_items} for player {current_player}")
-                if not is_valid_bundle(current_player, bundle_items):
+                if not is_valid_bundle(current_player, bundle_items): # אם החבילה לא מספקת את השחקן – נמשיך הלאה
                     continue
 
                 visited_edges.add(edge_name)
 
-                if bundle_items.isdisjoint(used_items):
+                if bundle_items.isdisjoint(used_items): # אם כל הפריטים בחבילה לא בשימוש – אפשר להקצות את החבילה!
                     augment_path(current_player, edge_name, parent)
-                    return True
+                    return True # הצלחנו להרחיב את ההתאמה
 
-                for p, e in matching.items():
-                    if not bundle_items.isdisjoint(H.edges[e].elements - set(players)):
+                for p, e in matching.items(): # אחרת, החבילה חופפת לשחקנים אחרים – ננסה להחליף
+                    if not bundle_items.isdisjoint(H.edges[e].elements - set(players)): # אם יש חפיפה בין החבילה הנוכחית לבין החבילה של p
                         if p not in visited_players:
+                            # מוסיפים את השחקן הזה לעץ, עם קשת ההגעה
                             visited_players.add(p)
                             parent[p] = (current_player, edge_name)
                             queue.append(p)
+
+        # אם הגענו לפה – לא הצלחנו להרחיב את ההתאמה עבור start_player
         logger.debug("Building alternating tree for player: %s", start_player)
         logger.debug("Used items so far: %s", used_items)
         logger.debug("Parent map: %s", parent)
