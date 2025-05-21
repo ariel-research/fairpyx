@@ -11,7 +11,9 @@ Date: 2025-05
 from fairpyx import Instance, AllocationBuilder, divide
 from typing import Any
 from collections.abc import Iterable, Callable
-import logging
+from itertools import chain, pairwise
+import logging, cvxpy as cp, numpy as np
+from scipy.sparse import csc_matrix
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +36,63 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
     {0: [2], 1: [0], 2: [3], 3: [1], 4: [4]}
     >>> instance = Instance(valuations=[[8,30,48,10,15],[12,7,29,15,5],[35,42,5,22,44]])
     >>> divide(maximally_proportional_allocation, instance)
-    {0: [2], 1: [0, 3],  2: [1, 4]}
+    {0: [2], 1: [0, 3], 2: [1, 4]}
 
     """
-    pass
+    agents, items = alloc.remaining_agents(), alloc.remaining_items()
+    nagents, nitems = alloc.instance.num_of_agents, alloc.instance.num_of_items
+    min_bundles = {agent: get_minimal_bundles(alloc, agent, False) for agent in agents}
+    max_rank = max(map(len, min_bundles.values()))
+    max_agents_received = 0
+    rank = 0
+    col_to_bundle = {}
+    idx = {
+        "agents": dict(zip(agents, range(nagents))),
+        "items": dict(zip(items, range(nagents, nagents + nitems))),
+    }
+    # 1. Descend players' ranking until complete allocation is avialaible or reached min rank
+    # 2. Remember what is the lowest rank
+    # 3. Have lists as building blocks for the sparse matrix
+    # 4. Build new optimization probelm at each level
+    # 5. Add agent as an index in the matrix rows for constraints simplicity
+
+    keep_descending = True
+    indptr, indices = [0], []
+    while keep_descending:
+        if rank >= max_rank or max_agents_received == len(agents):
+            keep_descending = False
+        else:
+            for agent, mb in min_bundles.items():
+                if rank in range(len(mb)):
+                    indices.append(idx["agents"][agent])
+                    for item in mb[rank]:
+                        indices.append(idx["items"][item])
+                    col_to_bundle[len(indptr) - 1] = (agent, rank)
+                    indptr.append(len(indices))
+
+            # build probelm
+            sparse = csc_matrix(
+                (np.ones(len(indices)), indices, indptr),
+                shape=(len(agents) + len(items), len(indptr) - 1),
+                copy=False,
+            )
+            x = cp.Variable(len(indptr) - 1, boolean=True)
+            objective = cp.Maximize(cp.sum(x))
+            constrains = [sparse @ x <= 1]
+            prob = cp.Problem(objective=objective, constraints=constrains)
+            agents_recived = prob.solve()
+            if agents_recived > max_agents_received:  # type: ignore
+                maxmin_solution = x  # save the solution
+                max_agents_received = agents_recived
+            rank += 1
+
+    # TODO: Add pareto-optimal choosing
+
+    # Construct the allocation from the sparse matrix and the maxmin_solution variable using the maps
+    chosen_columns = [i for i in range(maxmin_solution.size) if np.allclose(maxmin_solution.value[i], 1)]  # type: ignore
+    for c in chosen_columns:
+        agent, rank = col_to_bundle[c]
+        alloc.give_bundle(agent, min_bundles[agent][rank])
 
 
 def get_minimal_bundles(
@@ -71,9 +126,43 @@ def get_minimal_bundles(
     >>> get_minimal_bundles(alloc, 0)
     [[1, 4], [0, 2, 4], [1, 2], [0, 1], [2, 3, 4]]
     >>> get_minimal_bundles(alloc, 1)
-    [[0, 1], [1, 3], [0, 3], [1, 2, 4]]
+    [[0, 1], [1, 3], [1, 2, 4], [0, 3]]
     """
-    pass
+    res = []
+    logger.info(" collecting all of agent %s minimal bundles ".center(50, "#"), agent)
+    items_sorted = sorted(
+        alloc.remaining_items(),
+        key=lambda x: alloc.effective_value(agent, x),
+        reverse=True,
+    )
+    proportional_share = alloc.agent_bundle_value(agent, alloc.remaining_items()) / len(
+        alloc.remaining_agents()
+    )
+    logger.info("proportional value of agent %s is %s", agent, proportional_share)
+    subgroup = []
+
+    def backtrack(i, bundle_value):
+        logger.debug("assesing subgroup %s", subgroup)
+        if bundle_value >= proportional_share:
+            res.append(sorted(subgroup) if sort_bundle else list(subgroup))
+            logger.debug(
+                "subgroup is minimal bundle! total value: %s. added to result",
+                bundle_value,
+            )
+        elif i >= len(items_sorted):
+            logger.debug("no left items to grow the group")
+            return
+        else:
+            logger.debug("subgroup total value is too low. add some item")
+            item = items_sorted[i]
+            subgroup.append(item)
+            backtrack(i + 1, bundle_value + alloc.effective_value(agent, item))
+            subgroup.pop()
+            backtrack(i + 1, bundle_value)
+
+    backtrack(0, 0)
+    res.sort(key=lambda bundle: alloc.agent_bundle_value(agent, bundle), reverse=True)
+    return res
 
 
 def is_minimal_bundle(
@@ -103,10 +192,21 @@ def is_minimal_bundle(
     >>> is_minimal_bundle([0, 1, 3], [35, 30, 10, 25], 25)
     False
     """
-    pass
+    items_value = sum(valuation_func(item) for item in bundle)
+    if items_value < prop_share:
+        return False
+    for item in bundle:
+        if items_value - valuation_func(item) >= prop_share:
+            return False
+    return True
 
 
 if __name__ == "__main__":
     import doctest
 
-    doctest.testmod(verbose=False)
+    # # doctest.testmod(verbose=False)
+    # logger.addHandler(logging.StreamHandler())
+    # # logger.setLevel(logging.INFO)
+    # doctest.run_docstring_examples(
+    #     maximally_proportional_allocation, globs=globals(), verbose=True
+    # )
