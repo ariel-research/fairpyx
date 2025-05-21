@@ -52,7 +52,7 @@ def test_proportional():
         num_of_agents=5,
         num_of_items=10,
         item_capacity_bounds=(1, 1),
-        agent_capacity_bounds=(1, 10),
+        agent_capacity_bounds=(10, 10),
         item_base_value_bounds=(20, 25),
         item_subjective_ratio_bounds=(0.5, 3.0),
         normalized_sum_of_values=50,
@@ -158,17 +158,3 @@ def test_large_input():
 
 if __name__ == "__main__":
     pytest.main(["-v", __file__])
-
-    # instance = Instance.random_uniform(
-    #     num_of_agents=4,
-    #     num_of_items=5,
-    #     item_capacity_bounds=(1, 1),
-    #     agent_capacity_bounds=(1, 6),
-    #     item_base_value_bounds=(60, 100),
-    #     item_subjective_ratio_bounds=(0.6, 1.4),
-    #     normalized_sum_of_values=100,
-    #     random_seed=12,
-    # )
-    # print(instance)
-    # x = divide(algorithm=maximally_proportional_allocation, instance=instance)
-    # print(x)

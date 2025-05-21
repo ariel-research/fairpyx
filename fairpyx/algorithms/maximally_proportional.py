@@ -39,9 +39,12 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
     {0: [2], 1: [0, 3], 2: [1, 4]}
 
     """
+
     agents, items = alloc.remaining_agents(), alloc.remaining_items()
     nagents, nitems = alloc.instance.num_of_agents, alloc.instance.num_of_items
     min_bundles = {agent: get_minimal_bundles(alloc, agent, False) for agent in agents}
+    logger.info("collected minimal bundles priorities of all agents")
+    logger.debug("minimal_bundles:\n%s", min_bundles)
     max_rank = max(map(len, min_bundles.values()))
     max_agents_received = 0
     rank = 0
@@ -53,7 +56,12 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
 
     keep_descending = True
     indptr, indices = [0], []
+    logger.info(
+        "start allocating with 'fall back' strategey. stop when reach rank %s or found complete allocation",
+        max_rank,
+    )
     while keep_descending:
+        logger.debug("max rank of minimal bundles allowed: %d", rank)
         if rank >= max_rank or max_agents_received == len(agents):
             keep_descending = False
         else:
@@ -76,12 +84,24 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
             constrains = [sparse @ x <= 1]
             prob = cp.Problem(objective=objective, constraints=constrains)
             agents_recived = prob.solve()
+            logger.debug("number af agents who received bundles: %d", agents_recived)
+            logger.debug(
+                "current maxmin allocation (value := bundle index): %s",
+                extract_solution_from_variable(x, col_to_bundle),
+            )
             if agents_recived > max_agents_received:  # type: ignore
                 maxmin_solution = x  # save the solution
                 max_agents_received = agents_recived
             rank += 1
 
+    logger.info(
+        "stopped descending in rank %s. number of agents who received bundles: %d",
+        rank - 1,
+        max_agents_received,
+    )
+
     # solution is a dict of[agent -> rank of minimal bundle he got]
+    logger.info("searching for all possible solutions up to rank %s", rank)
     maxmin_sparse_matrix = sparse[:, : maxmin_solution.size]
     pool = [extract_solution_from_variable(maxmin_solution, col_to_bundle)]
     search_more_solutions = True
@@ -101,11 +121,25 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
         else:
             # add solution to pool
             pool.append(extract_solution_from_variable(maxmin_solution, col_to_bundle))
+            logger.debug(
+                "found another possible solution. total till far: %d", len(pool)
+            )
+    logger.info("found %s possible solutions", len(pool))
 
+    logger.info("filtering the non pareto optimal solutions")
     prt_opt = pareto_frontier(pool)
-
+    logger.info(
+        "# of pareto optimal solution: %s. removed %s non pareto optimal solutions",
+        len(prt_opt),
+        len(pool) - len(prt_opt),
+    )
+    if len(prt_opt) > 1:
+        logger.info("more than one solution available. choosing one at random")
+    else:
+        logger.info("one available solution left")
     for agent, rank in choice(prt_opt).items():
         alloc.give_bundle(agent, min_bundles[agent][rank])
+    logger.info("%d items left ungiven", len(alloc.remaining_items()))
 
 
 def extract_solution_from_variable(x: cp.Variable, col_map: dict):
@@ -219,7 +253,7 @@ def get_minimal_bundles(
     [[0, 1], [1, 3], [1, 2, 4], [0, 3]]
     """
     res = []
-    logger.info(" collecting all of agent %s minimal bundles ".center(50, "#"), agent)
+    logger.info(' collecting all of agent "%s" minimal bundles '.center(50, "#"), agent)
     items_sorted = sorted(
         alloc.remaining_items(),
         key=lambda x: alloc.effective_value(agent, x),
@@ -298,3 +332,23 @@ if __name__ == "__main__":
     import doctest
 
     print(doctest.testmod())
+    # file_handler = logging.FileHandler("max_prop.log", mode="w", encoding="utf-8")
+    # formatter = logging.Formatter(
+    #     "{asctime} - {levelname} - {message}", style="{", datefmt="%Y-%m-%d %H:%M"
+    # )
+    # file_handler.setFormatter(formatter)
+    # logger.addHandler(file_handler)
+    # logger.setLevel(logging.DEBUG)
+
+    # nagetns, nitems = 8, 13
+    # instance = Instance.random_uniform(
+    #     num_of_agents=nagetns,
+    #     num_of_items=nitems,
+    #     item_capacity_bounds=(1, 1),
+    #     agent_capacity_bounds=(nitems, nitems),
+    #     item_base_value_bounds=(40, 120),
+    #     item_subjective_ratio_bounds=(0.9, 1.1),
+    #     normalized_sum_of_values=100,
+    #     random_seed=56456,
+    # )
+    # print(divide(maximally_proportional_allocation, instance))
