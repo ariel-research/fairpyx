@@ -11,7 +11,7 @@ Date: 2025-05
 from fairpyx import Instance, AllocationBuilder, divide
 from typing import Any
 from collections.abc import Iterable, Callable
-from itertools import chain, pairwise
+from random import choice
 import logging, cvxpy as cp, numpy as np
 from scipy.sparse import csc_matrix
 
@@ -46,15 +46,10 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
     max_agents_received = 0
     rank = 0
     col_to_bundle = {}
-    idx = {
+    ids = {
         "agents": dict(zip(agents, range(nagents))),
         "items": dict(zip(items, range(nagents, nagents + nitems))),
     }
-    # 1. Descend players' ranking until complete allocation is avialaible or reached min rank
-    # 2. Remember what is the lowest rank
-    # 3. Have lists as building blocks for the sparse matrix
-    # 4. Build new optimization probelm at each level
-    # 5. Add agent as an index in the matrix rows for constraints simplicity
 
     keep_descending = True
     indptr, indices = [0], []
@@ -64,9 +59,9 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
         else:
             for agent, mb in min_bundles.items():
                 if rank in range(len(mb)):
-                    indices.append(idx["agents"][agent])
+                    indices.append(ids["agents"][agent])
                     for item in mb[rank]:
-                        indices.append(idx["items"][item])
+                        indices.append(ids["items"][item])
                     col_to_bundle[len(indptr) - 1] = (agent, rank)
                     indptr.append(len(indices))
 
@@ -86,13 +81,108 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
                 max_agents_received = agents_recived
             rank += 1
 
-    # TODO: Add pareto-optimal choosing
+    # solution is a dict of[agent -> rank of minimal bundle he got]
+    maxmin_sparse_matrix = sparse[:, : maxmin_solution.size]
+    pool = [extract_solution_from_variable(maxmin_solution, col_to_bundle)]
+    search_more_solutions = True
+    constrains = [
+        maxmin_sparse_matrix @ maxmin_solution <= 1,
+        cp.sum(maxmin_solution) == max_agents_received,
+    ]
+    objective = cp.Maximize(0)
 
-    # Construct the allocation from the sparse matrix and the maxmin_solution variable using the maps
-    chosen_columns = [i for i in range(maxmin_solution.size) if np.allclose(maxmin_solution.value[i], 1)]  # type: ignore
-    for c in chosen_columns:
-        agent, rank = col_to_bundle[c]
+    while search_more_solutions:
+        # main work will be in adding constraints
+        constrains.append(cp.sum([maxmin_solution[i] for i in maxmin_solution.value.nonzero()[0]]) <= max_agents_received - 1)  # type: ignore
+        prob = cp.Problem(objective, constrains)
+        prob.solve()
+        if prob.status != "optimal":
+            search_more_solutions = False
+        else:
+            # add solution to pool
+            pool.append(extract_solution_from_variable(maxmin_solution, col_to_bundle))
+
+    prt_opt = pareto_frontier(pool)
+
+    for agent, rank in choice(prt_opt).items():
         alloc.give_bundle(agent, min_bundles[agent][rank])
+
+
+def extract_solution_from_variable(x: cp.Variable, col_map: dict):
+    chosen_columns = x.value.nonzero()[0]  # type: ignore
+    return {col_map[c][0]: col_map[c][1] for c in chosen_columns}
+
+
+def pareto_dominates(rank_alloc_a: dict, rank_alloc_b: dict) -> bool:
+    """
+    Given 2 allocations of minimal bundles A and B, A pareto dominates B
+    iff:
+    1. For each agent, his minimal bundle rank in A <= than in B
+    2. There exists at least one agent who's minimal bundle rank in A
+       is < than in B.
+
+    Args:
+        rank_alloc_a (dict): A mapper from agent to the rank of his received minimal bundle
+        rank_alloc_b (dict): A mapper from agent to the rank of his received minimal bundle
+
+    Returns:
+        bool: True if a pareto dominates b
+
+    Usage:
+    >>> pareto_dominates({"a": 1, "b": 4}, {"a": 2, "b": 4})
+    True
+    >>> pareto_dominates({"a": 2, "b": 4}, {"a": 2, "b": 4})
+    False
+    >>> pareto_dominates({"a": 2, "b": 4}, {"a": 1, "b": 7})
+    False
+    >>> pareto_dominates({"a": 0, "b": 2}, {"a": 1, "c": 4})
+    False
+    """
+    if rank_alloc_a.keys() != rank_alloc_b.keys():
+        return False
+    better = False
+    for agent in rank_alloc_a:
+        ra, rb = rank_alloc_a[agent], rank_alloc_b[agent]
+        if ra > rb:  # a harms one agent
+            return False
+        if ra < rb:  # a is better for at least one agent
+            better = True
+    return better
+
+
+def pareto_frontier(rank_allocs: list[dict]) -> list:
+    """
+    Filters the pareto dominated alloactions
+
+    Args:
+        rank_allocs (list[dict]): List of rank allocations
+
+    Returns:
+        list: Only the pareto dominating allocations
+
+    Usage:
+    >>> allocs = [{"Alice": 1, "Bob": 4}, {"Alice": 2, "Bob": 4}]
+    >>> pareto_frontier(allocs)
+    [{'Alice': 1, 'Bob': 4}]
+    """
+    frontier = []
+    for rnk in rank_allocs:
+        dominated = False
+        to_drop = []
+
+        for f in frontier:
+            if pareto_dominates(f, rnk):
+                dominated = True  # rnk is useless
+                break
+            if pareto_dominates(rnk, f):  # f turned out as not pareto optimal
+                to_drop.append(f)
+
+        if not dominated:
+            frontier.append(rnk)
+            for f in to_drop:
+                frontier.remove(f)
+
+    return frontier
 
 
 def get_minimal_bundles(
@@ -188,10 +278,13 @@ def is_minimal_bundle(
     >>> is_minimal_bundle([0, 1], [40, 35, 25], 100/3)
     False
     >>> is_minimal_bundle([0, 1], [35, 30, 10, 25], 25)
-    True
+    False
     >>> is_minimal_bundle([0, 1, 3], [35, 30, 10, 25], 25)
     False
     """
+    if isinstance(valuation_func, list):
+        valuation_func = valuation_func.__getitem__
+
     items_value = sum(valuation_func(item) for item in bundle)
     if items_value < prop_share:
         return False
@@ -204,9 +297,4 @@ def is_minimal_bundle(
 if __name__ == "__main__":
     import doctest
 
-    # # doctest.testmod(verbose=False)
-    # logger.addHandler(logging.StreamHandler())
-    # # logger.setLevel(logging.INFO)
-    # doctest.run_docstring_examples(
-    #     maximally_proportional_allocation, globs=globals(), verbose=True
-    # )
+    print(doctest.testmod())
