@@ -101,16 +101,17 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
     )
 
     # solution is a dict of[agent -> rank of minimal bundle he got]
-    logger.info("searching for all possible solutions up to rank %s", rank)
+    logger.info("searching for all possible solutions up to rank %d", rank - 1)
     maxmin_sparse_matrix = sparse[:, : maxmin_solution.size]
     pool = [extract_solution_from_variable(maxmin_solution, col_to_bundle)]
-    search_more_solutions = True
+
     constrains = [
         maxmin_sparse_matrix @ maxmin_solution <= 1,
         cp.sum(maxmin_solution) == max_agents_received,
     ]
     objective = cp.Maximize(0)
 
+    search_more_solutions = True
     while search_more_solutions:
         # main work will be in adding constraints
         constrains.append(cp.sum([maxmin_solution[i] for i in maxmin_solution.value.nonzero()[0]]) <= max_agents_received - 1)  # type: ignore
@@ -124,12 +125,12 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
             logger.debug(
                 "found another possible solution. total till far: %d", len(pool)
             )
-    logger.info("found %s possible solutions", len(pool))
+    logger.info("found %d possible solutions", len(pool))
 
     logger.info("filtering the non pareto optimal solutions")
     prt_opt = pareto_frontier(pool)
     logger.info(
-        "# of pareto optimal solution: %s. removed %s non pareto optimal solutions",
+        "amount of pareto optimal solution: %s. removed %s non pareto optimal solutions",
         len(prt_opt),
         len(pool) - len(prt_opt),
     )
@@ -331,24 +332,29 @@ def is_minimal_bundle(
 if __name__ == "__main__":
     import doctest
 
-    print(doctest.testmod())
-    # file_handler = logging.FileHandler("max_prop.log", mode="w", encoding="utf-8")
-    # formatter = logging.Formatter(
-    #     "{asctime} - {levelname} - {message}", style="{", datefmt="%Y-%m-%d %H:%M"
-    # )
-    # file_handler.setFormatter(formatter)
-    # logger.addHandler(file_handler)
-    # logger.setLevel(logging.DEBUG)
+    # print(doctest.testmod())
+    file_handler = logging.FileHandler("max_prop.log", mode="w", encoding="utf-8")
+    formatter = logging.Formatter(
+        "{asctime} - {levelname} - {message}", style="{", datefmt="%Y-%m-%d %H:%M"
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
-    # nagetns, nitems = 8, 13
-    # instance = Instance.random_uniform(
-    #     num_of_agents=nagetns,
-    #     num_of_items=nitems,
-    #     item_capacity_bounds=(1, 1),
-    #     agent_capacity_bounds=(nitems, nitems),
-    #     item_base_value_bounds=(40, 120),
-    #     item_subjective_ratio_bounds=(0.9, 1.1),
-    #     normalized_sum_of_values=100,
-    #     random_seed=56456,
-    # )
-    # print(divide(maximally_proportional_allocation, instance))
+    def filter_by_func(record: logging.LogRecord):
+        return record.funcName == "maximally_proportional_allocation"
+
+    logger.addFilter(filter_by_func)
+    logger.setLevel(logging.DEBUG)
+
+    nagetns, nitems = 8, 12
+    instance = Instance.random_uniform(
+        num_of_agents=nagetns,
+        num_of_items=nitems,
+        item_capacity_bounds=(1, 1),
+        agent_capacity_bounds=(nitems, nitems),
+        item_base_value_bounds=(40, 120),
+        item_subjective_ratio_bounds=(0.6, 1.1),
+        normalized_sum_of_values=100,
+        random_seed=56,
+    )
+    print(divide(maximally_proportional_allocation, instance))
