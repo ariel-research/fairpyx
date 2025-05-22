@@ -9,11 +9,12 @@ Date: 2025-05
 """
 
 from fairpyx import Instance, AllocationBuilder, divide
-from typing import Any
-from collections.abc import Iterable, Callable
-from random import choice
+from typing import Any, Optional
+from collections import defaultdict
+from collections.abc import Hashable
+from itertools import chain
+from pprint import pformat
 import logging, cvxpy as cp, numpy as np
-from scipy.sparse import csc_matrix
 
 logger = logging.getLogger(__name__)
 
@@ -40,184 +41,203 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
 
     """
 
-    agents, items = alloc.remaining_agents(), alloc.remaining_items()
-    nagents, nitems = alloc.instance.num_of_agents, alloc.instance.num_of_items
-    min_bundles = {agent: get_minimal_bundles(alloc, agent, False) for agent in agents}
-    logger.info("collected minimal bundles priorities of all agents")
-    logger.debug("minimal_bundles:\n%s", min_bundles)
-    max_rank = max(map(len, min_bundles.values()))
+    minimal_bundles_by_agent = {
+        agent: get_minimal_bundles(alloc, agent, sort_bundle=False)
+        for agent in alloc.remaining_agents()
+    }
+    logger.info("collected minimal bundles by order of priorities for all agents")
+
+    max_rank = max(map(len, minimal_bundles_by_agent.values()))
     max_agents_received = 0
     rank = 0
-    col_to_bundle = {}
-    ids = {
-        "agents": dict(zip(agents, range(nagents))),
-        "items": dict(zip(items, range(nagents, nagents + nitems))),
-    }
 
-    keep_descending = True
-    indptr, indices = [0], []
+    # Each minimal bundle will be represented by a boolean Variable instance that will be used
+    # by cvxpy module to maximize the amount of bundles given at each iteration
+
+    # map each agent to it's list of minimal bundles Variables
+    bundle_indicators_by_agent = defaultdict(list)
+    # map each item to the list of bundles that contain it
+    bundles_conflicts_by_item = defaultdict(list)
+
     logger.info(
         "start allocating with 'fall back' strategey. stop when reach rank %s or found complete allocation",
         max_rank,
     )
+
+    nagents = len(alloc.remaining_agents())
+    keep_descending = True
     while keep_descending:
-        logger.debug("max rank of minimal bundles allowed: %d", rank)
-        if rank >= max_rank or max_agents_received == len(agents):
+
+        if rank >= max_rank or max_agents_received == nagents:
             keep_descending = False
         else:
-            for agent, mb in min_bundles.items():
-                if rank in range(len(mb)):
-                    indices.append(ids["agents"][agent])
-                    for item in mb[rank]:
-                        indices.append(ids["items"][item])
-                    col_to_bundle[len(indptr) - 1] = (agent, rank)
-                    indptr.append(len(indices))
+            logger.debug("max rank of minimal bundles allowed: %d", rank)
+            # Update constraints of agents and colliding bundles by current level
+            update_constraints_and_variables(
+                minimal_bundles_by_agent,
+                rank,
+                bundle_indicators_by_agent,
+                bundles_conflicts_by_item,
+            )
 
-            # build probelm
-            sparse = csc_matrix(
-                (np.ones(len(indices)), indices, indptr),
-                shape=(len(agents) + len(items), len(indptr) - 1),
-                copy=False,
+            agents_received = solve_with_cvxpy(
+                bundle_indicators_by_agent, bundles_conflicts_by_item
             )
-            x = cp.Variable(len(indptr) - 1, boolean=True)
-            objective = cp.Maximize(cp.sum(x))
-            constrains = [sparse @ x <= 1]
-            prob = cp.Problem(objective=objective, constraints=constrains)
-            agents_recived = prob.solve()
-            logger.debug("number af agents who received bundles: %d", agents_recived)
+            logger.debug("number af agents who received bundles: %d", agents_received)
+
+            solution = extract_solution(bundle_indicators_by_agent)
+
             logger.debug(
-                "current maxmin allocation (value := bundle index): %s",
-                extract_solution_from_variable(x, col_to_bundle),
+                "current maxmin allocation (value := bundle index): %s", solution
             )
-            if agents_recived > max_agents_received:  # type: ignore
-                maxmin_solution = x  # save the solution
-                max_agents_received = agents_recived
+            if agents_received > max_agents_received:  # type: ignore
+                max_agents_received = agents_received
+                maxmin_solution = solution
             rank += 1
 
+    rank -= 1
     logger.info(
         "stopped descending in rank %s. number of agents who received bundles: %d",
-        rank - 1,
+        rank,
         max_agents_received,
     )
 
-    # solution is a dict of[agent -> rank of minimal bundle he got]
-    logger.info("searching for all possible solutions up to rank %d", rank - 1)
-    maxmin_sparse_matrix = sparse[:, : maxmin_solution.size]
-    pool = [extract_solution_from_variable(maxmin_solution, col_to_bundle)]
-
-    constrains = [
-        maxmin_sparse_matrix @ maxmin_solution <= 1,
-        cp.sum(maxmin_solution) == max_agents_received,
-    ]
-    objective = cp.Maximize(0)
-
-    search_more_solutions = True
-    while search_more_solutions:
-        # main work will be in adding constraints
-        constrains.append(cp.sum([maxmin_solution[i] for i in maxmin_solution.value.nonzero()[0]]) <= max_agents_received - 1)  # type: ignore
-        prob = cp.Problem(objective, constrains)
-        prob.solve()
-        if prob.status != "optimal":
-            search_more_solutions = False
-        else:
-            # add solution to pool
-            pool.append(extract_solution_from_variable(maxmin_solution, col_to_bundle))
-            logger.debug(
-                "found another possible solution. total till far: %d", len(pool)
-            )
-    logger.info("found %d possible solutions", len(pool))
-
-    logger.info("filtering the non pareto optimal solutions")
-    prt_opt = pareto_frontier(pool)
-    logger.info(
-        "amount of pareto optimal solution: %s. removed %s non pareto optimal solutions",
-        len(prt_opt),
-        len(pool) - len(prt_opt),
+    logger.info("checking if %s is pareto optimal...", maxmin_solution)
+    res = get_pareto_optimal(
+        bundle_indicators_by_agent, maxmin_solution, bundles_conflicts_by_item
     )
-    if len(prt_opt) > 1:
-        logger.info("more than one solution available. choosing one at random")
+    if res != maxmin_solution:
+        logger.info("found a pareto optimal!: %s", res)
     else:
-        logger.info("one available solution left")
-    for agent, rank in choice(prt_opt).items():
-        alloc.give_bundle(agent, min_bundles[agent][rank])
-    logger.info("%d items left ungiven", len(alloc.remaining_items()))
+        logger.info("this is pareto optimal")
+
+    # finally give the bundles for the agents
+    for agent, rank in res.items():
+        alloc.give_bundle(agent, minimal_bundles_by_agent[agent][rank])
 
 
-def extract_solution_from_variable(x: cp.Variable, col_map: dict):
-    chosen_columns = x.value.nonzero()[0]  # type: ignore
-    return {col_map[c][0]: col_map[c][1] for c in chosen_columns}
-
-
-def pareto_dominates(rank_alloc_a: dict, rank_alloc_b: dict) -> bool:
+def solve_with_cvxpy(
+    bundle_indicators_by_agent,
+    bundles_constraints,
+    prev_solutions_constraints: Optional[list] = None,
+) -> int:
     """
-    Given 2 allocations of minimal bundles A and B, A pareto dominates B
-    iff:
-    1. For each agent, his minimal bundle rank in A <= than in B
-    2. There exists at least one agent who's minimal bundle rank in A
-       is < than in B.
+    Maximizing the amount of agents receiving minimal bundles,
+    while avoiding giving a player more than one bundle and giving bundles
+    having the same item, using the cvxpy formulation.
+    Accept an optional constraints s.t. the output is not identical to one of the previous solution.
 
     Args:
-        rank_alloc_a (dict): A mapper from agent to the rank of his received minimal bundle
-        rank_alloc_b (dict): A mapper from agent to the rank of his received minimal bundle
+        bundle_indicators_by_agent (dict[Hashable, list[cp.Variable]]): map each agent to it's list of minimal bundles Variables
+        bundles_constraints (dict[Hashable, Iterable[cp.Variable]]): map each item to the list of bundles that contain it
+        prev_solutions_constraints (Optional[list], optional): List of constraints represnting the previous solutions. Defaults to None.
 
     Returns:
-        bool: True if a pareto dominates b
-
-    Usage:
-    >>> pareto_dominates({"a": 1, "b": 4}, {"a": 2, "b": 4})
-    True
-    >>> pareto_dominates({"a": 2, "b": 4}, {"a": 2, "b": 4})
-    False
-    >>> pareto_dominates({"a": 2, "b": 4}, {"a": 1, "b": 7})
-    False
-    >>> pareto_dominates({"a": 0, "b": 2}, {"a": 1, "c": 4})
-    False
+       int: amount of agents who received bundles in this solution
     """
-    if rank_alloc_a.keys() != rank_alloc_b.keys():
-        return False
-    better = False
-    for agent in rank_alloc_a:
-        ra, rb = rank_alloc_a[agent], rank_alloc_b[agent]
-        if ra > rb:  # a harms one agent
-            return False
-        if ra < rb:  # a is better for at least one agent
-            better = True
-    return better
+    constraints = [
+        sum(constraint) <= 1
+        for constraint in chain(
+            bundle_indicators_by_agent.values(), bundles_constraints.values()
+        )
+    ]
+    if prev_solutions_constraints is not None:
+        constraints += prev_solutions_constraints
+    objective = cp.Maximize(sum(chain(*bundle_indicators_by_agent.values())))
+    prob = cp.Problem(objective=objective, constraints=constraints)  # type: ignore
+    agents_received = prob.solve()
+    return round(agents_received)  # type: ignore
 
 
-def pareto_frontier(rank_allocs: list[dict]) -> list:
+def update_constraints_and_variables(
+    min_bundles, rank, bundle_indicators_by_agent, items_constraints
+):
     """
-    Filters the pareto dominated alloactions
+    checks for each agent if he has a minimal bundle at the current iteration's level
+    and if so creates a cvxpy Variable as an indicator for the Maximization problem.
+    """
+    for agent, minimal_bundles in min_bundles.items():
+        if rank in range(len(minimal_bundles)):
+            bundle_var = cp.Variable(boolean=True)
+            bundle_indicators_by_agent[agent].append(bundle_var)
+            for item in minimal_bundles[rank]:
+                items_constraints[item].append(bundle_var)
+
+
+def extract_solution(bundle_indicators_by_agent: dict[Hashable, list[cp.Variable]]):
+    """
+    To be used *after* the solve_with_cvxpy() was called on the bundle_indicators_by_agent
+
+
+    Returns:
+        dict: mapper from agent to his allocated minimal bundle's rank
+    """
+    res = {}
+    for agent, bundle_indicators in bundle_indicators_by_agent.items():
+        for i, indicator in enumerate(bundle_indicators):
+            if np.isclose(indicator.value, 1):  # type: ignore
+                res[agent] = i
+    return res
+
+
+def get_pareto_optimal(
+    bundle_indicators_by_agent: dict,
+    baseline_solution: dict,
+    items_constraints,
+) -> dict:
+    """
+    An allocation is pareto optimal if there's no other allocation which pareto dominates it.
+    Allocation A pareto dominates allocation B iff it doesn't harm anyone while benfiets at
+    least one agent.
+    Given a start baseline solution the algorithm will try to find an allocation which pareto
+    dominates it and will keep searching until there's no room for improvement.
 
     Args:
-        rank_allocs (list[dict]): List of rank allocations
+        bundle_indicators_by_agent (dict): used for the cvxpy solve
+        baseline_solution (dict): map from agent to rank of minimal bundle
+        items_constraints (_type_): used for the cvxpy solve
 
     Returns:
-        list: Only the pareto dominating allocations
-
-    Usage:
-    >>> allocs = [{"Alice": 1, "Bob": 4}, {"Alice": 2, "Bob": 4}]
-    >>> pareto_frontier(allocs)
-    [{'Alice': 1, 'Bob': 4}]
+        dict: pareto optimal solution
     """
-    frontier = []
-    for rnk in rank_allocs:
-        dominated = False
-        to_drop = []
+    prev_solutions_constraints = []
+    search = True
+    optimal_agents_received = len(baseline_solution)
+    logger.debug("try to dominate: %s", baseline_solution)
+    while search:
 
-        for f in frontier:
-            if pareto_dominates(f, rnk):
-                dominated = True  # rnk is useless
-                break
-            if pareto_dominates(rnk, f):  # f turned out as not pareto optimal
-                to_drop.append(f)
+        # choose for each player a bundle that's at least good as the one he got in previous solution
+        temp = {}
+        for agent, rank in baseline_solution.items():
+            temp[agent] = bundle_indicators_by_agent[agent][: rank + 1]
+        bundle_indicators_by_agent = temp
 
-        if not dominated:
-            frontier.append(rnk)
-            for f in to_drop:
-                frontier.remove(f)
+        # add a constraint to NOT repeat previous solution
+        prev_solutions_constraints.append(
+            sum(map(lambda x: x[-1], bundle_indicators_by_agent.values()))
+            <= optimal_agents_received - 1
+        )
 
-    return frontier
+        agents_received = solve_with_cvxpy(
+            bundle_indicators_by_agent, items_constraints, prev_solutions_constraints
+        )
+
+        if agents_received < optimal_agents_received:
+            search = False
+        else:
+            curr_sol = extract_solution(bundle_indicators_by_agent)
+            logger.debug("found dominating allocation: %s", curr_sol)
+            logger.debug(
+                "agents with better assignments: %s",
+                list(
+                    agent
+                    for agent in curr_sol
+                    if curr_sol[agent] < baseline_solution[agent]
+                ),
+            )
+            baseline_solution = curr_sol
+
+    return baseline_solution
 
 
 def get_minimal_bundles(
@@ -290,71 +310,7 @@ def get_minimal_bundles(
     return res
 
 
-def is_minimal_bundle(
-    bundle: Iterable, valuation_func: Callable, prop_share: float
-) -> bool:
-    """
-    A bundle is minimal for an agent if and only if it satisfies the
-    following conditions:
-    1. The agent's valuation of the bundle is >= (sum_items_value)/(num of agents) i.e. proportional.
-    2. Removing any item from the bundle makes it strictly less than proportional.
-
-    Args:
-        bundle (Iterable): items in the bundle
-        valuation_func (Callable): agent's utility function
-        prop_share (float): agnet's proportional share of utility
-
-    Returns:
-        bool: True if the bundle is minimal else False
-
-    Examples:
-    >>> is_minimal_bundle([0], [40, 35, 25], 100/3)
-    True
-    >>> is_minimal_bundle([0, 1], [40, 35, 25], 100/3)
-    False
-    >>> is_minimal_bundle([0, 1], [35, 30, 10, 25], 25)
-    False
-    >>> is_minimal_bundle([0, 1, 3], [35, 30, 10, 25], 25)
-    False
-    """
-    if isinstance(valuation_func, list):
-        valuation_func = valuation_func.__getitem__
-
-    items_value = sum(valuation_func(item) for item in bundle)
-    if items_value < prop_share:
-        return False
-    for item in bundle:
-        if items_value - valuation_func(item) >= prop_share:
-            return False
-    return True
-
-
 if __name__ == "__main__":
     import doctest
 
-    # print(doctest.testmod())
-    file_handler = logging.FileHandler("max_prop.log", mode="w", encoding="utf-8")
-    formatter = logging.Formatter(
-        "{asctime} - {levelname} - {message}", style="{", datefmt="%Y-%m-%d %H:%M"
-    )
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-
-    def filter_by_func(record: logging.LogRecord):
-        return record.funcName == "maximally_proportional_allocation"
-
-    logger.addFilter(filter_by_func)
-    logger.setLevel(logging.DEBUG)
-
-    nagetns, nitems = 8, 12
-    instance = Instance.random_uniform(
-        num_of_agents=nagetns,
-        num_of_items=nitems,
-        item_capacity_bounds=(1, 1),
-        agent_capacity_bounds=(nitems, nitems),
-        item_base_value_bounds=(40, 120),
-        item_subjective_ratio_bounds=(0.6, 1.1),
-        normalized_sum_of_values=100,
-        random_seed=56,
-    )
-    print(divide(maximally_proportional_allocation, instance))
+    print(doctest.testmod())
