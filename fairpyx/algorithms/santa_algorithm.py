@@ -9,13 +9,14 @@ Date: 2025-04-23
  # יש במאמר אלגוריתם אחד והוא בנוי באופן מודולרי. כמו כן, גם בספריית fairpyx – לאלגוריתמי חלוקה הוגנת, האלגוריתמים בנויים כך.
  # לכן, גם כאן בניתי את כותרות האלגוריתם באופן כזה.
 
-import numpy as np
 from typing import Dict, List, Set, Tuple
 from hypernetx import Hypergraph as HNXHypergraph
 from fairpyx import Instance, AllocationBuilder
 from fairpyx import validate_allocation
 import logging
 from itertools import chain, combinations
+from typing import Optional
+
 
 # הגדרת הלוגר
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -65,6 +66,7 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     >>> result == {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
     True
     """
+    # שולפים את המידע מה-AllocationBuilder: שמות סוכנים ופריטים
     instance = allocation_builder.instance
     agent_names = list(instance.agents)
     item_names = list(instance.items)
@@ -72,6 +74,7 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     logger.debug("Instance agents: %s", agent_names)
     logger.debug("Instance items: %s", item_names)
 
+    # בונים מטריצת הערכות: לכל סוכן, מה ערכו עבור כל פריט
     valuations = {
         agent: {
             item: instance.agent_item_value(agent, item)
@@ -80,6 +83,7 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
         for agent in agent_names
     }
 
+    # מחשבים את טווח החיפוש הבינארי לפי הערך המקסימלי של פריט כלשהו
     all_item_values = [v for val in valuations.values() for v in val.values()]
     high = max(all_item_values) if all_item_values else 0
     low = 0
@@ -87,39 +91,34 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     logger.debug("Initial valuations: %s", valuations)
     logger.debug("Initial binary search range: low=%f, high=%f", low, high)
 
-    while high - low > 1e-4:
-        mid = (low + high) / 2
+    while high - low > 1e-4: # חיפוש בינארי: למצוא את ערך הסף הגבוה ביותר שבו עדיין ניתן לבצע הקצאה הוגנת
+        mid = (low + high) / 2 # אם אפשרי לבצע הקצאה לכל סוכן עם ערך לפחות mid:
         if is_threshold_feasible(valuations, mid):
             logger.debug("Feasibility at threshold %.4f: %s", mid, is_threshold_feasible(valuations, mid))
             logger.info("Threshold %.4f is feasible, solving LP...", mid)
 
+            # פותרים את הבעיה הליניארית לקבלת הקצאה ראשונית
             raw_allocation = solve_configuration_lp(valuations, mid)
-            allocation = parse_allocation_strings(raw_allocation)
-            fat_items, thin_items = classify_items(valuations, mid)
-            H = build_hypergraph(valuations, allocation, fat_items, thin_items, mid)
+            allocation = parse_allocation_strings(raw_allocation) # המרת הפורמט
+            fat_items, thin_items = classify_items(valuations, mid) # מסווגים פריטים לשמנים ורזים בהתאם ל-threshold
+            H = build_hypergraph(valuations, allocation, fat_items, thin_items, mid) # בונים היפרגרף מההקצאה
 
-            # רק כאן מותר להשתמש בלוגים
             logger.debug("Raw allocation: %s", raw_allocation)
             logger.debug("Parsed allocation: %s", allocation)
             logger.debug("Fat items: %s", fat_items)
             logger.debug("Thin items: %s", thin_items)
             logger.info("Constructed hypergraph with %d nodes and %d edges", len(H.nodes), len(H.edges))
 
-            best_matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid)
-            low = mid
-            raw_allocation = solve_configuration_lp(valuations, mid)
-            allocation = parse_allocation_strings(raw_allocation)
-            fat_items, thin_items = classify_items(valuations, mid)
-            H = build_hypergraph(valuations, allocation, fat_items, thin_items, mid)
-            best_matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid)
+            best_matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid) # מבצעים חיפוש מקומי למציאת התאמה מושלמת
+            low = mid # אם הצליח – מנסים להעלות את הסף
         else:
             logger.info("Threshold %.4f is NOT feasible", mid)
-            high = mid
+            high = mid # אם לא – נוריד את הסף
 
-    final_allocation = {agent: list(items) for agent, items in best_matching.items()}
-    validate_allocation(instance, final_allocation)
+    final_allocation = {agent: list(items) for agent, items in best_matching.items()} # לאחר סיום החיפוש: בניית הקצאה סופית ממבנה ה־matching
+    validate_allocation(instance, final_allocation) # בדיקה שההקצאה הסופית תקינה (בלי כפילויות וכו')
     logger.info("Final matching found at threshold %.4f: %s", low, best_matching)
-    return {agent: set(items) for agent, items in final_allocation.items()}
+    return {agent: set(items) for agent, items in final_allocation.items()} # מחזירים הקצאה עם סטים (ולא רשימות)
 
 def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: float) -> bool:
     """
@@ -286,28 +285,66 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
     """
     logger.info("Building hypergraph based on allocation")
 
-    H = HNXHypergraph()
     logger.info("Building hypergraph based on allocation")
 
     edges = dict()
     edge_id = 0
 
-    # עוברים על כל שחקן ועל כל חבילה שקיבל בהקצאה
-    for player, bundles in allocation.items():
-        for bundle in bundles:
-            # מחשבים את ערך החבילה עבור השחקן לפי הערכים בטבלת הערכים
-            bundle_value = sum(valuations[player].get(item, 0) for item in bundle)
-
-            # אם ערך החבילה עבור השחקן לפחות רבע מהסף, נכניס אותה כהקצה לגיטימית
-            if bundle_value >= threshold/4:
-                # יוצרים קשת חדשה לגרף ההיפר: צומת מהשחקן + כל הפריטים שבחבילה
-                edges[f"e{edge_id}"] = set(bundle) | {player}
+    # 1. הוספת קשתות fat: לכל פריט שמן נבדוק אילו שחקנים מעריכים אותו ≥ threshold
+    for item in fat_items:
+        for player in valuations:
+            if valuations[player].get(item, 0) >= threshold:
+                edges[f"f{edge_id}"] = {player, item}
                 edge_id += 1
+
+    # 2. הוספת קשתות thin: ניצור תתי-קבוצות מינימליות מפריטי thin שמערכן ≥ threshold לשחקן
+    from itertools import combinations
+    for player in valuations:
+        for r in range(1, len(thin_items) + 1):
+            for bundle in combinations(thin_items, r):
+                if sum(valuations[player].get(i, 0) for i in bundle) >= threshold:
+                    edges[f"t{edge_id}"] = set(bundle) | {player}
+                    edge_id += 1
 
     logger.info("Building hypergraph based on allocation")
     H = HNXHypergraph(edges)
     logger.info("Hypergraph construction completed with %d nodes and %d edges", len(H.nodes), len(H.edges))
     return H
+
+
+def extend_alternating_tree(H: HNXHypergraph,
+                            visited_players: Set[str],
+                            visited_edges: Set[str],
+                            matching: Dict[str, str],
+                            players: List[str]) -> Optional[str]:
+    """
+    מנסה להרחיב את עץ החילופים לפי למא 3.2.
+    מחזירה את שם הקשת שאפשר להוסיף לעץ, או None אם אין כזו.
+    """
+    # כל הקודקודים שכבר הופיעו בעץ (שחקנים + פריטים)
+    covered_nodes = set()
+    for edge_name in visited_edges:
+        covered_nodes |= set(H.edges[edge_name].elements)
+    covered_items = covered_nodes - set(players)
+
+    for edge_name in H.edges:
+        edge = H.edges[edge_name]
+        if edge_name in visited_edges:
+            continue
+        edge_nodes = set(edge.elements)
+        edge_players = edge_nodes & set(players)
+        edge_items = edge_nodes - set(players)
+
+        # צלע רלוונטית רק אם היא נוגעת בשחקן שכבר בעץ
+        if not edge_players & visited_players:
+            continue
+
+        # נבדוק אם יש פריטים חדשים – כלומר צלע מרחיבה
+        if edge_items.isdisjoint(covered_items):
+            return edge_name
+
+    return None
+
 
 
 def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[str, float]], players: List[str], threshold: float) -> Dict[str, Set[str]]:
@@ -421,8 +458,34 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
 
     for player in players:
         if player not in matching:
-            if not build_alternating_tree(player):
-                return {}
+            success = False
+            visited_players = set()
+            visited_edges = set()
+            while not success:
+                success = build_alternating_tree(player)
+                if not success:
+                    edge_to_add = extend_alternating_tree(H, visited_players, visited_edges, matching, players)
+                    if edge_to_add is None:
+                        break  # לא הצלחנו להרחיב יותר
+                    # אם הצלחנו למצוא צלע מרחיבה – נוסיף אותה לרשימת הקשתות שנבדקות בלולאה הבאה
+                    visited_edges.add(edge_to_add)
+            if not success:
+                for player in players:
+                    if player not in matching:
+                        success = False
+                        visited_players = {player}
+                        visited_edges = set()
+                        parent = {}
+                        while not success:
+                            success = build_alternating_tree(player)
+                            if not success:
+                                edge_to_add = extend_alternating_tree(
+                                    H, visited_players, visited_edges, matching, players
+                                )
+                                if edge_to_add is None:
+                                    break  # אין הרחבה – נעבור לשחקן/threshold הבא
+                                visited_edges.add(edge_to_add)
+                        # כאן אין return {}! פשוט נמשיך הלאה
 
     # Build final allocation
     result: Dict[str, Set[str]] = {}
