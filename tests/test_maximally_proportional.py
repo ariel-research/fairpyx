@@ -140,7 +140,7 @@ def test_envy_free():
 
 
 def test_large_input():
-    nagents, nitems = 10, 17
+    nagents, nitems = 20, 20
     title = f"Large Input. Agents - {nagents}. Items - {nitems}"
     instance = Instance.random_uniform(
         num_of_agents=nagents,
