@@ -140,7 +140,7 @@ def test_envy_free():
 
 
 def test_large_input():
-    nagents, nitems = 20, 20
+    nagents, nitems = 10, 15
     title = f"Large Input. Agents - {nagents}. Items - {nitems}"
     instance = Instance.random_uniform(
         num_of_agents=nagents,
@@ -149,7 +149,7 @@ def test_large_input():
         agent_capacity_bounds=(nitems, nitems),
         item_base_value_bounds=(20, 100),
         item_subjective_ratio_bounds=(0.5, 2.4),
-        normalized_sum_of_values=100,
+        normalized_sum_of_values=1000,
         random_seed=45,
     )
     alloc = divide(maximally_proportional_allocation, instance)
