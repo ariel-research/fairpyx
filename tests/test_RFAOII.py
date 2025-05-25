@@ -15,7 +15,7 @@ from fairpyx.algorithms.repeated_Fair_Allocation_of_Indivisible_Items import (
 )
 
 # ─── GLOBAL SEED ─────────────────────────────────────────────────────────────────────────
-SEED = 42
+SEED = 4941
 # ──────────────────────────────────────────────────────────────────────────────────────────
 
 def simple_utilities():
