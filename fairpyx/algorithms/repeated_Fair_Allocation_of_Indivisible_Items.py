@@ -4,6 +4,9 @@ it is based on the article:
     "Repeated Fair Allocation of Indivisible Items" by  Igarashi, Lackner, Nardi, Novaro
 1. two agents, two rounds
 2. two agents, even k rounds
+
+Programmer: Shaked Shvartz
+Since: 2025-05
 """
 
 import cvxpy as cp
