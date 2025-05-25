@@ -106,7 +106,6 @@ def test_algorithm1_mixed_goods_chores_divide():
 
 @pytest.mark.parametrize("utils_fn", [mixed_utilities, chores_only_utilities])
 def test_algorithm1_second_round_divide(utils_fn):
-    # sanity check you can directly ask for round 2
     utils = utils_fn()
     print("\nUtilities:", utils)
     alloc2 = divide(algorithm1_div, valuations=utils, round_idx=1)
@@ -121,9 +120,6 @@ def test_algorithm1_random():
     utils = random_utilities(num_items=5, seed=SEED)
     print(f"\nUtilities (random seed={SEED}): {utils}")
 
-    # Skip if pure chores-only (EF1 not guaranteed there)
-    if all(v <= 0 for v in utils[0].values()) and all(v <= 0 for v in utils[1].values()):
-        pytest.skip("pure chores-only; skipping Algorithm1 EF1 test")
 
     print("\n=== Algorithm1 (random) — Both Rounds ===")
     for r in (0,1):
@@ -258,9 +254,6 @@ def test_algorithm2_random():
 def test_algorithm1_larger_random():
     utils = random_utilities(num_items=20, seed=SEED+10)
     print(f"\nUtilities (larger random seed={SEED+10}): {utils}")
-    # skip pure-chores
-    if all(v <= 0 for v in utils[0].values()) and all(v <= 0 for v in utils[1].values()):
-        pytest.skip("pure chores-only; skipping Algorithm1 EF1 test")
 
     print("\n=== Algorithm1 (larger random) — Both Rounds ===")
     for r in (0,1):
