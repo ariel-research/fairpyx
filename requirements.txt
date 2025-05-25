@@ -10,6 +10,8 @@ prtpy
 # cmake
 matplotlib
 experiments-csv
+cvxpy[glpk]
+
 
 # repackage
 # pytest
