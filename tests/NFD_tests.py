@@ -1,14 +1,125 @@
 import pytest
-
-from fairpyx import Instance, divide, AllocationBuilder
-from fairpyx.algorithms.NFD import Nearly_Fair_Division, is_EF11, is_EF1
+from fairpyx import Instance, divide
+from fairpyx.algorithms.NFD import Nearly_Fair_Division
 import random
+from typing import Optional, Tuple, Any, Dict, List
+from itertools import combinations
+
+
+##############################################################################
+#  EF[1,1]  – goods + chores with categories
+##############################################################################
+
+def is_EF11(instance: "Instance",
+            allocation: dict[Any, list[Any]],
+            abs_tol: float = 1e-9
+           ) -> Optional[Tuple[Any, Any]]:
+    """
+    Return None  ⇢ allocation is EF[1,1]
+    Return (i,j) ⇢ agent *i* still envies *j* even after every
+                  same-category good+chore trade.
+
+    Parameters
+    ----------
+    instance   : the problem Instance (needed for utilities & categories)
+    allocation : mapping agent → iterable of items
+    abs_tol    : slack for floating-point arithmetic
+    """
+    # cache own bundle values
+    own_val = {a: instance.agent_bundle_value(a, allocation[a]) for a in instance.agents}
+
+    for i in instance.agents:
+        Ai, v_iAi = allocation[i], own_val[i]
+
+        for j in instance.agents:
+            if i == j:
+                continue
+            Aj       = allocation[j]
+            v_iAj    = instance.agent_bundle_value(i, Aj)
+
+            # ① already no envy
+            if v_iAi + abs_tol >= v_iAj:
+                continue
+
+            # ② search for a good-chore pair in the SAME category
+            envy_gone = False
+            for g in Aj:                         # candidate good from j
+                val_g = instance.agent_item_value(i, g)
+                if val_g <= 0:
+                    continue
+                cat = instance.item_categories[g] if instance.item_categories else None
+
+                for h in Ai:                     # candidate chore from i
+                    val_h = instance.agent_item_value(i, h)
+                    if val_h >= 0:
+                        continue
+                    if instance.item_categories and instance.item_categories[h] != cat:
+                        continue
+
+                    # EF[1,1] inequality after removing g and h
+                    if v_iAi - val_h + abs_tol >= v_iAj - val_g:
+                        envy_gone = True
+                        break
+                if envy_gone:
+                    break
+
+            if not envy_gone:        # i still envies j
+                return (i, j)
+
+    return None
+
+##############################################################################
+#  EF1  – envy-free up to one item
+##############################################################################
+def is_EF1(instance: "Instance",
+           allocation: dict[Any, list[Any]],
+           abs_tol: float = 1e-9
+          ) -> Optional[Tuple[Any, Any]]:
+    """
+    Return None  ⇢ allocation is EF1
+    Return (i,j) ⇢ agent *i* still envies *j* even after removing one item.
+    """
+    own_val = {a: instance.agent_bundle_value(a, allocation[a]) for a in instance.agents}
+
+    for i in instance.agents:
+        Ai, v_iAi = allocation[i], own_val[i]
+
+        for j in instance.agents:
+            if i == j:
+                continue
+            Aj    = allocation[j]
+            v_iAj = instance.agent_bundle_value(i, Aj)
+
+            # no envy
+            if v_iAi + abs_tol >= v_iAj:
+                continue
+
+            envy_gone = False
+
+            # drop one item from j
+            for x in Aj:
+                if v_iAi + abs_tol >= v_iAj - instance.agent_item_value(i, x):
+                    envy_gone = True
+                    break
+
+            # ③ or drop one item from i
+            if not envy_gone:
+                for y in Ai:
+                    if v_iAi - instance.agent_item_value(i, y) + abs_tol >= v_iAj:
+                        envy_gone = True
+                        break
+
+            if not envy_gone:
+                return (i, j)
+
+    return None
+
 
 
 def generate_random_instance(seed=42):
     random.seed(seed)
     agents = ["A", "B"]
-    num_items = 50
+    num_items = 200
     categories = [f"cat{i}" for i in range(10)]
     items = [f"o{i}" for i in range(num_items)]
     valuations = {
@@ -25,24 +136,100 @@ def generate_random_instance(seed=42):
         category_capacities=cat_caps,
     )
 
-def is_pareto_optimal(allocation, instance):
-    """
-    Checks whether the allocation is Pareto optimal.
-    It ensures that no exchange of one item between agents strictly improves both.
-    """
-    agents = list(allocation.keys())
-    a1, a2 = agents
-    u = {a: sum(instance.valuations[a][i] for i in allocation[a]) for a in agents}
-    for i in allocation[a1]:
-        for j in allocation[a2]:
-            if instance.item_categories[i] == instance.item_categories[j]:
-                new_u1 = u[a1] - instance.valuations[a1][i] + instance.valuations[a1][j]
-                new_u2 = u[a2] - instance.valuations[a2][j] + instance.valuations[a2][i]
-                if new_u1 > u[a1] and new_u2 > u[a2]:
-                    return False
-    return True
 
 
+def is_pareto_optimal(instance: "Instance",
+                      allocation: Dict[Any, List[Any]],
+                      abs_tol: float = 1e-9) -> bool:
+    """
+    Local Pareto-optimality check (one-for-one swaps).
+
+    A true return value means **no** swap of a single item between any two
+    agents (restricted to items in the same category when categories exist)
+    can raise *both* of their utilities.
+
+    Parameters
+    ----------
+    instance    : Instance
+        The problem instance (provides utilities, categories, weights, …).
+    allocation  : dict[agent -> list[item]]
+        The current integral allocation.
+    abs_tol     : float
+        Numerical slack to ignore tiny rounding errors.
+
+    Returns
+    -------
+    bool
+        True  ⇢ allocation is Pareto-optimal w.r.t. single exchanges.
+        False ⇢ found a profitable swap ⇒ not Pareto-optimal.
+            Examples
+    --------
+    We use a tiny helper class so the doctests are self-contained:
+
+    >>> class ToyInst:
+    ...     def __init__(self, valuations, categories=None):
+    ...         self.valuations = valuations            # dict[agent][item] → v
+    ...         self.agents = list(valuations.keys())
+    ...         self.item_categories = categories or {} # {} ⇒ all same cat.
+    ...     def agent_item_value(self, agent, item):
+    ...         return self.valuations[agent][item]
+    ...     def agent_bundle_value(self, agent, bundle):
+    ...         return sum(self.agent_item_value(agent, it) for it in bundle)
+
+    1. **Already optimal** – symmetric “mirror” utilities, each agent holds
+       her favourite item:
+
+    >>> inst = ToyInst({'A': {'g1': 5, 'g2': 1},
+    ...                 'B': {'g1': 1, 'g2': 5}})
+    >>> alloc = {'A': ['g1'], 'B': ['g2']}
+    >>> is_pareto_optimal(inst, alloc)
+    True
+
+    2. **Profitable swap exists** – same instance but items mis-assigned:
+
+    >>> alloc_bad = {'A': ['g2'], 'B': ['g1']}
+    >>> is_pareto_optimal(inst, alloc_bad)
+    False
+
+    3. **Chores (negative utilities) already optimal**:
+
+    >>> inst2 = ToyInst({'A': {'c1': -4, 'c2': -1},
+    ...                  'B': {'c1': -1, 'c2': -4}})
+    >>> alloc2 = {'A': ['c2'], 'B': ['c1']}
+    >>> is_pareto_optimal(inst2, alloc2)
+    True
+
+    4. **Chores need swapping** – same instance but chores flipped:
+
+    >>> alloc2_bad = {'A': ['c1'], 'B': ['c2']}
+    >>> is_pareto_optimal(inst2, alloc2_bad)
+    False
+    """
+
+    # Current utility of each agent for her bundle
+    u = {a: instance.agent_bundle_value(a, allocation[a])
+         for a in allocation}                     # :contentReference[oaicite:0]{index=0}
+
+    # Check every unordered pair of agents
+    for i, j in combinations(allocation.keys(), 2):
+        for x in allocation[i]:                  # item from i
+            for y in allocation[j]:              # item from j
+                # If categories are defined, require them to match
+                if instance.item_categories and \
+                   instance.item_categories[x] != instance.item_categories[y]:
+                    continue
+
+                # Utilities after swapping x ↔ y
+                new_u_i = u[i] - instance.agent_item_value(i, x) \
+                                + instance.agent_item_value(i, y)
+                new_u_j = u[j] - instance.agent_item_value(j, y) \
+                                + instance.agent_item_value(j, x)  # :contentReference[oaicite:1]{index=1}
+
+                # Strict improvement for *both* agents?
+                if (new_u_i > u[i] + abs_tol) and (new_u_j > u[j] + abs_tol):
+                    return False     # profitable exchange exists
+
+    return True                      # no profitable exchange found
 
 
 
@@ -88,27 +275,28 @@ def test_empty_instance_raises():
 
 def test_large_balanced():
     """
-    Tests a large instance with 100 items and 10 categories.
+    Tests a large instance with 200 items and 10 categories.
     Ensures all items are allocated and each agent respects category constraints, EF1\EF11, and PO.
     """
     agents = ["A", "B"]
-    items = {f"i{k}": k for k in range(100)}
+    items = {f"i{k}": k%3 for k in range(200)}
     instance = Instance(
         valuations={a: items.copy() for a in agents},
-        agent_capacities={"A": 100, "B": 100},
-        item_capacities={f"i{k}": 1 for k in range(100)},
-        item_categories={f"i{k}": f"cat{k%10}" for k in range(100)},
+        agent_capacities={"A": 200, "B": 200},
+        item_capacities={f"i{k}": 1 for k in range(200)},
+        item_categories={f"i{k}": f"cat{k%10}" for k in range(200)},
         category_capacities={f"cat{k}": 10 for k in range(10)},
     )
     allocation = divide(Nearly_Fair_Division, instance)
     total_allocated = sum(len(v) for v in allocation.values())
-    assert total_allocated == 100
+    assert total_allocated == 200
     for agent in agents:
         for cat in range(10):
             items_in_cat = [i for i in allocation[agent] if instance.item_categories[i] == f"cat{cat}"]
             assert len(items_in_cat) <= 10
 
-    assert is_EF11(instance, allocation) or is_EF1(instance, allocation)
+    assert (is_EF11(instance, allocation) is None or
+            is_EF1(instance, allocation) is None)
     assert is_pareto_optimal(instance, allocation)
 
 
@@ -127,5 +315,6 @@ def test_random_instance():
             items_in_cat = [i for i in allocation[agent] if instance.item_categories[i] == cat]
             assert len(items_in_cat) <= instance.categories_capacities[cat]
 
-    assert is_EF11(allocation) or is_EF1(allocation)
+    assert (is_EF11(instance, allocation) is None or
+            is_EF1(instance, allocation) is None)
     assert is_pareto_optimal(instance, allocation)

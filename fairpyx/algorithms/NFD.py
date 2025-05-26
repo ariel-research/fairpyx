@@ -12,8 +12,9 @@ Date: 2025-04-27.
 # But the algorithm implementation uses an "AllocationBuilder" variable, which tracks both the ongoing allocation and the remaining input (the remaining capacities of agents and items).
 # The function `divide` is an adaptor - it converts an Instance to an AllocationBuilder with an empty allocation.
 from fairpyx import Instance, AllocationBuilder, divide
-from fairpyx.algorithms.improved_high_multiplicity import improved_high_multiplicity_fair_allocation
 from typing import List, Tuple, Optional
+from typing import Mapping, Sequence, List, Any
+
 
 
 # The end-users of the algorithm feed the input into an "Instance" variable, which tracks the original input (agents, items and their capacities).
@@ -22,12 +23,12 @@ from typing import List, Tuple, Optional
 # a dict of a sets, dict of category each category is a set contains the items in the category
 # a dict of categories and the capacities
 
-# the returned value of the algorithem is
 
 
 # The `logging` facility is used both for debugging and for illustrating the steps of the algorithm.
 # It can be used to automatically generate running examples or explanations.
 import logging
+
 
 
 logger = logging.getLogger(__name__)
@@ -114,34 +115,32 @@ def Nearly_Fair_Division(alloc: AllocationBuilder) -> None:
     # 3. Is Agent 2 envy? --> if no switch names (pointers)
     # 4. Build a set of item-pairs whose replacement increases agent 2’s utility and sort
     # 5. Switch items in order until an EF[1,1] allocation is found
+
     logger.info("valuations = %s", alloc.instance)
-    logger.info("remaining_item_capacities = %s",
-                alloc.remaining_item_capacities)
+    logger.info("remaining_item_capacities = %s", alloc.remaining_item_capacities)
+
     # ---------- 0) Setup ----------
     inst = alloc.instance
     agents: List[str] = list(inst.agents)
     if len(agents) != 2:
         raise NotImplementedError("Current implementation supports exactly two agents.")
 
-    a0, a1 = agents                           # keep a fixed order
+    a0, a1 = agents # keep a fixed order
 
     # ---------- 1) W-max greedy assignment ----------
     # ----------------------------------------------------------------------
     #  Category–wise W-max wrapper
     # ----------------------------------------------------------------------
-    logger.info("remaining_item_capacities = %s",
-                alloc.remaining_item_capacities)
+    logger.info("remaining_item_capacities before w-max = %s", alloc.remaining_item_capacities)
     w_max_two_agents(alloc, weights=[0.5, 0.5])
-    logger.info("remaining_item_capacities = %s",
-                alloc.remaining_item_capacities)
+    logger.info("remaining_item_capacities after w-max = %s", alloc.remaining_item_capacities)
 
     # ---------- 2) already fair? ----------
-
     status = is_EF11(alloc)
     if status is not None:
-        logger.info("W-max allocation is not EF[1,1], starting envy-elimination loop.")
-        envier, envied = status
-        # ---------- 3) envy-elimination loop ----------
+        logger.info(f"W-max allocation is not EF[1,1], starting envy-elimination loop.{status}")
+
+    # ---------- 3) envy-elimination loop ----------
         def candidates_r_ratio(instance, bundles, envier, envied):
             """
             Find all same-category (o_envier, o_envied) pairs whose swap would improve
@@ -203,8 +202,8 @@ def Nearly_Fair_Division(alloc: AllocationBuilder) -> None:
                         continue  # no improvement
 
                     # r = (u_envied(o_i) − u_envied(o_j)) / (u_envier(o_i) − u_envier(o_j))
-                    denom = instance.agent_item_value(envier, o_i) - instance.agent_item_value(envier, o_j)
-                    numer = instance.agent_item_value(envied, o_i) - instance.agent_item_value(envied, o_j)
+                    numer = instance.agent_item_value(envier, o_i) - instance.agent_item_value(envier, o_j)
+                    denom = instance.agent_item_value(envied, o_i) - instance.agent_item_value(envied, o_j)
                     if numer == 0:
                         r = 0
                     elif denom == 0:  # avoid /0
@@ -223,9 +222,10 @@ def Nearly_Fair_Division(alloc: AllocationBuilder) -> None:
 
         while True:
             status = is_EF11(alloc)
-            if is_EF1(alloc) or status is None:
+            if is_EF1(alloc) is None or status is None:
                 break
 
+            envier, envied = status
             # Candidate items that envier can still accept
             candidates = candidates_r_ratio(inst, alloc.bundles, envier, envied)
             if candidates:
@@ -247,8 +247,6 @@ def Nearly_Fair_Division(alloc: AllocationBuilder) -> None:
 # ----------------------------------------------------------------------
 #  W-maximisation for two agents
 # ----------------------------------------------------------------------
-from typing import Mapping, Sequence, List, Any
-
 def w_max_two_agents(alloc: "AllocationBuilder",
                      weights: Mapping[str, float] | Sequence[float]
                      ) -> None:
@@ -295,17 +293,38 @@ def w_max_two_agents(alloc: "AllocationBuilder",
 
     Example
     -------
-    >>> inst = example_instance             # see NFD.py
+    >>> inst = example_instance
     >>> builder = AllocationBuilder(inst)
     >>> w_max_two_agents(builder, [0.5, 0.5])
     >>> builder.sorted()
     {'Agent1': ['o1', 'o2', 'o6'], 'Agent2': ['o3', 'o4', 'o5']}
+
+    >>> builder = AllocationBuilder(inst)
+    >>> w_max_two_agents(builder, [1.0, 0.1])  # Agent 1 gets everything
+    >>> builder.sorted()
+    {'Agent1': ['o1', 'o2', 'o6'], 'Agent2': ['o3', 'o4', 'o5']}
+
+    >>> builder = AllocationBuilder(inst)
+    >>> w_max_two_agents(builder, [0.1, 1.0])  # Agent 2 gets everything
+    >>> builder.sorted()
+    {'Agent1': ['o2', 'o3', 'o5'], 'Agent2': ['o1', 'o4', 'o6']}
+
+    >>> builder = AllocationBuilder(inst)
+    >>> w_max_two_agents(builder, {'Agent1': 2.0, 'Agent2': 1.0})  # bias toward Agent1
+    >>> sorted(len(v) for v in builder.bundles.values())
+    [3, 3]
+
+    >>> builder = AllocationBuilder(inst)
+    >>> w_max_two_agents(builder, [-1, 1])
+    Traceback (most recent call last):
+        ...
+    ValueError: weights must be strictly positive
     """
     inst = alloc.instance
     agents: List[str] = list(inst.agents)
     if len(agents) != 2:
         raise ValueError("w_max_two_agents currently supports *exactly* two agents.")
-    a1, a2 = agents                       # fixed order
+    a1, a2 = agents # fixed order
 
     # Normalise the weight container → dict {agent: weight}
     if not isinstance(weights, dict):
@@ -328,20 +347,26 @@ def w_max_two_agents(alloc: "AllocationBuilder",
             continue
 
         # Sort by Δ(o) = w1·u1(o) − w2·u2(o)
-        items_sorted = sorted(
-            items,
-            key=lambda o: (
-                w1 * inst.agent_item_value(a1, o)
-                - w2 * inst.agent_item_value(a2, o)
-            ),
-            reverse=True
-        )
+        deltas: dict[str, float] = {
+            o: w1 * inst.agent_item_value(a1, o) - w2 * inst.agent_item_value(a2, o)
+            for o in items
+        }
+        deltas_absolute = [(o, abs(delta)) for o, delta in deltas.items()]
+        deltas_absolute.sort(key=lambda pair: pair[1], reverse=True)
 
         # Split top-s_c to agent 1, the rest to agent 2
-        for o in items_sorted[:s_c]:
-            alloc.give(a1, o)
-        for o in items_sorted[s_c:]:
-            alloc.give(a2, o)
+        for o, delta in deltas_absolute:
+            if (deltas[o] >= 0 or alloc.remaining_agent_capacities[a2] == 0) and alloc.agents_category_capacities[a1][inst.item_categories[o]] > 0:
+                # Give to agent 1 if positive or agent 2 has no capacity left
+                alloc.give(a1, o)
+            elif alloc.agents_category_capacities[a2][inst.item_categories[o]] == 0:
+                # No capacity left for agent 2, so give to agent 1
+                alloc.give(a1, o)
+            elif alloc.agents_category_capacities[a1][inst.item_categories[o]] == 0 and alloc.agents_category_capacities[a2][inst.item_categories[o]] == 0:
+                logger.warning("Both agents have no capacity left, cannot allocate item %s", o)
+            else:
+                # negative and agent 2 has capacity left
+                alloc.give(a2, o)
 
 def is_EF11(allocation: "AllocationBuilder",
             abs_tol: float = 1e-9
@@ -519,97 +544,3 @@ if __name__ == "__main__":
     print(doctest.testmod())
 
 
-
-
-
-# -------------- private functions --------------
-
- # def category_wise_high_multiplicity_allocation(alloc: "AllocationBuilder") -> None:
- #        """
- #        Runs ``improved_high_multiplicity_fair_allocation`` separately on the
- #        items of every category and combines the partial bundles.
- #
- #        It guarantees that the final allocation respects the *per-category
- #        capacities* that live in ``alloc.instance.category_capacities`` /
- #        ``alloc.instance.agents_category_capacities``.
- #
- #        Parameters
- #        ----------
- #        alloc : AllocationBuilder
- #            The **original** allocation builder that still contains *all*
- #            items and capacity bookkeeping.  It will be **mutated in place**.
- #
- #        Returns
- #        -------
- #        None
- #
- #        Examples
- #        --------
- #        """
- #        inst = alloc.instance
- #        if inst.categories_items is None:
- #            # No categories → fall back to the original routine once.
- #            improved_high_multiplicity_fair_allocation(alloc)
- #            return
- #
- #        logger.info("Starting category-wise high multiplicity allocation")
- #
- #        # Work **sequentially** over categories.
- #        for cat, cat_items in inst.categories_items.items():
- #            logger.info(f"multiplicity allocation iteration for category '{cat}' has items: {cat_items}")
- #            if not cat_items:  # nothing to allocate in this category
- #                continue
- #
- #            # ---- 1) Build a *mini* instance that contains *only* cat_items ----
- #            sub_item_caps = {i: inst.item_capacity(i) for i in cat_items}
- #            sub_item_cats = {i: cat for i in cat_items}
- #            # the agents capacities are the category capacities
- #            # agent_capacities = {ag: alloc.agents_category_capacities[ag][cat] for ag in inst.agents}
- #            try:
- #                agent_capacities = {
- #                    ag: alloc.agents_category_capacities[ag][cat]
- #                    for ag in inst.agents
- #                }
- #            except (AttributeError, KeyError):
- #                # fallback: assume equal share of category capacity
- #                cap = inst.categories_capacities[cat]
- #                agent_capacities = {ag: cap for ag in inst.agents}
- #
- #            # Per-agent valuations restricted to the items of this category
- #            sub_vals = {
- #                ag: {i: inst.agent_item_value(ag, i) for i in cat_items}
- #                for ag in inst.agents
- #            }
- #
- #
- #            sub_inst = Instance(
- #                valuations=sub_vals,
- #                item_capacities=sub_item_caps,
- #                item_categories=sub_item_cats,
- #                agent_capacities=agent_capacities,
- #                category_capacities={cat: inst.categories_capacities[cat] for cat in inst.categories_items}
- #            )
- #            logger.info(f"Sub-instance for category '{cat}': agent caps = {agent_capacities}")
- #            logger.info(f"Sub-instance valuations = {sub_vals}")
- #
- #            sub_alloc = AllocationBuilder(sub_inst)
- #            # Allow multiple copies if the original builder does
- #            sub_alloc.set_allow_multiple_copies(alloc.allow_multiple_copies)
- #
- #            # ---- 2) Run the *tested* routine inside the sub-instance ----
- #            improved_high_multiplicity_fair_allocation(sub_alloc)
- #            logger.info("Sub-allocation bundels = %s", sub_alloc.bundles)
- #
- #            # ---- 3) Copy the chosen items into the real builder ----
- #            #       (capacity checks are enforced by alloc.give)
- #            for ag in inst.agents:
- #                for itm in sub_alloc.bundles[ag]:
- #                    alloc.give(ag, itm, logger=logger)
- #                    logger.info("Giving item %s to agent %s in category %s",
- #                                itm, ag, cat)
- #                    logger.info(alloc.bundles)
- #
- #            logger.info("Finished category %s, partial bundles = %s",
- #                        cat, {ag: list(sub_alloc.bundles[ag]) for ag in inst.agents})
- #
- #        logger.info("Category-wise allocation finished.")
