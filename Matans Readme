@@ -1,0 +1,20 @@
+list of changes:
+
+allocations -
+1. add agent category capacity to self's
+2. add new rise in give for allocations to full agent category capacity + update capacity
+3. add remove_item
+
+
+insurance -
+1. add category values to self's
+2.  build_categories_items(item_categories): method to build categories items
+
+
+
+
+
+todo:
+add docotest to the new w-max
+add docotest to is_EF[1,1]
+add docotest to candidate_swaps_by_r_ratio

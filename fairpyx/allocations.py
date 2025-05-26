@@ -148,8 +148,11 @@ class AllocationBuilder:
         self.allow_multiple_copies = False
         self.remaining_agent_capacities = {agent: instance.agent_capacity(agent) for agent in instance.agents if instance.agent_capacity(agent) > 0}
         self.remaining_item_capacities = {item: instance.item_capacity(item) for item in instance.items if instance.item_capacity(item) > 0}
+        # self.remaining_item_capacities = {item: instance.item_capacity(item) for item in instance.items}
         self.remaining_conflicts = {(agent,item) for agent in self.remaining_agents() for item in self.instance.agent_conflicts(agent)}
         self.bundles = {agent: set() for agent in instance.agents}    # Each bundle is a set, since each agent can get at most one seat in each course
+        if instance.agents_category_capacities is not None:
+            self.agents_category_capacities = {agent: instance.agents_category_capacities[agent].copy() for agent in instance.agents}
 
     def set_allow_multiple_copies(self, flag):
         self.allow_multiple_copies = flag
@@ -228,6 +231,10 @@ class AllocationBuilder:
             raise ValueError(f"Item {item} has no remaining capacity for agent {agent}")
         if (agent,item) in self.remaining_conflicts:
             raise ValueError(f"Agent {agent} is not allowed to take item {item} due to a conflict")
+        if self.agents_category_capacities is not None:
+            if self.agents_category_capacities[agent][self.instance.item_categories[item]] <= 0:
+                raise ValueError(f"Agent {agent} has no remaining capacity for item {item} in category {self.instance.item_categories[item]}")
+
         if self.allow_multiple_copies:
             self.bundles[agent].append(item)
         else:
@@ -242,6 +249,8 @@ class AllocationBuilder:
         self.remaining_item_capacities[item] -= 1
         if self.remaining_item_capacities[item] <= 0:
             self.remove_item_from_loop(item)
+        if self.instance.agents_category_capacities is not None:
+            self.agents_category_capacities[agent][self.instance.item_categories[item]] -= 1
         if not self.allow_multiple_copies:
             self._update_conflicts(agent,item)
 
@@ -296,6 +305,21 @@ class AllocationBuilder:
 
     def sorted(self):
         return {agent: sorted(bundle) for agent,bundle in self.bundles.items()}
+
+    def remove_item(self, agent:any, item:any):
+        """
+        Remove the item from the agent's bundle.
+        """
+        if self.allow_multiple_copies:
+            self.bundles[agent].remove(item)
+        else:
+            self.bundles[agent].discard(item)
+        self.remaining_agent_capacities[agent] += self.instance.item_weight(item)
+        # self.remaining_item_capacities[item] += 1
+        self.remaining_item_capacities[item] = self.remaining_item_capacities.get(item, 0) + 1
+        if self.instance.agents_category_capacities is not None:
+            self.agents_category_capacities[agent][self.instance.item_categories[item]] += 1
+        self._update_conflicts(agent,item)
 
 
 if __name__ == "__main__":

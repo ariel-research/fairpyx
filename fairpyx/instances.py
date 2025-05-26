@@ -8,6 +8,7 @@ Since: 2023-07
 from numbers import Number
 import numpy as np
 from functools import cache
+from collections import defaultdict
 
 import logging
 logger = logging.getLogger(__name__)
@@ -116,7 +117,7 @@ class Instance:
     {'Alice'}
     """
 
-    def __init__(self, valuations:any, agent_capacities:any=None, agent_entitlements:any=None, item_capacities:any=None, item_weights:any=None, agent_conflicts:any=None, item_conflicts:any=None, agents:list=None, items:list=None):
+    def __init__(self, valuations:any, agent_capacities:any=None, agent_entitlements:any=None, item_capacities:any=None, item_weights:any=None, agent_conflicts:any=None, item_conflicts:any=None, agents:list=None, items:list=None, item_categories=None, category_capacities=None):
         """
         Initialize an instance from the given 
         """
@@ -148,6 +149,16 @@ class Instance:
         self._item_capacities  = item_capacities
         self._item_weights     = item_weights
         self._valuations       = valuations
+
+        # Category related fields
+        self.categories = get_keys_and_mapping(category_capacities)
+        self.categories_capacities = category_capacities
+        self.item_categories = item_categories
+        self.categories_items = build_categories_items(item_categories) if item_categories else None
+        if category_capacities is None:
+            self.agents_category_capacities = {agent: {category: 0 for category in self.categories} for agent in valuations}
+        else:
+            self.agents_category_capacities = {agent: category_capacities.copy() for agent in valuations}
 
         self.validate()
     
@@ -398,6 +409,33 @@ def random_valuation(numitems:int, item_value_bounds: tuple[float,float])->np.nd
 def normalized_valuation(raw_valuations:np.ndarray, normalized_sum_of_values:float):
     raw_sum_of_values = sum(raw_valuations)
     return  np.round(raw_valuations * normalized_sum_of_values / raw_sum_of_values).astype(int)
+
+
+def build_categories_items(item_categories):
+    """
+    Creates a dictionary where each category maps to a list of its items.
+
+    Args:
+        item_categories (dict): A mapping from item IDs to category names.
+
+    Returns:
+        dict: A mapping from category names to lists of item IDs.
+
+    Example:
+    >>> item_categories = {
+    ...     "o1": "cat1", "o2": "cat1", "o3": "cat1", "o4": "cat1",
+    ...     "o5": "cat2", "o6": "cat2"
+    ... }
+    >>> result = build_categories_items(item_categories)
+    >>> result["cat1"].sort()
+    >>> result["cat2"].sort()
+    >>> result == {'cat1': ['o1', 'o2', 'o3', 'o4'], 'cat2': ['o5', 'o6']}
+    True
+    """
+    categories_items = defaultdict(list)
+    for item, category in item_categories.items():
+        categories_items[category].append(item)
+    return dict(categories_items)
 
 
 def get_keys_and_mapping(container: any) -> tuple[list,callable]:
