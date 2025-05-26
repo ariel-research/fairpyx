@@ -6,7 +6,7 @@ Date: 2025-05
 
 from __future__ import annotations
 import numpy as np, pytest, fairpyx
-from real_algo import hffd
+from fairpyx.algorithms.hffd import hffd
 
 # helper
 
