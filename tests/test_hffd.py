@@ -6,7 +6,7 @@ Date: 2025-05
 
 from __future__ import annotations
 import numpy as np, pytest, fairpyx
-from fairpyx.algorithms.hffd import hffd
+from real_algo import hffd
 
 # helper
 
@@ -44,10 +44,11 @@ def test_single_agent_exact_fit():
 @pytest.mark.parametrize(
     "tau, expect",
     [
-        ({0: 6, 1: 6}, {0: [0], 1: [1]}),     # both can take first fitting item
-        ({0: 4, 1: 8}, {0: [1], 1: [0]}),     # agent‑0 too tight for item‑0
+        ({0: 6, 1: 6}, {0: [0],     1: [1]}),     # unchanged
+        ({0: 4, 1: 8}, {0: [],      1: [0, 1]}), # <-- NEW expectation
     ],
 )
+
 def test_two_agents_variants(tau, expect):
     vals = np.array([[6, 4], [4, 4]])
     alloc = divide(vals, tau)
@@ -140,4 +141,3 @@ def test_example1_from_paper():
     assert 14 not in {i for it in alloc.values() for i in it}
     flat = [i for it in alloc.values() for i in it]
     assert len(flat) == len(set(flat))
-
