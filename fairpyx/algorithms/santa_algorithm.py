@@ -14,7 +14,6 @@ from hypernetx import Hypergraph as HNXHypergraph
 from fairpyx import Instance, AllocationBuilder
 from fairpyx import validate_allocation
 import logging
-from itertools import chain, combinations
 from typing import Optional
 
 
@@ -358,11 +357,10 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
     logger.info("Hypergraph construction completed with %d nodes and %d edges", len(H.nodes), len(H.edges))
     return H
 
-
+# פונקצית עזר
 def extend_alternating_tree(H: HNXHypergraph,
                             visited_players: Set[str],
                             visited_edges: Set[str],
-                            matching: Dict[str, str],
                             players: List[str],
                             valuations: Dict[str, Dict[str, float]],
                             threshold: float) -> Optional[str]:
@@ -371,29 +369,30 @@ def extend_alternating_tree(H: HNXHypergraph,
     מחזירה את שם הקשת שאפשר להוסיף לעץ, או None אם אין כזו.
     """
 
-    covered_nodes = set()
-    for edge_name in visited_edges:
+    covered_nodes = set() # כל הקודקודים שנמצאים בקשתות האלה (גם שחקנים וגם מתנות)
+    for edge_name in visited_edges: # כל הקשתות שכבר בעץ
         covered_nodes |= set(H.edges[edge_name])
-    covered_items = covered_nodes - set(players)
+    covered_items = covered_nodes - set(players) #  רק המתנות (כי אנחנו רוצים לבדוק האם יש מתנות חדשות)
 
-    for edge_name in H.edges:
+
+    for edge_name in H.edges: # עוברים על כל הקשתות שלא השתמשנו בהן עדיין
         if edge_name in visited_edges:
-            continue
+            continue # אם כבר ביקרנו בהן תמשיך הלאה
         edge_nodes = set(H.edges[edge_name])
-        edge_players = edge_nodes & set(players)
-        edge_items = edge_nodes - set(players)
+        edge_players = edge_nodes & set(players) # מי מהשחקנים שייך לקשת הזו
+        edge_items = edge_nodes - set(players) # אילו מתנות נמצאות בה
 
-        if not edge_players & visited_players:
+        if not edge_players & visited_players: # אם הקשת לא מחוברת לעץ אז תמשיך הלאה
             continue
 
-        # תנאי קריטי – האם יש פריטים חדשים
+        # תנאי קריטי – האם יש פריטים חדשיםאם אין יותר פריטים חדשים תמשיך הלאה
         if not edge_items.isdisjoint(covered_items):
             continue
 
-        # תנאי חדש – האם הקשת מספקת מישהו
+        # האם הקשת מספקת מישהו
         for player in edge_players:
             value = sum(valuations[player].get(item, 0) for item in edge_items)
-            if value >= threshold:
+            if value >= threshold: # ואם הערך אכן גדול מהסף
                 return edge_name
 
     return None
@@ -454,7 +453,7 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
     matching: Dict[str, str] = {}  # player -> edge_name
     used_items: Set[str] = set()
 
-    def is_valid_bundle(player: str, bundle: Set[str]) -> bool:
+    def is_valid_bundle(player: str, bundle: Set[str]) -> bool: # בדיקה האם הבנייה בכלל תקפה וערכה מעל הסף שצריך
         return sum(valuations[player].get(item, 0) for item in bundle) >= threshold
 
     def augment_path(player: str, edge: str, parent: Dict[str, Tuple[str, str]]):
@@ -492,7 +491,7 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
                     logger.debug(f"Skipping edge {edge_name} – doesn't include {current_player}")
                     continue
 
-                bundle = edge_nodes - {current_player} # נפריד את החבילה מתוך הקשת (ללא השחקן הנוכחי)
+                bundle = edge_nodes - {current_player} # נפריד את החבילה מתוך הקשת (ללא השחקן הנוכחי) - לוקחים רק את המתנות
                 bundle_items = bundle - set(players)  # כלומר רק פריטים, לא שחקנים
                 logger.debug(f"Checking edge {edge_name} with bundle {bundle_items} for player {current_player}")
                 if not is_valid_bundle(current_player, bundle_items): # אם החבילה לא מספקת את השחקן – נמשיך הלאה
@@ -504,7 +503,7 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
                     augment_path(current_player, edge_name, parent)
                     return True # הצלחנו להרחיב את ההתאמה
 
-                for p, e in matching.items(): # אחרת, החבילה חופפת לשחקנים אחרים – ננסה להחליף
+                for p, e in matching.items(): # אחרת, אם החבילה חופפת לשחקנים אחרים – ננסה להחליף
                     if not bundle_items.isdisjoint(set(H.edges[e]) - set(players)): # אם יש חפיפה בין החבילה הנוכחית לבין החבילה של p
                         if p not in visited_players:
                             # מוסיפים את השחקן הזה לעץ, עם קשת ההגעה
@@ -518,33 +517,32 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
         logger.debug("Parent map: %s", parent)
         return False
 
-    for player in players:
-        if player not in matching:
+    for player in players: # נעבור על כל השחקנים
+        if player not in matching: # אם השחקן עדיין לא בשידוך
             success = False
             visited_players = set()
             visited_edges = set()
-            while not success:
-                success = build_alternating_tree(player)
+            while not success: # כל עוד אין שידוך לשחקן תמשיך
+                success = build_alternating_tree(player) # תקשר אותו להייפר צלעות
                 if not success:
-                    edge_to_add = extend_alternating_tree(
-                        H, visited_players, visited_edges, matching, players, valuations, threshold
+                    edge_to_add = extend_alternating_tree( # נבדוק האם ניתן להרחיב את העץ כלומר, לחלק עוד מתנות
+                        H, visited_players, visited_edges, players, valuations, threshold
                     )
                     if edge_to_add is None:
                         break  # לא הצלחנו להרחיב יותר
                     # אם הצלחנו למצוא צלע מרחיבה – נוסיף אותה לרשימת הקשתות שנבדקות בלולאה הבאה
                     visited_edges.add(edge_to_add)
             if not success:
-                for player in players:
-                    if player not in matching:
+                for player in players: # תעבור על כל השחקנים
+                    if player not in matching: # אם השחקנים עדיין לא בשידוך
                         success = False
                         visited_players = {player}
                         visited_edges = set()
-                        parent = {}
                         while not success:
                             success = build_alternating_tree(player)
                             if not success:
                                 edge_to_add = extend_alternating_tree(
-                                    H, visited_players, visited_edges, matching, players, valuations, threshold
+                                    H, visited_players, visited_edges, players, valuations, threshold
                                 )
                                 if edge_to_add is None:
                                     break  # אין הרחבה – נעבור לשחקן/threshold הבא
@@ -554,8 +552,8 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
     # Build final allocation
     result: Dict[str, Set[str]] = {}
     for player, edge_name in matching.items():
-        items = set(H.edges[edge_name]) - {player}
-        result[player] = items - set(players)
+        items = set(H.edges[edge_name]) - {player} # הורדת השחקן הנוכחי מהקשת
+        result[player] = items - set(players) # הורדת כל השחקנים המקושרים לקשת הזאת - בדיקה נוספת ואף כללית יותר
     logger.info("Starting local search for perfect matching")
     logger.debug("Players: %s", players)
     logger.debug("Threshold: %f", threshold)
