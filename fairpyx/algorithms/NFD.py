@@ -125,11 +125,9 @@ def Nearly_Fair_Division(alloc: AllocationBuilder) -> None:
     if len(agents) != 2:
         raise NotImplementedError("Current implementation supports exactly two agents.")
 
-    a0, a1 = agents # keep a fixed order
-
     # ---------- 1) W-max greedy assignment ----------
     # ----------------------------------------------------------------------
-    #  Category–wise W-max wrapper
+    #  Category–wise W-max
     # ----------------------------------------------------------------------
     logger.info("remaining_item_capacities before w-max = %s", alloc.remaining_item_capacities)
     w_max_two_agents(alloc, weights=[0.5, 0.5])
@@ -170,18 +168,6 @@ def Nearly_Fair_Division(alloc: AllocationBuilder) -> None:
               swap would *lower* the envier’s utility.
             * Works with either lists or sets inside *bundles*.
 
-            Example
-            -------
-            # >>> # tiny scenario just for illustration
-            # >>> vals = {"A":{"x":5,"y":1}, "B":{"x":2,"y":3}}
-            # >>> inst = Instance(valuations=vals,
-            # ...                 item_capacities={"x":1,"y":1},
-            # ...                 item_categories={"x":"c","y":"c"},
-            # ...                 category_capacities={"c":1})
-            # >>> bundles = {"A":{"x"}, "B":{"y"}}
-            # >>> swaps = candidates_r_ratio(inst, bundles, envier="B", envied="A")
-            # >>> swaps  # doctest:+ELLIPSIS
-            # [(0.5, 'x', 'y')]
             """
             # Turn ∪/list into a list to iterate cheaply
             envier_items = list(bundles[envier])
@@ -354,7 +340,7 @@ def w_max_two_agents(alloc: "AllocationBuilder",
         deltas_absolute = [(o, abs(delta)) for o, delta in deltas.items()]
         deltas_absolute.sort(key=lambda pair: pair[1], reverse=True)
 
-        # Split top-s_c to agent 1, the rest to agent 2
+        # Split the most positive to a1 and the most negative to a2
         for o, delta in deltas_absolute:
             if (deltas[o] >= 0 or alloc.remaining_agent_capacities[a2] == 0) and alloc.agents_category_capacities[a1][inst.item_categories[o]] > 0:
                 # Give to agent 1 if positive or agent 2 has no capacity left
