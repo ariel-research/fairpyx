@@ -96,6 +96,9 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     # מחשבים את טווח החיפוש הבינארי לפי הערך המקסימלי של פריט כלשהו
     all_item_values = [v for val in valuations.values() for v in val.values()]
     high = max(all_item_values) if all_item_values else 0
+
+    # high = min [over all agents i] of sum[all_item_values for i]
+
     low = 0
     best_matching: Dict[str, Set[str]] = {} # הגדרת שידוך התחלתי כריק
     logger.debug("Initial valuations: %s", valuations)
@@ -120,8 +123,13 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
             logger.debug("Thin items: %s", thin_items)
             logger.info("Constructed hypergraph with %d nodes and %d edges", len(H.nodes), len(H.edges))
 
-            best_matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid) # מבצעים חיפוש מקומי למציאת התאמה מושלמת
-            low = mid # אם הצליח – מנסים להעלות את הסף
+            matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid) # מבצעים חיפוש מקומי למציאת התאמה מושלמת
+            if len(matching) == len(agent_names): # אם אכן גודל השידוך הוא כגודל הילדים/סוכנים
+                best_matching = matching
+                low = mid  # הצלחה – נעלה את הסף
+            else:
+                logger.info("Matching failed at threshold %.4f – not perfect", mid)
+                high = mid  # נכשל – נוריד את הסף
         else:
             logger.info("Threshold %.4f is NOT feasible", mid)
             high = mid # אם לא – נוריד את הסף
@@ -332,7 +340,7 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
     #  הוספת קשתות fat: לכל פריט שמן נבדוק אילו שחקנים מעריכים אותו ≥ threshold
     for item in fat_items:
         for player in valuations:
-            if valuations[player].get(item, 0) >= threshold:
+            if valuations[player].get(item, 0) >= threshold/4: #צריך לוודא שזה לא אפס - לוודא אם צריך את הבדיקה
                 nodes = frozenset({player, item})
                 if nodes in seen:
                     continue
@@ -348,7 +356,7 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
     for player in valuations:
         for r in range(1, len(thin_items) + 1): # גודל החבילה (1..|Thin|)
             for bundle in combinations(thin_items, r): # כל תת-קבוצה בגודל r
-                if sum(valuations[player].get(i, 0) for i in bundle) >= threshold: #  האם ביחד ≥ t ?
+                if sum(valuations[player].get(i, 0) for i in bundle) >= threshold/4: #  האם ביחד ≥ t/4 ?
                     edges[f"t{edge_id}"] = set(bundle) | {player} #  צלע מהסוג t*
                     edge_id += 1
 
@@ -610,3 +618,17 @@ if __name__ == "__main__":
 #     expected = {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
 #     print("Match is correct:", result == expected)
 
+
+
+"""
+
+GOAL: find maximum T such that
+      each child can get value at least T.
+
+Definition: T is feasible == there exists a perfect matching in the hypergraph of T.
+
+
+LOW =0
+HIGH=min[i] sum[vi]
+
+"""
