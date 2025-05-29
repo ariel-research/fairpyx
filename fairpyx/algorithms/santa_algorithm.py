@@ -357,7 +357,7 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
     logger.info("Hypergraph construction completed with %d nodes and %d edges", len(H.nodes), len(H.edges))
     return H
 
-# פונקצית עזר
+# פונקצית עזר - מחזירה את הקשתות שניתן להוסיף לעץ
 def extend_alternating_tree(H: HNXHypergraph,
                             visited_players: Set[str],
                             visited_edges: Set[str],
@@ -385,11 +385,11 @@ def extend_alternating_tree(H: HNXHypergraph,
         if not edge_players & visited_players: # אם הקשת לא מחוברת לעץ אז תמשיך הלאה
             continue
 
-        # תנאי קריטי – האם יש פריטים חדשיםאם אין יותר פריטים חדשים תמשיך הלאה
+        # תנאי קריטי – אם אין יותר פריטים חדשים תמשיך הלאה
         if not edge_items.isdisjoint(covered_items):
             continue
 
-        # האם הקשת מספקת מישהו
+        # אם הקשת מספקת מישהו
         for player in edge_players:
             value = sum(valuations[player].get(item, 0) for item in edge_items)
             if value >= threshold: # ואם הערך אכן גדול מהסף
@@ -480,7 +480,7 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
         visited_edges: Set[str] = set() # רשימת קשתות שכבר בדקנו
 
         while queue: # נבנה עץ החלפה בצורה של BFS - הוא מנסה קודם את החילופים הכי פשוטים — כאלה שדורשים הכי מעט "הזזה" של חבילות
-            current_player = queue.popleft()
+            current_player = queue.popleft() # הוצאה מהתור על ידי שימוש בפקודה pop
             for edge_name in H.edges: # נעבור על כל הקשתות האפשריות בהיפרגרף
                 if edge_name in visited_edges:
                     continue # אם כבר בדקנו את הקשת – נמשיך הלאה
@@ -497,10 +497,10 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
                 if not is_valid_bundle(current_player, bundle_items): # אם החבילה לא מספקת את השחקן – נמשיך הלאה
                     continue
 
-                visited_edges.add(edge_name)
+                visited_edges.add(edge_name) # נוסיף את הצלע כצלע שכבר ביקרנו בה
 
                 if bundle_items.isdisjoint(used_items): # אם כל הפריטים בחבילה לא בשימוש – אפשר להקצות את החבילה!
-                    augment_path(current_player, edge_name, parent)
+                    augment_path(current_player, edge_name, parent) # נבדוק את מסלול החבילה בעץ
                     return True # הצלחנו להרחיב את ההתאמה
 
                 for p, e in matching.items(): # אחרת, אם החבילה חופפת לשחקנים אחרים – ננסה להחליף
@@ -509,7 +509,7 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
                             # מוסיפים את השחקן הזה לעץ, עם קשת ההגעה
                             visited_players.add(p)
                             parent[p] = (current_player, edge_name)
-                            queue.append(p)
+                            queue.append(p) # הוספה לתור
 
         # אם הגענו לפה – לא הצלחנו להרחיב את ההתאמה עבור start_player
         logger.debug("Building alternating tree for player: %s", start_player)
@@ -523,8 +523,8 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
             visited_players = set()
             visited_edges = set()
             while not success: # כל עוד אין שידוך לשחקן תמשיך
-                success = build_alternating_tree(player) # תקשר אותו להייפר צלעות
-                if not success:
+                success = build_alternating_tree(player) # תקשר אותו להייפר צלעות במידה וניתן
+                if not success: # אם כרגע עדיין לא ניתן
                     edge_to_add = extend_alternating_tree( # נבדוק האם ניתן להרחיב את העץ כלומר, לחלק עוד מתנות
                         H, visited_players, visited_edges, players, valuations, threshold
                     )
@@ -604,13 +604,9 @@ if __name__ == "__main__":
 #     for e in H.edges:
 #         print(e, "→", list(H.edges[e]))
 #
-#     print("\nNodes in hypergraph:")
-#     for node in H.nodes:
-#         print(f"{node}: {H.nodes[node].edges}")
-#
 #     result = local_search_perfect_matching(H, valuations, players, threshold)
 #
 #     print("Final matching:", result)
 #     expected = {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
 #     print("Match is correct:", result == expected)
-#
+
