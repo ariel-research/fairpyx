@@ -116,6 +116,26 @@ def test_maximallity():
     assert items_given == sorted(instance.items)
 
 
+def test_maxminimallity():
+    """
+    When there are multiple maxmiall allocations the alogrithm
+    should return allocation that maximizes the minimum rank, over all
+    players who receive a minimal bundle, of the most preferred minimal bundle
+    """
+
+    # test found by experimenting random instances
+    valuation = [
+        [193, 127, 413, 53, 89, 124],
+        [109, 111, 384, 99, 136, 160],
+        [96, 213, 239, 151, 73, 227],
+        [176, 190, 212, 128, 97, 197],
+    ]
+    instance = Instance(valuations=valuation)
+
+    alloc = divide(maximally_proportional_allocation, instance)
+    assert alloc == {0: [2], 1: [0, 3, 4], 2: [1, 5], 3: []}
+
+
 def test_pareto_optimal():
     """
     If there are multiple complete/maximall allocations

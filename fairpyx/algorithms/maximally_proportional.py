@@ -9,12 +9,16 @@ Date: 2025-05
 """
 
 from fairpyx import Instance, AllocationBuilder, divide
-from typing import Any, Optional
+from typing import Any
 from collections import defaultdict
-from collections.abc import Hashable
+from collections.abc import Hashable, Iterable, Mapping
 from itertools import chain
-import logging, cvxpy as cp, numpy as np
+from math import isclose
+import logging, cvxpy as cp
 
+logging.basicConfig(
+    format="{asctime} - {levelname} - {message}", style="{", level=logging.DEBUG
+)
 logger = logging.getLogger(__name__)
 
 
@@ -57,134 +61,56 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
     # used also for constraint so that each item is given exactly one time
     bundles_vars_by_item = defaultdict(list)
 
-    max_rank = max(map(len, minimal_bundles_by_agent.values()))
+    max_rank = max(map(len, minimal_bundles_by_agent.values())) - 1
+
     logger.info(
         "start allocating with 'fall back' strategey. stop when reach rank %s or found complete allocation",
         max_rank,
     )
 
-    rank = agents_received = 0
+    rank = max_agents_received = 0
 
     # while any agent can compromise and at least one agent didn't receive a bundle
-    while rank < max_rank and agents_received < len(agents):
+    while rank <= max_rank and max_agents_received < len(agents):
 
         logger.debug("max rank of minimal bundles allowed: %d", rank)
+
         # descend by one level while updating the relevant constraints
-        descend(minimal_bundles_by_agent, bundles_vars_by_agent, bundles_vars_by_item)
+        update_bundles_variables(
+            minimal_bundles_by_agent,
+            bundles_vars_by_agent,
+            bundles_vars_by_item,
+            rank,
+        )
 
-        agents_received = solve_with_cvxpy(bundles_vars_by_agent, bundles_vars_by_item)
-        logger.debug("number af agents who received bundles: %d", agents_received)
+        curr_alloc = find_max_alloc(bundles_vars_by_agent, bundles_vars_by_item)
+        num_agents_received = len(curr_alloc)
+        logger.debug("number af agents who received bundles: %d", num_agents_received)
+        logger.debug("found allocation (value := bundle rank): %s", curr_alloc)
 
-        solution = extract_solution(bundles_vars_by_agent)
+        if num_agents_received > max_agents_received:
+            maxmin_alloc = curr_alloc
+            max_agents_received = num_agents_received
+            logger.debug("------New Maxmin allocation found------")
 
-        logger.debug("current maxmin allocation (value := bundle index): %s", solution)
         rank += 1
 
-    rank -= 1
     logger.info(
         "stopped descending in rank %s. number of agents who received bundles: %d",
-        rank,
-        agents_received,
+        rank - 1,
+        max_agents_received,
     )
 
     logger.info("finding the pareto optimal solution...")
-
-    solve_with_cvxpy(
-        bundles_vars_by_agent,
-        bundles_vars_by_item,
-        pareto_optimal_target=agents_received,
+    pareto_optimal_alloc = find_pareto_optimal_alloc(
+        bundles_vars_by_agent, bundles_vars_by_item, maxmin_alloc
     )
-
-    ranking_solution = extract_solution(bundles_vars_by_agent)
-    logger.info("Pareto optimal solution found: %s", ranking_solution)
+    logger.info("Pareto optimal solution found: %s", pareto_optimal_alloc)
     # finally, give the bundles for the agents
-    for agent, rank in ranking_solution.items():
+    for agent, rank in pareto_optimal_alloc.items():
         alloc.give_bundle(agent, minimal_bundles_by_agent[agent][rank])
 
-
-def solve_with_cvxpy(
-    bundles_vars_by_agent: dict,
-    bundles_vars_by_item: dict,
-    pareto_optimal_target: Optional[int] = None,
-) -> int:
-    """
-    Maximizing the amount of agents receiving minimal bundles
-
-    with the following constraints:
-
-    1. Each player can receive at most one bundle
-    2. Two bundles with at least one shared item cannot both be given
-
-    Once the maximum amount of agents that can be given a bundle is found,
-
-    the paramater *pareto_optimal_target* can be used to find the pareto optimal solution
-
-
-    Args:
-        bundle_indicators_by_agent (dict[Hashable, list[cp.Variable]]): map each agent to it's list of minimal bundles Variables
-        bundles_constraints (dict[Hashable, Iterable[cp.Variable]]): map each item to the list of bundles that contain it
-        pareto_optimal_target (Optional[int]): amount of agents that need to get a bundle in the pareto optimal solution
-
-    Returns:
-       int: amount of agents who received bundles in this solution
-    """
-    agents_constraint = list(map(lambda x: sum(x) <= 1, bundles_vars_by_agent.values()))
-    items_constraints = list(map(lambda x: sum(x) <= 1, bundles_vars_by_item.values()))
-
-    constraints = agents_constraint + items_constraints
-
-    # collect of all the bundles Variabls to one list
-    all_bundles_vars = list(chain.from_iterable(bundles_vars_by_agent.values()))
-
-    if pareto_optimal_target is None:
-        # no pareto optimization, simply maximize amount of agents who receive bundles
-        objective = cp.Maximize(cp.sum(all_bundles_vars))
-    else:
-        # fix the amount of agents receiving a bundle
-        constraints.append(cp.sum(all_bundles_vars) == pareto_optimal_target)
-        # weight of bundle = how much the agents prefers it
-        weighted_vars = []
-        for min_bun in bundles_vars_by_agent.values():
-            for i, bundle_var in enumerate(min_bun):
-                # 0 -> most prefered bundle
-                weighted_vars.append(-i * bundle_var)
-        objective = cp.Maximize(cp.sum(weighted_vars))
-
-    prob = cp.Problem(objective=objective, constraints=constraints)
-    agents_received = prob.solve()
-    return round(agents_received)
-
-
-def descend(min_bundles, bundle_vars_by_agent, bundles_vars_by_item) -> None:
-    """
-    checks for each agent if he has a minimal bundle at the current iteration's level \\
-    and if so creates a cvxpy Variable as an indicator for the Maximization problem.
-    """
-    for agent, minimal_bundles in min_bundles.items():
-        curr_num_of_bundles = len(bundle_vars_by_agent[agent])
-        #  if agent can compromise by one level:
-        if curr_num_of_bundles < len(minimal_bundles):
-            # Inidicator for this specific bundle
-            bundle_var = cp.Variable(boolean=True)
-            bundle_vars_by_agent[agent].append(bundle_var)
-            for item in minimal_bundles[curr_num_of_bundles]:  # used for constraints
-                bundles_vars_by_item[item].append(bundle_var)
-
-
-def extract_solution(bundles_vars_by_agent: dict[Hashable, list[cp.Variable]]):
-    """
-    To be used *after* the solve_with_cvxpy() was called on the bundle_indicators_by_agent
-
-
-    Returns:
-        dict: mapper from agent to his allocated minimal bundle's rank
-    """
-    res = {}
-    for agent, bundle_indicators in bundles_vars_by_agent.items():
-        for i, indicator in enumerate(bundle_indicators):
-            if np.isclose(indicator.value, 1):
-                res[agent] = i
-    return res
+    logger.info("Final allocation: %s", alloc.sorted())
 
 
 def get_minimal_bundles(
@@ -257,7 +183,131 @@ def get_minimal_bundles(
     return res
 
 
+def update_bundles_variables(
+    min_bundles: Mapping[Hashable, list[Iterable]],
+    bundle_vars_by_agent: Mapping[Hashable, Iterable[cp.Variable]],
+    bundles_vars_by_item: Mapping[Hashable, Iterable[cp.Variable]],
+    rank: int,
+) -> None:
+    """
+    checks for each agent if he has a minimal bundle at the current iteration's level \\
+    and if so creates a cvxpy Variable as an indicator for the Maximization problem.
+    """
+    for agent, minimal_bundles in min_bundles.items():
+        #  if agent can has a bundle in this rank
+        if rank < len(minimal_bundles):
+            # Inidicator for this specific bundle
+            bundle_var = cp.Variable(boolean=True)
+            bundle_vars_by_agent[agent].append(bundle_var)
+            for item in minimal_bundles[rank]:
+                bundles_vars_by_item[item].append(bundle_var)
+
+
+def find_max_alloc(
+    bundles_vars_by_agent: Mapping[Hashable, Iterable[cp.Variable]],
+    bundles_vars_by_item: Mapping[Hashable, Iterable[cp.Variable]],
+) -> Mapping[Hashable, int]:
+    """
+    Finds allocation which maximizes the amount of agents who receive bundle
+
+    with the following constraints:
+
+    1. Each player can receive at most one bundle
+    2. Two bundles with at least one shared item cannot both be given
+
+
+    Args:
+        bundle_indicators_by_agent (BundleVarsMapper): map each agent to it's list of minimal bundles Variables
+        bundles_constraints (BundleVarsMapper): map each item to the list of bundles that contain it
+
+    Returns:
+       Mapping[Hashable, int]: Mapper from agent to the rank of the bundle given to him
+    """
+    agents_constraint = list(map(lambda x: sum(x) <= 1, bundles_vars_by_agent.values()))
+    items_constraints = list(map(lambda x: sum(x) <= 1, bundles_vars_by_item.values()))
+
+    constraints = agents_constraint + items_constraints
+
+    # collect of all the bundles Variabls to one list
+    all_bundles_vars = list(chain.from_iterable(bundles_vars_by_agent.values()))
+
+    objective = cp.Maximize(cp.sum(all_bundles_vars))
+
+    prob = cp.Problem(objective=objective, constraints=constraints)
+    prob.solve()
+    # Extract soliution from cvxpy Variables
+    alloc_by_rank = {}
+    for agent, mb_vars in bundles_vars_by_agent.items():
+        for rank, bundle_var in enumerate(mb_vars):
+            if isclose(bundle_var.value, 1):
+                alloc_by_rank[agent] = rank
+    return alloc_by_rank
+
+
+def find_pareto_optimal_alloc(
+    bundles_vars_by_agent: Mapping[Hashable, Iterable[cp.Variable]],
+    bundles_vars_by_item: Mapping[Hashable, Iterable[cp.Variable]],
+    maxmin_alloc: Mapping[Hashable, int],
+) -> Mapping[Hashable, int]:
+
+    # 1. to keep the solution maxminimall, discard bundle's variables
+    # with rank worse than the rank in the maxmin allocation
+
+    logger.info("Search allocation that pareto dominates allocation: %s", maxmin_alloc)
+    updated_vars_by_agent = {}
+    for agent, rank in maxmin_alloc.items():
+        updated_vars_by_agent[agent] = bundles_vars_by_agent[agent][: rank + 1]
+
+    agents_constraint = list(map(lambda x: sum(x) <= 1, updated_vars_by_agent.values()))
+    items_constraints = list(map(lambda x: sum(x) <= 1, bundles_vars_by_item.values()))
+
+    # collect of all the bundles Variabls to one list
+    all_bundles_vars = list(chain.from_iterable(updated_vars_by_agent.values()))
+    # num of agents that must receive a bundle
+    num_agents_received_constraint = [sum(all_bundles_vars) == len(maxmin_alloc)]
+
+    constraints = agents_constraint + items_constraints + num_agents_received_constraint
+
+    # find allocation that pareto dominates the maxmin allocation given
+    # by assigning weight to each bundle variable from 0 (most prefferd bundle)
+    # to -(agents-num-of-min-bundles). If such allocation exists cvxpy Maximization
+    # problem should find it
+
+    weighted_vars = []
+    for bundle_vars in updated_vars_by_agent.values():
+        for rank, bv in enumerate(bundle_vars):
+            weighted_vars.append(-rank * bv)
+
+    objective = cp.Maximize(sum(weighted_vars))
+    prob = cp.Problem(objective=objective, constraints=constraints)
+    prob.solve()
+
+    # Extract solution from cvxpy Variables
+    ranking_alloc = {}
+    for agent, mb_vars in updated_vars_by_agent.items():
+        for rank, bundle_var in enumerate(mb_vars):
+            if isclose(bundle_var.value, 1):
+                ranking_alloc[agent] = rank
+    return ranking_alloc
+
+
 if __name__ == "__main__":
     import doctest
 
-    print(doctest.testmod())
+    # Delete if you want to see the backtrack() func DEBUG messages
+    logger.addFilter(lambda record: record.funcName != "backtrack")
+
+    # print(doctest.testmod())
+    nagents, nitems = 7, 10
+    title = f"Large Input. Agents - {nagents}. Items - {nitems}"
+    instance = Instance.random_uniform(
+        num_of_agents=nagents,
+        num_of_items=nitems,
+        item_capacity_bounds=(1, 1),
+        agent_capacity_bounds=(nitems, nitems),
+        item_base_value_bounds=(20, 120),
+        item_subjective_ratio_bounds=(0.5, 2.4),
+        normalized_sum_of_values=1000,
+        random_seed=45335,
+    )
+    divide(maximally_proportional_allocation, instance)
