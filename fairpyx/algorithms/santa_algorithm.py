@@ -38,7 +38,6 @@ def parse_allocation_strings(allocation: Dict[str, str]) -> Dict[str, List[Set[s
                 parsed[agent] = []
         else:
             parsed[agent] = []
-    logger.debug("Parsing allocation strings: %s", allocation)
     return parsed
 
 def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str]]:
@@ -113,12 +112,11 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
             H = build_hypergraph(valuations, allocation, fat_items, thin_items, mid)
 
             matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid)
-
             if len(matching) == len(agent_names):
                 best_matching = matching
                 low = mid
             else:
-                if mid!=0:
+                if mid != 0:
                     logger.info("Matching incomplete at threshold %.4f", mid)
                     high = mid
                 else:
@@ -198,14 +196,10 @@ def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: fl
     matching = local_search_perfect_matching(H, valuations, agent_names,
                                              threshold=threshold)  # מבצעים חיפוש מקומי למציאת התאמה מושלמת
     if len(matching) == len(agent_names):  # אם אכן גודל השידוך הוא כגודל הילדים/סוכנים
-        logger.debug("Starting threshold feasibility check for threshold: %f", threshold)
-
         for player, items in valuations.items():
             total_value = sum(value for value in items.values())
-            logger.debug("Player %s has total value: %f", player, total_value)
 
             if total_value < threshold:
-                logger.warning("Player %s's total value %f is below threshold %f", player, total_value, threshold)
                 return False
 
         logger.info("Threshold feasibility check passed, all players can receive at least %f value", threshold)
@@ -328,8 +322,6 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
     >>> len(hypergraph.edges)  # מספר הקשתות
     4
     """
-    logger.info("Building hypergraph based on allocation")
-
     logger.info("Building hypergraph based on allocation")
 
     edges: dict[str, set[str]] = {}
@@ -574,7 +566,6 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
     logger.info("Starting local search for perfect matching")
     logger.debug("Players: %s", players)
     logger.debug("Threshold: %f", threshold)
-    logger.debug("Initial matching: %s", matching)
     logger.info("Finished local search. Final matching: %s", matching)
     logger.debug("Constructed allocation: %s", result)
     return result
