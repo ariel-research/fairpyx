@@ -102,12 +102,11 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     logger.debug("Initial binary search range: low=%f, high=%f", low, high)
 
     best_matching = {}
-    best_threshold = 0
 
     # == חיפוש בינארי על t ==
     while high - low > 1e-4: # חיפוש בינארי: למצוא את ערך הסף הגבוה ביותר שבו עדיין ניתן לבצע הקצאה הוגנת
         mid = (low + high) / 2 # אם אפשרי לבצע הקצאה לכל סוכן עם ערך לפחות mid:
-        if is_threshold_feasible(valuations, mid, agent_names):
+        if is_threshold_feasible(valuations, mid, agent_names): # יש שידוך מושלם וניקח אותו
             raw_allocation = solve_configuration_lp(valuations, mid)
             allocation = parse_allocation_strings(raw_allocation)
             fat_items, thin_items = classify_items(valuations, mid)
@@ -116,7 +115,6 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
             matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid)
 
             if len(matching) == len(agent_names):
-                best_threshold = mid
                 best_matching = matching
                 low = mid
             else:
@@ -126,8 +124,11 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
                 else:
                     return {}
         else:
-            logger.info("Threshold %.4f is NOT feasible", mid)
-            high = mid
+            if mid != 0:
+                logger.info("Matching incomplete at threshold %.4f", mid)
+                high = mid
+            else:
+                return {}
 
     # == הקצאה לפי קיבולות ==
     # עוברים על הסוכנים בסדר אלפביתי ומקצים בכל פעם
