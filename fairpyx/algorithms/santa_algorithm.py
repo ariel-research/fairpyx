@@ -95,44 +95,39 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
 
     # מחשבים את טווח החיפוש הבינארי לפי הערך המקסימלי של פריט כלשהו
     all_item_values = [v for val in valuations.values() for v in val.values()]
-    high = max(all_item_values) if all_item_values else 0
-
-    # high = min [over all agents i] of sum[all_item_values for i]
+    high = min(sum(v.values()) for v in valuations.values()) # high = min [over all agents i] of sum[all_item_values for i]
 
     low = 0
-    best_matching: Dict[str, Set[str]] = {} # הגדרת שידוך התחלתי כריק
     logger.debug("Initial valuations: %s", valuations)
     logger.debug("Initial binary search range: low=%f, high=%f", low, high)
+
+    best_matching = {}
+    best_threshold = 0
 
     # == חיפוש בינארי על t ==
     while high - low > 1e-4: # חיפוש בינארי: למצוא את ערך הסף הגבוה ביותר שבו עדיין ניתן לבצע הקצאה הוגנת
         mid = (low + high) / 2 # אם אפשרי לבצע הקצאה לכל סוכן עם ערך לפחות mid:
-        if is_threshold_feasible(valuations, mid):
-            logger.debug("Feasibility at threshold %.4f: %s", mid, is_threshold_feasible(valuations, mid))
-            logger.info("Threshold %.4f is feasible, solving LP...", mid)
-
-            # פותרים את הבעיה הליניארית לקבלת הקצאה ראשונית
+        if is_threshold_feasible(valuations, mid, agent_names):
             raw_allocation = solve_configuration_lp(valuations, mid)
-            allocation = parse_allocation_strings(raw_allocation) # המרת הפורמט
-            fat_items, thin_items = classify_items(valuations, mid) # מסווגים פריטים לשמנים ורזים בהתאם ל-threshold
-            H = build_hypergraph(valuations, allocation,fat_items, thin_items, mid) # בונים היפרגרף מההקצאה
+            allocation = parse_allocation_strings(raw_allocation)
+            fat_items, thin_items = classify_items(valuations, mid)
+            H = build_hypergraph(valuations, allocation, fat_items, thin_items, mid)
 
-            logger.debug("Raw allocation: %s", raw_allocation)
-            logger.debug("Parsed allocation: %s", allocation)
-            logger.debug("Fat items: %s", fat_items)
-            logger.debug("Thin items: %s", thin_items)
-            logger.info("Constructed hypergraph with %d nodes and %d edges", len(H.nodes), len(H.edges))
+            matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid)
 
-            matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid) # מבצעים חיפוש מקומי למציאת התאמה מושלמת
-            if len(matching) == len(agent_names): # אם אכן גודל השידוך הוא כגודל הילדים/סוכנים
+            if len(matching) == len(agent_names):
+                best_threshold = mid
                 best_matching = matching
-                low = mid  # הצלחה – נעלה את הסף
+                low = mid
             else:
-                logger.info("Matching failed at threshold %.4f – not perfect", mid)
-                high = mid  # נכשל – נוריד את הסף
+                if mid!=0:
+                    logger.info("Matching incomplete at threshold %.4f", mid)
+                    high = mid
+                else:
+                    return {}
         else:
             logger.info("Threshold %.4f is NOT feasible", mid)
-            high = mid # אם לא – נוריד את הסף
+            high = mid
 
     # == הקצאה לפי קיבולות ==
     # עוברים על הסוכנים בסדר אלפביתי ומקצים בכל פעם
@@ -158,7 +153,7 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     logger.info("Final matching found at threshold %.4f: %s", low, best_matching)
     return {agent: set(items) for agent, items in final_allocation.items()} # מחזירים הקצאה עם סטים (ולא רשימות)
 
-def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: float) -> bool:
+def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: float,agent_names) -> bool:
     """
 
     בודקת האם קיים שיבוץ שבו כל שחקן מקבל חבילה שערכה לפחות הסף הנתון (threshold).
@@ -174,11 +169,11 @@ def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: fl
     ...     "Alice": {"c1": 7, "c2": 0, "c3": 4},
     ...     "Bob":   {"c1": 0,  "c2": 8, "c3": 0}
     ... }
-    >>> is_threshold_feasible(valuations, 15)
+    >>> is_threshold_feasible(valuations, 15,{"Alice","Bob"})
     False
-    >>> is_threshold_feasible(valuations, 10)
+    >>> is_threshold_feasible(valuations, 10,{"Alice","Bob"})
     False
-    >>> is_threshold_feasible(valuations, 8)
+    >>> is_threshold_feasible(valuations, 8,{"Alice","Bob"})
     True
 
     Example 2: 2 Players, 2 Items (conflict)
@@ -186,23 +181,36 @@ def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: fl
     ...     "Alice": {"c1": 10, "c2": 0},
     ...     "Bob":   {"c1": 0, "c2": 9}
     ... }
-    >>> is_threshold_feasible(valuations, 10)
+    >>> is_threshold_feasible(valuations, 10,{"Alice","Bob"})
     False
-    >>> is_threshold_feasible(valuations, 9)
+    >>> is_threshold_feasible(valuations, 9,{"Alice","Bob"})
     True
     """
-    logger.debug("Starting threshold feasibility check for threshold: %f", threshold)
+    logger.info("Threshold %.4f is feasible, solving LP...", threshold)
 
-    for player, items in valuations.items():
-        total_value = sum(value for value in items.values())
-        logger.debug("Player %s has total value: %f", player, total_value)
+    # פותרים את הבעיה הליניארית לקבלת הקצאה ראשונית
+    raw_allocation = solve_configuration_lp(valuations, threshold)
+    allocation = parse_allocation_strings(raw_allocation)  # המרת הפורמט
+    fat_items, thin_items = classify_items(valuations, threshold)  # מסווגים פריטים לשמנים ורזים בהתאם ל-threshold
+    H = build_hypergraph(valuations, allocation, fat_items, thin_items, threshold)  # בונים היפרגרף מההקצאה
 
-        if total_value < threshold:
-            logger.warning("Player %s's total value %f is below threshold %f", player, total_value, threshold)
-            return False
+    matching = local_search_perfect_matching(H, valuations, agent_names,
+                                             threshold=threshold)  # מבצעים חיפוש מקומי למציאת התאמה מושלמת
+    if len(matching) == len(agent_names):  # אם אכן גודל השידוך הוא כגודל הילדים/סוכנים
+        logger.debug("Starting threshold feasibility check for threshold: %f", threshold)
 
-    logger.info("Threshold feasibility check passed, all players can receive at least %f value", threshold)
-    return True
+        for player, items in valuations.items():
+            total_value = sum(value for value in items.values())
+            logger.debug("Player %s has total value: %f", player, total_value)
+
+            if total_value < threshold:
+                logger.warning("Player %s's total value %f is below threshold %f", player, total_value, threshold)
+                return False
+
+        logger.info("Threshold feasibility check passed, all players can receive at least %f value", threshold)
+        return True
+
+    return False
 
 def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: float) -> Dict[str, str]:
     """
