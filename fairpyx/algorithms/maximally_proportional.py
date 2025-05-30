@@ -346,7 +346,4 @@ def find_pareto_dominating_alloc(
 if __name__ == "__main__":
     import doctest
 
-    # Delete if you want to see the backtrack() func DEBUG messages
-    logger.addFilter(lambda record: record.funcName != "backtrack")
-
     print(doctest.testmod())
