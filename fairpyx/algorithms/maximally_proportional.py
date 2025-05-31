@@ -16,9 +16,6 @@ from itertools import chain
 from math import isclose
 import logging, cvxpy as cp
 
-logging.basicConfig(
-    format="{asctime} - {levelname} - {message}", style="{", level=logging.DEBUG
-)
 logger = logging.getLogger(__name__)
 
 
@@ -49,7 +46,13 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
         agent: compute_minimal_bundles_for_agent(alloc, agent, sort_bundle=False)
         for agent in agents
     }
-    logger.info("collected minimal bundles by order of priorities for all agents")
+    logger.info("Collected minimal bundles by order of priorities for all agents")
+
+    num_min_bun_by_agent = {
+        agent: len(min_bundles)
+        for agent, min_bundles in minimal_bundles_by_agent.items()
+    }
+    logger.info("Amount of minimal bundles: %s", num_min_bun_by_agent)
 
     # Each minimal bundle will be represented by a boolean cvxp.Variable instance that will be used
     # by cvxpy module to maximize the amount of bundles given at each iteration.
@@ -67,7 +70,7 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
     max_rank = max(map(len, minimal_bundles_by_agent.values())) - 1
 
     logger.info(
-        "start allocating with 'fall back' strategey. stop when reach rank %s or found complete allocation",
+        "Starts allocating. Stop when reach rank %s or found complete allocation",
         max_rank,
     )
 
@@ -76,7 +79,7 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
     # while any agent can compromise and at least one agent didn't receive a bundle
     while rank <= max_rank and max_agents_received < len(agents):
 
-        logger.debug("max rank of minimal bundles allowed: %d", rank)
+        logger.debug("Max rank of minimal bundles allowed: %d", rank)
 
         # update the variables data structures according to the current rank
 
@@ -91,23 +94,23 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
             bundles_vars_by_agent, bundles_vars_by_item
         )
         num_agents_received = len(curr_alloc)
-        logger.debug("number af agents who received bundles: %d", num_agents_received)
-        logger.debug("found allocation (value := bundle rank): %s", curr_alloc)
+        logger.debug("Number of agents who received bundles: %d", num_agents_received)
+        logger.debug("Found allocation (value := bundle rank): %s", curr_alloc)
 
         if num_agents_received > max_agents_received:
             maxmin_alloc = curr_alloc
             max_agents_received = num_agents_received
-            logger.debug("------New Maxmin allocation found------")
+            logger.debug("------ New Maxmin allocation found ------")
 
         rank += 1
 
     logger.info(
-        "stopped descending in rank %s. number of agents who received bundles: %d",
+        "Stopped descending in rank %s. Number of agents who received bundles: %d",
         rank - 1,
         max_agents_received,
     )
 
-    logger.info("finding the pareto optimal solution...")
+    logger.info("Finding the pareto optimal solution...")
     pareto_optimal_alloc = find_pareto_dominating_alloc(
         bundles_vars_by_agent, bundles_vars_by_item, maxmin_alloc
     )
@@ -115,12 +118,13 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
 
     # check if any agent got better minimal bundle
 
-    agents_who_got_better_rank = []
-    for agent in pareto_optimal_alloc:
-        if pareto_optimal_alloc[agent] < maxmin_alloc[agent]:
-            agents_who_got_better_rank.append(agent)
+    agents_who_got_better_rank = [
+        agent
+        for agent in pareto_optimal_alloc
+        if pareto_optimal_alloc[agent] < maxmin_alloc[agent]
+    ]
 
-    logger.debug("Agents that prefer this allocation: %s", agents_who_got_better_rank)
+    logger.debug("Agents prefering this allocation: %s", agents_who_got_better_rank)
 
     # give the bundles for the agents
 
@@ -136,7 +140,7 @@ def maximally_proportional_allocation(alloc: AllocationBuilder):
         bundle_value_by_agent[agent] = alloc.agent_bundle_value(
             agent, minimal_bundles_by_agent[agent][rank]
         )
-    logger.info("Value of given bundles for each agent: %s", bundle_value_by_agent)
+    logger.info("Values of given bundles: %s", bundle_value_by_agent)
 
 
 def compute_minimal_bundles_for_agent(
@@ -173,7 +177,7 @@ def compute_minimal_bundles_for_agent(
     [[0, 1], [1, 3], [1, 2, 4], [0, 3]]
     """
     res = []
-    logger.info(' collecting all of agent "%s" minimal bundles '.center(50, "#"), agent)
+    logger.info(' Collecting all of agent "%s" minimal bundles '.center(50, "#"), agent)
     items_sorted = sorted(
         alloc.remaining_items(),
         key=lambda x: alloc.effective_value(agent, x),
@@ -182,22 +186,22 @@ def compute_minimal_bundles_for_agent(
     proportional_share = alloc.agent_bundle_value(agent, alloc.remaining_items()) / len(
         alloc.remaining_agents()
     )
-    logger.info("proportional value of agent %s is %s", agent, proportional_share)
+    logger.info("Proportional value of agent %s is %s", agent, proportional_share)
     subgroup = []
 
     def backtrack(i, bundle_value):
-        logger.debug("assesing subgroup %s", subgroup)
+        logger.debug("Assesing subgroup %s", subgroup)
         if bundle_value >= proportional_share:
             res.append(sorted(subgroup) if sort_bundle else list(subgroup))
             logger.debug(
-                "subgroup is minimal bundle! total value: %s. added to result",
+                "Subgroup is minimal bundle! total value: %s. Added to result",
                 bundle_value,
             )
         elif i >= len(items_sorted):
-            logger.debug("no left items to grow the group")
+            logger.debug("No left items to grow the group")
             return
         else:
-            logger.debug("subgroup total value is too low. add some item")
+            logger.debug("Subgroup total value is too low. Add some item")
             item = items_sorted[i]
             subgroup.append(item)
             backtrack(i + 1, bundle_value + alloc.effective_value(agent, item))
@@ -346,4 +350,29 @@ def find_pareto_dominating_alloc(
 if __name__ == "__main__":
     import doctest
 
-    print(doctest.testmod())
+    # print(doctest.testmod())
+    logger.setLevel(logging.DEBUG)
+
+    console_handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        fmt="{asctime} - {levelname} - {message}",
+        style="{",
+        datefmt="%d/%m/%Y %H:%M",
+    )
+    console_handler.setFormatter(formatter)
+    console_handler.addFilter(lambda record: record.funcName != "backtrack")
+    logger.addHandler(console_handler)
+
+    nagents, nitems = 4, 6
+    title = f"Large Input. Agents - {nagents}. Items - {nitems}"
+    instance = Instance.random_uniform(
+        num_of_agents=nagents,
+        num_of_items=nitems,
+        item_capacity_bounds=(1, 1),
+        agent_capacity_bounds=(nitems, nitems),
+        item_base_value_bounds=(20, 100),
+        item_subjective_ratio_bounds=(0.5, 1.4),
+        normalized_sum_of_values=100,
+        random_seed=15,
+    )
+    alloc = divide(maximally_proportional_allocation, instance)
