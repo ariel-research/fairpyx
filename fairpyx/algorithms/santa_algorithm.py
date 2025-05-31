@@ -16,9 +16,6 @@ from fairpyx import validate_allocation
 import logging
 from typing import Optional
 
-
-# הגדרת הלוגר
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def parse_allocation_strings(allocation: Dict[str, str]) -> Dict[str, List[Set[str]]]:
@@ -152,7 +149,7 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     logger.info("Final matching found at threshold %.4f: %s", low, best_matching)
     return {agent: set(items) for agent, items in final_allocation.items()} # מחזירים הקצאה עם סטים (ולא רשימות)
 
-def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: float,agent_names) -> bool:
+def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: float, agent_names) -> bool:
     """
 
     בודקת האם קיים שיבוץ שבו כל שחקן מקבל חבילה שערכה לפחות הסף הנתון (threshold).
@@ -226,6 +223,7 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
     {'Alice': "1.0*{'c1', 'c3'}", 'Bob': "1.0*{'c2'}"}
 
     """
+    logger.info("Solving configuration LP with threshold %.4f", threshold)
     allocation = {}
     for agent, items in valuations.items():
         bundle = set() # סט המתנות שהילד יקבל
@@ -240,7 +238,6 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
         else:
             allocation[agent] = "0.0*{}"
 
-    logger.info("Solving configuration LP with threshold %.4f", threshold)
     logger.debug("Configuration LP solution: %s", allocation)
     return allocation
 
@@ -574,7 +571,19 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
 if __name__ == "__main__":
     # 1. Run the doctests:
     import doctest, sys
-    print("\n", doctest.testmod(), "\n")
+    # print("\n", doctest.testmod(), "\n")
+
+    # הגדרת הלוגר
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+    valuations = {
+            "Alice": {"c1": 10, "c2": 0},
+            "Bob":   {"c1": 0, "c2": 9}
+    }
+    print(is_threshold_feasible(valuations, 10,{"Alice","Bob"}))
+    # print(is_threshold_feasible(valuations, 9,{"Alice","Bob"}))
+
 #
 #     # 2. Run the algorithm on random instances, with logging:
 #     logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -617,18 +626,3 @@ if __name__ == "__main__":
 #     print("Final matching:", result)
 #     expected = {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
 #     print("Match is correct:", result == expected)
-
-
-
-"""
-
-GOAL: find maximum T such that
-      each child can get value at least T.
-
-Definition: T is feasible == there exists a perfect matching in the hypergraph of T.
-
-
-LOW =0
-HIGH=min[i] sum[vi]
-
-"""
