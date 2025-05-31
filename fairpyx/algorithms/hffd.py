@@ -160,3 +160,14 @@ def hffd(
         _log(f"Unallocated chores: {sorted(remaining_items)}", logger)
     else:
         _log("All chores allocated.", logger)
+
+
+if __name__=="__main__":
+    import doctest
+    print(doctest.testmod())
+
+    import fairpyx
+    from fairpyx.adaptors import divide
+    valuations = {"Alice": {"c1": 10, "c2": 8, "c3": 6}, "Bob": {"c1": 10, "c2": 8, "c3": 6}, "Chana": {"c1": 6, "c2": 8, "c3": 10}, "Dana": {"c1": 6, "c2": 8, "c3": 10}}
+    instance = fairpyx.Instance(valuations=valuations)
+    divide(hffd, instance=instance, thresholds = [9,4,3,3], logger=print)
