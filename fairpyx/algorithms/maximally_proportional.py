@@ -350,29 +350,4 @@ def find_pareto_dominating_alloc(
 if __name__ == "__main__":
     import doctest
 
-    # print(doctest.testmod())
-    logger.setLevel(logging.DEBUG)
-
-    console_handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        fmt="{asctime} - {levelname} - {message}",
-        style="{",
-        datefmt="%d/%m/%Y %H:%M",
-    )
-    console_handler.setFormatter(formatter)
-    console_handler.addFilter(lambda record: record.funcName != "backtrack")
-    logger.addHandler(console_handler)
-
-    nagents, nitems = 4, 6
-    title = f"Large Input. Agents - {nagents}. Items - {nitems}"
-    instance = Instance.random_uniform(
-        num_of_agents=nagents,
-        num_of_items=nitems,
-        item_capacity_bounds=(1, 1),
-        agent_capacity_bounds=(nitems, nitems),
-        item_base_value_bounds=(20, 100),
-        item_subjective_ratio_bounds=(0.5, 1.4),
-        normalized_sum_of_values=100,
-        random_seed=15,
-    )
-    alloc = divide(maximally_proportional_allocation, instance)
+    print(doctest.testmod())
