@@ -285,7 +285,7 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
     objective = cp.Maximize(cp.sum(list(x.values())))
 
     prob = cp.Problem(objective, constraints)
-    prob.solve(solver=cp.ECOS, verbose=False)
+    prob.solve(verbose=False)
 
     # בניית הפלט: עבור כל סוכן – קונפיגורציה עם ערך הכי גבוה
     allocation = {}
