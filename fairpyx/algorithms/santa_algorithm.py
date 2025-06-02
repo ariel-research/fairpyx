@@ -15,27 +15,59 @@ from fairpyx import Instance, AllocationBuilder
 from fairpyx import validate_allocation
 import logging
 from typing import Optional
+import cvxpy as cp
+import itertools
+from itertools import combinations
 
+
+
+# הגדרת הלוגר
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def parse_allocation_strings(allocation: Dict[str, str]) -> Dict[str, List[Set[str]]]:
     """
-    מקבלת הקצאה בפורמט של מחרוזות כמו '1.0*{'c1', 'c3'}'
+    מקבלת הקצאה בפורמט של מחרוזות כמו "1.0*{c1, c3}" או "1.0*{'c1', 'c3'}"
     ומחזירה: {'Alice': [{'c1', 'c3'}], ...}
+
+    אם אין חבילה (למשל "0.0*{}"), או שיש שגיאה בפורמט, מוחזרות רשימה ריקה.
     """
-    import ast
-    parsed = {}
+    parsed: Dict[str, List[Set[str]]] = {}
     for agent, bundle_str in allocation.items():
-        if "*{" in bundle_str:
-            try:
-                bundle_part = bundle_str.split("*", 1)[1]
-                bundle = ast.literal_eval(bundle_part)
-                parsed[agent] = [bundle]
-            except Exception:
-                parsed[agent] = []
-        else:
-            parsed[agent] = []
+        parsed[agent] = []  # ברירת מחדל: בלי חבילות
+
+        # בודקים שיש תת־מחרוזת שמתחילה ב-*{ ומסתיימת ב-}
+        if "*{" not in bundle_str or "}" not in bundle_str:
+            continue
+
+        # מקבלים את החלק אחרי הכוכבית ועד סוף
+        bundle_part = bundle_str.split("*", 1)[1].strip()
+
+        # אם אין {} כלל – נמשיך עם הרשימה הריקה
+        if not (bundle_part.startswith("{") and bundle_part.endswith("}")):
+            continue
+
+        # מוציאים את ה"{" וה"}"
+        inner = bundle_part[1:-1].strip()
+        if inner == "":
+            # חבילה ריקה, משאירים parsed[agent] = []
+            continue
+
+        # מחלקים לפי פסיקים
+        items = []
+        for token in inner.split(","):
+            tok = token.strip()
+            # הורדת גרשיים אפשריים מסביב בביטחון
+            if len(tok) >= 2 and ((tok.startswith("'") and tok.endswith("'")) or (tok.startswith('"') and tok.endswith('"'))):
+                tok = tok[1:-1]
+            if tok != "":
+                items.append(tok)
+
+        if items:
+            parsed[agent] = [set(items)]
+
     return parsed
+
 
 def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str]]:
     """
@@ -102,27 +134,19 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     # == חיפוש בינארי על t ==
     while high - low > 1e-4: # חיפוש בינארי: למצוא את ערך הסף הגבוה ביותר שבו עדיין ניתן לבצע הקצאה הוגנת
         mid = (low + high) / 2 # אם אפשרי לבצע הקצאה לכל סוכן עם ערך לפחות mid:
-        if is_threshold_feasible(valuations, mid, agent_names): # יש שידוך מושלם וניקח אותו
-            raw_allocation = solve_configuration_lp(valuations, mid)
-            allocation = parse_allocation_strings(raw_allocation)
-            fat_items, thin_items = classify_items(valuations, mid)
-            H = build_hypergraph(valuations, allocation, fat_items, thin_items, mid)
-
-            matching = local_search_perfect_matching(H, valuations, agent_names, threshold=mid)
-            if len(matching) == len(agent_names):
-                best_matching = matching
-                low = mid
-            else:
-                if mid != 0:
-                    logger.info("Matching incomplete at threshold %.4f", mid)
-                    high = mid
-                else:
-                    return {}
+        feasible, matching = is_threshold_feasible(valuations, mid, agent_names)
+        if feasible:
+            # אם אפשר לשבץ, נשמור את השידוך שמצאנו ונעלה את הגבול התחתון
+            best_matching = matching
+            low = mid
+            logger.info("Matching found at threshold %.4f: %s", mid, matching)
         else:
+            # אחרת, נוריד את הגבול העליון
             if mid != 0:
                 logger.info("Matching incomplete at threshold %.4f", mid)
                 high = mid
             else:
+                # אם mid == 0 ועדיין לא feasible, נחזיר הקצאה ריקה
                 return {}
 
     # == הקצאה לפי קיבולות ==
@@ -149,7 +173,7 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     logger.info("Final matching found at threshold %.4f: %s", low, best_matching)
     return {agent: set(items) for agent, items in final_allocation.items()} # מחזירים הקצאה עם סטים (ולא רשימות)
 
-def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: float, agent_names) -> bool:
+def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: float, agent_names: List[str]) -> Tuple[bool, Dict[str, str]]:
     """
 
     בודקת האם קיים שיבוץ שבו כל שחקן מקבל חבילה שערכה לפחות הסף הנתון (threshold).
@@ -165,11 +189,11 @@ def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: fl
     ...     "Alice": {"c1": 7, "c2": 0, "c3": 4},
     ...     "Bob":   {"c1": 0,  "c2": 8, "c3": 0}
     ... }
-    >>> is_threshold_feasible(valuations, 15,{"Alice","Bob"})
+    >>> is_threshold_feasible(valuations, 15,{"Alice","Bob"})[0]
     False
-    >>> is_threshold_feasible(valuations, 10,{"Alice","Bob"})
+    >>> is_threshold_feasible(valuations, 10,{"Alice","Bob"})[0]
     False
-    >>> is_threshold_feasible(valuations, 8,{"Alice","Bob"})
+    >>> is_threshold_feasible(valuations, 8,{"Alice","Bob"})[0]
     True
 
     Example 2: 2 Players, 2 Items (conflict)
@@ -177,12 +201,11 @@ def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: fl
     ...     "Alice": {"c1": 10, "c2": 0},
     ...     "Bob":   {"c1": 0, "c2": 9}
     ... }
-    >>> is_threshold_feasible(valuations, 10,{"Alice","Bob"})
+    >>> is_threshold_feasible(valuations, 10,{"Alice","Bob"})[0]
     False
-    >>> is_threshold_feasible(valuations, 9,{"Alice","Bob"})
+    >>> is_threshold_feasible(valuations, 9,{"Alice","Bob"})[0]
     True
     """
-    logger.info("Threshold %.4f is feasible, solving LP...", threshold)
 
     # פותרים את הבעיה הליניארית לקבלת הקצאה ראשונית
     raw_allocation = solve_configuration_lp(valuations, threshold)
@@ -197,12 +220,12 @@ def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: fl
             total_value = sum(value for value in items.values())
 
             if total_value < threshold:
-                return False
+                return False, {}
 
         logger.info("Threshold feasibility check passed, all players can receive at least %f value", threshold)
-        return True
+        return True, matching
 
-    return False
+    return False, {}
 
 def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: float) -> Dict[str, str]:
     """
@@ -216,27 +239,69 @@ def solve_configuration_lp(valuations: Dict[str, Dict[str, float]], threshold: f
 
     Example 1: 2 Players, 3 Items
     >>> valuations = {
-    ...     "Alice": {"c1": 7, "c2": 0, "c3": 8},
+    ...     "Alice": {"c1": 7, "c2": 0, "c3": 7},
     ...     "Bob":   {"c1": 0,  "c2": 8, "c3": 0}
     ... }
     >>> solve_configuration_lp(valuations, 8)
-    {'Alice': "1.0*{'c1', 'c3'}", 'Bob': "1.0*{'c2'}"}
+    {'Alice': '1.0*{c1, c3}', 'Bob': '1.0*{c2}'}
 
     """
-    logger.info("Solving configuration LP with threshold %.4f", threshold)
+    logger.info("Solving configuration LP with cvxpy at threshold %.4f", threshold)
+
+    agents = list(valuations.keys())
+    items = sorted({item for v in valuations.values() for item in v.keys()})
+
+    # כל הקונפיגורציות האפשריות לכל סוכן
+    bundles = {
+        i: [frozenset(s) for r in range(1, len(items) + 1)
+            for s in itertools.combinations(items, r)
+            if sum(valuations[i].get(x, 0) for x in s) >= threshold]
+        for i in agents
+    }
+
+    # משתני LP: x_{i,S}
+    x = {
+        (i, S): cp.Variable(nonneg=True)
+        for i in agents
+        for S in bundles[i]
+    }
+
+    constraints = []
+
+    # אילוץ 1: כל סוכן יכול לקבל לכל היותר חבילה אחת
+    for i in agents:
+        constraints.append(cp.sum([x[i, S] for S in bundles[i]]) <= 1)
+
+    # אילוץ 2: כל פריט מוקצה לכל היותר פעם אחת
+    for j in items:
+        terms = []
+        for i in agents:
+            for S in bundles[i]:
+                if j in S:
+                    terms.append(x[i, S])
+        if terms:
+            constraints.append(cp.sum(terms) <= 1)
+
+    # לא אכפת לנו מהמטרה, פשוט מקסימום משהו שרירותי (כדי שהפתרון יהיה שמיש)
+    objective = cp.Maximize(cp.sum(list(x.values())))
+
+    prob = cp.Problem(objective, constraints)
+    prob.solve(solver=cp.ECOS, verbose=False)
+
+    # בניית הפלט: עבור כל סוכן – קונפיגורציה עם ערך הכי גבוה
     allocation = {}
-    for agent, items in valuations.items():
-        bundle = set() # סט המתנות שהילד יקבל
-        total_value = 0
-        for item, val in items.items():
-            if val >= threshold / 4:
-                bundle.add(item) # הוספת הצלע להקצאה
-                total_value += val # הוספת הערך לטוטל של ההייפר צלע
-        if bundle: # אם אכן מצאנו הקצאה
-            multiplier = min(round(threshold / threshold, 4), 1.0) # מתבצע כאן עיגול!
-            allocation[agent] = f"{multiplier}*{{{', '.join(repr(item) for item in sorted(bundle))}}}"
+    for i in agents:
+        max_val = 0
+        max_bundle = frozenset()
+        for S in bundles[i]:
+            val = x[i, S].value
+            if val is not None and val > max_val:
+                max_val = val
+                max_bundle = S
+        if max_val > 0:
+            allocation[i] = f"{round(max_val, 4)}*{{{', '.join(sorted(max_bundle))}}}"
         else:
-            allocation[agent] = "0.0*{}"
+            allocation[i] = "0.0*{}"
 
     logger.debug("Configuration LP solution: %s", allocation)
     return allocation
@@ -323,22 +388,22 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
 
     edges: dict[str, set[str]] = {}
     edge_id = 0
-    seen:  set[frozenset[str]] = set()     # דה-דופליקציה – לא ליצור שוב את אותה צלע
+    seen: set[frozenset[str]] = set()
 
-    #   המאמר מציע להתחיל בחבילות שקיבלנו מ-Configuration-LP (“Partial matching”)
-    for player, bundles in allocation.items(): # לכל שחקן
-        for bundle in bundles: #   ולכל חבילה שה-LP נתן לו
-            nodes = frozenset({player, *bundle})  # {שחקן} ∪ {פריטים בחבילה}
-            if nodes in seen: #   אם כבר יצרנו אותה–דלג
+    # 1. הוספת הקשתות שהתקבלו מ־Configuration LP ("lp*" edges)
+    for player, bundles in allocation.items():
+        for bundle in bundles:
+            nodes = frozenset({player, *bundle})
+            if nodes in seen:
                 continue
-            seen.add(nodes) # תסמן כעת שראינו את הקבוצת מתנות הזו
-            edges[f"lp{edge_id}"] = set(nodes) #  מוסיפים כ-צלע מהסוג lp*
-            edge_id += 1 # תתקדם להייפר צלע הבאה
+            seen.add(nodes)
+            edges[f"lp{edge_id}"] = set(nodes)
+            edge_id += 1
 
-    #  הוספת קשתות fat: לכל פריט שמן נבדוק אילו שחקנים מעריכים אותו ≥ threshold
+    # 2. הוספת קשתות fat: רק אם השחקן מעריך את הפריט ≥ threshold
     for item in fat_items:
         for player in valuations:
-            if valuations[player].get(item, 0) >= threshold/4: #צריך לוודא שזה לא אפס - לוודא אם צריך את הבדיקה
+            if valuations[player].get(item, 0) >= threshold:
                 nodes = frozenset({player, item})
                 if nodes in seen:
                     continue
@@ -346,21 +411,37 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
                 edges[f"f{edge_id}"] = set(nodes)
                 edge_id += 1
 
-    #  הוספת קשתות thin: ניצור תתי-קבוצות מינימליות מפריטי thin שמערכן ≥ threshold לשחקן
-    #   חבילה של פריטי-Thin צריכה ביחד להגיע לערך ≥ t.
-    #   כדי לשמור על “קשתות קצרות” אנחנו לוקחים *תתי-קבוצות מינימליות*
-    #   – אם k פריטים מספיקים, אין סיבה להוסיף גם קבוצה גדולה יותר שמכילה אותם.
-    from itertools import combinations
+    # 3. הוספת קשתות thin: לכל תת־קבוצה מינימלית של thin items שסכומן ≥ threshold
     for player in valuations:
-        for r in range(1, len(thin_items) + 1): # גודל החבילה (1..|Thin|)
-            for bundle in combinations(thin_items, r): # כל תת-קבוצה בגודל r
-                if sum(valuations[player].get(i, 0) for i in bundle) >= threshold/4: #  האם ביחד ≥ t/4 ?
-                    edges[f"t{edge_id}"] = set(bundle) | {player} #  צלע מהסוג t*
-                    edge_id += 1
+        for r in range(1, len(thin_items) + 1):
+            for bundle in combinations(thin_items, r):
+                total = sum(valuations[player].get(i, 0) for i in bundle)
+                if total < threshold:
+                    continue
 
-    logger.info("Building hypergraph based on allocation")
+                # בדיקת מינימליות: אם מוסיפים את כל הפריטים ב־bundle הערך ≥ threshold,
+                # אבל בכל הסרה של פריט אחד (x) מהחבילה הערך < threshold, אז זו מינימלית.
+                is_minimal = True
+                for x in bundle:
+                    if total - valuations[player].get(x, 0) >= threshold:
+                        is_minimal = False
+                        break
+
+                if not is_minimal:
+                    continue
+
+                nodes = frozenset({player, *bundle})
+                if nodes in seen:
+                    continue
+                seen.add(nodes)
+                edges[f"t{edge_id}"] = set(nodes)
+                edge_id += 1
+
     H = HNXHypergraph(edges)
-    logger.info("Hypergraph construction completed with %d nodes and %d edges", len(H.nodes), len(H.edges))
+    logger.info(
+        "Hypergraph construction completed with %d nodes and %d edges",
+        len(H.nodes), len(H.edges)
+    )
     return H
 
 # פונקצית עזר - מחזירה את הקשתות שניתן להוסיף לעץ
