@@ -348,6 +348,26 @@ def find_pareto_dominating_alloc(
 
 
 if __name__ == "__main__":
-    import doctest
+    import doctest, random, numpy as np
+    # print(doctest.testmod())
+    np.set_printoptions(legacy="1.25")
 
-    print(doctest.testmod())
+
+    RAND_SEED = random.randint(1,10000)
+    instance = Instance.random_uniform(
+        num_of_agents=5,
+        num_of_items=10,
+        item_capacity_bounds=(1, 1),
+        agent_capacity_bounds=(10, 10),
+        item_base_value_bounds=(20, 25),
+        item_subjective_ratio_bounds=(0.5, 3.0),
+        normalized_sum_of_values=50,
+        random_seed=RAND_SEED,
+    )
+    print(instance._valuations)
+
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler())
+    alloc = divide(maximally_proportional_allocation, instance)
+    print(alloc)
+
