@@ -22,7 +22,6 @@ from itertools import combinations
 
 
 # הגדרת הלוגר
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def parse_allocation_strings(allocation: Dict[str, str]) -> Dict[str, List[Set[str]]]:
