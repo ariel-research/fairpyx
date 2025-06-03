@@ -101,6 +101,7 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     >>> result == {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
     True
     """
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     # שולפים את המידע מה-AllocationBuilder: שמות סוכנים ופריטים
     instance = allocation_builder.instance
     agent_names = list(instance.agents)
@@ -121,7 +122,6 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     }
 
     # מחשבים את טווח החיפוש הבינארי לפי הערך המקסימלי של פריט כלשהו
-    all_item_values = [v for val in valuations.values() for v in val.values()]
     high = min(sum(v.values()) for v in valuations.values()) # high = min [over all agents i] of sum[all_item_values for i]
 
     low = 0
@@ -437,10 +437,24 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
                 edge_id += 1
 
     H = HNXHypergraph(edges)
+
+    edge_strs = []
+    for edge in H.edges:
+        # 1) build the comma‐separated list of quoted node names:
+        nodes_list = ", ".join(f'"{node}"' for node in H.edges[edge])
+        # 2) wrap it in braces and prepend the edge name:
+        edge_strs.append(f'"{edge}": {{{nodes_list}}}')
+
+    # now join all of those:
+    edges_repr = ", ".join(edge_strs)
+
     logger.info(
-        "Hypergraph construction completed with %d nodes and %d edges",
-        len(H.nodes), len(H.edges)
+        "Hypergraph construction completed with %d nodes and %d edges: {%s}",
+        len(H.nodes),
+        len(H.edges),
+        edges_repr
     )
+
     return H
 
 # פונקצית עזר - מחזירה את הקשתות שניתן להוסיף לעץ
