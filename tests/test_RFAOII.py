@@ -12,6 +12,8 @@ from fairpyx.algorithms.repeated_Fair_Allocation_of_Indivisible_Items import (
     solve_fractional_ILP,
     algorithm1_div,
     algorithm2_div,
+    EF1_holds,
+    weak_EF1_holds
 )
 
 # ─── GLOBAL SEED ─────────────────────────────────────────────────────────────────────────
@@ -72,15 +74,9 @@ def test_algorithm1_simple_goods_divide():
         assert set(alloc[0]) | set(alloc[1]) == items
 
         # EF1 checks
-        print("  EF1 checks:")
-        for a in (0,1):
-            u_self   = sum(utils[a][o] for o in alloc[a])
-            u_other  = sum(utils[a][o] for o in alloc[1-a])
-            max_item = max(utils[a].values())
-            ok       = u_self >= u_other - max_item
-            print(f"   Agent {a}: {u_self} ≥ {u_other} - {max_item}? → {ok}")
-            assert ok
-
+        print("EF1 checks:")
+        for a in (0, 1):
+            assert EF1_holds(alloc, a, utils)
 
 def test_algorithm1_mixed_goods_chores_divide():
     utils = mixed_utilities()
@@ -93,15 +89,9 @@ def test_algorithm1_mixed_goods_chores_divide():
         print(f"\n Round {r+1}: 0→{alloc[0]} | 1→{alloc[1]}")
         assert set(alloc[0]) | set(alloc[1]) == items
 
-        # EF1 (remove worst) checks
-        print("  EF1 (remove worst) checks:")
-        for a in (0,1):
-            u_self  = sum(utils[a][o] for o in alloc[a])
-            u_other = sum(utils[a][o] for o in alloc[1-a])
-            worst   = min(utils[a][o] for o in alloc[1-a])
-            ok      = u_self >= u_other - worst
-            print(f"   Agent {a}: {u_self} ≥ {u_other} - {worst}? → {ok}")
-            assert ok
+        print("EF1 checks:")
+        for a in (0, 1):
+            assert EF1_holds(alloc, a, utils)
 
 
 @pytest.mark.parametrize("utils_fn", [mixed_utilities, chores_only_utilities])
@@ -128,13 +118,8 @@ def test_algorithm1_random():
         assert set(alloc[0]) | set(alloc[1]) == set(utils[0])
 
         print("  EF1 checks:")
-        for a in (0,1):
-            u_self   = sum(utils[a][o] for o in alloc[a])
-            u_other  = sum(utils[a][o] for o in alloc[1-a])
-            max_item = max(utils[a].values())
-            ok       = u_self >= u_other - max_item
-            print(f"   Agent {a}: {u_self} ≥ {u_other} - {max_item}? → {ok}")
-            assert ok
+        for a in (0, 1):
+            assert EF1_holds(alloc, a, utils)
 
 
 def test_algorithm2_simple_goods_divide():
@@ -152,27 +137,11 @@ def test_algorithm2_simple_goods_divide():
         rounds.append(alloc)
 
     print("\nWeak-EF1 checks per round:")
-    for r, alloc in enumerate(rounds,1):
-        print(f"\n Round {r}:")
-        for a in (0,1):
-            u_self  = sum(utils[a][o] for o in alloc[a])
-            u_other = sum(utils[a][o] for o in alloc[1-a])
-            if u_self >= u_other:
-                print(f"  Agent {a}: no envy ({u_self} ≥ {u_other})")
-            else:
-                print(f"  Agent {a}: envies ({u_self} < {u_other})")
-                fixed = False
-                for o in alloc[1-a]:
-                    ok = u_self >= u_other - utils[a][o]
-                    print(f"   Removing item {o}: {ok}")
-                    if ok:
-                        fixed = True
-                for o in alloc[a]:
-                    ok = u_self + utils[a][o] >= u_other
-                    print(f"   Adding item {o}: {ok}")
-                    if ok:
-                        fixed = True
-                assert fixed
+    for r, alloc in enumerate(rounds, 1):
+        print(f"\nRound {r}:")
+        for a in (0, 1):
+            assert weak_EF1_holds(alloc, a, utils), \
+                f"Round {r} – agent {a} fails weak-EF1"
 
 
 def test_algorithm2_needs_swap():
@@ -195,27 +164,11 @@ def test_algorithm2_needs_swap():
     assert rounds[0] != rounds[1], "Algorithm 2 should perform a swap here"
 
     print("\nWeak-EF1 checks per round:")
-    for r, alloc in enumerate(rounds,1):
-        print(f"\n Round {r}:")
-        for a in (0,1):
-            u_self  = sum(utils[a][o] for o in alloc[a])
-            u_other = sum(utils[a][o] for o in alloc[1-a])
-            if u_self >= u_other:
-                print(f"  Agent {a}: no envy ({u_self} ≥ {u_other})")
-            else:
-                print(f"  Agent {a}: envies ({u_self} < {u_other})")
-                fixed = False
-                for o in alloc[1-a]:
-                    ok = u_self >= u_other - utils[a][o]
-                    print(f"   Removing item {o}: {ok}")
-                    if ok:
-                        fixed = True
-                for o in alloc[a]:
-                    ok = u_self + utils[a][o] >= u_other
-                    print(f"   Adding item {o}: {ok}")
-                    if ok:
-                        fixed = True
-                assert fixed
+    for r, alloc in enumerate(rounds, 1):
+        print(f"\nRound {r}:")
+        for a in (0, 1):
+            assert weak_EF1_holds(alloc, a, utils), \
+                f"Round {r} – agent {a} fails weak-EF1"
 
 
 
@@ -224,31 +177,21 @@ def test_algorithm2_random():
     utils = random_utilities(num_items=5, seed=SEED)
     print(f"\nUtilities (random seed={SEED}): {utils}")
     k = 4
+    rounds = []
 
     print("\n=== Algorithm2 (random goods/chores) — All Rounds ===")
     for r in range(k):
         alloc = divide(algorithm2_div, valuations=utils, k=k, round_idx=r)
         print(f"\n Round {r+1}: 0→{alloc[0]} | 1→{alloc[1]}")
         assert set(alloc[0]) | set(alloc[1]) == set(utils[0])
+        rounds.append(alloc)
 
-        u0 = sum(utils[0][o] for o in alloc[0])
-        u1 = sum(utils[1][o] for o in alloc[1])
-        if u0 >= u1:
-            print(f"  Agent 0: no envy ({u0} ≥ {u1})")
-        else:
-            print(f"  Agent 0: envies ({u0} < {u1})")
-            fixed = False
-            for o in alloc[1]:
-                ok = u0 >= u1 - utils[0][o]
-                print(f"   Removing item {o}: {ok}")
-                if ok:
-                    fixed = True
-            for o in alloc[0]:
-                ok = u0 + utils[0][o] >= u1
-                print(f"   Adding item {o}: {ok}")
-                if ok:
-                    fixed = True
-            assert fixed
+    print("\nWeak-EF1 checks per round:")
+    for r, alloc in enumerate(rounds, 1):
+        print(f"\nRound {r}:")
+        for a in (0, 1):
+            assert weak_EF1_holds(alloc, a, utils), \
+                f"Round {r} – agent {a} fails weak-EF1"
 
 
 def test_algorithm1_larger_random():
@@ -262,17 +205,11 @@ def test_algorithm1_larger_random():
         assert set(alloc[0]) | set(alloc[1]) == set(utils[0])
 
         print("  EF1 checks:")
-        for a in (0,1):
-            u_self   = sum(utils[a][o] for o in alloc[a])
-            u_other  = sum(utils[a][o] for o in alloc[1-a])
-            max_item = max(utils[a].values())
-            ok       = u_self >= u_other - max_item
-            print(f"   Agent {a}: {u_self} ≥ {u_other} - {max_item}? → {ok}")
-            assert ok
-
+        for a in (0, 1):
+            assert EF1_holds(alloc, a, utils)
 
 def test_algorithm2_larger_random():
-    utils = random_utilities(num_items=20, seed=SEED+20)
+    utils = random_utilities(num_items=20, seed=SEED + 20)
     print(f"\nUtilities (larger random seed={SEED+20}): {utils}")
     k = 8
     rounds = []
@@ -281,28 +218,17 @@ def test_algorithm2_larger_random():
     for r in range(k):
         alloc = divide(algorithm2_div, valuations=utils, k=k, round_idx=r)
         print(f"\n Round {r+1}: 0→{alloc[0]} | 1→{alloc[1]}")
+        # coverage
         assert set(alloc[0]) | set(alloc[1]) == set(utils[0])
         rounds.append(alloc)
 
+
     print("\nWeak-EF1 checks per round:")
-    for r, alloc in enumerate(rounds,1):
-        print(f"\n Round {r}:")
-        for a in (0,1):
-            u_self  = sum(utils[a][o] for o in alloc[a])
-            u_other = sum(utils[a][o] for o in alloc[1-a])
-            if u_self >= u_other:
-                print(f"  Agent {a}: no envy ({u_self} ≥ {u_other})")
-            else:
-                print(f"  Agent {a}: envies ({u_self} < {u_other})")
-                fixed = False
-                for o in alloc[1-a]:
-                    ok = u_self >= u_other - utils[a][o]
-                    print(f"   Removing item {o}: {ok}")
-                    if ok:
-                        fixed = True
-                for o in alloc[a]:
-                    ok = u_self + utils[a][o] >= u_other
-                    print(f"   Adding item {o}: {ok}")
-                    if ok:
-                        fixed = True
-                assert fixed
+    for r, alloc in enumerate(rounds, 1):
+        print(f"\nRound {r}:")
+        for a in (0, 1):
+            assert weak_EF1_holds(alloc, a, utils), \
+                f"Round {r} – agent {a} fails weak-EF1"
+
+
+
