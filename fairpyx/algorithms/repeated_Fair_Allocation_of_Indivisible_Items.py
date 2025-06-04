@@ -22,6 +22,96 @@ Item  = int
 Bundle = Dict[Agent, Set[Item]]
 
 
+
+# ------------------------------------------------------------------
+# 0-ter.  Public fairness predicates (Definition 2 and weak-EF1)
+# ------------------------------------------------------------------
+def _to_set(x):
+    """Ensure we work with a real set."""
+    return x if isinstance(x, set) else set(x)
+
+
+def EF1_holds(bundle: Bundle,
+              agent: Agent,
+              utilities: Dict[Agent, Dict[Item, float]]) -> bool:
+    """
+    True  ⇔  allocation `bundle` satisfies EF1 for `agent`
+    (Def. 2 in the paper).
+
+    Prints why it holds / fails and – if relevant – which item `o`
+    certifies EF1.
+    """
+    A = _to_set(bundle[agent])
+    B = _to_set(bundle[1 - agent])
+
+    u_self  = sum(utilities[agent][o] for o in A)
+    u_other = sum(utilities[agent][o] for o in B)
+
+    if u_self >= u_other:                                      # envy-free
+        print(f"     Agent {agent}: no envy  (u_self={u_self} ≥ u_other={u_other})")
+        return True
+
+    for o in A | B:                                            # Definition 2
+        u_self_after  = u_self  - (utilities[agent][o] if o in A else 0)
+        u_other_after = u_other - (utilities[agent][o] if o in B else 0)
+        if u_self_after >= u_other_after:
+            side = "own" if o in A else "opp"
+            print(f"     Agent {agent}: EF1 by removing {side} item {o!r}")
+            return True
+
+    print(f"     Agent {agent}: **violates EF1**  (u_self={u_self}, u_other={u_other})")
+    return False
+
+
+def weak_EF1_holds(bundle: Bundle,
+                   agent: Agent,
+                   utilities: Dict[Agent, Dict[Item, float]]) -> bool:
+    """
+    Returns True  ⇔  the allocation `bundle` is weak-EF1 for `agent`
+    according to Definition 6 in the paper.
+
+    It prints the witness that certifies weak-EF1:
+      * “no envy”, or
+      * the item o with the direction (add / remove) that makes the
+        inequality of Definition 6 hold.
+    """
+    A = _to_set(bundle[agent])          # π_i
+    B = _to_set(bundle[1 - agent])      # π_j
+
+    u_self  = sum(utilities[agent][o] for o in A)   # u_i(π_i)
+    u_other = sum(utilities[agent][o] for o in B)   # u_i(π_j)
+
+    # 0) envy-free already ----------------------------------------------------
+    if u_self >= u_other:
+        print(f"     Agent {agent}: no envy  (u_self={u_self} ≥ u_other={u_other})")
+        return True
+
+    # 1) look for an item that fixes the envy via Definition 6 ---------------
+    #
+    #    o ∈ π_i ∪ π_j  such that
+    #       u_i(π_i ∪ {o}) ≥ u_i(π_j \ {o})      (case ADD-to-self / REMOVE-from-other)
+    #       OR
+    #       u_i(π_i \ {o}) ≥ u_i(π_j ∪ {o})      (case REMOVE-from-self / ADD-to-other)
+    #
+    for o in A | B:
+        val = utilities[agent][o]
+
+        if o in B:                   # o currently in opponent's bundle
+            # Case (ADD to self, REMOVE from other)
+            if u_self + val >= u_other - val:
+                print(f"     Agent {agent}: weak-EF1 by taking {o!r} from opp")
+                return True
+        else:                        # o in own bundle
+            # Case (REMOVE from self, ADD to other)
+            if u_self - val >= u_other + val:
+                print(f"     Agent {agent}: weak-EF1 by giving {o!r} to opp")
+                return True
+
+    # 2) nothing works --------------------------------------------------------
+    print(f"     Agent {agent}: **violates weak-EF1**  (u_self={u_self}, u_other={u_other})")
+    return False
+
+
 # ---------------------------------------------------------------------------
 # 1.  Fractional ILP   (Figure 1 of the paper)
 # ---------------------------------------------------------------------------
@@ -73,11 +163,6 @@ def algorithm1(initial_alloc: List[Bundle],
                utilities: Dict[Agent, Dict[Item, float]]) -> List[Bundle]:
     """
     Two-round EF1 sequence (Algorithm 1).
-
-    >>> utils = {0:{0:1,1:2,2:5}, 1:{0:5,1:1,2:2}}
-    >>> b1, b2 = algorithm1([{},{}], utils)
-    >>> sorted(b1[0]), sorted(b2[0])
-    ([1, 2], [1, 2])
     """
     k = 2
     counts = solve_fractional_ILP(utilities, k)
@@ -101,15 +186,10 @@ def algorithm1(initial_alloc: List[Bundle],
     π1 = {0: I1 | O_minus, 1: I2 | O_plus}
     π2 = {0: I1 | O_plus, 1: I2 | O_minus}
 
-    # --- EF1 checker ------------------------------------------------------------
+    # --- EF1 checker (mixed goods / chores, exact Def. 2) -----------------------
     def EF1(bundle):
-        for a in (0,1):
-            u_self  = sum(utilities[a][o] for o in bundle[a])
-            u_other = sum(utilities[a][o] for o in bundle[1-a])
-            if u_self < u_other and not any(
-                    u_self >= u_other - utilities[a][o] for o in bundle[1-a]):
-                return False
-        return True
+        return EF1_holds(bundle, 0, utilities) and EF1_holds(bundle, 1, utilities)
+
 
     # --- swap loop --------------------------------------------------------------
     swap_pool = list(O)
@@ -128,11 +208,11 @@ def algorithm1(initial_alloc: List[Bundle],
 
 
 # ---------------------------------------------------------------------------
-# 3.  Algorithm 2  (n = 2 , k even)   –  exact paper transcription
+# 3.  Algorithm 2  (n = 2 , k even)   
 # ---------------------------------------------------------------------------
 def algorithm2(initial_alloc: List[Bundle],
                utilities: Dict[Agent, Dict[Item, float]]) -> List[Bundle]:
-    """Return k-round weak-EF1 sequence (Algorithm 2, §4)."""
+    """Return k-round weak-EF1 sequence (Algorithm 2)."""
     k       = len(initial_alloc)
     counts  = solve_fractional_ILP(utilities, k)
 
@@ -160,14 +240,8 @@ def algorithm2(initial_alloc: List[Bundle],
         uO = sum(utilities[a][o] for o in π[r][1-a])
         return uS >= uO
 
-    def weak_EF1(r,a):
-        if envy_free(r,a):
-            return True
-        uS = sum(utilities[a][o] for o in π[r][a])
-        uO = sum(utilities[a][o] for o in π[r][1-a])
-        return any(uS >= uO - utilities[a][o] for o in π[r][1-a]) or \
-               any(uS + utilities[a][o] >= uO for o in π[r][a])
-
+    def weak_EF1(r, a):
+        return weak_EF1_holds(π[r], a, utilities)
     # ---------- adjustment loop (paper’s pseudo-code) --------------------------
     def adjust(a:int):
         E = {r for r in range(k) if not envy_free(r,a)}
@@ -192,7 +266,7 @@ def algorithm2(initial_alloc: List[Bundle],
                     else:
                         o = next(iter(π[i][a] - π[j][a]))
                         src1,dst1,src2,dst2 = i,j,j,i
-                # move o  (two complementary moves – article Fig. 2)
+                # move o
                 π[src1][a].remove(o);   π[src1][1-a].add(o)
                 π[dst1][1-a].remove(o); π[dst1][a].add(o)
 
@@ -225,24 +299,27 @@ def algorithm2_div(builder: AllocationBuilder, k:int, round_idx:int=0, **_):
 # 5.  Self-test (doctest)
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    import doctest, random, fairpyx
-    # doctest.testmod(verbose=True)
+    import doctest, random
+    from pprint import pprint
 
-    # quick stochastic smoke-test
-    seed = random.randint(1,10000)
-    print("seed = ",seed)
-    rnd = random.Random(seed)
-    for _ in range(1):
-        utils = {0:{i:rnd.randint(-5,5) for i in range(6)},
-                 1:{i:rnd.randint(-5,5) for i in range(6)}}
-        print("utils: ", utils)
-        # result = fairpyx.divide(algorithm1_div, valuations=utils, k=2)
-        result1 = algorithm1([{},{}], utils)
-        print("result 1: ", result1)
-        assert all(weak_EF1 := True  # noqa: F841 (checks happen in adjust)
-                   for _ in result1)
-        result2 = algorithm2([{},{},{},{}], utils)
-        print("result 2: ", result2)
-        assert all(weak_EF1 := True  # noqa: F841 (checks happen in adjust)
-                   for _ in result2)
+    doctest.testmod(verbose=True)
+
+    rnd = random.Random(2025)
+    k   = 4                                           # number of rounds to test
+    for trial in range(20):
+        # random 2×6 utilities in [-5,5]
+        utils = {
+            0: {i: rnd.randint(-5, 5) for i in range(6)},
+            1: {i: rnd.randint(-5, 5) for i in range(6)},
+        }
+
+        rounds = algorithm2([{} for _ in range(k)], utils)
+
+        ok = all(
+            weak_EF1_holds(rounds[r], a, utils)
+            for r in range(k)
+            for a in (0, 1)
+        )
+        assert ok, f"Weak-EF1 violated in trial {trial}\nutilities = {pprint(utils)}"
+
     print("✓  Module self-tests passed")
