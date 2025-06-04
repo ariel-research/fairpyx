@@ -18,6 +18,7 @@ from fairpyx.algorithms.repeated_Fair_Allocation_of_Indivisible_Items import (
 
 # ─── GLOBAL SEED ─────────────────────────────────────────────────────────────────────────
 SEED = 4941
+### TODO: choose seed at random, and print it for debug
 # ──────────────────────────────────────────────────────────────────────────────────────────
 
 def simple_utilities():
@@ -60,6 +61,7 @@ def test_solve_fractional_ILP_counts_sum_to_k():
         print(f" Item {o}: allocated {total} times")
         assert total == k
 
+### TODO: test allocation genetated from the ILP
 
 def test_algorithm1_simple_goods_divide():
     utils = simple_utilities()
@@ -67,6 +69,8 @@ def test_algorithm1_simple_goods_divide():
     items = set(utils[0])
 
     print("\n=== Algorithm1 (simple goods) — Both Rounds ===")
+
+    ### TODO: in this function, test algorithm 1 directly.
     for r in (0, 1):
         alloc = divide(algorithm1_div, valuations=utils, round_idx=r)
         print(f"\n Round {r+1}: 0→{alloc[0]} | 1→{alloc[1]}")
@@ -77,6 +81,9 @@ def test_algorithm1_simple_goods_divide():
         print("EF1 checks:")
         for a in (0, 1):
             assert EF1_holds(alloc, a, utils)
+
+    ### TODO: move common test code to a separate function
+    ### TODO: add check for proportionality / EF overall 
 
 def test_algorithm1_mixed_goods_chores_divide():
     utils = mixed_utilities()

@@ -19,7 +19,8 @@ from   fairpyx.adaptors import AllocationBuilder
 
 Agent = int
 Item  = int
-Bundle = Dict[Agent, Set[Item]]
+Bundle = Set[Item]
+OneDayAllocation = Dict[Agent, Bundle]
 
 
 
@@ -31,7 +32,7 @@ def _to_set(x):
     return x if isinstance(x, set) else set(x)
 
 
-def EF1_holds(bundle: Bundle,
+def EF1_holds(allocation: OneDayAllocation,
               agent: Agent,
               utilities: Dict[Agent, Dict[Item, float]]) -> bool:
     """
@@ -40,9 +41,11 @@ def EF1_holds(bundle: Bundle,
 
     Prints why it holds / fails and – if relevant – which item `o`
     certifies EF1.
+
+    ### TODO: add doctests & pytests
     """
-    A = _to_set(bundle[agent])
-    B = _to_set(bundle[1 - agent])
+    A = _to_set(allocation[agent])
+    B = _to_set(allocation[1 - agent])
 
     u_self  = sum(utilities[agent][o] for o in A)
     u_other = sum(utilities[agent][o] for o in B)
@@ -63,7 +66,7 @@ def EF1_holds(bundle: Bundle,
     return False
 
 
-def weak_EF1_holds(bundle: Bundle,
+def weak_EF1_holds(bundle: OneDayAllocation,
                    agent: Agent,
                    utilities: Dict[Agent, Dict[Item, float]]) -> bool:
     """
@@ -125,10 +128,17 @@ def solve_fractional_ILP(
 
     Returns a dict  (agent,item) ↦ count  with ∑_agents count = k for every item.
 
-    >>> utils  = {0:{0:1, 1:2}, 1:{0:2, 1:1}}
+    >>> utils  = {0:{0:11, 1:22}, 1:{0:22, 1:11}}
     >>> solve_fractional_ILP(utils, 2)
     {(0, 0): 0, (0, 1): 2, (1, 0): 2, (1, 1): 0}
+
+    ### TODO: add doctests
+    >>> utils  = {0:{0:11, 1:22}, 1:{0:11, 1:22}}
+    >>> solve_fractional_ILP(utils, 2)
+    {(0, 0): 1, (0, 1): 1, (1, 0): 1, (1, 1): 1}
     """
+    ### TODO: write clear code, that you can understand and explain
+
     agents = list(utilities)
     items  = list(next(iter(utilities.values())))
     n, m   = len(agents), len(items)
@@ -159,20 +169,28 @@ def solve_fractional_ILP(
 # ---------------------------------------------------------------------------
 # 2.  Algorithm 1  (n = 2 , k = 2)
 # ---------------------------------------------------------------------------
-def algorithm1(initial_alloc: List[Bundle],
-               utilities: Dict[Agent, Dict[Item, float]]) -> List[Bundle]:
+
+
+### TODO: remove initial_alloc
+def algorithm1(initial_alloc: List[OneDayAllocation],
+               utilities: Dict[Agent, Dict[Item, float]]) -> List[OneDayAllocation]:
     """
     Two-round EF1 sequence (Algorithm 1).
+
+    ### TODO: add documentation to arguments + doctest
     """
     k = 2
     counts = solve_fractional_ILP(utilities, k)
+    ### TODO: add logging
 
+    ### TODO: move to separate function with doctests
     # --- split counts into two preliminary rounds --------------------------------
     prelim = [{0:set(), 1:set()} for _ in range(k)]
     for (agent, item), c in counts.items():
         for r in range(c):
             prelim[r][agent].add(item)
     π1, π2 = prelim
+    ### TODO: add logging (also in the rest of function)
 
     # --- persistent + optional items --------------------------------------------
     I1 = π1[0] & π2[0]          # always agent 0
@@ -182,13 +200,15 @@ def algorithm1(initial_alloc: List[Bundle],
 
     O_plus  = {o for o in O if utilities[0][o] >= 0 and utilities[1][o] >= 0}
     O_minus = O - O_plus
+    ### TODO: fix O_minus
+    ### Add assert that O_minus is the set of objective chores.
 
     π1 = {0: I1 | O_minus, 1: I2 | O_plus}
     π2 = {0: I1 | O_plus, 1: I2 | O_minus}
 
     # --- EF1 checker (mixed goods / chores, exact Def. 2) -----------------------
-    def EF1(bundle):
-        return EF1_holds(bundle, 0, utilities) and EF1_holds(bundle, 1, utilities)
+    def EF1(allocation):
+        return EF1_holds(allocation, 0, utilities) and EF1_holds(allocation, 1, utilities)
 
 
     # --- swap loop --------------------------------------------------------------
@@ -210,8 +230,8 @@ def algorithm1(initial_alloc: List[Bundle],
 # ---------------------------------------------------------------------------
 # 3.  Algorithm 2  (n = 2 , k even)   
 # ---------------------------------------------------------------------------
-def algorithm2(initial_alloc: List[Bundle],
-               utilities: Dict[Agent, Dict[Item, float]]) -> List[Bundle]:
+def algorithm2(initial_alloc: List[OneDayAllocation],
+               utilities: Dict[Agent, Dict[Item, float]]) -> List[OneDayAllocation]:
     """Return k-round weak-EF1 sequence (Algorithm 2)."""
     k       = len(initial_alloc)
     counts  = solve_fractional_ILP(utilities, k)
@@ -234,6 +254,9 @@ def algorithm2(initial_alloc: List[Bundle],
             else:
                 raise RuntimeError("could not place item")
 
+    ### TODO: move to separate function, with documentation and doctests
+    ### TODO: Use the same function to convert fractional ILP to allocation (for any k).
+
     # ---------- helper predicates ---------------------------------------------
     def envy_free(r,a):
         uS = sum(utilities[a][o] for o in π[r][a])
@@ -243,7 +266,7 @@ def algorithm2(initial_alloc: List[Bundle],
     def weak_EF1(r, a):
         return weak_EF1_holds(π[r], a, utilities)
     # ---------- adjustment loop (paper’s pseudo-code) --------------------------
-    def adjust(a:int):
+    def adjust(a:int):   ### TODO: add documentation
         E = {r for r in range(k) if not envy_free(r,a)}
         F = set(range(k)) - E
         while any(not weak_EF1(r,a) for r in E):
@@ -252,6 +275,16 @@ def algorithm2(initial_alloc: List[Bundle],
                 i = min(F)
                 # pick o as in Lemma-17
                 try:
+                    ### TODO: fix sign if needed
+                    ### TODO: assert (Lemma 17)
+                    # o = next(iter(x for x in π[j][a]-π[i][a] if utilities[a][x] > 0), None)
+                    # if o is not None:
+                    #     src1,dst1,src2,dst2 = j,i,i,j
+                    # else:
+                    #     o = next(iter(x for x in π[i][a]-π[j][a] if utilities[a][x] < 0), None)
+                    #     assert (o is not None, "Lemma 17 violated")
+                    #     src1,dst1,src2,dst2 = i,j,j,i
+
                     if any(utilities[a][x] > 0 for x in π[j][a] - π[i][a]):
                         o = next(x for x in π[j][a]-π[i][a] if utilities[a][x] > 0)
                         src1,dst1,src2,dst2 = j,i,i,j
