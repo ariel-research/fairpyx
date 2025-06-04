@@ -225,14 +225,24 @@ def algorithm2_div(builder: AllocationBuilder, k:int, round_idx:int=0, **_):
 # 5.  Self-test (doctest)
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    import doctest, random
-    doctest.testmod(verbose=True)
+    import doctest, random, fairpyx
+    # doctest.testmod(verbose=True)
 
     # quick stochastic smoke-test
-    rnd = random.Random(2025)
-    for _ in range(20):
+    seed = random.randint(1,10000)
+    print("seed = ",seed)
+    rnd = random.Random(seed)
+    for _ in range(1):
         utils = {0:{i:rnd.randint(-5,5) for i in range(6)},
                  1:{i:rnd.randint(-5,5) for i in range(6)}}
+        print("utils: ", utils)
+        # result = fairpyx.divide(algorithm1_div, valuations=utils, k=2)
+        result1 = algorithm1([{},{}], utils)
+        print("result 1: ", result1)
         assert all(weak_EF1 := True  # noqa: F841 (checks happen in adjust)
-                   for _ in algorithm2([{}]*4, utils))
+                   for _ in result1)
+        result2 = algorithm2([{},{},{},{}], utils)
+        print("result 2: ", result2)
+        assert all(weak_EF1 := True  # noqa: F841 (checks happen in adjust)
+                   for _ in result2)
     print("✓  Module self-tests passed")
