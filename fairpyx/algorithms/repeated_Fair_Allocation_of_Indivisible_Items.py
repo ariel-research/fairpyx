@@ -338,6 +338,8 @@ if __name__ == "__main__":
     doctest.testmod(verbose=True)
 
     rnd = random.Random(2025)
+    ### TODO: Choose seed at random & print it
+
     k   = 4                                           # number of rounds to test
     for trial in range(20):
         # random 2×6 utilities in [-5,5]
@@ -345,8 +347,13 @@ if __name__ == "__main__":
             0: {i: rnd.randint(-5, 5) for i in range(6)},
             1: {i: rnd.randint(-5, 5) for i in range(6)},
         }
+        ### TODO: pretty-print print input
 
         rounds = algorithm2([{} for _ in range(k)], utils)
+
+        ### TODO: pretty-print output
+
+        ### TODO: add example for algorithm1
 
         ok = all(
             weak_EF1_holds(rounds[r], a, utils)
