@@ -1,219 +1,201 @@
-import numpy as np
-from fairpyx.algorithms.Santa_Algorithm import (
-    is_threshold_feasible,
-    solve_configuration_lp,
-    classify_items,
-    build_hypergraph,
-    local_search_perfect_matching,
-    Hypergraph
-)
+"""
+An implementation of the algorithms in:
+"Santa Claus Meets Hypergraph Matchings",
+by ARASH ASADPOUR - New York University, URIEL FEIGE - The Weizmann Institute, AMIN SABERI - Stanford University,
+https://dl.acm.org/doi/abs/10.1145/2229163.2229168
+Programmers: May Rozen
+Date: 2025-04-23
+"""
+import unittest
+from fairpyx import AllocationBuilder, Instance
+from Santa_Algorithm import santa_claus_main
 
-import time
-seed = time.time_ns()
-print("seed = ",seed)
-np.random.seed(seed)
-
-# ========== Basic edge cases ==========
-
-# Test: Empty input should not be feasible
-def test_empty_input():
-    valuations = np.array([[]])
-    assert not is_threshold_feasible(valuations, 0.5)
+from fairpyx.fairpyx.algorithms.Santa_Algorithm import is_threshold_feasible, classify_items, solve_configuration_lp, \
+    build_hypergraph
 
 
-# Test: Single player and single item enough to meet threshold
-def test_one_player_one_item_enough():
-    valuations = np.array([[1.0]])
-    assert is_threshold_feasible(valuations, 0.5)
+class TestSantaClausAlgorithm(unittest.TestCase):
+    def test_santa_claus_main_simple(self):
+        # Test 1: Simple case with 2 players and 3 items
+        instance = Instance()
+        allocation_builder = AllocationBuilder(instance=instance)
+        allocation_builder.add_valuation("Alice", {"c1": 5, "c2": 0, "c3": 6})
+        allocation_builder.add_valuation("Bob", {"c1": 0, "c2": 8, "c3": 0})
+
+        result = santa_claus_main(allocation_builder)
+
+        # Expecting a matching that allocates items between Alice and Bob
+        self.assertEqual(result, {'Alice': {'c1', 'c3'}, 'Bob': {'c2'}})
+
+        # Test 2: More complex case with 4 players and 4 items
+        instance = Instance()
+        allocation_builder = AllocationBuilder(instance=instance)
+
+        allocation_builder.add_valuation("A", {"c1": 10, "c2": 0, "c3": 0, "c4": 6})
+        allocation_builder.add_valuation("B", {"c1": 10, "c2": 8, "c3": 0, "c4": 0})
+        allocation_builder.add_valuation("C", {"c1": 0, "c2": 8, "c3": 6, "c4": 0})
+        allocation_builder.add_valuation("D", {"c1": 0, "c2": 0, "c3": 6, "c4": 6})
+
+        result = santa_claus_main(allocation_builder)
+
+        # Expecting a different matching due to more players and items
+        self.assertEqual(result, {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}})
+
+        # Test 3: Large scale case with 100 players and 100 items
+        instance = Instance()
+        allocation_builder = AllocationBuilder(instance=instance)
+
+        for i in range(100):
+            valuations = {f"c{j + 1}": (1 if j == i else 0) for j in range(100)}  # Player_i values only item_i
+            allocation_builder.add_valuation(f"Player_{i + 1}", valuations)
+
+        result = santa_claus_main(allocation_builder)
+
+        # Expecting each player to get exactly their corresponding item
+        for i in range(100):
+            self.assertEqual(result[f"Player_{i + 1}"], {f"c{100 - i}"})
+
+        # Verify there are no duplicate allocations (no player gets the same item as another player)
+        self.assertTrue(all(len(set(items)) == len(items) for items in result.values()))
+
+        # Verify the number of players matches the number of allocations
+        self.assertEqual(len(result), 100)
+
+        # Test case for 100 players and 200 presents (each player gets one present with value 40 and one with value 60)
+        instance = Instance()
+        allocation_builder = AllocationBuilder(instance=instance)
+
+        # Define valuations for 100 players and 200 presents (one with value 40 and one with value 60)
+        for i in range(100):
+            valuations = {f"c{j + 1}": (40 if j == i * 2 else 60) for j in
+                          range(200)}  # Each player gets 1 present with value 40 and 1 present with value 60
+            allocation_builder.add_valuation(f"Player_{i + 1}", valuations)
+
+        result = santa_claus_main(allocation_builder)
+
+        # Expecting each player to get exactly one present with value 40 and one with value 60
+        for i in range(100):
+            player_presents = result[f"Player_{i + 1}"]
+            self.assertEqual(len(player_presents), 2)  # Ensure each player gets exactly 2 presents
+            self.assertTrue(
+                any(present.startswith('c') for present in player_presents))  # Ensure the presents have correct ids
+            self.assertTrue(all(valuation in [40, 60] for present, valuation in
+                                player_presents))  # Ensure the presents' values are 40 and 60
+
+        # Verify the number of players matches the number of allocations
+        self.assertEqual(len(result), 100)
+
+        # Verify no duplicates in the allocation
+        all_presents = [present for presents in result.values() for present in presents]
+        self.assertEqual(len(all_presents),
+                         len(set(all_presents)))  # Ensure no presents are assigned to multiple players
+
+    def test_is_threshold_feasible(self):
+        # Test the threshold feasibility function
+        valuations = {
+            "Alice": {"c1": 7, "c2": 0, "c3": 4},
+            "Bob": {"c1": 0, "c2": 8, "c3": 0}
+        }
+
+        self.assertFalse(is_threshold_feasible(valuations, 15))
+        self.assertFalse(is_threshold_feasible(valuations, 10))
+        self.assertTrue(is_threshold_feasible(valuations, 8))
+
+        valuations = {
+            "A": {"c1": 10, "c2": 0, "c3": 0, "c4": 6},
+            "B": {"c1": 10, "c2": 8, "c3": 0, "c4": 0},
+            "C": {"c1": 0, "c2": 8, "c3": 6, "c4": 0},
+            "D": {"c1": 0, "c2": 0, "c3": 6, "c4": 6}
+        }
+        self.assertTrue(is_threshold_feasible(valuations, 6))
+        self.assertFalse(is_threshold_feasible(valuations, 7))
 
 
-# Test: Single player and single item not enough to meet threshold
-def test_one_player_one_item_not_enough():
-    valuations = np.array([[0.2]])
-    assert not is_threshold_feasible(valuations, 0.5)
+    def test_solve_configuration_lp(self):
+        # Test: 2 Players, 2 Items (conflict)
+        valuations = {
+            "Alice": {"c1": 10, "c2": 5},
+            "Bob": {"c1": 10, "c2": 5}
+        }
+
+        result = solve_configuration_lp(valuations, 5)
+
+        # Expected result: both Alice and Bob get half of both items
+        expected_result = {'Alice': {('c1', 0.5), ('c2', 0.5)}, 'Bob': {('c1', 0.5), ('c2', 0.5)}}
+
+        self.assertEqual(result, expected_result)
+
+    def test_classify_items(self):
+        # Test the classify_items function
+        valuations = {
+            "Alice": {"c1": 0.9, "c2": 0.2},
+            "Bob":   {"c1": 0.9, "c2": 0.2}
+        }
+
+        fat_items, thin_items = classify_items(valuations, 0.4)
+
+        self.assertEqual(fat_items, {'c1'})
+        self.assertEqual(thin_items, {'c2'})
+
+    def test_build_hypergraph(self):
+        # Test the build_hypergraph function
+        valuations = {
+            "A": {"c1": 10, "c2": 0, "c3": 0, "c4": 0},
+            "B": {"c1": 0, "c2": 8, "c3": 0, "c4": 0},
+            "C": {"c1": 0, "c2": 0, "c3": 6, "c4": 0},
+            "D": {"c1": 0, "c2": 0, "c3": 0, "c4": 4}
+        }
+
+        allocation = {
+            "A": [{"c1"}],
+            "B": [{"c2"}],
+            "C": [{"c3"}],
+            "D": [{"c4"}]
+        }
+
+        fat_items, thin_items = classify_items(valuations, 4)
+
+        # Test hypergraph creation
+        hypergraph = build_hypergraph(valuations, allocation, fat_items, thin_items, 4)
+
+        # Verify the number of nodes (players + items)
+        self.assertEqual(len(hypergraph.nodes), 8)
+
+        # Verify the number of edges
+        self.assertEqual(len(hypergraph.edges), 4)
+
+        # Check that the hypergraph contains the correct edges
+        self.assertTrue(any("A" in edge and "c1" in edge for edge in hypergraph.edges))
+        self.assertTrue(any("B" in edge and "c2" in edge for edge in hypergraph.edges))
+        self.assertTrue(any("C" in edge and "c3" in edge for edge in hypergraph.edges))
+        self.assertTrue(any("D" in edge and "c4" in edge for edge in hypergraph.edges))
+
+    def test_local_search_perfect_matching(self):
+        # Test the local_search_perfect_matching function
+        valuations = {
+            "A": {"c1": 5, "c2": 0, "c3": 4, "c4": 0},
+            "B": {"c1": 5, "c2": 6, "c3": 0, "c4": 0},
+            "C": {"c1": 0, "c2": 6, "c3": 4, "c4": 0},
+            "D": {"c1": 0, "c2": 0, "c3": 4, "c4": 6}
+        }
+
+        threshold = 5
+        fat_items, thin_items = classify_items(valuations, threshold)
+
+        allocation = {
+            "A": [{"c3"}],
+            "B": [{"c1"}],
+            "C": [{"c2"}],
+            "D": [{"c4"}]
+        }
+
+        hypergraph = build_hypergraph(valuations, allocation, fat_items, thin_items, threshold)
+
+        matching = local_search_perfect_matching(hypergraph)
+
+        # Expecting a perfect matching
+        self.assertEqual(matching, {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}})
 
 
-# Test: Negative valuations, ensure function handles properly
-def test_negative_values():
-    valuations = np.array([[0.3, -0.2], [-0.1, 0.5]])
-    assert is_threshold_feasible(valuations, 0.3)  # Player 2 saves it
-
-# Test: player with only negative valuations cannot be satisfied
-def test_player_with_only_negative_items():
-    valuations = np.array([[-0.5, -0.3, -0.9]])
-    assert not is_threshold_feasible(valuations, 0.1)
-
-# Test: very small threshold close to zero should be feasible
-def test_very_small_threshold():
-    valuations = np.array([[0.0002, 0.0003]])
-    assert is_threshold_feasible(valuations, 0.0001)
-
-# Test: exact threshold value is considered feasible
-def test_exact_threshold_value():
-    valuations = np.array([[0.4, 0.1]])
-    assert is_threshold_feasible(valuations, 0.5)
-
-
-# ========== Larger input tests ==========
-
-# Test: Large input random valuations
-def test_large_input_feasibility():
-    np.random.seed(0)
-    valuations = np.random.rand(50, 100)  # 50 players, 100 items
-    assert isinstance(is_threshold_feasible(valuations, 0.5), bool)
-
-
-# Test: Very large input - stress test
-def test_very_large_input():
-    np.random.seed(42)
-    valuations = np.random.rand(200, 500)  # 200 players, 500 items
-    threshold = 0.4
-    assert isinstance(is_threshold_feasible(valuations, threshold), bool)
-
-
-# ========== Conflict and matching tests ==========
-
-# Test: Conflict over valuable items (both want the same)
-def test_conflict_case_no_feasible_allocation():
-    valuations = np.array([
-        [0.9, 0.2],
-        [0.9, 0.2]
-    ])
-    assert not is_threshold_feasible(valuations, 0.9)
-
-
-# Test: Conflict but lower threshold makes feasible
-def test_conflict_case_with_lower_threshold():
-    valuations = np.array([
-        [0.9, 0.2],
-        [0.9, 0.2]
-    ])
-    assert is_threshold_feasible(valuations, 0.5)
-
-
-# ========== Functionality and consistency tests ==========
-
-# Test: Random allocation followed by classification and matching consistency
-def test_random_allocation_classification_consistency():
-    np.random.seed(1)
-    valuations = np.random.rand(5, 10)
-    threshold = 0.6
-    allocation = solve_configuration_lp(valuations, threshold)
-    fat, thin = classify_items(valuations, threshold)
-    H = build_hypergraph(valuations, allocation, fat, thin, threshold)
-    match = local_search_perfect_matching(H)
-
-    # Check that each player achieves at least the threshold value
-    for player, items in match.items():
-        total_value = sum(valuations[player - 1, np.array(list(items)) - 1])
-        assert total_value >= threshold, f"Player {player} got {total_value}, expected at least {threshold}"
-
-
-# Test: Manual classification of fat and thin items
-def test_classify_items_fat_thin():
-    valuations = np.array([
-        [0.9, 0.1],
-        [0.2, 0.9]
-    ])
-    fat, thin = classify_items(valuations, 0.9)
-    assert fat == {1, 2}
-    assert thin == set()
-
-
-# Test: No fat items, all thin
-def test_all_thin_items():
-    valuations = np.array([
-        [0.5, 0.4],
-        [0.3, 0.5]
-    ])
-    fat, thin = classify_items(valuations, 0.7)
-    assert fat == set()
-    assert thin == {1, 2}
-
-
-# ========== Specific hypergraph and matching tests ==========
-
-# Test: Build hypergraph and validate its structure
-def test_build_hypergraph_structure():
-    valuations = np.array([
-        [0.6, 0.4, 0.5],
-        [0.7, 0.2, 0.4]
-    ])
-    allocation = {1: [{1, 2}], 2: [{3}]}
-    fat, thin = classify_items(valuations, 0.5)
-    H = build_hypergraph(valuations, allocation, fat, thin, 0.5)
-
-    # Ensure nodes and edges exist
-    assert H is not None
-    assert hasattr(H, 'edges')
-    assert len(H.edges) > 0
-
-
-# Test: Perfect matching correctness
-def test_local_search_perfect_matching_correctness():
-    H = Hypergraph()
-    H.add_edge(1, {1})
-    H.add_edge(2, {2})
-    match = local_search_perfect_matching(H)
-
-    # Ensure that all players are matched
-    assert 1 in match
-    assert 2 in match
-
-    # Ensure that matched bundles are disjoint
-    all_items = set()
-    for items in match.values():
-        assert all_items.isdisjoint(items), "Matched bundles overlap"
-        all_items.update(items)
-
-
-# Test: Matching with minimal bundles
-def test_local_search_minimal_bundles():
-    H = Hypergraph()
-    H.add_edge(1, {1, 2})
-    H.add_edge(2, {3})
-    match = local_search_perfect_matching(H)
-
-    # Ensure each player matched
-    assert set(match.keys()) == {1, 2}
-
-    # Ensure disjointness of assigned bundles
-    all_items = set()
-    for player, items in match.items():
-        assert all_items.isdisjoint(items), "Matched bundles overlap"
-        all_items.update(items)
-
-        # Ensure every player is matched to a non-empty set
-        assert len(items) > 0, f"Player {player} was assigned an empty bundle"
-
-
-# ========== Edge case: All valuations are zero ==========
-
-# Test: All valuations are zero (no feasible allocation)
-def test_all_zero_valuations():
-    valuations = np.zeros((4, 5))
-    assert not is_threshold_feasible(valuations, 0.1)
-
-
-# ========== Edge case: Threshold higher than any possible valuation ==========
-
-# Test: Threshold is too high for any bundle
-def test_threshold_too_high():
-    valuations = np.array([
-        [0.2, 0.1],
-        [0.3, 0.4]
-    ])
-    assert not is_threshold_feasible(valuations, 1.0)
-
-# ========== Stress tests ==========
-# Test: large matrix with big negative and positive values
-def test_large_input_with_negatives():
-    valuations = np.random.randn(300, 600) * 5  # Both negative and positive values
-    assert isinstance(is_threshold_feasible(valuations, 2.5), bool)
-
-# Test: very small numbers to check numerical stability
-def test_very_small_numbers_matrix():
-    valuations = np.full((10, 10), 1e-5)
-    assert is_threshold_feasible(valuations, 5e-5)
-
-
+if __name__ == "__main__":
+    unittest.main()
