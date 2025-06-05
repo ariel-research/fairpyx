@@ -675,8 +675,12 @@ if __name__ == "__main__":
             "Alice": {"c1": 10, "c2": 0},
             "Bob":   {"c1": 0, "c2": 9}
     }
+    print("\nCheck feasibility of 10:")
     print(is_threshold_feasible(valuations, 10,{"Alice","Bob"}))
-    # print(is_threshold_feasible(valuations, 9,{"Alice","Bob"}))
+    print("\nCheck feasibility of 9:")
+    print(is_threshold_feasible(valuations, 9,{"Alice","Bob"}))
+
+    
 
 #
 #     # 2. Run the algorithm on random instances, with logging:

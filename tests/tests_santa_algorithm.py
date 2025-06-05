@@ -8,6 +8,10 @@ from fairpyx.algorithms.Santa_Algorithm import (
     Hypergraph
 )
 
+import time
+seed = time.time_ns()
+print("seed = ",seed)
+np.random.seed(seed)
 
 # ========== Basic edge cases ==========
 
@@ -204,7 +208,6 @@ def test_threshold_too_high():
 # ========== Stress tests ==========
 # Test: large matrix with big negative and positive values
 def test_large_input_with_negatives():
-    np.random.seed(1)
     valuations = np.random.randn(300, 600) * 5  # Both negative and positive values
     assert isinstance(is_threshold_feasible(valuations, 2.5), bool)
 
