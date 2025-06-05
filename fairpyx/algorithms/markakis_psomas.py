@@ -8,6 +8,10 @@ http://pages.cs.aueb.gr/~markakis/research/wine11-Vn.pdf
 Programmer: Ibrahem Hurani
 Date: 2025-05-06
 """
+import logging
+import math
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 from fairpyx import AllocationBuilder,divide,Instance
 
@@ -23,35 +27,25 @@ def compute_vn(alpha: float, n: int) -> float:
     :param alpha: The value of the largest single item for the agent.
     :param n: The total number of agents.
     :return: The worst-case guaranteed value Vn(alpha).
-     Vn(alpha) Examples:
-    >>> compute_vn(0, 3)
-    0.3333333333333333
-    >>> compute_vn(0.3, 3)
-    0.19999999999999996
-    >>> compute_vn(0.6, 3)
-    0.0
     """
-    if n<=1:
+    if n <= 1:
         return 0.0
     if alpha == 0:
         return 1.0 / n
-    if alpha >= 1.0 / (n - 1):
-        return 0.0
-    inv = 1.0 / ((n - 1) * alpha)
-    k_floor = int(inv)
-    if k_floor < 1:
-        k_floor = 1
-    cand = (1.0 / alpha + 1.0) / n - 1.0
-    k = k_floor
-    if abs(round(cand) - cand) < 1e-9:
-        k_candidate = int(round(cand))
-        if k_candidate >= 1:
-            k = k_candidate
-    threshold = (k + 1) / (k * (((k + 1) * n) - 1))
-    if alpha < threshold:
-        return 1.0 - ((k + 1) * (n - 1)) / (((k + 1) * n) - 1)
-    else:
-        return 1.0 - k * (n - 1) * alpha
+    
+    for k in range(1, 1000):
+        I_left=(k + 1) / (k * ((k + 1) * n - 1))
+        I_right=1 / (k * n - 1)
+        NI_left= 1 / ((k + 1) * n - 1)
+        NI_right=(k + 1) / (k * ((k + 1) * n - 1))
+        # Check I(n,k) range (closed interval)
+        if I_left <= alpha <= I_right or math.isclose(alpha, I_left) or math.isclose(alpha, I_right):
+            return 1 - k * (n - 1) * alpha
+        # Check NI(n,k) range (open interval)
+        if NI_left < alpha < NI_right or math.isclose(alpha, NI_left) or math.isclose(alpha, NI_right):
+            return 1 - ((k + 1) * (n - 1)) / ((k + 1) * n - 1)
+    return 0.0
+
 
 def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     """
@@ -155,82 +149,70 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     
     if alloc is None:
         return {}
+
     n = len(alloc.remaining_agents())
-    if n==1:
+    logger.info(f"\nNew recursive call with {n} agents")
+
+    if n == 1:
         agent = next(iter(alloc.remaining_agents()))
         items = list(alloc.remaining_items_for_agent(agent))
+        logger.info(f"Only one agent '{agent}' remains — giving all items: {items}")
         alloc.give_bundle(agent, items)
         return
-   
-    # Step 1: Build Si bundles
-    bundles = {}
+
+   # Step 1: Construct Si incrementally (lines 1–8 in algorithm)
+    bundles = {agent: [] for agent in alloc.remaining_agents()}
+    values = {agent: 0 for agent in alloc.remaining_agents()}
+    Vn_alpha_i = {}
+    pointers = {agent: 0 for agent in alloc.remaining_agents()}
+
+    # Precompute thresholds for each agent
     for agent in alloc.remaining_agents():
-        items = sorted(
-            alloc.remaining_items_for_agent(agent),
-            key=lambda item: alloc.effective_value(agent, item),
-            reverse=True
-            # effective_value:
-            # היא משמשת כדי להחזיר את שווי הפריט item עבור הסוכן agent,
-            #  תוך התחשבות בהקצאות הקודמות, בקונפליקטים ובמגבלות של משקל/כמות.
-        )
-        bundle = []
-        value = 0
-        max_value = max([alloc.effective_value(agent, item) for item in items], default=0)
-        total_value = sum([alloc.effective_value(agent, item) for item in items])
-        alpha = max_value / total_value if total_value > 0 else 0
+        items = alloc.remaining_items_for_agent(agent)
+        values_list = [alloc.effective_value(agent, item) for item in items]
+        max_val = max(values_list, default=0)
+        total_val = sum(values_list)
+        alpha = max_val / total_val if total_val > 0 else 0
         Vn_alpha = compute_vn(alpha, n)
-        Vn_alpha_i = Vn_alpha * total_value
+        Vn_alpha_i[agent] = Vn_alpha * total_val
+        logger.info(f"Agent '{agent}': max={max_val:.2f}, sum={total_val:.2f}, alpha={alpha:.3f}, Vn(α)={Vn_alpha:.3f}, threshold={Vn_alpha_i[agent]:.2f}")
 
-        for item in items:
-            v = alloc.effective_value(agent, item)
-            if v == float('-inf'):
-                continue
-            bundle.append(item)
-            value += v
-            if value >= Vn_alpha_i:
-                break
-        bundles[agent] = (bundle, value, Vn_alpha_i)
+    # Pre-sort items for each agent
+    sorted_items = {
+        agent: sorted(alloc.remaining_items_for_agent(agent), key=lambda item: alloc.effective_value(agent, item), reverse=True)
+        for agent in alloc.remaining_agents()
+    }
 
-    # Step 2: Choose an agent whose bundle passes the threshold->Vn_Alpha_i
-    for agent, (bundle, value,Vn_alpha_i) in bundles.items():
-        if value >= Vn_alpha_i:
-            alloc.give_bundle(agent, bundle)
+    # Incrementally add best item for each agent until at least one passes threshold
+    while all(values[agent] < Vn_alpha_i[agent] for agent in alloc.remaining_agents()):
+        for agent in alloc.remaining_agents():
+            if pointers[agent] < len(sorted_items[agent]):
+                item = sorted_items[agent][pointers[agent]]
+                val = alloc.effective_value(agent, item)
+                if val != float('-inf'):
+                    bundles[agent].append(item)
+                    values[agent] += val
+                pointers[agent] += 1
+
+        if all(pointers[agent] >= len(sorted_items[agent]) for agent in alloc.remaining_agents()):
+            break  # prevent infinite loop
+
+    # Step 2: Choose agent who passed threshold
+    for agent in alloc.remaining_agents():
+        if values[agent] >= Vn_alpha_i[agent]:
+            bundle = bundles[agent]
+            logger.info(f"Assigning bundle {bundle} to agent '{agent}' (value={values[agent]:.2f} ≥ threshold={Vn_alpha_i[agent]:.2f})")
+            alloc.give_bundle(agent, bundle, logger=logger)
+            alloc.remove_agent_from_loop(agent)
+            #alloc.remove_item_from_loop(alloc.remaining_items_for_agent(agent))
             break
-    else:
-        return  # No agent met their threshold — should not happen with valid inputs
 
-    remaining_agents = [a for a in alloc.remaining_agents() if a != agent]
-    remaining_items = [i for i in alloc.remaining_items() if i not in bundle]
+    # Step 3: Prepare for recursive call
+    remaining_agents = alloc.remaining_agents()
+    logger.info(f"remainig agent-{remaining_agents}")
+    algorithm1_worst_case_allocation(alloc=alloc)
 
-    # Step 3: Handle the base case
-    if len(remaining_agents) == 1:
-        last_agent = remaining_agents[0]
-        alloc.give_bundle(last_agent, remaining_items)
-        return
-
-    # Step 4: Recursive step with normalized instance
-    instance = alloc.instance
-    reduced_valuations = {}
-    for a in remaining_agents:
-        vals = {}
-        remaining_total = sum(instance.agent_item_value(a, i) for i in remaining_items)
-        denom = remaining_total
-        for i in remaining_items:
-            original = instance.agent_item_value(a, i)
-            vals[i] = original / denom if denom > 0 else 0
-        reduced_valuations[a] = vals
-
-    reduced_instance = Instance(
-        valuations=reduced_valuations,
-        agent_capacities={a: instance.agent_capacity(a) for a in remaining_agents},
-        item_capacities={i: instance.item_capacity(i) for i in remaining_items},
-        item_weights={i: instance.item_weight(i) for i in remaining_items}
-    )
-
-    reduced_alloc = AllocationBuilder(reduced_instance)
-    algorithm1_worst_case_allocation(reduced_alloc)
-    for a in reduced_alloc.bundles:
-        alloc.give_bundle(a, reduced_alloc.bundles[a])
+    
 
 
 """
@@ -250,3 +232,17 @@ This is because the function Vn(alpha) is defined on the domain [0,1] as per the
 
 Sending raw values (e.g., 6) instead of normalized ratios will lead to incorrect results.
 """
+if __name__ == "__main__":
+
+    valuations = {
+            "Alice": {"c1": 8, "c2": 6, "c3": 10},
+            "Bob": {"c1": 8, "c2": 10, "c3": 6},
+            "Chana": {"c1": 6, "c2": 8, "c3": 10},
+            
+    }
+
+    instance = Instance(valuations=valuations)
+
+    allocation = divide(algorithm=algorithm1_worst_case_allocation, instance=instance)
+
+    
