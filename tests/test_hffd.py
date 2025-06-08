@@ -3,8 +3,6 @@
 Programmer: Nadav Shabtai
 Date: 2025-05
 """
-
-from __future__ import annotations
 import numpy as np, pytest, fairpyx
 from fairpyx.algorithms.hffd import hffd
 
