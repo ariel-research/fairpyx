@@ -15,7 +15,11 @@ Since :  2025-05
 
 from   typing import Dict, Tuple, List, Set
 import cvxpy as cp
-from   fairpyx.adaptors import AllocationBuilder
+import numpy as np
+from   fairpyx.adaptors import AllocationBuilder, divide
+import logging
+log = logging.getLogger("fairpyx.rfaoii")
+# ------------------------------------------------------------------
 
 Agent = int
 Item  = int
@@ -25,187 +29,285 @@ OneDayAllocation = Dict[Agent, Bundle]
 
 
 # ------------------------------------------------------------------
-# 0-ter.  Public fairness predicates (Definition 2 and weak-EF1)
+# 0-ter.  Public fairness predicates (Definition 2 and weak-EF1) and round-robin scheduler
 # ------------------------------------------------------------------
 def _to_set(x):
     """Ensure we work with a real set."""
     return x if isinstance(x, set) else set(x)
 
 
-def EF1_holds(allocation: OneDayAllocation,
-              agent: Agent,
-              utilities: Dict[Agent, Dict[Item, float]]) -> bool:
+def EF1_holds(
+    allocation: OneDayAllocation,
+    agent: Agent,
+    utilities: Dict[Agent, Dict[Item, float]],
+) -> bool:
     """
-    True  ⇔  allocation `bundle` satisfies EF1 for `agent`
-    (Def. 2 in the paper).
+    Return **True** iff Definition 2 (EF1) holds for *agent*.
 
-    Prints why it holds / fails and – if relevant – which item `o`
-    certifies EF1.
+    Only the return value is asserted; the log message is ignored by doctest.
 
-    ### TODO: add doctests & pytests
+    Examples
+    --------
+    >>> utils = {0:{0:4, 1:1}, 1:{0:1, 1:4}}
+    >>> EF1_holds({0:{0}, 1:{1}}, 0, utils)          # no envy
+    True
+    >>> utils = {0:{0:5, 1:1}, 1:{0:6, 1:2}}
+    >>> EF1_holds({0:{1}, 1:{0}}, 0, utils)          # remove opp-item 0
+    True
+    >>> utils = {0:{0:1, 1:-10}, 1:{0:1, 1:10}}
+    >>> EF1_holds({0:{1}, 1:{0}}, 0, utils)          # still envies
+    False
     """
     A = _to_set(allocation[agent])
     B = _to_set(allocation[1 - agent])
-
     u_self  = sum(utilities[agent][o] for o in A)
     u_other = sum(utilities[agent][o] for o in B)
 
-    if u_self >= u_other:                                      # envy-free
-        print(f"     Agent {agent}: no envy  (u_self={u_self} ≥ u_other={u_other})")
+    if u_self >= u_other:
+        log.info("Agent %d: no envy (u_self=%s ≥ u_other=%s)", agent, u_self, u_other)
         return True
 
-    for o in A | B:                                            # Definition 2
+    for o in A | B:
         u_self_after  = u_self  - (utilities[agent][o] if o in A else 0)
         u_other_after = u_other - (utilities[agent][o] if o in B else 0)
         if u_self_after >= u_other_after:
             side = "own" if o in A else "opp"
-            print(f"     Agent {agent}: EF1 by removing {side} item {o!r}")
+            log.info("Agent %d: EF1 by removing %s item %r", agent, side, o)
             return True
 
-    print(f"     Agent {agent}: **violates EF1**  (u_self={u_self}, u_other={u_other})")
+    log.info("Agent %d: **violates EF1** (u_self=%s, u_other=%s)", agent, u_self, u_other)
     return False
 
 
-def weak_EF1_holds(bundle: OneDayAllocation,
-                   agent: Agent,
-                   utilities: Dict[Agent, Dict[Item, float]]) -> bool:
+# ---------------------------------------------------------------------------
+# weak-EF1 (Definition 6) helper  + doctests
+# ---------------------------------------------------------------------------
+def weak_EF1_holds(
+    allocation: OneDayAllocation,
+    agent: Agent,
+    utilities: Dict[Agent, Dict[Item, float]],
+) -> bool:
     """
-    Returns True  ⇔  the allocation `bundle` is weak-EF1 for `agent`
-    according to Definition 6 in the paper.
+    Return **True** iff Definition 6 (weak-EF1) holds for *agent*.
 
-    It prints the witness that certifies weak-EF1:
-      * “no envy”, or
-      * the item o with the direction (add / remove) that makes the
-        inequality of Definition 6 hold.
+    Examples
+    --------
+    >>> utils = {0:{0:10, 1:1}, 1:{0:6, 1:8}}
+    >>> weak_EF1_holds({0:{1}, 1:{0}}, 0, utils)     # take opp-item 0
+    True
+    >>> weak_EF1_holds({0:{1}, 1:{0}}, 1, utils)     # already no envy
+    True
+    >>> utils = {0:{0:9, 1:8}, 1:{0:1, 1:2}}
+    >>> weak_EF1_holds({0:{0,1}, 1:set()}, 1, utils) # take item 1 from opp
+    True
     """
-    A = _to_set(bundle[agent])          # π_i
-    B = _to_set(bundle[1 - agent])      # π_j
+    A = _to_set(allocation[agent])
+    B = _to_set(allocation[1 - agent])
+    u_self  = sum(utilities[agent][o] for o in A)
+    u_other = sum(utilities[agent][o] for o in B)
 
-    u_self  = sum(utilities[agent][o] for o in A)   # u_i(π_i)
-    u_other = sum(utilities[agent][o] for o in B)   # u_i(π_j)
-
-    # 0) envy-free already ----------------------------------------------------
     if u_self >= u_other:
-        print(f"     Agent {agent}: no envy  (u_self={u_self} ≥ u_other={u_other})")
+        log.info("Agent %d: no envy (u_self=%s ≥ u_other=%s)", agent, u_self, u_other)
         return True
 
-    # 1) look for an item that fixes the envy via Definition 6 ---------------
-    #
-    #    o ∈ π_i ∪ π_j  such that
-    #       u_i(π_i ∪ {o}) ≥ u_i(π_j \ {o})      (case ADD-to-self / REMOVE-from-other)
-    #       OR
-    #       u_i(π_i \ {o}) ≥ u_i(π_j ∪ {o})      (case REMOVE-from-self / ADD-to-other)
-    #
     for o in A | B:
         val = utilities[agent][o]
-
-        if o in B:                   # o currently in opponent's bundle
-            # Case (ADD to self, REMOVE from other)
+        if o in B:                                   # ADD to self / REMOVE from other
             if u_self + val >= u_other - val:
-                print(f"     Agent {agent}: weak-EF1 by taking {o!r} from opp")
+                log.info("Agent %d: weak-EF1 by taking %r from opp", agent, o)
                 return True
-        else:                        # o in own bundle
-            # Case (REMOVE from self, ADD to other)
+        else:                                        # REMOVE from self / ADD to other
             if u_self - val >= u_other + val:
-                print(f"     Agent {agent}: weak-EF1 by giving {o!r} to opp")
+                log.info("Agent %d: weak-EF1 by giving %r to opp", agent, o)
                 return True
 
-    # 2) nothing works --------------------------------------------------------
-    print(f"     Agent {agent}: **violates weak-EF1**  (u_self={u_self}, u_other={u_other})")
+    log.info("Agent %d: **violates weak-EF1** (u_self=%s, u_other=%s)", agent, u_self, u_other)
     return False
+
+def round_robin_from_counts(
+    counts: Dict[Tuple[Agent, Item], int],   # output of solve_fractional_ILP
+    k: int                                   # number of rounds
+) -> List[OneDayAllocation]:
+    r"""
+    Deterministically expand the integer solution of the ILP into *k*
+    concrete rounds using a simple round-robin walk.
+
+    Guarantees
+    ----------
+    * Each item appears exactly the requested number of times.
+    * No round contains duplicate copies of the **same** item.
+
+    Example
+    -------
+    Two items, each copied twice, two rounds:
+
+    >>> counts = {(0, 'A'): 2, (1, 'B'): 2}
+    >>> rr = round_robin_from_counts(counts, k=2)
+    >>> rr
+    [{0: {'A'}, 1: {'B'}}, {0: {'A'}, 1: {'B'}}]
+
+    Every round is a *true* allocation and each copy is placed once.
+
+    Larger **k** works as well:
+
+    >>> counts = {(0, 'x'): 3, (1, 'y'): 3}
+    >>> _ = round_robin_from_counts(counts, k=3)   # should run w/o error
+    """
+
+    # 1) build a list “owners[o] = [i,i,i,…]” with length == counts for that item
+    owners: Dict[Item, List[Agent]] = {}
+    for (ag, it), c in counts.items():
+        owners.setdefault(it, []).extend([ag] * c)
+
+    # 2) start with empty bundles
+    rounds: List[OneDayAllocation] = [{0: set(), 1: set()} for _ in range(k)]
+
+    # 3) round-robin place the copies of every item
+    ptr = 0                                    # global round pointer
+    for it, owner_list in owners.items():      # deterministic order
+        for ag in owner_list:                  # keep the order returned by ILP
+            for offset in range(k):            # try the k rounds cyclically
+                r = (ptr + offset) % k
+                if it not in rounds[r][0] and it not in rounds[r][1]:
+                    rounds[r][ag].add(it)
+                    ptr = (r + 1) % k          # advance pointer for next copy
+                    break
+            else:
+                # This should *never* happen; it would mean > k copies of the
+                # same item were requested (contradicts the ILP constraints).
+                raise RuntimeError(f"could not place item {it}")
+
+    return rounds
+
+
 
 
 # ---------------------------------------------------------------------------
 # 1.  Fractional ILP   (Figure 1 of the paper)
 # ---------------------------------------------------------------------------
 def solve_fractional_ILP(
-        utilities: Dict[Agent, Dict[Item, float]],
-        k: int,
-        solver: str = "GLPK_MI"
+    utilities: Dict[Agent, Dict[Item, float]],
+    k: int,
+    solver: str = "GLPK_MI",
 ) -> Dict[Tuple[Agent, Item], int]:
     """
-    Solve the proportional-and-PO ILP from the article (Fig. 1).
+    Return counts  x[(i,o)]  that maximise  Σ_{i,o}  u_i(o)·x_{i,o}
+    subject to
+        (1)  Σ_i x_{i,o}   = k                     ∀ item o
+        (2)  0 ≤ x_{i,o} ≤ k                       ∀ i,o
+        (3)  Σ_o u_i(o)·x_{i,o} ≥ (k/n)·Σ_o u_i(o) ∀ agent i   (proportionality)
 
-    Returns a dict  (agent,item) ↦ count  with ∑_agents count = k for every item.
+    Works for any number of agents/items; we just use it with n=2 in the
+    “Repeated Fair Allocation of Indivisible Items” algorithms.
 
-    >>> utils  = {0:{0:11, 1:22}, 1:{0:22, 1:11}}
+    doctest:
+    >>> utils = {0: {0: 11, 1: 22}, 1: {0: 22, 1: 11}}
     >>> solve_fractional_ILP(utils, 2)
     {(0, 0): 0, (0, 1): 2, (1, 0): 2, (1, 1): 0}
-
-    ### TODO: add doctests
-    >>> utils  = {0:{0:11, 1:22}, 1:{0:11, 1:22}}
+    >>> utils = {0: {0: 11, 1: 22}, 1: {0: 11, 1: 22}}
     >>> solve_fractional_ILP(utils, 2)
     {(0, 0): 1, (0, 1): 1, (1, 0): 1, (1, 1): 1}
     """
-    ### TODO: write clear code, that you can understand and explain
-
-    agents = list(utilities)
-    items  = list(next(iter(utilities.values())))
+    agents = list(utilities)                       # e.g. [0,1]
+    items  = list(next(iter(utilities.values())))  # e.g. [0,1,2]
     n, m   = len(agents), len(items)
+    log.info("Solving ILP for %d agents, %d items, k=%d", n, m, k)
 
-    x  = cp.Variable((n, m), integer=True)
-    cons = [x >= 0, x <= k]
+    # --- build a plain NumPy utility matrix U[i,o] ----------------------------
+    U_mat = np.array([[utilities[i][o] for o in items] for i in agents])
+    log.debug("Utility matrix U:\n%s", U_mat)
 
-    # each item allocated k times
-    for j in range(m):
-        cons.append(cp.sum(x[:, j]) == k)
+    # --- decision variables ---------------------------------------------------
+    # x[i,o] = how many copies of item o go to agent i   (integer in {0,…,k})
+    x = cp.Variable((n, m), integer=True)
+    log.debug("Decision variables x[i,o]:\n%s", x)
 
-    # proportionality for every agent
+    # --- constraints ----------------------------------------------------------
+    constraints = [
+        x >= 0,
+        x <= k,
+    ]
+
+    # (1) every item allocated exactly k times (across all agents)
+    constraints.extend(
+        cp.sum(x[:, j]) == k  for j in range(m)
+    )
+
+    # (3) proportionality for each agent
     for i in range(n):
-        u_vec = [utilities[agents[i]][it] for it in items]
-        total = sum(u_vec)
-        cons.append(cp.reshape(x[i, :], (1, m), order='C') @ u_vec >= (k/n) * total)
+        total_utility_i = U_mat[i, :].sum()
+        constraints.append(
+            cp.sum(cp.multiply(U_mat[i, :], x[i, :])) >= (k / n) * total_utility_i
+        )
 
-    # maximise social welfare (→ PO)
-    U = [utilities[a][it] for a in agents for it in items]
-    obj = cp.Maximize(cp.reshape(x, (n*m,), order='C') @ U)
+    # --- objective  max Σ_{i,o}  u_i(o)*x_{i,o}  ------------------------------
+    objective = cp.Maximize(cp.sum(cp.multiply(U_mat, x)))
+    log.debug("Objective function: %s", objective)
+    log.debug("Constraints:\n%s", constraints)
 
-    cp.Problem(obj, cons).solve(solver=solver)
+    # --- solve ----------------------------------------------------------------
+    cp.Problem(objective, constraints).solve(solver=solver)
+    log.info("ILP solved: status=%s, objective value=%.2f", cp.Problem(objective, constraints).status, objective.value)
 
-    return {(agents[i], items[j]): int(round(x.value[i, j]))
-            for i in range(n) for j in range(m)}
+    # --- pack result back into a dictionary -----------------------------------
+    return {
+        (agents[i], items[j]): int(round(x.value[i, j]))
+        for i in range(n) for j in range(m)
+    }
 
 
 # ---------------------------------------------------------------------------
 # 2.  Algorithm 1  (n = 2 , k = 2)
 # ---------------------------------------------------------------------------
 
-
-### TODO: remove initial_alloc
-def algorithm1(initial_alloc: List[OneDayAllocation],
-               utilities: Dict[Agent, Dict[Item, float]]) -> List[OneDayAllocation]:
+def algorithm1(
+    utilities: Dict[Agent, Dict[Item, float]],
+) -> List[OneDayAllocation]:
     """
-    Two-round EF1 sequence (Algorithm 1).
+    Compute the 2-round sequence returned by Algorithm 1
+    (per-round EF1, Pareto-optimal overall).
 
-    ### TODO: add documentation to arguments + doctest
+    Parameters
+    ----------
+    utilities  : dict   (2 × m additive utilities)
+
+    Returns
+    -------
+    π          : list length == 2, each element is {agent → set(items)}
+
+
+    doctest:
+    >>> utils = {0: {0: 10, 1: 1}, 1: {0: 6, 1: 8}}
+    >>> allocs = algorithm1(utils)
+    >>> allocs[0]  # round 1
+    {0: {0}, 1: {1}}
+    >>> allocs[1]  # round 2
+    {0: {0}, 1: {1}}
     """
-    k = 2
+    k = 2                      # fixed by the algorithm’s design
     counts = solve_fractional_ILP(utilities, k)
-    ### TODO: add logging
-
-    ### TODO: move to separate function with doctests
-    # --- split counts into two preliminary rounds --------------------------------
-    prelim = [{0:set(), 1:set()} for _ in range(k)]
-    for (agent, item), c in counts.items():
-        for r in range(c):
-            prelim[r][agent].add(item)
-    π1, π2 = prelim
-    ### TODO: add logging (also in the rest of function)
+    π1, π2 = round_robin_from_counts(counts, k)
+    log.info("Initial allocation π1: %s", π1)
+    log.info("Initial allocation π2: %s", π2)
 
     # --- persistent + optional items --------------------------------------------
     I1 = π1[0] & π2[0]          # always agent 0
     I2 = π1[1] & π2[1]          # always agent 1
+    log.debug("Persistent items I1: %s, I2: %s", I1, I2)
     all_items = set(utilities[0])
     O  = all_items - (I1 | I2)  # items distributed once each
-
-    O_plus  = {o for o in O if utilities[0][o] >= 0 and utilities[1][o] >= 0}
+    O = {o for o in O if utilities[0][o] != 0 or utilities[1][o] != 0}
+    log.debug("Objective items O: %s", O)
+    O_plus  = {o for o in O if utilities[0][o] > 0 and utilities[1][o] > 0}
+    log.debug("Objective goods O_plus: %s", O_plus)
     O_minus = O - O_plus
-    ### TODO: fix O_minus
-    ### Add assert that O_minus is the set of objective chores.
-
+    assert O_minus == {o for o in O if utilities[0][o] < 0 or utilities[1][o] < 0}, \
+        "O_minus must contain only chores (negative utility for at least one agent)"
+    log.debug("Objective chores O_minus: %s", O_minus)
     π1 = {0: I1 | O_minus, 1: I2 | O_plus}
     π2 = {0: I1 | O_plus, 1: I2 | O_minus}
-
+    log.info("Initial π1: %s", π1)
+    log.info("Initial π2: %s", π2)
     # --- EF1 checker (mixed goods / chores, exact Def. 2) -----------------------
     def EF1(allocation):
         return EF1_holds(allocation, 0, utilities) and EF1_holds(allocation, 1, utilities)
@@ -219,48 +321,61 @@ def algorithm1(initial_alloc: List[OneDayAllocation],
         if o in O_minus:                           # chore-swap
             π1[0].discard(o); π2[1].discard(o)
             π1[1].add(o);     π2[0].add(o)
+            log.debug("Chore-swap: %r", o)
         else:                                     # good-swap
             π1[1].discard(o); π2[0].discard(o)
             π1[0].add(o);     π2[1].add(o)
+            log.debug("Good-swap: %r", o)
         idx += 1
-
+        log.debug("After swap %d: π1=%s, π2=%s", idx, π1, π2)
+    log.info("Final π1: %s", π1)
+    log.info("Final π2: %s", π2)
     return [π1, π2]
 
 
 # ---------------------------------------------------------------------------
 # 3.  Algorithm 2  (n = 2 , k even)   
 # ---------------------------------------------------------------------------
-def algorithm2(initial_alloc: List[OneDayAllocation],
-               utilities: Dict[Agent, Dict[Item, float]]) -> List[OneDayAllocation]:
-    """Return k-round weak-EF1 sequence (Algorithm 2)."""
-    k       = len(initial_alloc)
-    counts  = solve_fractional_ILP(utilities, k)
+def algorithm2(
+    k: int,
+    utilities: Dict[Agent, Dict[Item, float]],
+) -> List[OneDayAllocation]:
+    """
+    Return a k-round sequence that satisfies weak-EF1 in every round
+    and is Pareto-optimal overall   (Algorithm 2 from the paper).
 
-    # ---------- Build initial π via round-robin  -------------------------------
-    π = [{0:set(), 1:set()} for _ in range(k)]
-    occ: Dict[Item, List[int]] = {o:[] for o in utilities[0]}
-    for (ag,it), c in counts.items():
-        occ[it].extend([ag]*c)
+    Parameters
+    ----------
+    k          : even int   (number of rounds)
+    utilities  : dict       (usual 2 × m utility matrix)
 
-    rr = 0
-    for it, owners in occ.items():
-        for ag in owners:
-            for off in range(k):
-                r = (rr + off) % k
-                if it not in π[r][0] and it not in π[r][1]:
-                    π[r][ag].add(it)
-                    rr = (rr + 1) % k
-                    break
-            else:
-                raise RuntimeError("could not place item")
+    Returns
+    -------
+    π          : List[OneDayAllocation]   length == k
 
-    ### TODO: move to separate function, with documentation and doctests
-    ### TODO: Use the same function to convert fractional ILP to allocation (for any k).
+
+    doctest:
+    >>> utils = {0: {0: 10, 1: 1}, 1: {0: 6, 1: 8}}
+    >>> allocs = algorithm2(4, utils)  # k=4 rounds
+    >>> allocs[0]  # round 1
+    {0: {0}, 1: {1}}
+    >>> allocs[1]  # round 2
+    {0: {0}, 1: {1}}
+    >>> allocs[2]  # round 3
+    {0: {0}, 1: {1}}
+    >>> allocs[3]  # round 4
+    {0: {0}, 1: {1}}
+    """
+    counts = solve_fractional_ILP(utilities, k)
+
+    # ❶ build the initial schedule (shared helper shown earlier)
+    π = round_robin_from_counts(counts, k)
 
     # ---------- helper predicates ---------------------------------------------
     def envy_free(r,a):
         uS = sum(utilities[a][o] for o in π[r][a])
         uO = sum(utilities[a][o] for o in π[r][1-a])
+        log.debug("Round %d, agent %d: u_self=%s, u_other=%s", r, a, uS, uO)
         return uS >= uO
 
     def weak_EF1(r, a):
@@ -268,29 +383,25 @@ def algorithm2(initial_alloc: List[OneDayAllocation],
     # ---------- adjustment loop (paper’s pseudo-code) --------------------------
     def adjust(a:int):   ### TODO: add documentation
         E = {r for r in range(k) if not envy_free(r,a)}
+        log.debug("Adjusting agent %d, initial not envy-free rounds: %s", a, E)
         F = set(range(k)) - E
+        log.debug("Envy-free rounds for agent %d: %s", a, F)
         while any(not weak_EF1(r,a) for r in E):
+            log.debug("Not envy-free rounds for agent %d: %s", a, E)
+            log.debug("Envy-free rounds for agent %d: %s", a, F)
             j = next(r for r in E if not weak_EF1(r,a))
+            log.debug("Adjusting round %d for agent %d", j, a)
             while not weak_EF1(j,a):
                 i = min(F)
-                # pick o as in Lemma-17
                 try:
-                    ### TODO: fix sign if needed
-                    ### TODO: assert (Lemma 17)
-                    # o = next(iter(x for x in π[j][a]-π[i][a] if utilities[a][x] > 0), None)
-                    # if o is not None:
-                    #     src1,dst1,src2,dst2 = j,i,i,j
-                    # else:
-                    #     o = next(iter(x for x in π[i][a]-π[j][a] if utilities[a][x] < 0), None)
-                    #     assert (o is not None, "Lemma 17 violated")
-                    #     src1,dst1,src2,dst2 = i,j,j,i
-
-                    if any(utilities[a][x] > 0 for x in π[j][a] - π[i][a]):
-                        o = next(x for x in π[j][a]-π[i][a] if utilities[a][x] > 0)
-                        src1,dst1,src2,dst2 = j,i,i,j
-                    else:
-                        o = next(x for x in π[i][a]-π[j][a] if utilities[a][x] < 0)
+                    o = next(iter(x for x in π[i][a] - π[j][a] if utilities[a][x] > 0), None)
+                    if o is not None:
                         src1,dst1,src2,dst2 = i,j,j,i
+                    else:
+                        o = next(iter(x for x in π[j][a] - π[i][a] if utilities[a][x] < 0), None)
+                        src1,dst1,src2,dst2 = j,i,i,j
+                        assert (o is not None), "Lemma 17 violated"
+                    log.debug("Found item %r to swap from %d to %d", o, src1, dst1)
                 except StopIteration:
                     # no good/chore found – use *any* transferable item
                     if π[j][a] - π[i][a]:
@@ -305,9 +416,12 @@ def algorithm2(initial_alloc: List[OneDayAllocation],
 
                 π[src2][1-a].remove(o); π[src2][a].add(o)
                 π[dst2][a].remove(o);   π[dst2][1-a].add(o)
+                log.debug("Moved item %r from %d to %d", o, src1, dst1)
+                log.debug("After move: π[%d]=%s, π[%d]=%s", src1, π[src1], dst1, π[dst1])
 
                 if not envy_free(i,a):
                     F.remove(i); E.add(i)
+                    log.debug("Round %d is now envy-free for agent %d", i, a)
 
     adjust(0); adjust(1)
     return π
@@ -316,16 +430,15 @@ def algorithm2(initial_alloc: List[OneDayAllocation],
 # ---------------------------------------------------------------------------
 # 4.  FairPyx adapters
 # ---------------------------------------------------------------------------
-def algorithm1_div(builder: AllocationBuilder, round_idx:int=0, **_):
+def algorithm1_div(builder: AllocationBuilder, round_idx: int = 0, **_):
     utils  = builder.instance._valuations
-    bundle = algorithm1([{},{}], utils)[round_idx]
-    builder.give_bundles({a:list(b) for a,b in bundle.items()})
+    bundle = algorithm1(utils)[round_idx]             # new call
+    builder.give_bundles({a: list(b) for a, b in bundle.items()})
 
-def algorithm2_div(builder: AllocationBuilder, k:int, round_idx:int=0, **_):
+def algorithm2_div(builder: AllocationBuilder, k: int, round_idx: int = 0, **_):
     utils  = builder.instance._valuations
-    init   = [{} for _ in range(k)]
-    bundle = algorithm2(init, utils)[round_idx]
-    builder.give_bundles({a:list(b) for a,b in bundle.items()})
+    bundle = algorithm2(k, utils)[round_idx]      # <── new call
+    builder.give_bundles({a: list(b) for a, b in bundle.items()})
 
 
 # ---------------------------------------------------------------------------
@@ -337,8 +450,9 @@ if __name__ == "__main__":
 
     doctest.testmod(verbose=True)
 
-    rnd = random.Random(2025)
-    ### TODO: Choose seed at random & print it
+    seed = random.randint(0, 10000)
+    rnd = random.Random(seed)
+    print(f"\nRunning self-test with random seed {seed}…")
 
     k   = 4                                           # number of rounds to test
     for trial in range(20):
@@ -347,19 +461,20 @@ if __name__ == "__main__":
             0: {i: rnd.randint(-5, 5) for i in range(6)},
             1: {i: rnd.randint(-5, 5) for i in range(6)},
         }
-        ### TODO: pretty-print print input
-
-        rounds = algorithm2([{} for _ in range(k)], utils)
-
-        ### TODO: pretty-print output
-
-        ### TODO: add example for algorithm1
-
-        ok = all(
-            weak_EF1_holds(rounds[r], a, utils)
-            for r in range(k)
-            for a in (0, 1)
-        )
-        assert ok, f"Weak-EF1 violated in trial {trial}\nutilities = {pprint(utils)}"
-
+        print(f"\nTrial {trial+1} / 20: k={k}, utilities:")
+        pprint(utils)
+        print("=== Algorithm 1 (EF1 + PO overall) ===")
+        for r in range(2):
+            alloc = divide(algorithm1_div, valuations=utils, round_idx=r)
+            print(f"\n Round {r+1}: 0→{alloc[0]} | 1→{alloc[1]}")
+            assert EF1_holds(alloc, 0, utils), f"EF1 violated in trial {trial} (round {r+1})"
+            assert EF1_holds(alloc, 1, utils), f"EF1 violated in trial {trial} (round {r+1})"
+        print("=== Algorithm 2 (weak-EF1 + PO overall) ===")
+        for r in range(k):
+            alloc = divide(algorithm2_div, valuations=utils, round_idx=r, k=k)
+            print(f"\n Round {r+1}: 0→{alloc[0]} | 1→{alloc[1]}")
+            assert weak_EF1_holds(alloc, 0, utils), f"Weak-EF1 violated in trial {trial} (round {r+1})"
+            assert weak_EF1_holds(alloc, 1, utils), f"Weak-EF1 violated in trial {trial} (round {r+1})"
+        print ("✓  Trial passed")
+    print("\nAll trials passed")
     print("✓  Module self-tests passed")
