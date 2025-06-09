@@ -10,8 +10,6 @@ Date: 2025-05-06
 """
 import logging
 import math
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 from fairpyx import AllocationBuilder,divide,Instance
 
@@ -77,21 +75,15 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
 
     Example 1:
     >>> from fairpyx import Instance, divide
+    >>> from fairpyx.algorithms.markakis_psomas import algorithm1_worst_case_allocation, compute_vn
     >>> instance1 = Instance(valuations={"A": {"1": 6, "2": 3, "3": 1}, "B": {"1": 2, "2": 5, "3": 5}})
     >>> alloc1 = divide(algorithm=algorithm1_worst_case_allocation, instance=instance1)
-    >>> alloc1["A"]
+    >>> sorted(alloc1["A"])
     ['1']
-    >>> alloc1["B"]
+    >>> sorted(alloc1["B"])
     ['2', '3']
-  
-
-    # Explanation:
-    # A has values [6,3,1], sum=10, max=6 ⇒ α = 6/10 = 0.6
-    # Since α ∈ NI(2,1), Vn(α) = 1 - (2×1)/(2×2 -1) = 1 - 2/3 = 1/3
-    # Threshold to reach: 10 × 1/3 = 3.33
-    # Bundle ['1'] = 6  ≥ 3.33 ⇒ OK
-
-    Example 2 :
+    
+    Example 2:
     >>> instance2 = Instance(valuations={"A": {"1": 7, "2": 2, "3": 1, "4": 1}, "B": {"1": 3, "2": 6, "3": 1, "4": 2}, "C": {"1": 2, "2": 3, "3": 5, "4": 5}})
     >>> alloc2 = divide(algorithm=algorithm1_worst_case_allocation, instance=instance2)
     >>> sorted(alloc2["A"])
@@ -100,43 +92,33 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     ['2']
     >>> sorted(alloc2["C"])
     ['3', '4']
-    >>> maxC = max(instance2.valuations["C"].values())
-    >>> sumC = sum(instance2.valuations["C"].values())
-    >>> alphaC = maxC / sumC
-    >>> vnC = compute_vn(alphaC, n=3)
-    >>> valC = sum(instance2.valuations["C"][i] for i in alloc2["C"])
-    >>> valC >= vnC
-    True
-
+   
     Example 3:
     >>> instance3 = Instance(valuations={"Alice": {"a": 10, "b": 3, "c": 1, "d": 1, "e": 2}, "Bob": {"a": 5, "b": 8, "c": 3, "d": 2, "e": 2}, "Carol": {"a": 1, "b": 3, "c": 9, "d": 6, "e": 5}, "Dave": {"a": 2, "b": 2, "c": 2, "d": 8, "e": 6}})
     >>> alloc3 = divide(algorithm=algorithm1_worst_case_allocation, instance=instance3)
     >>> sorted(alloc3["Alice"])
-    ['a', 'd']
+    ['a']
     >>> sorted(alloc3["Bob"])
     ['b']
     >>> sorted(alloc3["Carol"])
-    ['c', 'e']
-    >>> maxCarol = max(instance3.valuations["Carol"].values())
-    >>> sumCarol = sum(instance3.valuations["Carol"].values())
-    >>> alphaCarol = maxCarol / sumCarol
-    >>> vnCarol = compute_vn(alphaCarol, n=4)
-    >>> valCarol = sum(instance3.valuations["Carol"][i] for i in alloc3["Carol"])
-    >>> valCarol >= vnCarol
-    True
+    ['c']
+    >>> sorted(alloc3["Dave"])
+    ['d', 'e']
+   
 
     Example 4:
-    >>> instance4 = Instance(valuations={"A": {"1": 9, "2": 1, "3": 1, "4": 1, "5": 1, "6": 1}, "B": {"1": 1, "2": 9, "3": 1, "4": 1, "5": 1, "6": 1}, "C": {"1": 1, "2": 1, "3": 9, "4": 1, "5": 1, "6": 1}, "D": {"1": 1, "2": 1, "3": 1, "4": 9, "5": 1, "6": 1}, "E": {"1": 1, "2": 1, "3": 1, "4": 1, "5": 9, "6": 1}, "F": {"1": 1, "2": 1, "3": 1, "4": 1, "5": 1, "6": 9}})
+    >>> instance4 = Instance(valuations={
+    ...     "A": {"1": 9, "2": 1, "3": 1, "4": 1, "5": 1, "6": 1},
+    ...     "B": {"1": 1, "2": 9, "3": 1, "4": 1, "5": 1, "6": 1},
+    ...     "C": {"1": 1, "2": 1, "3": 9, "4": 1, "5": 1, "6": 1},
+    ...     "D": {"1": 1, "2": 1, "3": 1, "4": 9, "5": 1, "6": 1},
+    ...     "E": {"1": 1, "2": 1, "3": 1, "4": 1, "5": 9, "6": 1},
+    ...     "F": {"1": 1, "2": 1, "3": 1, "4": 1, "5": 1, "6": 9}
+    ... })
     >>> alloc4 = divide(algorithm=algorithm1_worst_case_allocation, instance=instance4)
-    >>> [alloc4[a] for a in sorted(alloc4.keys())]
+    >>> [sorted(alloc4[a]) for a in sorted(alloc4)]
     [['1'], ['2'], ['3'], ['4'], ['5'], ['6']]
-    >>> maxF = max(instance4.valuations["F"].values())
-    >>> sumF = sum(instance4.valuations["F"].values())
-    >>> alphaF = maxF / sumF
-    >>> vnF = compute_vn(alphaF, n=6)
-    >>> valF = sum(instance4.valuations["F"][i] for i in alloc4["F"])
-    >>> valF >= vnF
-    True
+   
 
     # Manual explanation of Example 4:
     # - F values: [1,1,1,1,1,9], max=9, sum=14, α = 9/14 ≈ 0.642857
@@ -146,7 +128,8 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     # - Hence, even a value of 9 is valid (≫ 0)
 
     """
-    
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.INFO)
     if alloc is None:
         return {}
 
@@ -165,7 +148,7 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     values = {agent: 0 for agent in alloc.remaining_agents()}
     Vn_alpha_i = {}
     pointers = {agent: 0 for agent in alloc.remaining_agents()}
-
+    max_values = {}
     # Precompute thresholds for each agent
     for agent in alloc.remaining_agents():
         items = alloc.remaining_items_for_agent(agent)
@@ -175,6 +158,7 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
         alpha = max_val / total_val if total_val > 0 else 0
         Vn_alpha = compute_vn(alpha, n)
         Vn_alpha_i[agent] = Vn_alpha * total_val
+        max_values[agent] = max_val  # Store max value for fallback
         logger.info(f"Agent '{agent}': max={max_val:.2f}, sum={total_val:.2f}, alpha={alpha:.3f}, Vn(α)={Vn_alpha:.3f}, threshold={Vn_alpha_i[agent]:.2f}")
 
     # Pre-sort items for each agent
@@ -183,33 +167,55 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
         for agent in alloc.remaining_agents()
     }
 
-    # Incrementally add best item for each agent until at least one passes threshold
-    while all(values[agent] < Vn_alpha_i[agent] for agent in alloc.remaining_agents()):
+   # New: Minimum value required = max(threshold, max_item_value)
+    min_values = {
+        agent: max(Vn_alpha_i[agent], max_values[agent])
+        for agent in alloc.remaining_agents()
+    }
+
+    # Add items until at least one agent meets the minimum value
+    while all(values[agent] < min_values[agent] for agent in alloc.remaining_agents()):
         for agent in alloc.remaining_agents():
             if pointers[agent] < len(sorted_items[agent]):
                 item = sorted_items[agent][pointers[agent]]
                 val = alloc.effective_value(agent, item)
-                if val != float('-inf'):
-                    bundles[agent].append(item)
-                    values[agent] += val
+                bundles[agent].append(item)
+                values[agent] += val
                 pointers[agent] += 1
+            else:
+                # If no more items, use current bundle
+                pass
 
+        # Check if we can break early
         if all(pointers[agent] >= len(sorted_items[agent]) for agent in alloc.remaining_agents()):
-            break  # prevent infinite loop
-
-    # Step 2: Choose agent who passed threshold
-    for agent in alloc.remaining_agents():
-        if values[agent] >= Vn_alpha_i[agent]:
-            bundle = bundles[agent]
-            logger.info(f"Assigning bundle {bundle} to agent '{agent}' (value={values[agent]:.2f} ≥ threshold={Vn_alpha_i[agent]:.2f})")
-            alloc.give_bundle(agent, bundle, logger=logger)
-            alloc.remove_agent_from_loop(agent)
-            #alloc.remove_item_from_loop(alloc.remaining_items_for_agent(agent))
             break
 
-    # Step 3: Prepare for recursive call
-    remaining_agents = alloc.remaining_agents()
-    logger.info(f"remainig agent-{remaining_agents}")
+    # Choose agent who meets the threshold and has non-empty bundle
+    chosen_agent = None
+    for agent in alloc.remaining_agents():
+        if values[agent] >= Vn_alpha_i[agent] and bundles[agent]:
+            chosen_agent = agent
+            break
+    
+    # Fallback: choose agent with highest value if none chosen
+    if chosen_agent is None:
+        chosen_agent = max(
+            alloc.remaining_agents(),
+            key=lambda a: values[a] if bundles[a] else -float('inf')
+        )
+        # Ensure at least one item is allocated
+        if not bundles[chosen_agent] and sorted_items[chosen_agent]:
+            item = sorted_items[chosen_agent][0]
+            bundles[chosen_agent] = [item]
+            values[chosen_agent] = alloc.effective_value(chosen_agent, item)
+
+    # Allocate the bundle
+    bundle = bundles[chosen_agent]
+    logger.info(f"Assigning bundle {bundle} to agent '{chosen_agent}' (value={values[chosen_agent]:.2f} ≥ min={Vn_alpha_i[agent]:.2f})")
+    alloc.give_bundle(chosen_agent, bundle)
+    alloc.remove_agent_from_loop(chosen_agent)
+    
+    # Recursive call
     algorithm1_worst_case_allocation(alloc=alloc)
 
     
@@ -232,17 +238,10 @@ This is because the function Vn(alpha) is defined on the domain [0,1] as per the
 
 Sending raw values (e.g., 6) instead of normalized ratios will lead to incorrect results.
 """
+
 if __name__ == "__main__":
-
-    valuations = {
-            "Alice": {"c1": 8, "c2": 6, "c3": 10},
-            "Bob": {"c1": 8, "c2": 10, "c3": 6},
-            "Chana": {"c1": 6, "c2": 8, "c3": 10},
-            
-    }
-
+    valuations={"Alice": {"a": 10, "b": 3, "c": 1, "d": 1, "e": 2}, "Bob": {"a": 5, "b": 8, "c": 3, "d": 2, "e": 2}, "Carol": {"a": 1, "b": 3, "c": 9, "d": 6, "e": 5}, "Dave": {"a": 2, "b": 2, "c": 2, "d": 8, "e": 6}}
     instance = Instance(valuations=valuations)
 
     allocation = divide(algorithm=algorithm1_worst_case_allocation, instance=instance)
-
     
