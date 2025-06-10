@@ -43,7 +43,6 @@ def overall_EF_holds(rounds: List[OneDayAllocation],
         u_i = sum(utilities[i][o] for o in union[i])
         u_j = sum(utilities[i][o] for o in union[1-i])
         if u_i < u_j:
-            # you could log.debug here
             return False
     return True
 
