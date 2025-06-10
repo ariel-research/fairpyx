@@ -209,6 +209,16 @@ def test_algorithm1():
     print("\n=== Algorithm1 (without divide) ===")
     alloc = algorithm1(utils)
     print ("\nalloc:", alloc)
+    assert alloc[0] == {0: {1, 2}, 1: {0}}
+    assert alloc[1] == {0: {1, 2}, 1: {0}}
+    utils = {
+        0: {0: 5.0, 1: 2.0, 2: 5.0, 3: 3.0},
+        1: {0: 5.0, 1: 2.0, 2: 5.0, 3: 3.0},
+    }
+    alloc = algorithm1(utils)
+    print ("\nalloc:", alloc)
+    assert alloc[0] == {0: {0}, 1: {1, 2, 3}}
+    assert alloc[1] == {0: {0, 2}, 1: {1, 3}}
 
 
 
