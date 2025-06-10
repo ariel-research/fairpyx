@@ -8,13 +8,12 @@ Date: 2025-05-05
 
 import logging
 from fairpyx.allocations import AllocationBuilder
-from pulp import LpProblem, LpVariable, LpMaximize, lpSum, LpBinary, LpContinuous, value
+from pulp import LpProblem, LpVariable, LpMaximize, lpSum, LpBinary, LpContinuous, value, PULP_CBC_CMD
 from itertools import combinations
 
 from pulp import LpProblem, LpVariable, LpBinary, lpSum, LpMaximize
 
 # Setup basic logging configuration (you can customize format and level)
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 def feasibility_ilp(S, items, demands, capacities, preferences):
@@ -80,7 +79,7 @@ def feasibility_ilp(S, items, demands, capacities, preferences):
 
     # === Solve the ILP ===
     logger.info("Solving FeasibilityILP...")
-    prob.solve()
+    prob.solve(PULP_CBC_CMD(msg=0))
 
     # === If feasible, return the assignment as a list of (i, f) pairs ===
     if prob.status == 1:
@@ -161,7 +160,8 @@ def primal_lp(feasible_sets, R, agents, p_star):
 
     # === Solve LP ===
     logger.info("Solving PrimalLP...")
-    prob.solve()
+    prob.solve(PULP_CBC_CMD(msg=0))
+
 
     if prob.status != 1:
         logger.error(f"Primal LP is infeasible, status code: {prob.status}")
@@ -240,6 +240,18 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
     True
     >>> probs = [p for _, p in alloc.distribution]
     >>> len(probs) == 1 and abs(probs[0] - 1.0) < 1e-6
+    True
+
+    Example 4: Agents and items with capacities > 1
+    >>> instance = Instance(
+    ...     valuations={1: {"a": 1, "b": 1}, 2: {"a": 1, "c": 1}},
+    ...     agent_capacities={1: 2, 2: 3},
+    ...     item_capacities={"a": 3, "b": 1, "c": 2}
+    ... )
+    >>> alloc = AllocationBuilder(instance)
+    >>> leximin_primal(alloc)
+    >>> total_prob = sum(p for _, p in alloc.distribution)
+    >>> abs(total_prob - 1.0) < 1e-6
     True
     """
     # === Input: {(di, Fi)} for i ∈ N and {cj} for j ∈ M ===
@@ -397,4 +409,7 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
 
 if __name__ == "__main__":
     import doctest
+    import logging
+
+    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
     doctest.testmod(verbose=True)
