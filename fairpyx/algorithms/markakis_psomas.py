@@ -166,15 +166,10 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
         agent: sorted(alloc.remaining_items_for_agent(agent), key=lambda item: alloc.effective_value(agent, item), reverse=True)
         for agent in alloc.remaining_agents()
     }
-
-   # New: Minimum value required = max(threshold, max_item_value)
-    min_values = {
-        agent: max(Vn_alpha_i[agent], max_values[agent])
-        for agent in alloc.remaining_agents()
-    }
+    
 
     # Add items until at least one agent meets the minimum value
-    while all(values[agent] < min_values[agent] for agent in alloc.remaining_agents()):
+    while all(values[agent] <= Vn_alpha_i[agent] for agent in alloc.remaining_agents()):
         for agent in alloc.remaining_agents():
             if pointers[agent] < len(sorted_items[agent]):
                 item = sorted_items[agent][pointers[agent]]
@@ -182,6 +177,7 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
                 bundles[agent].append(item)
                 values[agent] += val
                 pointers[agent] += 1
+                
             else:
                 # If no more items, use current bundle
                 pass
@@ -189,25 +185,15 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
         # Check if we can break early
         if all(pointers[agent] >= len(sorted_items[agent]) for agent in alloc.remaining_agents()):
             break
-
+    
     # Choose agent who meets the threshold and has non-empty bundle
     chosen_agent = None
     for agent in alloc.remaining_agents():
-        if values[agent] >= Vn_alpha_i[agent] and bundles[agent]:
+        if values[agent] >= Vn_alpha_i[agent]:
             chosen_agent = agent
+            logger.info(f"is  agent '{chosen_agent}' ")
             break
     
-    # Fallback: choose agent with highest value if none chosen
-    if chosen_agent is None:
-        chosen_agent = max(
-            alloc.remaining_agents(),
-            key=lambda a: values[a] if bundles[a] else -float('inf')
-        )
-        # Ensure at least one item is allocated
-        if not bundles[chosen_agent] and sorted_items[chosen_agent]:
-            item = sorted_items[chosen_agent][0]
-            bundles[chosen_agent] = [item]
-            values[chosen_agent] = alloc.effective_value(chosen_agent, item)
 
     # Allocate the bundle
     bundle = bundles[chosen_agent]
@@ -240,7 +226,7 @@ Sending raw values (e.g., 6) instead of normalized ratios will lead to incorrect
 """
 
 if __name__ == "__main__":
-    valuations={"Alice": {"a": 10, "b": 3, "c": 1, "d": 1, "e": 2}, "Bob": {"a": 5, "b": 8, "c": 3, "d": 2, "e": 2}, "Carol": {"a": 1, "b": 3, "c": 9, "d": 6, "e": 5}, "Dave": {"a": 2, "b": 2, "c": 2, "d": 8, "e": 6}}
+    valuations={"A": {"1": 7, "2": 2, "3": 1, "4": 1}, "B": {"1": 3, "2": 6, "3": 1, "4": 2}, "C": {"1": 2, "2": 3, "3": 5, "4": 5}}  
     instance = Instance(valuations=valuations)
 
     allocation = divide(algorithm=algorithm1_worst_case_allocation, instance=instance)
