@@ -169,22 +169,26 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     
 
     # Add items until at least one agent meets the minimum value
+    #כל עוד שום סוכן לא עבר את הסף שלו, נמשיך לבנות לכל אחד את החבילה שלו.
+
     while all(values[agent] <= Vn_alpha_i[agent] for agent in alloc.remaining_agents()):
         for agent in alloc.remaining_agents():
             if pointers[agent] < len(sorted_items[agent]):
+                #נבחר הפריט הבא ברשימת הפרטים הממוינית בסדר יורד
                 item = sorted_items[agent][pointers[agent]]
+                #נחשב ערך הפריט עבור הסוכן
                 val = alloc.effective_value(agent, item)
+                #נוסיף הפריט לחבילה של הסוכן ונעדכן את הערך הכלל
                 bundles[agent].append(item)
                 values[agent] += val
+                #נזיז את המצביע לפריט הבא
                 pointers[agent] += 1
                 
             else:
                 # If no more items, use current bundle
                 pass
 
-        # Check if we can break early
-        if all(pointers[agent] >= len(sorted_items[agent]) for agent in alloc.remaining_agents()):
-            break
+        
     
     # Choose agent who meets the threshold and has non-empty bundle
     chosen_agent = None
