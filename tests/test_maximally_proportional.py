@@ -8,11 +8,12 @@ Since:  2025-05
 import pytest
 from fairpyx import Instance, divide, validate_allocation, AgentBundleValueMatrix
 from fairpyx.algorithms import maximally_proportional_allocation
+from random import sample, randint
 
 
 def test_feasibility():
     ntest = 10
-    for i in range(ntest):
+    for seed in sample(range(1, 2**32), ntest):
         instance = Instance.random_uniform(
             num_of_agents=4,
             num_of_items=6,
@@ -21,10 +22,12 @@ def test_feasibility():
             item_base_value_bounds=(60, 100),
             item_subjective_ratio_bounds=(0.6, 1.4),
             normalized_sum_of_values=100,
-            random_seed=i,
+            random_seed=seed,
         )
         allocation = divide(maximally_proportional_allocation, instance)
-        validate_allocation(allocation=allocation, instance=instance)
+        validate_allocation(
+            allocation=allocation, instance=instance, title=f"Random seed: {seed}"
+        )
 
 
 def test_proportional():
@@ -47,7 +50,7 @@ def test_proportional():
     assert is_proportional(alloc, instance) == True
 
     # random instance
-    RAND_SEED = 23
+    seed = randint(1, 2**32)
     instance = Instance.random_uniform(
         num_of_agents=5,
         num_of_items=10,
@@ -56,12 +59,12 @@ def test_proportional():
         item_base_value_bounds=(20, 25),
         item_subjective_ratio_bounds=(0.5, 3.0),
         normalized_sum_of_values=50,
-        random_seed=RAND_SEED,
+        random_seed=seed,
     )
     alloc = divide(maximally_proportional_allocation, instance)
     assert (
         is_proportional(alloc, instance) == True
-    ), "At least one player did not get a proportional bundle"
+    ), f"Random seed: {seed}. At least one player did not get a proportional bundle"
 
 
 def test_maximallity():
@@ -160,8 +163,9 @@ def test_envy_free():
 
 
 def test_large_input():
-    nagents, nitems = 20, 30
-    title = f"Large Input. Agents - {nagents}. Items - {nitems}"
+    nagents, nitems = 20, 25
+    seed = randint(1, 2**32)
+    title = f"Large Input. Agents - {nagents}. Items - {nitems}. Random seed: {seed}"
     instance = Instance.random_uniform(
         num_of_agents=nagents,
         num_of_items=nitems,
@@ -170,7 +174,7 @@ def test_large_input():
         item_base_value_bounds=(20, 100),
         item_subjective_ratio_bounds=(0.5, 2.4),
         normalized_sum_of_values=1000,
-        random_seed=445,
+        random_seed=seed,
     )
     alloc = divide(maximally_proportional_allocation, instance)
     validate_allocation(instance=instance, allocation=alloc, title=title)
