@@ -230,7 +230,9 @@ Sending raw values (e.g., 6) instead of normalized ratios will lead to incorrect
 """
 
 if __name__ == "__main__":
-    valuations={"A": {"1": 7, "2": 2, "3": 1, "4": 1}, "B": {"1": 3, "2": 6, "3": 1, "4": 2}, "C": {"1": 2, "2": 3, "3": 5, "4": 5}}  
+    valuations={"A": {"1": 2, "2": 2, "3": 1, "4": 1},
+                 "B": {"1": 3, "2": 6, "3": 1, "4": 2}, 
+                 "C": {"1": 2, "2": 3, "3": 5, "4": 5}}  
     instance = Instance(valuations=valuations)
 
     allocation = divide(algorithm=algorithm1_worst_case_allocation, instance=instance)
