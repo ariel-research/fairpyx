@@ -68,7 +68,7 @@ def plot_vn():
     plt.title("Function Vn(alpha) for different n")
     plt.legend()
     plt.grid(True)
-    plt.show()
+    #plt.show()
 
 # Run the plot
 plot_vn()
