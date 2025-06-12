@@ -1,8 +1,16 @@
 """
-Test for the Santa Claus Problem algorithm.
+Tests for 'The Santa Claus Problem' algorithms.
 
-This file tests the implementation of the algorithms for the Santa Claus Problem
-which aims to maximize the happiness of the least happy child.
+Paper: The Santa Claus Problem
+Authors: Nikhil Bansal, Maxim Sviridenko
+Link: https://dl.acm.org/doi/10.1145/1132516.1132557 (Proceedings of the 38th Annual ACM Symposium on Theory of Computing, 2006)
+
+This file tests the implementations in santa_claus_problem.py, focusing on
+the O(log log m / log log log m) approximation algorithm for the restricted
+assignment case.
+
+Programmers: [Your Name(s) Here - User will fill this]
+Date: 2025-05-29
 """
 
 import pytest

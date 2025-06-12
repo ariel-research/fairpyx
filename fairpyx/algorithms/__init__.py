@@ -4,7 +4,7 @@ from fairpyx.algorithms.picking_sequence import round_robin, bidirectional_round
 from fairpyx.algorithms.utilitarian_matching import utilitarian_matching
 from fairpyx.algorithms.Gale_Shapley_pareto_dominant_market_mechanism import gale_shapley
 from fairpyx.algorithms.ACEEI_algorithms.tabu_search import tabu_search
-from fairpyx.algorithms.ACEEI_algorithms.ACEEI import find_ACEEI_with_EFTB
+# from fairpyx.algorithms.ACEEI_algorithms.ACEEI import find_ACEEI_with_EFTB
 from fairpyx.algorithms.ACEEI_algorithms.find_profitable_manipulation import find_profitable_manipulation
 from fairpyx.algorithms.Optimization_based_Mechanisms.OC import OC_function
 from fairpyx.algorithms.Optimization_based_Mechanisms.SP_O import SP_O_function
@@ -13,4 +13,6 @@ from fairpyx.algorithms.Optimization_based_Mechanisms.TTC_O import TTC_O_functio
 from fairpyx.algorithms.Optimization_based_Mechanisms.TTC import TTC_function
 from fairpyx.algorithms.Optimization_based_Mechanisms.optimal_functions import notExceedtheCapacity, numberOfCourses, give_items_according_to_allocation_matrix
 from fairpyx.algorithms.course_match.main_course_match import course_match_algorithm
+from fairpyx.algorithms.santa_claus_problem import santa_claus
+from fairpyx.algorithms.santa_claus_solver import divide as santa_claus_divide
 
