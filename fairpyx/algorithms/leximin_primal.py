@@ -396,5 +396,34 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
 
 
 if __name__ == "__main__":
-    import doctest
-    doctest.testmod(verbose=True)
+    import doctest, numpy as np
+    # doctest.testmod(verbose=True)
+
+    from fairpyx.adaptors import divide_random_instance
+
+    logging.basicConfig(level=logging.DEBUG)
+
+    random_seed = np.random.randint(1, 2**31)
+    np.random.seed(random_seed)
+    # logger.info("Random seed: %d", random_seed)
+    # agents  = [agent_name_template.format(index=i+1) for i in range(num_of_agents)]
+    # items   = [item_name_template.format(index=i+1) for i in range(num_of_items)]
+    # agent_capacities  = {agent: np.random.randint(agent_capacity_bounds[0], agent_capacity_bounds[1]+1) for agent in agents}
+    # item_capacities   = {item: np.random.randint(item_capacity_bounds[0], item_capacity_bounds[1]+1) for item in items}
+    # base_values = normalized_valuation(random_valuation(num_of_items, item_base_value_bounds), normalized_sum_of_values)
+    # valuations = {
+    #     agent: dict(zip(items, normalized_valuation(
+    #         base_values *  random_valuation(num_of_items, item_subjective_ratio_bounds),
+    #         normalized_sum_of_values
+    #     )))
+    #     for agent in agents
+    # }
+    # item_weights = None
+    # if item_weight_bounds:
+    #     item_weights = {item: np.round(np.random.uniform(item_weight_bounds[0], item_weight_bounds[1]+1)) for item in items}    
+    # instance = Instance(valuations=valuations, agent_capacities=agent_capacities, item_capacities=item_capacities, item_weights=item_weights)
+
+    divide_random_instance(algorithm=leximin_primal, 
+                           num_of_agents=3, num_of_items=4, agent_capacity_bounds=[20,20], item_capacity_bounds=[1,1], 
+                           item_base_value_bounds=[0,2], item_subjective_ratio_bounds=[0.5,1.5], normalized_sum_of_values=100,
+                           random_seed=1)
