@@ -11,8 +11,6 @@ from fairpyx.allocations import AllocationBuilder
 from pulp import LpProblem, LpVariable, LpMaximize, lpSum, LpBinary, LpContinuous, value, PULP_CBC_CMD
 from itertools import combinations
 
-from pulp import LpProblem, LpVariable, LpBinary, lpSum, LpMaximize
-
 # Setup basic logging configuration (you can customize format and level)
 logger = logging.getLogger(__name__)
 
