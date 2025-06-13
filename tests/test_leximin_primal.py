@@ -12,8 +12,63 @@ from fairpyx.allocations import AllocationBuilder
 from fairpyx.algorithms.leximin_primal import leximin_primal
 
 
+# Helper function to check the allocation distributions from the algorithm
+def check_allocation_distribution(expected_allocs_with_prob, actual_allocs_with_prob, tolerance=1e-6):
+    """
+    Checks that every expected allocation is present in the actual output,
+    and that their assigned probabilities are close within the given tolerance.
+
+    Args:
+        expected_allocs_with_prob: list of (allocation_dict, probability) pairs representing
+            the expected allocations with their probabilities.
+        actual_allocs_with_prob: list of (allocation_dict, probability) pairs
+            from the algorithm output.
+        tolerance: float, maximum allowed absolute difference between probabilities.
+
+    Raises:
+        AssertionError if any expected allocation is missing or probability mismatch.
+    """
+    # Normalize allocations for consistent comparison
+    def normalize_allocation(alloc, agents):
+        norm = {}
+        for agent in agents:
+            # Support both int and str keys for agents
+            bundle = alloc.get(agent, alloc.get(str(agent), {}))
+            if isinstance(bundle, dict):
+                norm[int(agent)] = {str(k): 1 for k in bundle.keys()}
+            elif isinstance(bundle, (list, set)):
+                norm[int(agent)] = {str(item): 1 for item in bundle}
+            else:
+                norm[int(agent)] = {}
+        return norm
+
+    # Extract all agents appearing in expected and actual allocations to normalize properly
+    agents = sorted(set(
+        int(agent)
+        for alloc_dict, _ in actual_allocs_with_prob + expected_allocs_with_prob
+        for agent in alloc_dict.keys()
+    ))
+
+    # Check that each expected allocation appears in the actual allocations
+    for expected_alloc, expected_prob in expected_allocs_with_prob:
+        found = False
+        expected_norm = normalize_allocation(expected_alloc, agents)
+        for actual_alloc, actual_prob in actual_allocs_with_prob:
+            actual_norm = normalize_allocation(actual_alloc, agents)
+            if actual_norm == expected_norm:
+                found = True
+                # Assert probability close enough to expected
+                assert abs(actual_prob - expected_prob) < tolerance, (
+                    f"Allocation {actual_alloc} has wrong probability: got {actual_prob}, expected {expected_prob}"
+                )
+                break
+        # Fail if expected allocation is missing
+        assert found, f"Missing expected allocation: {expected_alloc}"
+    return True
+
+
+
 def test_empty_instance():
-    # Workaround: skip the test if Instance can't handle empty data
     try:
         inst = Instance(valuations={}, agent_capacities={}, item_capacities={})
     except (StopIteration, AssertionError):
@@ -145,20 +200,9 @@ def test_example_1_simple_allocations():
         ({3: {"a": 1}, 2: {"b": 1}, 1: {}}, 1 / 3)       # Agents 2 and 3 receive facilities, agent 1 gets nothing
     ]
 
-    # Actual allocations returned by the algorithm
-    actual_allocations_with_prob = alloc.distribution  # list of (dict, probability)
+    # Assert using the helper function
+    assert check_allocation_distribution(expected_allocations_with_prob, alloc.distribution)
 
-    # Check that all expected allocations appear with approximately correct probabilities
-    for expected_alloc, expected_prob in expected_allocations_with_prob:
-        found = False
-        for actual_alloc, actual_prob in actual_allocations_with_prob:
-            if actual_alloc == expected_alloc:
-                found = True
-                assert abs(actual_prob - expected_prob) < 1e-6, (
-                    f"Allocation {actual_alloc} has wrong probability: got {actual_prob}, expected {expected_prob}"
-                )
-                break
-        assert found, f"Missing expected allocation: {expected_alloc}"
 
 def test_example_2_with_all_branches_allocations():
     instance = Instance(
@@ -188,20 +232,9 @@ def test_example_2_with_all_branches_allocations():
         ({1: {"a": 1}, 3: {"b": 1}, 4: {"b": 1}, 2: {}}, 1 / 4),      # Agents 1, 3, 4 receive facilities, 2 gets nothing
     ]
 
-    # Actual allocations returned by the algorithm
-    actual_allocations_with_prob = alloc.distribution  # list of (dict, probability)
+    # Assert using the helper function
+    assert check_allocation_distribution(expected_allocations_with_prob, alloc.distribution)
 
-    # Check that all expected allocations appear in the distribution with correct probabilities
-    for expected_alloc, expected_prob in expected_allocations_with_prob:
-        found = False
-        for actual_alloc, actual_prob in actual_allocations_with_prob:
-            if actual_alloc == expected_alloc:
-                found = True
-                assert abs(actual_prob - expected_prob) < 1e-6, (
-                    f"Allocation {actual_alloc} has wrong probability: got {actual_prob}, expected {expected_prob}"
-                )
-                break
-        assert found, f"Missing expected allocation: {expected_alloc}"
 
 
 
@@ -231,20 +264,8 @@ def test_example_3_perfect_allocation():
         ({1: {"a": 1}, 2: {"b": 1}, 3: {"b": 1}}, 1.0),  # Agent 1 gets a, agents 2 and 3 get b
     ]
 
-    # Actual allocations returned by the algorithm
-    actual_allocations_with_prob = alloc.distribution  # list of (dict, probability)
-
-    # Check that all expected allocations appear with approximately correct probabilities
-    for expected_alloc, expected_prob in expected_allocations_with_prob:
-        found = False
-        for actual_alloc, actual_prob in actual_allocations_with_prob:
-            if actual_alloc == expected_alloc:
-                found = True
-                assert abs(actual_prob - expected_prob) < 1e-6, (
-                    f"Allocation {actual_alloc} has wrong probability: got {actual_prob}, expected {expected_prob}"
-                )
-                break
-        assert found, f"Missing expected allocation: {expected_alloc}"
+    # Assert using the helper function
+    assert check_allocation_distribution(expected_allocations_with_prob, alloc.distribution)
 
 
 
@@ -282,20 +303,5 @@ def test_example_4_bad_input_allocation():
         ({10: {"a": 1}, **{i: {} for i in range(1, 10)}}, 1 / 10),
     ]
 
-    # Actual allocations returned by the algorithm
-    actual_allocations_with_prob = alloc.distribution  # list of (dict, probability)
-
-    # Verify that all expected allocations appear with correct probabilities
-    for expected_alloc, expected_prob in expected_allocations_with_prob:
-        found = False
-        for actual_alloc, actual_prob in actual_allocations_with_prob:
-            if actual_alloc == expected_alloc:
-                found = True
-                assert abs(actual_prob - expected_prob) < 1e-6, (
-                    f"Allocation {actual_alloc} has wrong probability: got {actual_prob}, expected {expected_prob}"
-                )
-                break
-        assert found, f"Missing expected allocation: {expected_alloc}"
-
-if __name__ == "__main__":
-    pytest.main(["-v", __file__])
+    # Assert using the helper function
+    assert check_allocation_distribution(expected_allocations_with_prob, alloc.distribution)
