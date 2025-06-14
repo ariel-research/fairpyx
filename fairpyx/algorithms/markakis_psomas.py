@@ -27,21 +27,28 @@ def compute_vn(alpha: float, n: int) -> float:
     """
     if n <= 1:
         return 0.0
-    if alpha == 0:
+    if math.isclose(alpha, 0.0):
         return 1.0 / n
-    
-    for k in range(1, 1000):
-        I_left=(k + 1) / (k * ((k + 1) * n - 1))
-        I_right=1 / (k * n - 1)
-        NI_left= 1 / ((k + 1) * n - 1)
-        NI_right=(k + 1) / (k * ((k + 1) * n - 1))
-        # Check I(n,k) range (closed interval)
-        if I_left <= alpha <= I_right or math.isclose(alpha, I_left) or math.isclose(alpha, I_right):
-            return 1 - k * (n - 1) * alpha
-        # Check NI(n,k) range (open interval)
-        if NI_left < alpha < NI_right or math.isclose(alpha, NI_left) or math.isclose(alpha, NI_right):
-            return 1 - ((k + 1) * (n - 1)) / ((k + 1) * n - 1)
-    return 0.0
+    if alpha >= 1.0 / (n - 1):
+        return 0.0
+
+    k = math.floor((1 + alpha) / (alpha * n))
+
+    I_left = (k + 1) / (k * ((k + 1) * n - 1))
+    I_right = 1 / (k * n - 1) if k * n - 1 > 0 else 1.0
+
+    NI_left = 1 / ((k + 1) * n - 1)
+    NI_right = (k + 1) / (k * ((k + 1) * n - 1))
+
+    # Check I(n,k) range (closed interval)
+    if I_left <= alpha <= I_right or math.isclose(alpha, I_left) or math.isclose(alpha, I_right):
+        return 1 - k * (n - 1) * alpha
+
+    # Check NI(n,k) range (open interval)
+    if NI_left < alpha < NI_right or math.isclose(alpha, NI_left) or math.isclose(alpha, NI_right):
+        return 1 - ((k + 1) * (n - 1)) / ((k + 1) * n - 1)
+
+    return 0.0  # fallback
 
 
 def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
