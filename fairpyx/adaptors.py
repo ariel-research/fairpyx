@@ -23,6 +23,7 @@ def divide(
     item_conflicts:   any = None,
     **kwargs
 ):
+   
     """
     Apply the given algorithm to the given fair-course-allocation instance.
 

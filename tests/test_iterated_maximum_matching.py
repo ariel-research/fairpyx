@@ -28,7 +28,7 @@ def test_feasibility():
         allocation = fairpyx.divide(fairpyx.algorithms.iterated_maximum_matching_adjusted, instance=instance)
         fairpyx.validate_allocation(instance, allocation, title=f"Seed {i}, adjusted")
 
-
+    
 def test_item_weights():
     instance = fairpyx.Instance(
         valuations={
@@ -62,14 +62,15 @@ def test_item_weights():
             "c6": 4   # 4 credit points
         }
     )
-
+    
     from fairpyx.explanations import StringsExplanationLogger
     import logging
     string_explanation_logger = StringsExplanationLogger(agents=[name for name in instance.agents], language='he')
     allocation = fairpyx.divide(fairpyx.algorithms.iterated_maximum_matching_adjusted, instance=instance, explanation_logger = string_explanation_logger)
     fairpyx.validate_allocation(instance, allocation, title=f"adjusted")
-    with open('explanation.txt','w') as f:
-        print(string_explanation_logger.map_agent_to_explanation()['sigalit'],file=f)
+    with open('explanation.txt', 'w', encoding='utf-8') as f:
+        print(string_explanation_logger.map_agent_to_explanation()['sigalit'], file=f)
+
 
 if __name__ == "__main__":
      pytest.main(["-vs",__file__])
