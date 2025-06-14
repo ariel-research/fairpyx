@@ -4,8 +4,8 @@ An implementation of the algorithms in:
 by Evangelos Markakis and Christos-Alexandros Psomas (2011).
 https://link.springer.com/chapter/10.1007/978-3-642-25510-6_24
 http://pages.cs.aueb.gr/~markakis/research/wine11-Vn.pdf
-Programmer: Ibrahem Hurani
 
+Programmer: Ibrahem Hurani
 Date: 2025-05-06
 """
 
