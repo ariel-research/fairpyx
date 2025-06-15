@@ -21,8 +21,8 @@ import logging
 log = logging.getLogger("fairpyx.rfaoii")
 # ------------------------------------------------------------------
 
-Agent = int
-Item  = int
+Agent  = int | str              # may come from JSON as str
+Item   = int | str
 Bundle = Set[Item]
 OneDayAllocation = Dict[Agent, Bundle]
 
@@ -135,47 +135,53 @@ def round_robin_from_counts(
     Guarantees
     ----------
     * Each item appears exactly the requested number of times.
-    * No round contains duplicate copies of the **same** item.
+    * No round contains duplicate copies of the *same* item.
 
-    Example
-    -------
-    Two items, each copied twice, two rounds:
-
+    Examples
+    --------
     >>> counts = {(0, 'A'): 2, (1, 'B'): 2}
-    >>> rr = round_robin_from_counts(counts, k=2)
-    >>> rr
+    >>> round_robin_from_counts(counts, k=2)
     [{0: {'A'}, 1: {'B'}}, {0: {'A'}, 1: {'B'}}]
 
-    Every round is a *true* allocation and each copy is placed once.
-
-    Larger **k** works as well:
-
     >>> counts = {(0, 'x'): 3, (1, 'y'): 3}
-    >>> _ = round_robin_from_counts(counts, k=3)   # should run w/o error
+    >>> _ = round_robin_from_counts(counts, k=3)   # runs without error
     """
+    # ----------------------------------------------------------------------
+    # 1) infer the *actual* agent labels   (could be '0','1' if JSON encoded)
+    # ----------------------------------------------------------------------
+    AGENTS: Set[Agent] = {ag for ag, _ in counts}           # e.g. {'0','1'}
 
-    # 1) build a list “owners[o] = [i,i,i,…]” with length == counts for that item
+    # ----------------------------------------------------------------------
+    # 2) owners[item]  =  [agent, agent, …]  (one entry per requested copy)
+    # ----------------------------------------------------------------------
     owners: Dict[Item, List[Agent]] = {}
     for (ag, it), c in counts.items():
         owners.setdefault(it, []).extend([ag] * c)
 
-    # 2) start with empty bundles
-    rounds: List[OneDayAllocation] = [{0: set(), 1: set()} for _ in range(k)]
+    # ----------------------------------------------------------------------
+    # 3) start with *k* fully-keyed empty rounds
+    # ----------------------------------------------------------------------
+    rounds: List[OneDayAllocation] = [
+        {ag: set() for ag in AGENTS}          # every agent key present
+        for _ in range(k)
+    ]
 
-    # 3) round-robin place the copies of every item
-    ptr = 0                                    # global round pointer
-    for it, owner_list in owners.items():      # deterministic order
-        for ag in owner_list:                  # keep the order returned by ILP
-            for offset in range(k):            # try the k rounds cyclically
-                r = (ptr + offset) % k
-                if it not in rounds[r][0] and it not in rounds[r][1]:
+    # ----------------------------------------------------------------------
+    # 4) place the copies round–robin
+    # ----------------------------------------------------------------------
+    ptr = 0                                   # “current round” pointer
+    for it, owner_list in owners.items():     # deterministic by insertion
+        for ag in owner_list:                 # keep ILP order
+            for off in range(k):              # probe k rounds cyclically
+                r = (ptr + off) % k
+                # safe test: is *it* already used in that round?
+                if all(it not in bundle for bundle in rounds[r].values()):
                     rounds[r][ag].add(it)
-                    ptr = (r + 1) % k          # advance pointer for next copy
+                    ptr = (r + 1) % k        # next copy starts AFTER this one
                     break
             else:
-                # This should *never* happen; it would mean > k copies of the
-                # same item were requested (contradicts the ILP constraints).
-                raise RuntimeError(f"could not place item {it}")
+                # Would imply > k copies for the same item – contradicts ILP.
+                raise RuntimeError(f"Could not place item {it!r}")
 
     return rounds
 
@@ -381,7 +387,7 @@ def algorithm2(
     def weak_EF1(r, a):
         return weak_EF1_holds(π[r], a, utilities)
     # ---------- adjustment loop (paper’s pseudo-code) --------------------------
-    def adjust(a:int):   ### TODO: add documentation
+    def adjust(a:int):  
         E = {r for r in range(k) if not envy_free(r,a)}
         log.debug("Adjusting agent %d, initial not envy-free rounds: %s", a, E)
         F = set(range(k)) - E
