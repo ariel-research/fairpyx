@@ -221,7 +221,6 @@ def test_algorithm1():
     assert alloc[1] == {0: {0, 2}, 1: {1, 3}}
 
 
-
 def test_algorithm2():
     """
     run algorithm2 without divide, just to check the basic functionality.
