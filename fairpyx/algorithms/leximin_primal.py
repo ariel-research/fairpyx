@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 def feasibility_ilp(S, items, demands, capacities, preferences):
     """
+    TODO: add documentation to arguments
+
     Solve the FeasibilityILP subproblem for a given subset of agents S.
     Returns:
         A list of (agent, facility) pairs indicating deterministic assignment,
@@ -93,6 +95,8 @@ def feasibility_ilp(S, items, demands, capacities, preferences):
 
 def primal_lp(feasible_sets, R, agents, p_star):
     """
+    TODO: add documentation to arguments
+
     Solve the PrimalLP step of LeximinPrimal:
     Maximize M subject to:
         - pi ≥ M       for i ∈ R
@@ -135,6 +139,11 @@ def primal_lp(feasible_sets, R, agents, p_star):
         tuple(alloc): LpVariable(f"x_{idx}", lowBound=0, cat=LpContinuous)
         for idx, (_, alloc) in enumerate(feasible_sets)
     }
+    # TODO: check if possible to use S (the set) instead of the index.
+    # xS = {
+    #     tuple(alloc): LpVariable(f"x_{S}", lowBound=0, cat=LpContinuous)
+    #     for (S, alloc) in feasible_sets
+    # }
     logger.debug(f"Created {len(xS)} variables xS for feasible allocations")
 
     # === Constraint: ∑ xS = 1 → total probability mass must be 1 ===
@@ -144,6 +153,7 @@ def primal_lp(feasible_sets, R, agents, p_star):
     # === Constraints for each agent i ∈ N ===
     for i in agents:
         # pi = sum of xS for all allocations where agent i appears
+        # TODO: make the next line similar to the paper (check if i is in S)
         pi_expr = lpSum(xS[S] for S in xS if any(s[0] == i for s in S))
         if i in R:
             prob += pi_expr >= M
@@ -158,6 +168,7 @@ def primal_lp(feasible_sets, R, agents, p_star):
 
     # === Solve LP ===
     logger.info("Solving PrimalLP...")
+    # TODO: Find a strictly-complementary solution
     prob.solve(PULP_CBC_CMD(msg=0))
 
 
@@ -293,6 +304,8 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
     failed_subsets = set()
     logger.info("\n=== Generating feasible allocations (FeasibilityILP) with pruning ===")
 
+    # TODO: make the following loop an auxiliary function, with doctests
+    total_capacity = sum(capacities[f] for f in items)
     for r in range(1, len(agents) + 1):
         for subset in combinations(agents, r):
             subset_frozen = frozenset(subset)
@@ -303,7 +316,6 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
 
             # Quick precheck: total demand vs total capacity
             total_demand = sum(demands[i] for i in subset)
-            total_capacity = sum(capacities[f] for f in items)
             if total_demand > total_capacity:
                 continue
 
@@ -338,6 +350,8 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
         # Accumulate allocation probabilities into xS_total
         for S in xS:
             val = value(xS[S])
+
+            # TODO: Understand why = does not work
             xS_total[S] += val
             if val > 1e-6:
                 logger.debug(f"xS[{S}] += {val:.4f}")
@@ -346,7 +360,7 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
         for i in list(R):
             pi_val = sum(value(xS[S]) for S in xS if any(s[0] == i for s in S))
             if abs(pi_val - value(M)) < 1e-6:
-                p_star[i] = pi_val
+                p_star[i] = pi_val    # TODO: replace pi_val with value(M)
                 logger.info(f"Fixing p*[{i}] = {pi_val:.4f}")
                 R.remove(i)
 
