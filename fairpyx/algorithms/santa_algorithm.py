@@ -100,6 +100,17 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     >>> result = santa_claus_main(allocation_builder)
     >>> result == {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
     True
+
+    >>> # Test 3: A מגיעה לשתי מתנות, B לאחת
+    >>> instance = Instance(
+    ...     valuations={"A": {"c1": 5, "c2": 5, "c3": 0}, "B": {"c1": 0, "c2": 0, "c3": 6}},
+    ...     agent_capacities={"A": 2, "B": 1},
+    ...     item_capacities={"c1": 1, "c2": 1, "c3": 1},
+    ... )
+    >>> allocation_builder = AllocationBuilder(instance=instance)
+    >>> result = santa_claus_main(allocation_builder)
+    >>> result == {'A': {'c1', 'c2'}, 'B': {'c3'}}
+    True
     """
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     # שולפים את המידע מה-AllocationBuilder: שמות סוכנים ופריטים
