@@ -16,17 +16,26 @@ logger = logging.getLogger(__name__)
 
 def feasibility_ilp(S, items, demands, capacities, preferences):
     """
-    TODO: add documentation to arguments
-
     Solve the FeasibilityILP subproblem for a given subset of agents S.
-    Returns:
-        A list of (agent, facility) pairs indicating deterministic assignment,
-        or None if no feasible assignment exists.
 
-    Based on the algorithm:
-        ∑_{f ∈ Fi} y_{i,f} ≥ 1       for all i ∈ S
-        ∑_{i ∈ S : f ∈ Fi} d_i·y_{i,f} ≤ c_f  for all f ∈ M
-        y_{i,f} ∈ {0, 1}             for all i ∈ S, f ∈ Fi
+    Args:
+        S (set[int]): Subset of agents to include in the ILP. For example, {1, 2, 3}.
+        items (set[str]): Set of all available items or facilities (e.g., {'a', 'b'}).
+        demands (dict[int, int]): Dictionary mapping each agent to their demand (e.g., {1: 1, 2: 2}).
+        capacities (dict[str, int]): Dictionary mapping each item to its total capacity (e.g., {'a': 2}).
+        preferences (dict[int, set[str]]): Dictionary mapping each agent to the set of items they value
+            (i.e., items they are willing to receive).
+
+    Returns:
+        list[tuple[int, str]] | None:
+            A list of (agent, item) pairs representing a deterministic assignment
+            if a feasible solution exists. Otherwise, returns None if the problem is infeasible.
+
+    This function solves the following ILP (from the LeximinPrimal algorithm):
+
+        ∑_{f ∈ Fi} y_{i,f} ≥ 1           for all agents i ∈ S  (each agent gets at least one preferred item)
+        ∑_{i ∈ S : f ∈ Fi} d_i·y_{i,f} ≤ c_f  for all items f ∈ items  (do not exceed item capacities)
+        y_{i,f} ∈ {0, 1}                 for all i ∈ S and f ∈ Fi (binary decision variables)
 
     Doctest examples:
     >>> # Feasible case: agents 1 and 2 have non-overlapping preferences
@@ -39,7 +48,7 @@ def feasibility_ilp(S, items, demands, capacities, preferences):
     >>> sorted(result)
     [(1, 'a'), (2, 'b')]
 
-    >>> # Infeasible case: both want 'a', but capacity is 1
+    >>> # Infeasible case: both agents want 'a', but only one unit is available
     >>> S = {1, 2}
     >>> items = {'a'}
     >>> demands = {1: 1, 2: 1}
@@ -48,6 +57,7 @@ def feasibility_ilp(S, items, demands, capacities, preferences):
     >>> feasibility_ilp(S, items, demands, capacities, preferences) is None
     True
     """
+
 
     logger.info(f"Starting FeasibilityILP for agents subset: {S}")
 
@@ -95,7 +105,18 @@ def feasibility_ilp(S, items, demands, capacities, preferences):
 
 def primal_lp(feasible_sets, R, agents, p_star):
     """
-    TODO: add documentation to arguments
+    Arguments:
+        feasible_sets (list of (set, list)):
+            Each element is (agents_in_S, allocation), where allocation is a list of (agent, item) pairs.
+
+        R (set of int):
+            Agents whose allocation probability must be ≥ M.
+
+        agents (list of int):
+            All agents in the problem instance.
+
+        p_star (dict of int → float):
+            Fixed probabilities for agents not in R.
 
     Solve the PrimalLP step of LeximinPrimal:
     Maximize M subject to:
@@ -139,11 +160,6 @@ def primal_lp(feasible_sets, R, agents, p_star):
         tuple(alloc): LpVariable(f"x_{idx}", lowBound=0, cat=LpContinuous)
         for idx, (_, alloc) in enumerate(feasible_sets)
     }
-    # TODO: check if possible to use S (the set) instead of the index.
-    # xS = {
-    #     tuple(alloc): LpVariable(f"x_{S}", lowBound=0, cat=LpContinuous)
-    #     for (S, alloc) in feasible_sets
-    # }
     logger.debug(f"Created {len(xS)} variables xS for feasible allocations")
 
     # === Constraint: ∑ xS = 1 → total probability mass must be 1 ===
@@ -153,8 +169,7 @@ def primal_lp(feasible_sets, R, agents, p_star):
     # === Constraints for each agent i ∈ N ===
     for i in agents:
         # pi = sum of xS for all allocations where agent i appears
-        # TODO: make the next line similar to the paper (check if i is in S)
-        pi_expr = lpSum(xS[S] for S in xS if any(s[0] == i for s in S))
+        pi_expr = lpSum(xS[alloc] for alloc in xS if any(agent_id == i for (agent_id, _) in alloc))
         if i in R:
             prob += pi_expr >= M
             logger.debug(f"Added constraint for agent {i}: pi >= M")
@@ -162,13 +177,16 @@ def primal_lp(feasible_sets, R, agents, p_star):
             prob += pi_expr == p_star[i]
             logger.debug(f"Added constraint for agent {i}: pi == p_star[{i}] = {p_star[i]}")
 
-    # === Final objective: maximize M ===
-    prob += M
-    logger.info("Set objective to maximize M")
+    # === Final objective: maximize M - ε * sum(xS) for strict complementarity ===
+    # This slight perturbation forces the solver to prefer solutions where fewer xS variables are non-zero,
+    # making the solution strictly complementary
+    epsilon = 1e-6
+    perturbed_objective = M - epsilon * lpSum(xS.values())
+    prob += perturbed_objective
+    logger.info("Set perturbed objective: maximize M - ε * sum(xS)")
 
     # === Solve LP ===
     logger.info("Solving PrimalLP...")
-    # TODO: Find a strictly-complementary solution
     prob.solve(PULP_CBC_CMD(msg=0))
 
 
@@ -187,6 +205,68 @@ def primal_lp(feasible_sets, R, agents, p_star):
     logger.info(f"PrimalLP solved successfully: M = {M_val:.6f}")
 
     return M_val, pi, xS
+
+from typing import List, Tuple, Set
+
+def generate_feasible_sets(
+    agents: List[int],
+    items: List[str],
+    demands: dict,
+    capacities: dict,
+    preferences: dict
+) -> List[Tuple[Set[int], List[Tuple[int, str]]]]:
+    """
+    Generates all feasible allocations (AS) for subsets S of agents
+    using the FeasibilityILP algorithm with pruning to avoid redundant checks.
+
+    Args:
+        agents: List of agent IDs.
+        items: List of item names.
+        demands: Mapping from agent to their demand (capacity).
+        capacities: Mapping from item to its total capacity.
+        preferences: Mapping from agent to their preferred items.
+
+    Returns:
+        A list of tuples: (S, AS) where:
+            - S is a set of agents,
+            - AS is a list of (agent, item) assignments.
+
+    Example (doctest-style):
+    >>> agents = [1, 2]
+    >>> items = ["a", "b"]
+    >>> demands = {1: 1, 2: 1}
+    >>> capacities = {"a": 1, "b": 1}
+    >>> preferences = {1: {"a"}, 2: {"b"}}
+    >>> fs = generate_feasible_sets(agents, items, demands, capacities, preferences)
+    >>> len(fs) >= 2
+    True
+    >>> all(isinstance(s, tuple) and isinstance(s[0], frozenset) for s in fs)
+    True
+    """
+    from itertools import combinations
+
+    feasible_sets = []
+    failed_subsets = set()
+    total_capacity = sum(capacities[f] for f in items)
+
+    for r in range(1, len(agents) + 1):
+        for subset in combinations(agents, r):
+            subset_frozen = frozenset(subset)
+
+            if any(failed.issubset(subset_frozen) for failed in failed_subsets):
+                continue
+
+            total_demand = sum(demands[i] for i in subset)
+            if total_demand > total_capacity:
+                continue
+
+            alloc_set = feasibility_ilp(subset, items, demands, capacities, preferences)
+            if alloc_set:
+                feasible_sets.append((subset_frozen, alloc_set))
+            else:
+                failed_subsets.add(subset_frozen)
+
+    return feasible_sets
 
 
 def leximin_primal(alloc: AllocationBuilder) -> None:
@@ -299,33 +379,8 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
         alloc.distribution = []
         return
 
-    # === Line 1-2: Solve FeasibilityILP for each subset S ⊆ N, For each S ∈ S, let AS be the returned assignment implicit via feasible_sets = list of (S, AS)===
-    feasible_sets = []
-    failed_subsets = set()
-    logger.info("\n=== Generating feasible allocations (FeasibilityILP) with pruning ===")
-
-    # TODO: make the following loop an auxiliary function, with doctests
-    total_capacity = sum(capacities[f] for f in items)
-    for r in range(1, len(agents) + 1):
-        for subset in combinations(agents, r):
-            subset_frozen = frozenset(subset)
-
-            # Prune if any known failed subset is a subset of this one
-            if any(failed.issubset(subset_frozen) for failed in failed_subsets):
-                continue
-
-            # Quick precheck: total demand vs total capacity
-            total_demand = sum(demands[i] for i in subset)
-            if total_demand > total_capacity:
-                continue
-
-            alloc_set = feasibility_ilp(subset, items, demands, capacities, preferences)
-            if alloc_set:
-                logger.debug(f"Feasible allocation found for {subset}: {alloc_set}")
-                feasible_sets.append((subset, alloc_set))
-            else:
-                failed_subsets.add(subset_frozen)
-
+    # === Line 1-2: Generate feasible (S, AS) pairs using ILP with pruning ===
+    feasible_sets = generate_feasible_sets(agents, items, demands, capacities, preferences)
     logger.info(f"Total feasible allocations: {len(feasible_sets)}")
 
     # === Line 3: R ← N ===
@@ -351,18 +406,20 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
         for S in xS:
             val = value(xS[S])
 
-            # TODO: Understand why = does not work
+            # We use += instead of = because the same allocation S may receive positive weight across multiple iterations.
+            # Using = would overwrite previous probability mass, breaking the overall distribution.
             xS_total[S] += val
             if val > 1e-6:
                 logger.debug(f"xS[{S}] += {val:.4f}")
 
         # === Line 7–8: Fix agents i ∈ R such that pi = M, update p*_i ← M and R ← R \ {i} ===
         for i in list(R):
-            pi_val = sum(value(xS[S]) for S in xS if any(s[0] == i for s in S))
-            if abs(pi_val - value(M)) < 1e-6:
-                p_star[i] = pi_val    # TODO: replace pi_val with value(M)
-                logger.info(f"Fixing p*[{i}] = {pi_val:.4f}")
+            if abs(pi[i] - value(M)) < 1e-6:
+                # Set p*_i ← M per Algorithm
+                p_star[i] = value(M)
+                logger.info(f"Fixing p*[{i}] = {value(M):.4f}")
                 R.remove(i)
+
 
     # === Line 9–10: R is now empty — return randomized allocation using xS_total ===
     logger.info("\n=== Final Allocation Probabilities ===")
