@@ -5,28 +5,12 @@ Programmer: Nadav Shabtai
 Date : 2025-05
 """
 
-from __future__ import annotations
+from typing import Any, Mapping, Sequence
 import logging
-from typing import Any, Callable, Mapping, Sequence
 
+logger = logging.getLogger(__name__)          # bundle trace goes here
 __all__ = ["hffd"]
 
-# ---------------------------------------------------------------------------
-# helpers
-# ---------------------------------------------------------------------------
-
-def _as_list(obj) -> list[Any]:
-    """Return a concrete list even if *obj* is a zero-arg method."""
-    return list(obj() if callable(obj) else obj)
-
-def _log(msg: str, sink: Callable | logging.Logger | None) -> None:
-    """Flexibly emit *msg* to Logger / print / or stay silent."""
-    if sink is None:
-        return
-    if isinstance(sink, logging.Logger):
-        sink.info(msg)
-    else:        # assume print-like
-        sink(msg)
 
 # ---------------------------------------------------------------------------
 # main algorithm
@@ -35,132 +19,133 @@ def _log(msg: str, sink: Callable | logging.Logger | None) -> None:
 def hffd(
     builder,
     *,
-    thresholds: Mapping[Any, float],
+    thresholds: Mapping[Any, float] | Sequence[float],
     universal_order: Sequence[Any] | None = None,
-    logger: Callable | logging.Logger | None = None,
 ) -> None:
     """
     Allocates chores to agents with heterogeneous costs under Identical-Order
     Preference (IDO), creating bundles A₁…Aₙ and giving each to an agent whose
     total cost stays ≤ τₐ.
 
-    Parameters:
+Parameters:
     - builder: AllocationBuilder – mutable helper that stores the instance and lets the algorithm assign items with
       give(agent, item).
     - thresholds: Mapping[Any, float] – per-agent cost limit τₐ that a bundle may not exceed.
     - universal_order: Sequence[Any] | None – identical ranking of chores (largest → smallest); None means use
       builder.remaining_items.
-    - logger : logging.Logger | Callable | None - If given, prints a short line for every bundle and leftover chores.
 
-    Returns:
+Returns:
     None – the function mutates *builder* in‑place.
 
+Examples :
 
-    Examples
---------
->>> import fairpyx, numpy as np
+    >>> import fairpyx, numpy as np
 
-# 1. perfect fit for both agents
->>> vals = np.array([[8, 5, 5, 2],
-...                  [8, 5, 5, 2]])
->>> inst = fairpyx.Instance(valuations=vals)
->>> fairpyx.divide(hffd, inst, thresholds={0: 10, 1: 10})
-{0: [0, 3], 1: [1, 2]}
+    # 1. perfect fit – two identical agents, τ = 10
+    >>> vals = np.array([[8, 5, 5, 2],
+    ...                  [8, 5, 5, 2]])
+    >>> inst = fairpyx.Instance(valuations=vals)
+    >>> fairpyx.divide(hffd, inst, thresholds={0: 10, 1: 10})
+    {0: [0, 3], 1: [1, 2]}
 
-# 2. second chore left unallocated
->>> vals = np.array([[9, 8, 4],
-...                  [9, 8, 4]])
->>> inst = fairpyx.Instance(valuations=vals)
->>> fairpyx.divide(hffd, inst, thresholds={0: 10, 1: 10})
-{0: [0], 1: [1]}
+    # 2. unequal thresholds, one item left over
+    >>> vals = np.array([[9, 8, 4],
+    ...                  [9, 8, 4]])
+    >>> inst = fairpyx.Instance(valuations=vals)
+    >>> fairpyx.divide(hffd, inst, thresholds={0: 9, 1: 12})
+    {0: [0], 1: [1, 2]}
 
-# 3. tight thresholds give asymmetric bundles
->>> vals = np.array([[6, 5, 2],
-...                  [6, 5, 2]])
->>> inst = fairpyx.Instance(valuations=vals)
->>> fairpyx.divide(hffd, inst, thresholds={0: 7, 1: 7})
-{0: [0], 1: [1, 2]}
+    # 3. three agents, six chores, asymmetric values
+    >>> vals = np.array([[7, 6, 1, 1, 1, 1],
+    ...                  [5, 5, 3, 3, 3, 3],
+    ...                  [8, 7, 3, 2, 1, 1]])
+    >>> inst = fairpyx.Instance(valuations=vals)
+    >>> fairpyx.divide(hffd, inst,
+    ...                thresholds={0:10, 1:6, 2:12})
+    {0: [0, 2, 3, 4], 1: [], 2: [1, 5]}
 
-# 4. canonical 15-item example from the paper
->>> A = [51, 28, 27, 27, 27, 26, 12, 12, 11, 11, 11, 11, 11, 11, 10]
->>> B = [51, 28, 27, 27, 27, 24, 21, 20, 10, 10, 10,  9,  9,  9,  9]
->>> vals = np.array([B, A, A, A])
->>> inst = fairpyx.Instance(valuations=vals)
->>> fairpyx.divide(hffd, inst, thresholds={0: 75, 1: 75, 2: 75, 3: 75})
-{0: [0, 5], 1: [1, 2, 6], 2: [3, 4, 7], 3: [8, 9, 10, 11, 12, 13]}
+    # 4. canonical 15-item example from the paper (Example 1, §4)
+    >>> A = [51, 28, 27, 27, 27, 26, 12, 12, 11, 11, 11, 11, 11, 11, 10]
+    >>> B = [51, 28, 27, 27, 27, 24, 21, 20, 10, 10, 10,  9,  9,  9,  9]
+    >>> vals = np.array([B, A, A, A])
+    >>> inst = fairpyx.Instance(valuations=vals)
+    >>> fairpyx.divide(hffd, inst,
+    ...                thresholds={0: 75, 1: 75, 2: 75, 3: 75})
+    {0: [0, 5], 1: [1, 2, 6], 2: [3, 4, 7], 3: [8, 9, 10, 11, 12, 13]}
 
-# 5. sanity with identical agents
->>> vals = np.array([[8, 7, 2, 1],
-...                  [8, 7, 2, 1]])
->>> inst = fairpyx.Instance(valuations=vals)
->>> fairpyx.divide(hffd, inst, thresholds={0: 10, 1: 10})
-{0: [0, 2], 1: [1, 3]}
-
+    # 5. random 4×12 instance – just check feasibility
+    >>> rng = np.random.default_rng(0)
+    >>> vals = rng.integers(1, 9, size=(4, 12))
+    >>> inst = fairpyx.Instance(valuations=vals)
+    >>> out = fairpyx.divide(hffd, inst,
+    ...                      thresholds={a: 13 for a in range(4)})
+    >>> all(sum(vals[a, i] for i in items) <= 13
+    ...     for a, items in out.items())
+    True
     """
-    # ---- static data -------------------------------------------------------
-    all_agents = _as_list(getattr(builder, "agents",
-                                  builder.instance.agents))
-    items_left = _as_list(getattr(builder, "remaining_items",
-                                  builder.remaining_items))
+    inst     = builder.instance
+    agents   = list(builder.remaining_agents())     # authoritative API
+    items_0  = list(builder.remaining_items())
 
+    # ---------- normalise thresholds ---------------------------------------
     if not isinstance(thresholds, Mapping):
-        thresholds = dict(zip(all_agents, thresholds))
-    if len(thresholds) != len(all_agents):
-        raise ValueError("thresholds size must equal number of agents")
+        if len(thresholds) != len(agents):
+            raise ValueError("threshold list length must equal #agents")
+        thresholds = dict(zip(agents, thresholds))
+    if set(thresholds) != set(agents):
+        raise ValueError("thresholds must specify every agent exactly once")
 
-    tau = {a: float(thresholds[a]) for a in all_agents}
+    tau = {a: float(thresholds[a]) for a in agents}
 
-    inst = builder.instance
-    cost = {(a, i): inst.agent_item_value(a, i)
-            for a in all_agents for i in items_left}
+    # ---------- decide common order ----------------------------------------
+    order = list(universal_order) if universal_order is not None else items_0
+    if set(order) != set(items_0):
+        raise ValueError("universal_order must match remaining items exactly")
 
-    order = list(universal_order) if universal_order is not None else items_left
-    if set(order) != set(items_left):
-        raise ValueError("universal_order must be a permutation of items")
+    # ---------- pre-compute cost lookup ------------------------------------
+    cost = {(a, i): inst.agent_item_value(a, i) for a in agents for i in order}
 
-    # ---- dynamic state -----------------------------------------------------
-    agents_left      = all_agents.copy()   # T   (paper)
-    remaining_items  = set(items_left)     # R
+    # ---------- build bundles A₁, A₂, … ------------------------------------
+    remaining_items = set(order)
+    agents_left     = agents.copy()
+    bundle_no       = 0
 
-    bundle_count = 0
-
-    # ---- outer loop: build bundles ----------------------------------------
     while agents_left and remaining_items:
-        Ak: list[Any] = []                 # current bundle
-        # Pass 1: gather chores into Ak
+        bundle: list[Any] = []
+
+        # pass 1 – collect chores into current bundle
         for i in order:
             if i not in remaining_items:
                 continue
-            if any(sum(cost[(a, j)] for j in Ak) + cost[(a, i)] <= tau[a]
+            if any(sum(cost[(a, j)] for j in bundle) + cost[(a, i)] <= tau[a]
                    for a in agents_left):
-                Ak.append(i)
+                bundle.append(i)
 
-        if not Ak:        # safeguard
+        if not bundle:         # safeguard (should not occur under IDO)
             break
 
-        # Pass 2: choose agent that fits Ak
+        # pass 2 – choose first agent who can accept full bundle
         chosen = next(a for a in agents_left
-                      if sum(cost[(a, j)] for j in Ak) <= tau[a])
+                      if sum(cost[(a, j)] for j in bundle) <= tau[a])
 
-        bundle_cost = sum(cost[(chosen, j)] for j in Ak)
-        _log(f"Bundle #{bundle_count+1}: give {Ak} (cost {bundle_cost}) -> "
-             f"agent {chosen}", logger)
-        bundle_count += 1
+        bundle_cost = sum(cost[(chosen, j)] for j in bundle)
+        bundle_no  += 1
+        logger.info("Bundle #%d → agent %s : %s  (cost %.0f)",
+                    bundle_no, chosen, bundle, bundle_cost)
 
-        # Assign bundle
-        for j in Ak:
-            builder.give(chosen, j)        # single-item API
+        # assign bundle (item-by-item API)
+        for j in bundle:
+            builder.give(chosen, j)
             remaining_items.remove(j)
 
         tau[chosen] -= bundle_cost
         agents_left.remove(chosen)
 
-    # ---- final report ------------------------------------------------------
+    # ---------- final report -----------------------------------------------
     if remaining_items:
-        _log(f"Unallocated chores: {sorted(remaining_items)}", logger)
+        logger.info("Unallocated chores: %s", sorted(remaining_items))
     else:
-        _log("All chores allocated.", logger)
-
+        logger.info("All chores allocated.")
 
 if __name__=="__main__":
     import doctest
