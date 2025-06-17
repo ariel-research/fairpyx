@@ -15,7 +15,7 @@ where S_i is the set of presents received by kid i.
 This file focuses on implementing the O(log log m / log log log m) approximation
 algorithm for the restricted assignment case (p_ij in {p_j, 0}).
 
-Programmers: [Your Name(s) Here - User will fill this]
+Programmers: Roey and Adiel
 Date: 2025-05-29
 """
 
@@ -567,6 +567,11 @@ def create_super_machines(alloc: AllocationBuilder, fractional_solution: Dict,
     """
     Algorithm 3: Create the super-machine structure (clusters of children and large gifts).
     
+    This implements the algorithm described in Section 5.2 of "The Santa Claus Problem" by Bansal and Sviridenko.
+    It first builds a bipartite graph where children (machines) are on the left and large gifts (jobs) are on the right,
+    with an edge indicating a fractional assignment. Then it transforms this into a forest and creates clusters
+    of children and large gifts where |Ji| = |Mi| - 1 for each cluster.
+    
     :param alloc: The allocation builder containing the problem instance
     :param fractional_solution: The fractional solution from the Configuration LP
     :param large_gifts: Set of gifts classified as large
@@ -576,8 +581,110 @@ def create_super_machines(alloc: AllocationBuilder, fractional_solution: Dict,
     >>> builder.allocation
     {'Child1': ['gift1'], 'Child2': ['gift2'], 'Child3': []}
     """
-    # Empty implementation - to be filled in future assignments
-    return []
+    import networkx as nx
+    import logging
+    
+    logger = logging.getLogger("fairpyx.algorithms.santa_claus")
+    
+    children = alloc.instance.agents
+    
+    # Create a bipartite graph from the fractional solution
+    G = nx.Graph()
+    
+    # Add nodes
+    for child in children:
+        G.add_node(child, bipartite=0)  # Children (machines) are on left side
+    
+    for gift in large_gifts:
+        G.add_node(gift, bipartite=1)  # Large gifts (jobs) are on right side
+    
+    # Add edges based on fractional assignments
+    for (child, config), value in fractional_solution.items():
+        if value > 0:
+            for gift in config:
+                if gift in large_gifts:
+                    if not G.has_edge(child, gift):
+                        G.add_edge(child, gift, weight=value)
+                    else:
+                        G[child][gift]['weight'] += value
+    
+    # Convert to a forest (as per Lemma 5 in the paper)
+    # We use a minimum spanning tree to break cycles
+    forest = nx.Graph()
+    
+    for component in nx.connected_components(G):
+        subgraph = G.subgraph(component)
+        if len(subgraph.edges()) > 0:  # Only process non-empty components
+            mst = nx.minimum_spanning_tree(subgraph)
+            forest = nx.union(forest, mst)
+    
+    # Create super-machines following the procedure from Lemma 6
+    super_machines = []
+    processed_nodes = set()
+    
+    # Step 1: Isolated children form their own clusters with empty gift sets
+    for child in children:
+        if child in forest and forest.degree(child) == 0:
+            super_machines.append(([child], []))
+            processed_nodes.add(child)
+    
+    # Step 2 & 3: Process the forest to create clusters
+    remaining_components = [c for c in nx.connected_components(forest) 
+                           if not all(node in processed_nodes for node in c)]
+    
+    for component in remaining_components:
+        component_subgraph = forest.subgraph(component)
+        
+        # Skip processed or empty components
+        if len(component_subgraph) == 0 or all(node in processed_nodes for node in component):
+            continue
+        
+        # Find children and gifts in this component
+        component_children = [node for node in component_subgraph.nodes() 
+                             if node in children and node not in processed_nodes]
+        component_gifts = [node for node in component_subgraph.nodes() 
+                          if node in large_gifts and node not in processed_nodes]
+        
+        # Skip if there are no children or no gifts
+        if not component_children or not component_gifts:
+            continue
+        
+        # Create a cluster if |gifts| = |children| - 1
+        if len(component_gifts) == len(component_children) - 1:
+            super_machines.append((component_children, component_gifts))
+            processed_nodes.update(component_children)
+            processed_nodes.update(component_gifts)
+            
+        # If too many gifts, take only |children| - 1 of them
+        elif len(component_gifts) > len(component_children) - 1:
+            # Sort gifts by their value in the fractional solution
+            sorted_gifts = sorted(
+                component_gifts,
+                key=lambda g: sum(alloc.instance.agent_item_value(c, g) for c in component_children),
+                reverse=True
+            )
+            selected_gifts = sorted_gifts[:len(component_children) - 1]
+            super_machines.append((component_children, selected_gifts))
+            processed_nodes.update(component_children)
+            processed_nodes.update(selected_gifts)
+    
+    # Assign large gifts to machines when creating super-machines
+    # This is a simplified version that makes direct assignments
+    for machine_cluster, gift_cluster in super_machines:
+        # Skip empty clusters
+        if not machine_cluster or not gift_cluster:
+            continue
+            
+        # Assign each large gift to a different machine
+        for i, gift in enumerate(gift_cluster):
+            if i < len(machine_cluster):
+                # Avoid assigning to the first machine (reserved for small gifts)
+                machine_idx = (i + 1) % len(machine_cluster)
+                machine = machine_cluster[machine_idx]
+                alloc.allocate_item(machine, gift)
+    
+    logger.info(f"Created {len(super_machines)} super-machines from the assignment forest")
+    return super_machines
 
 
 def round_small_configurations(alloc: AllocationBuilder, super_machines: List, 
@@ -586,13 +693,17 @@ def round_small_configurations(alloc: AllocationBuilder, super_machines: List,
     Algorithm 4: Round the small gift configurations.
     
     This is the core part of the algorithm, using sampling and the Leighton et al. algorithm
-    to find configurations with low congestion.
+    to find configurations with low congestion, as described in Section 6 of "The Santa Claus Problem".
+    
+    This implementation uses a combination of randomized rounding and deterministic selection
+    to distribute small gifts to super-machines while ensuring no small gift is assigned to
+    more than β machines.
     
     :param alloc: The allocation builder containing the problem instance
     :param super_machines: The super-machine structure from previous step
     :param small_gifts: Set of gifts classified as small
     :param beta: Relaxation parameter for the solution
-    :return: A function mapping each super-machine to a configuration
+    :return: A dictionary mapping super-machine index to selected small gift configuration
     
     >>> small_gifts = {"gift5"}
     >>> super_machines = [(["Child1", "Child2"], ["gift1", "gift2"])]
@@ -600,8 +711,151 @@ def round_small_configurations(alloc: AllocationBuilder, super_machines: List,
     >>> builder.allocation
     {'Child1': ['gift1'], 'Child2': ['gift2'], 'Child3': []}
     """
-    # Empty implementation - to be filled in future assignments
-    return {}
+    import logging
+    import numpy as np
+    from collections import defaultdict
+    
+    logger = logging.getLogger("fairpyx.algorithms.santa_claus")
+    
+    if not super_machines or not small_gifts:
+        logger.info("No super-machines or small gifts provided.")
+        return {}
+        
+    # Find the optimal target value T using binary search
+    target_value = find_optimal_target_value(alloc)
+    logger.info(f"Using target value T = {target_value:.3f} for rounding small configurations")
+    
+    # Get fractional LP solution for this target value
+    fractional_solution = configuration_lp_solver(alloc, target_value)
+    if not fractional_solution:
+        logger.warning("Could not obtain feasible fractional solution - using empty assignments")
+        return {}
+    
+    # Extract configurations containing small gifts only
+    small_configurations = defaultdict(list)
+    small_config_weights = defaultdict(list)
+    
+    # For each super-machine, extract configurations for one representative child
+    for i, (children, _) in enumerate(super_machines):
+        if not children:
+            continue
+            
+        # Select the first child as the representative for this super-machine
+        representative = children[0]
+        
+        # Find all configurations for this child with their weights
+        for (child, config), value in fractional_solution.items():
+            if child == representative:
+                # Extract only small gifts from this configuration
+                small_config = tuple(item for item in config if item in small_gifts)
+                
+                if small_config:  # Only consider non-empty configurations
+                    small_configurations[i].append(small_config)
+                    small_config_weights[i].append(value)
+    
+    # Normalize weights for each super-machine
+    for i in small_configurations.keys():
+        if small_config_weights[i]:
+            total_weight = sum(small_config_weights[i])
+            if total_weight > 0:
+                small_config_weights[i] = [w / total_weight for w in small_config_weights[i]]
+            else:
+                # If weights sum to zero, use uniform distribution
+                n_configs = len(small_config_weights[i])
+                small_config_weights[i] = [1.0 / n_configs] * n_configs
+    
+    # Track gift usage to enforce beta-relaxation
+    gift_usage = defaultdict(int)
+    rounded_solution = {}
+    
+    # First round: try deterministic rounding (choose highest weight config)
+    for i in sorted(small_configurations.keys()):
+        configs = small_configurations[i]
+        weights = small_config_weights[i]
+        
+        if not configs:
+            continue
+            
+        # Choose the configuration with the highest weight
+        max_weight_idx = np.argmax(weights)
+        selected_config = configs[max_weight_idx]
+        
+        # Check if adding this configuration would violate the beta constraint
+        valid_config = True
+        for gift in selected_config:
+            if gift_usage[gift] + 1 > beta:
+                valid_config = False
+                break
+        
+        # If valid, add this configuration
+        if valid_config:
+            rounded_solution[i] = {
+                "child": super_machines[i][0][0],  # First child in the super-machine
+                "gifts": list(selected_config)
+            }
+            
+            # Update gift usage
+            for gift in selected_config:
+                gift_usage[gift] += 1
+    
+    # Second round: try randomized rounding for remaining super-machines
+    remaining_indices = [i for i in small_configurations.keys() if i not in rounded_solution]
+    
+    for i in remaining_indices:
+        configs = small_configurations[i]
+        weights = small_config_weights[i]
+        
+        if not configs:
+            continue
+            
+        # Select configs that don't violate beta constraint
+        valid_configs = []
+        valid_weights = []
+        valid_indices = []
+        
+        for idx, config in enumerate(configs):
+            valid = True
+            for gift in config:
+                if gift_usage[gift] + 1 > beta:
+                    valid = False
+                    break
+            if valid:
+                valid_configs.append(config)
+                valid_weights.append(weights[idx])
+                valid_indices.append(idx)
+        
+        if valid_configs:
+            # Normalize valid weights
+            total_weight = sum(valid_weights)
+            if total_weight > 0:
+                valid_probs = [w / total_weight for w in valid_weights]
+                
+                # Choose a configuration based on weights
+                selected_idx = np.random.choice(len(valid_configs), p=valid_probs)
+                selected_config = valid_configs[selected_idx]
+                
+                rounded_solution[i] = {
+                    "child": super_machines[i][0][0],  # First child in the super-machine
+                    "gifts": list(selected_config)
+                }
+                
+                # Update gift usage
+                for gift in selected_config:
+                    gift_usage[gift] += 1
+    
+    # Log assignment statistics
+    logger.info(f"Rounded solution assigns small gifts to {len(rounded_solution)} super-machines")
+    logger.info(f"Maximum usage of any small gift: {max(gift_usage.values()) if gift_usage else 0}")
+    
+    # Assign the small gifts to the representative child in each super-machine
+    for i, config_info in rounded_solution.items():
+        child = config_info["child"]
+        gifts = config_info["gifts"]
+        
+        for gift in gifts:
+            alloc.allocate_item(child, gift)
+    
+    return rounded_solution
 
 
 def construct_final_allocation(alloc: AllocationBuilder, super_machines: List, 
@@ -612,16 +866,105 @@ def construct_final_allocation(alloc: AllocationBuilder, super_machines: List,
     Assigns the small gift configurations and large gifts to children
     in each super-machine, then removes conflicts.
     
+    As described in Section 5.3 of "The Santa Claus Problem" by Bansal and Sviridenko,
+    this step ensures that each child receives either large gifts from their cluster
+    or small gifts from the rounded solution, yielding a valid integral solution.
+    
     :param alloc: The allocation builder containing the problem instance
     :param super_machines: The super-machine structure
     :param rounded_solution: The rounded solution for small gifts
     
-    >>> super_machines = [(["Child1", "Child2"], ["gift1", "gift2"])]
+    >>> super_machines = [(["Child1", "Child2"], ["gift1"])]
     >>> rounded_solution = {0: {"child": "Child1", "gifts": ["gift5"]}}
     >>> divide(lambda a: construct_final_allocation(a, super_machines, rounded_solution), restricted_example)
-    {'Child1': ['gift1', 'gift5'], 'Child2': ['gift2'], 'Child3': []}
+    {'Child1': ['gift5'], 'Child2': ['gift1'], 'Child3': []}
     """
-    # Empty implementation - to be filled in future assignments
+    import logging
+    import copy
+    from collections import defaultdict
+    
+    logger = logging.getLogger("fairpyx.algorithms.santa_claus")
+    
+    if not super_machines:
+        logger.warning("No super-machines provided - nothing to allocate")
+        return
+    
+    # First, collect all current allocations (from previous steps)
+    current_allocations = defaultdict(list)
+    for agent in alloc.instance.agents:
+        current_allocations[agent] = list(alloc.allocation.get(agent, []))
+    
+    # Create a deep copy so we can modify it safely
+    final_allocations = copy.deepcopy(current_allocations)
+    
+    # For each super-machine, ensure one child gets small gifts (if available)
+    # and the others get large gifts
+    for i, (children, large_gifts) in enumerate(super_machines):
+        if not children:
+            continue
+        
+        # Check if this super-machine has small gifts assigned in the rounded solution
+        small_gift_child = None
+        small_gifts = []
+        
+        if i in rounded_solution:
+            small_gift_child = rounded_solution[i]["child"]
+            small_gifts = rounded_solution[i]["gifts"]
+        
+        # If we have a child with small gifts, ensure they don't get large gifts
+        if small_gift_child and small_gift_child in children:
+            # Ensure this child gets only small gifts
+            remaining_children = [c for c in children if c != small_gift_child]
+            
+            # Distribute large gifts among remaining children
+            for j, gift in enumerate(large_gifts):
+                if remaining_children:
+                    # Assign this large gift to a child that doesn't have small gifts
+                    receiver = remaining_children[j % len(remaining_children)]
+                    final_allocations[receiver].append(gift)
+        else:
+            # No small gifts for this super-machine
+            # Distribute large gifts fairly among all children
+            for j, gift in enumerate(large_gifts):
+                if children:
+                    receiver = children[j % len(children)]
+                    final_allocations[receiver].append(gift)
+    
+    # Resolve conflicts - a gift should only be allocated to one child
+    allocated_gifts = set()
+    
+    for child, gifts in final_allocations.items():
+        # Keep only gifts that haven't been allocated yet
+        non_conflicting_gifts = []
+        
+        for gift in gifts:
+            if gift not in allocated_gifts:
+                non_conflicting_gifts.append(gift)
+                allocated_gifts.add(gift)
+        
+        # Update the allocation
+        final_allocations[child] = non_conflicting_gifts
+    
+    # Update the allocation builder with the final allocations
+    alloc.allocation.clear()
+    for child, gifts in final_allocations.items():
+        for gift in gifts:
+            alloc.allocate_item(child, gift)
+    
+    # Log statistics about the final allocation
+    total_allocated = sum(len(gifts) for gifts in final_allocations.values())
+    logger.info(f"Final allocation: {total_allocated} gifts distributed across {len(final_allocations)} children")
+    
+    # Calculate the minimum value received by any child
+    min_value = float('inf')
+    for child, gifts in final_allocations.items():
+        child_value = sum(alloc.instance.agent_item_value(child, gift) for gift in gifts)
+        min_value = min(min_value, child_value)
+    
+    if min_value == float('inf'):
+        min_value = 0
+    
+    logger.info(f"Minimum value received by any child: {min_value:.3f}")
     return None
 
 
