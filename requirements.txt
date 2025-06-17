@@ -10,6 +10,7 @@ prtpy
 # cmake
 matplotlib
 experiments-csv
+pulp
 
 # repackage
 # pytest
