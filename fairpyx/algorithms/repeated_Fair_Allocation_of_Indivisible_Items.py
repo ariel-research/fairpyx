@@ -451,33 +451,40 @@ def algorithm2_div(builder: AllocationBuilder, k: int, round_idx: int = 0, **_):
 # 5.  Self-test (doctest)
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    import doctest, random
+    import doctest, random, sys
     from pprint import pprint
 
-    doctest.testmod(verbose=True)
-
-    seed = random.randint(0, 10000)
-    rnd = random.Random(seed)
-    print(f"\nRunning self-test with random seed {seed}…")
+    # print(doctest.testmod())
+    # sys.exit(1)
 
     k   = 4                                           # number of rounds to test
     for trial in range(20):
+        seed = random.randint(0, 10000)  # Try 5558
+        rnd = random.Random(seed)
+        print(f"\nSelf-test, trial {trial+1}, random seed {seed}")
+        
         # random 2×6 utilities in [-5,5]
         utils = {
             0: {i: rnd.randint(-5, 5) for i in range(6)},
             1: {i: rnd.randint(-5, 5) for i in range(6)},
         }
-        print(f"\nTrial {trial+1} / 20: k={k}, utilities:")
+        print(f"k={k}, utilities=")
         pprint(utils)
+
         print("=== Algorithm 1 (EF1 + PO overall) ===")
+        repeated_alloc = algorithm1(utils)
         for r in range(2):
-            alloc = divide(algorithm1_div, valuations=utils, round_idx=r)
+            # alloc = divide(algorithm1_div, valuations=utils, round_idx=r)
+            alloc = repeated_alloc[r]
             print(f"\n Round {r+1}: 0→{alloc[0]} | 1→{alloc[1]}")
             assert EF1_holds(alloc, 0, utils), f"EF1 violated in trial {trial} (round {r+1})"
             assert EF1_holds(alloc, 1, utils), f"EF1 violated in trial {trial} (round {r+1})"
+
         print("=== Algorithm 2 (weak-EF1 + PO overall) ===")
+        repeated_alloc = algorithm2(k, utils)
         for r in range(k):
-            alloc = divide(algorithm2_div, valuations=utils, round_idx=r, k=k)
+            # alloc = divide(algorithm2_div, valuations=utils, round_idx=r, k=k)
+            alloc = repeated_alloc[r]
             print(f"\n Round {r+1}: 0→{alloc[0]} | 1→{alloc[1]}")
             assert weak_EF1_holds(alloc, 0, utils), f"Weak-EF1 violated in trial {trial} (round {r+1})"
             assert weak_EF1_holds(alloc, 1, utils), f"Weak-EF1 violated in trial {trial} (round {r+1})"
