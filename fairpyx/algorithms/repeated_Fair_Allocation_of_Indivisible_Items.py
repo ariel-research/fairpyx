@@ -462,11 +462,13 @@ if __name__ == "__main__":
         seed = random.randint(0, 10000)  # Try 5558
         rnd = random.Random(seed)
         print(f"\nSelf-test, trial {trial+1}, random seed {seed}")
-        
-        # random 2×6 utilities in [-5,5]
+
+        # random 2×6 utilities
+        # utility_range = [-5,5]
+        utility_range = [11,19]
         utils = {
-            0: {i: rnd.randint(-5, 5) for i in range(6)},
-            1: {i: rnd.randint(-5, 5) for i in range(6)},
+            0: {i: rnd.randint(*utility_range) for i in range(6)},
+            1: {i: rnd.randint(*utility_range) for i in range(6)},
         }
         print(f"k={k}, utilities=")
         pprint(utils)
