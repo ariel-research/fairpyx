@@ -9,7 +9,7 @@ This file tests the implementations in santa_claus_problem.py, focusing on
 the O(log log m / log log log m) approximation algorithm for the restricted
 assignment case.
 
-Programmers: [Your Name(s) Here - User will fill this]
+Programmers: Roey and Adiel
 Date: 2025-05-29
 """
 
@@ -308,4 +308,4 @@ def test_construct_final_allocation():
     allocation = divide(lambda a: construct_final_allocation(a, super_machines, rounded_solution), instance)
     assert isinstance(allocation, dict)
     
-    # Since we have an empty implementation, we can't test the actual allocation
+ 
