@@ -37,7 +37,7 @@ def run_tests():
     try:
         # Run only LeximinPrimal-related tests with prints and verbose output
         result = subprocess.run(
-            ["pytest", "-v", "-s", "../tests/test_leximin_primal.py"],
+            ["pytest", "-v", "-s", "tests/test_leximin_primal.py"],
             capture_output=True,
             text=True
         )
