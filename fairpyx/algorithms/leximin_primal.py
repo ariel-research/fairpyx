@@ -477,8 +477,30 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
 
 
 if __name__ == "__main__":
-    import doctest
+    #import doctest
     import logging
 
+    #doctest.testmod(verbose=True)
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
-    doctest.testmod(verbose=True)
+
+    from fairpyx.instances import Instance
+    from fairpyx.allocations import AllocationBuilder
+
+    # Example: 3 agents, 2 facilities
+    instance = Instance(
+        valuations={1: {"a": 1}, 2: {"b": 1}, 3: {"a": 1, "b": 1}},  # F1, F2, F3
+        agent_capacities={1: 1, 2: 1, 3: 1},
+        item_capacities={"a": 1, "b": 1}
+    )
+    alloc = AllocationBuilder(instance)
+
+    # Run LeximinPrimal
+    leximin_primal(alloc)
+
+    # Output final distribution summary
+    print("\n=== Final Allocation Summary ===")
+    for i, (allocation, prob) in enumerate(alloc.distribution, 1):
+        print(f"Allocation {i}:")
+        for agent, bundle in allocation.items():
+            print(f"  Agent {agent} receives: {bundle}")
+        print(f"  Probability: {prob:.4f}")
