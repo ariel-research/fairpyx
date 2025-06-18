@@ -135,3 +135,8 @@ def algo2_view():
         "algo2.html",
         utils=utils, rounds=rounds, checks=checks, k=k, log_txt=log_txt
     )
+
+# ------------------------------------------------------------- error handler ----
+@bp.route("/about")
+def about():
+    return render_template("about.html")
