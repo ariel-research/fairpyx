@@ -1,24 +1,23 @@
+# app/forms.py
 from flask_wtf import FlaskForm
-from wtforms import TextAreaField, IntegerField, SubmitField
-from wtforms.validators import InputRequired, NumberRange
+from wtforms import TextAreaField, IntegerField, SelectField, SubmitField
+from wtforms.validators import DataRequired, NumberRange
 
 class UtilitiesForm(FlaskForm):
-    """
-    A simple text-area where the user types a JSON object of the form:
-        {
-          "0": {"0": 3, "1": -2, "2": 5},
-          "1": {"0": 1, "1": -3, "2": 2}
-        }
-    plus an integer k (even, for Algorithm 2).
-    """
     utilities_json = TextAreaField(
-        "Utilities (JSON dict of dicts)",
-        validators=[InputRequired()],
-        render_kw={"rows": 6, "placeholder": '{"0":{"0":3,"1":-2},"1":{"0":1,"1":4}}'}
+        "Utilities (JSON or Python-dict)",
+        default='{\n  "0": {"0":11,"1":22},\n  "1": {"0":11,"1":22}\n}',
+        validators=[DataRequired()],
+        render_kw={"rows":5}
     )
     k = IntegerField(
-        "k (even, Algorithm 2 only)",
-        default=4,
-        validators=[NumberRange(min=2)]
+        "k (number of rounds)",
+        default=2,
+        validators=[DataRequired(), NumberRange(min=2)]
     )
-    submit = SubmitField("Compute")
+    algo = SelectField(
+        "Algorithm",
+        choices=[("1", "Algorithm 1 (k=2)"), ("2", "Algorithm 2 (k even)")],
+        default="2"
+    )
+    submit = SubmitField("Run")
