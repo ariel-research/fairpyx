@@ -141,22 +141,30 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     best_matching = {}
 
     # == חיפוש בינארי על t ==
-    while high - low > 1e-4: # חיפוש בינארי: למצוא את ערך הסף הגבוה ביותר שבו עדיין ניתן לבצע הקצאה הוגנת
-        mid = (low + high) / 2 # אם אפשרי לבצע הקצאה לכל סוכן עם ערך לפחות mid:
+    # Binary search מוגבל ל-10 צעדים ודיוק 1e-4
+    for step in range(1, 11):
+        mid = (low + high) / 2
+
+        # הפרדה וכתב ברור לכל צעד
+        logger.info("")
+        logger.info("==== Binary search step %d: t=%.4f (low=%.4f, high=%.4f) ====",
+                    step, mid, low, high)
+
         feasible, matching = is_threshold_feasible(valuations, mid, agent_names)
         if feasible:
-            # אם אפשר לשבץ, נשמור את השידוך שמצאנו ונעלה את הגבול התחתון
             best_matching = matching
             low = mid
-            logger.info("Matching found at threshold %.4f: %s", mid, matching)
+            logger.info("Threshold %.4f feasible: matching %s", mid, matching)
         else:
-            # אחרת, נוריד את הגבול העליון
-            if mid != 0:
-                logger.info("Matching incomplete at threshold %.4f", mid)
-                high = mid
-            else:
-                # אם mid == 0 ועדיין לא feasible, נחזיר הקצאה ריקה
-                return {}
+            high = mid
+            logger.info("Threshold %.4f infeasible", mid)
+
+        # עצירה מוקדמת ברגע שהגענו לדיוק המבוקש
+        if high - low <= 1e-4:
+            logger.info("Desired precision (1e-4) reached after %d steps", step)
+            break
+
+    logger.info("Binary search completed after %d steps: final threshold t≈%.4f", step, low)
 
     # == הקצאה לפי קיבולות ==
     # עוברים על הסוכנים בסדר אלפביתי ומקצים בכל פעם
