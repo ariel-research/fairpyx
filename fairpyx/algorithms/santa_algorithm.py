@@ -118,7 +118,6 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     agent_names = list(instance.agents)
     item_names = list(instance.items)
     agent_capacities = {a: instance.agent_capacity(a) for a in agent_names}
-    item_capacities  = {i: instance.item_capacity(i)  for i in item_names}
     logger.info("Starting santa_claus_main")
     logger.debug("Instance agents: %s", agent_names)
     logger.debug("Instance items: %s", item_names)
@@ -179,7 +178,7 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
             chosen.append(item)
         final_allocation[agent] = chosen
 
-    validate_allocation(instance, final_allocation) # בדיקה שההקצאה הסופית תקינה (בלי כפילויות וכו')
+    validate_allocation(instance, best_matching) # בדיקה שההקצאה הסופית תקינה (בלי כפילויות וכו')
     logger.info("Final matching found at threshold %.4f: %s", low, best_matching)
     return {agent: set(items) for agent, items in final_allocation.items()} # מחזירים הקצאה עם סטים (ולא רשימות)
 
