@@ -146,8 +146,7 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
         mid = (low + high) / 2
 
         # הפרדה וכתב ברור לכל צעד
-        logger.info("")
-        logger.info("==== Binary search step %d: t=%.4f (low=%.4f, high=%.4f) ====",
+        logger.info("\n\n==== Binary search step %d: t=%.4f (low=%.4f, high=%.4f) ====",
                     step, mid, low, high)
 
         feasible, matching = is_threshold_feasible(valuations, mid, agent_names)
