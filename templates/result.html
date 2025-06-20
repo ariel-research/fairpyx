@@ -14,7 +14,7 @@
             background-color: white;
             padding: 30px;
             border-radius: 10px;
-            max-width: 800px;
+            max-width: 900px;
             margin: auto;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
@@ -23,9 +23,11 @@
         }
         pre {
             background-color: #f8f8f8;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ccc;
+            border-radius: 5px;
             overflow-x: auto;
+            font-size: 14px;
         }
         ul {
             list-style-type: none;
@@ -39,26 +41,43 @@
         }
         a {
             display: inline-block;
-            margin-top: 20px;
+            margin-top: 30px;
             text-decoration: none;
             color: #3498db;
+            font-weight: bold;
         }
         a:hover {
             text-decoration: underline;
+        }
+        .section {
+            margin-bottom: 40px;
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>Allocation Result Distribution</h1>
+    <h1>Allocation Result – LeximinPrimal</h1>
 
-    <ul>
-        {% for alloc, prob in distribution %}
-            <li><strong>{{ prob|round(3) }}</strong> → {{ alloc }}</li>
-        {% endfor %}
-    </ul>
+    <div class="section">
+        <h2> Input</h2>
+        <pre>{{ input_data }}</pre>
+    </div>
 
-    <a href="/">← Try another input</a>
+    <div class="section">
+        <h2> Output – Allocation Distribution</h2>
+        <ul>
+            {% for alloc, prob in distribution %}
+                <li><strong>{{ prob|round(3) }}</strong> → {{ alloc }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2> Logs</h2>
+        <pre>{{ logs }}</pre>
+    </div>
+
+    <a href="/">← Back to input page</a>
 </div>
 </body>
 </html>

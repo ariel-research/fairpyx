@@ -214,35 +214,24 @@ function generateRandomInput() {
   const itemContainer = document.getElementById("item_caps");
   itemContainer.innerHTML = "<h3>Facility Capacities:</h3>";
   const itemNames = [];
-  const itemCaps = {};
   for (let i = 0; i < numItems; i++) {
     const name = String.fromCharCode(97 + i);
     const cap = Math.floor(Math.random() * 3) + 1;
     itemNames.push(name);
-    itemCaps[name] = cap;
     itemContainer.innerHTML += `Facility "${name}": <input type="number" name="item_${name}" min="1" value="${cap}"> <span class="note" id="item_note_${name}">(saved: ${cap})</span><br>`;
   }
   itemContainer.innerHTML += `<br><div id="item_saved" class="gray">✔ Saved: ${numItems} facilities</div>`;
   document.getElementById("item_names").value = itemNames.join(",");
   document.getElementById("facilities_section").classList.remove("hidden");
 
-  // === Step 3: Generate random valuations based on agent capacity ===
+  // === Step 3: Generate binary random valuations (0 or 1 only) ===
   const valContainer = document.getElementById("valuations_container");
   valContainer.innerHTML = "";
   for (let i = 1; i <= numAgents; i++) {
     let row = `<strong>Agent ${i}:</strong> `;
-    const prefs = new Set();
-    const numPrefs = Math.floor(Math.random() * numItems) + 1;
-    while (prefs.size < numPrefs) {
-      const item = itemNames[Math.floor(Math.random() * itemNames.length)];
-      prefs.add(item);
-    }
     itemNames.forEach(item => {
-      let val = 0;
-      if (prefs.has(item)) {
-        val = Math.floor(Math.random() * agentCaps[i]) + 1;
-      }
-      row += `${item}: <input type="number" name="val_${i}_${item}" min="0" value="${val}"> `;
+      const val = Math.random() < 0.5 ? 0 : 1;  // random 0 or 1
+      row += `${item}: <input type="number" name="val_${i}_${item}" min="0" max="1" value="${val}"> `;
     });
     valContainer.innerHTML += `<div>${row}</div>`;
   }
@@ -250,11 +239,9 @@ function generateRandomInput() {
   // === Show valuations section ===
   document.getElementById("valuations_section").classList.remove("hidden");
 
-  // === Run check and preview automatically ===
+  // === Run validation and preview ===
   checkAndSubmit();
 }
-
-
 
 function checkAndSubmit() {
   const agentCount = parseInt(document.getElementById("num_agents").value);
@@ -269,6 +256,11 @@ function checkAndSubmit() {
 
     itemNames.forEach(name => {
       const val = parseInt(document.querySelector(`[name="val_${i}_${name}"]`).value) || 0;
+
+      if (val !== 0 && val !== 1) {
+        errorMessage += `❌ Agent ${i}: valuation for "${name}" must be 0 or 1 (got ${val}).\n`;
+      }
+
       if (val > 0) {
         agentVal[name] = val;
 
