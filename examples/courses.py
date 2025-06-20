@@ -4,7 +4,7 @@ import fairpyx
 divide = fairpyx.divide
 
 
-#' `fairpy` contains various algorithms for fair allocation of course-seats.
+#' `fairpyx` contains various algorithms for fair allocation of course-seats.
 #' Before starting the algorithms, let us create some inputs for them.
 #' There are two agents (students), "avi" and "beni", each of them requires three seats:
 agent_capacities = {"avi": 3, "beni": 3}
