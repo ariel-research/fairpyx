@@ -89,14 +89,6 @@
   </p>
 </div>
 
-
-  <!-- 🎯 BUTTONS AT TOP -->
-  <div class="buttons">
-    <button type="button" onclick="assembleAndSubmit()">▶ Run Algorithm</button>
-    <button type="button" onclick="loadExample()">▶ Load Example</button>
-    <button type="button" onclick="window.location.href='/run-tests'">▶ Run Tests</button>
-  </div>
-
   <form method="POST" id="inputForm">
     <label>👤 How many agents?</label>
     <input type="number" id="num_agents" name="num_agents" min="1" value="3">
@@ -123,6 +115,14 @@
     <input type="hidden" name="item_capacities" id="item_json">
     <input type="hidden" id="item_names">
   </form>
+
+    <div class="buttons">
+    <button type="button" onclick="assembleAndSubmit()">▶ Run Algorithm</button>
+    <button type="button" onclick="loadExample()">▶ Load Example</button>
+    <button type="button" onclick="generateRandomInput()">▶ Generate Random Input</button>
+    <button type="button" onclick="window.location.href='/run-tests'">▶ Run Tests</button>
+  </div>
+
 </div>
 
 <script>
@@ -146,6 +146,7 @@ function continueToFacilities() {
   document.getElementById("agent_saved").innerText = `✔ Saved: ${n} agents`;
   document.getElementById("facilities_section").classList.remove("hidden");
 }
+
 
 function generateItemCapacities() {
   const m = parseInt(document.getElementById("num_items").value);
@@ -172,6 +173,7 @@ function continueToValuations() {
   generateValuations();
 }
 
+
 function generateValuations() {
   const agentCount = parseInt(document.getElementById("num_agents").value);
   const items = document.getElementById("item_names").value.split(",");
@@ -185,6 +187,73 @@ function generateValuations() {
     container.innerHTML += `<div>${row}</div>`;
   }
 }
+
+function generateRandomInput() {
+  const numAgents = parseInt(document.getElementById("num_agents").value);
+  const numItems = parseInt(document.getElementById("num_items").value);
+
+  if (!numAgents || !numItems || numAgents <= 0 || numItems <= 0) {
+    alert("Please enter valid number of agents and facilities first.");
+    return;
+  }
+
+  // === Step 1: Generate random agent capacities ===
+  const agentContainer = document.getElementById("agent_caps");
+  agentContainer.innerHTML = "<h3>Agent Capacities:</h3>";
+  const agentCaps = {};
+  for (let i = 1; i <= numAgents; i++) {
+    const cap = Math.floor(Math.random() * 3) + 1;
+    agentCaps[i] = cap;
+    agentContainer.innerHTML += `Agent ${i}: <input type="number" name="agent_${i}" min="1" value="${cap}"> <span class="note" id="agent_note_${i}">(saved: ${cap})</span><br>`;
+  }
+  agentContainer.innerHTML += `<br><div id="agent_saved" class="gray">✔ Saved: ${numAgents} agents</div>`;
+  agentContainer.classList.remove("hidden");
+
+  // === Step 2: Generate random item capacities ===
+  const itemContainer = document.getElementById("item_caps");
+  itemContainer.innerHTML = "<h3>Facility Capacities:</h3>";
+  const itemNames = [];
+  const itemCaps = {};
+  for (let i = 0; i < numItems; i++) {
+    const name = String.fromCharCode(97 + i);
+    const cap = Math.floor(Math.random() * 3) + 1;
+    itemNames.push(name);
+    itemCaps[name] = cap;
+    itemContainer.innerHTML += `Facility "${name}": <input type="number" name="item_${name}" min="1" value="${cap}"> <span class="note" id="item_note_${name}">(saved: ${cap})</span><br>`;
+  }
+  itemContainer.innerHTML += `<br><div id="item_saved" class="gray">✔ Saved: ${numItems} facilities</div>`;
+  document.getElementById("item_names").value = itemNames.join(",");
+  document.getElementById("facilities_section").classList.remove("hidden");
+
+  // === Step 3: Generate random valuations based on agent capacity ===
+  const valContainer = document.getElementById("valuations_container");
+  valContainer.innerHTML = "";
+  for (let i = 1; i <= numAgents; i++) {
+    let row = `<strong>Agent ${i}:</strong> `;
+    const prefs = new Set();
+    const numPrefs = Math.floor(Math.random() * numItems) + 1;
+    while (prefs.size < numPrefs) {
+      const item = itemNames[Math.floor(Math.random() * itemNames.length)];
+      prefs.add(item);
+    }
+    itemNames.forEach(item => {
+      let val = 0;
+      if (prefs.has(item)) {
+        val = Math.floor(Math.random() * agentCaps[i]) + 1;
+      }
+      row += `${item}: <input type="number" name="val_${i}_${item}" min="0" value="${val}"> `;
+    });
+    valContainer.innerHTML += `<div>${row}</div>`;
+  }
+
+  // === Show valuations section ===
+  document.getElementById("valuations_section").classList.remove("hidden");
+
+  // === Run check and preview automatically ===
+  checkAndSubmit();
+}
+
+
 
 function checkAndSubmit() {
   const agentCount = parseInt(document.getElementById("num_agents").value);
@@ -285,6 +354,10 @@ function loadExample() {
   document.querySelector(`[name="val_2_b"]`).value = 1;
   document.querySelector(`[name="val_3_a"]`).value = 1;
   document.querySelector(`[name="val_3_b"]`).value = 1;
+
+  continueToFacilities();
+  continueToValuations();
+  checkAndSubmit();
 }
 </script>
 </body>
