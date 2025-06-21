@@ -15,6 +15,5 @@ from fairpyx.algorithms.Optimization_based_Mechanisms.TTC_O import TTC_O_functio
 from fairpyx.algorithms.Optimization_based_Mechanisms.TTC import TTC_function
 from fairpyx.algorithms.Optimization_based_Mechanisms.optimal_functions import notExceedtheCapacity, numberOfCourses, give_items_according_to_allocation_matrix
 from fairpyx.algorithms.course_match.main_course_match import course_match_algorithm
-from fairpyx.algorithms.santa_claus_problem import santa_claus
-from fairpyx.algorithms.santa_claus_solver import divide as santa_claus_divide
+from fairpyx.algorithms.santa_claus_problem import santa_claus as santa_claus_divide
 
