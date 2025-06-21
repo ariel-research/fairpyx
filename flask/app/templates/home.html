@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Utilities (JSON or Python dict):</label>
+      <textarea name="utilities" class="form-control" rows="4"
+        placeholder='{"0": {"0":11,"1":22}, "1": {"0":22,"1":11}}'></textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">k (number of rounds, even for Algo 2):</label>
+      <input type="number" name="k" value="4" class="form-control"/>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Choose algorithm:</label>
+      <select name="algo" class="form-select">
+        <option value="1">Algorithm 1 (k=2)</option>
+        <option value="2">Algorithm 2 (k even)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary">Run</button>
+  </form>
+{% endblock %}
