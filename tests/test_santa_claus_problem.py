@@ -269,8 +269,12 @@ def test_create_super_machines():
         item_capacities={"gift1": 1, "gift2": 1, "gift3": 1}
     )
     
-    builder = divide(lambda a: create_super_machines(a, {}, {"gift1", "gift2"}), instance, return_builder=True)
-    assert isinstance(builder.allocation, dict)
+    # Use a wrapper function that ignores additional arguments
+    def wrapper(alloc, **kwargs):
+        return create_super_machines(alloc, {}, {"gift1", "gift2"})
+    
+    builder = divide(wrapper, instance, return_builder=True)
+    assert isinstance(builder.sorted(), dict)
 
 def test_round_small_configurations():
     """Test the rounding of small gift configurations"""
@@ -287,8 +291,12 @@ def test_round_small_configurations():
     small_gifts = {"gift5"}
     super_machines = [(["Child1", "Child2"], ["gift1", "gift2"])]
     
-    builder = divide(lambda a: round_small_configurations(a, super_machines, small_gifts), instance, return_builder=True)
-    assert isinstance(builder.allocation, dict)
+    # Use a wrapper function that ignores additional arguments
+    def wrapper(alloc, **kwargs):
+        return round_small_configurations(alloc, super_machines, small_gifts)
+    
+    builder = divide(wrapper, instance, return_builder=True)
+    assert isinstance(builder.sorted(), dict)
 
 def test_construct_final_allocation():
     """Test the construction of the final allocation"""
@@ -305,7 +313,11 @@ def test_construct_final_allocation():
     super_machines = [(["Child1", "Child2"], ["gift1", "gift2"])]
     rounded_solution = {0: {"child": "Child1", "gifts": ["gift5"]}}
     
-    allocation = divide(lambda a: construct_final_allocation(a, super_machines, rounded_solution), instance)
+    # Use a wrapper function that ignores additional arguments
+    def wrapper(alloc, **kwargs):
+        return construct_final_allocation(alloc, super_machines, rounded_solution)
+    
+    allocation = divide(wrapper, instance)
     assert isinstance(allocation, dict)
     
  
