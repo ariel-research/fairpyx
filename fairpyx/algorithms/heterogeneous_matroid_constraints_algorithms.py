@@ -16,7 +16,6 @@ from fairpyx import divide
 import networkx as nx
 import logging
 import numpy as np
-import matplotlib.pyplot as plt
 import io
 import base64
 
@@ -1483,13 +1482,13 @@ if __name__ == "__main__":
         images_data.append(img_base64)
 
 
-    import matplotlib.pyplot as plt
     import base64
     from io import BytesIO
     from PIL import Image
 
 
     def display_all_images_with_matplotlib(images_data):
+        import matplotlib.pyplot as plt
         for img_base64 in images_data:
             img_data = base64.b64decode(img_base64)
             img = Image.open(BytesIO(img_data))
