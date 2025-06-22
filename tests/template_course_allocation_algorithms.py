@@ -20,6 +20,7 @@ def test_feasibility():
         crs.round_robin, 
         crs.bidirectional_round_robin,
         crs.almost_egalitarian_allocation,
+        # crs.hffd,                                 # Requires a `thresholds` argument
         # crs.maximally_proportional_allocation,    # Might not allocate all items - wasteful allocation error
         ]
     for i in range(10):
