@@ -7,7 +7,7 @@ Since:  2025-05
 
 import pytest
 from fairpyx import Instance, divide, validate_allocation, AgentBundleValueMatrix
-from fairpyx.algorithms import maximally_proportional_allocation
+from fairpyx.algorithms.maximally_proportional import maximally_proportional_allocation
 from random import sample, randint
 
 
