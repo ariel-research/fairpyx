@@ -369,5 +369,6 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
     alloc = divide(maximally_proportional_allocation, instance)
+    print(instance._valuations)
     print(alloc)
 
