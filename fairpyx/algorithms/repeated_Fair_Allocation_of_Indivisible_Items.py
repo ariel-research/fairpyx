@@ -252,7 +252,7 @@ def solve_fractional_ILP(
     log.debug("Constraints:\n%s", constraints)
 
     # --- solve ----------------------------------------------------------------
-    cp.Problem(objective, constraints).solve(solver=solver)
+    cp.Problem(objective, constraints).solve()
     log.info("ILP solved: status=%s, objective value=%.2f", cp.Problem(objective, constraints).status, objective.value)
 
     # --- pack result back into a dictionary -----------------------------------
