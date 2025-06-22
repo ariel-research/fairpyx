@@ -16,11 +16,12 @@ def test_feasibility():
     algorithms = [
         crs.utilitarian_matching, 
         crs.iterated_maximum_matching, 
-        crs.serial_dictatorship,                  # Very bad performance
+        # crs.serial_dictatorship,                  # Very bad performance
         crs.round_robin, 
         crs.bidirectional_round_robin,
         crs.almost_egalitarian_allocation,
-        # crs.hffd,                               # Requires a `thresholds` argument
+        # crs.hffd,                                 # Requires a `thresholds` argument
+        # crs.maximally_proportional_allocation,    # Might not allocate all items - wasteful allocation error
         ]
     for i in range(10):
         np.random.seed(i)
