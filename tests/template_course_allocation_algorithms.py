@@ -20,6 +20,7 @@ def test_feasibility():
         crs.round_robin, 
         crs.bidirectional_round_robin,
         crs.almost_egalitarian_allocation,
+        # crs.hffd,                               # Requires a `thresholds` argument
         ]
     for i in range(10):
         np.random.seed(i)
