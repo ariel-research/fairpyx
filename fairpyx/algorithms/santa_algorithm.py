@@ -185,9 +185,11 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
             chosen.append(item)
         final_allocation[agent] = chosen
 
-    validate_allocation(instance, best_matching) # בדיקה שההקצאה הסופית תקינה (בלי כפילויות וכו')
+    for agent, items in final_allocation.items():
+        for item in items:
+            allocation_builder.give(agent, item)
     logger.info("Final matching found at threshold %.4f: %s", low, best_matching)
-    return {agent: set(items) for agent, items in final_allocation.items()} # מחזירים הקצאה עם סטים (ולא רשימות)
+    return allocation_builder.bundles
 
 def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: float, agent_names: List[str]) -> Tuple[bool, Dict[str, str]]:
     """
