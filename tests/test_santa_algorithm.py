@@ -7,49 +7,45 @@ Programmers: May Rozen
 Date: 2025-04-23
 """
 import unittest
-from fairpyx import AllocationBuilder, Instance
-from Santa_Algorithm import santa_claus_main
-
-from fairpyx.fairpyx.algorithms.Santa_Algorithm import is_threshold_feasible, classify_items, solve_configuration_lp, \
-    build_hypergraph
+import pytest
+import fairpyx
 
 
 class TestSantaClausAlgorithm(unittest.TestCase):
-    def test_santa_claus_main_simple(self):
-        # Test 1: Simple case with 2 players and 3 items
-        instance = Instance()
-        allocation_builder = AllocationBuilder(instance=instance)
-        allocation_builder.add_valuation("Alice", {"c1": 5, "c2": 0, "c3": 6})
-        allocation_builder.add_valuation("Bob", {"c1": 0, "c2": 8, "c3": 0})
-
-        result = santa_claus_main(allocation_builder)
+    # --------------------------Test 1: Simple case with 2 players and 3 items--------------------------
+    def test_santa_claus_main_simple1(self):
+        instance = fairpyx.Instance(
+            valuations={"Alice": {"c1": 5, "c2": 0, "c3": 6}, "Bob": {"c1": 0, "c2": 8, "c3": 0}},
+            agent_capacities={"Alice": 2, "Bob": 1},
+            item_capacities={"c1": 5, "c2": 8, "c3": 6})
+        allocation = fairpyx.divide(algorithm=fairpyx.algorithms.santa_claus_main, instance=instance)
 
         # Expecting a matching that allocates items between Alice and Bob
-        self.assertEqual(result, {'Alice': {'c1', 'c3'}, 'Bob': {'c2'}})
+        assert allocation == {'Alice': {'c1', 'c3'}, 'Bob': {'c2'}}
 
-        # Test 2: More complex case with 4 players and 4 items
-        instance = Instance()
-        allocation_builder = AllocationBuilder(instance=instance)
-
-        allocation_builder.add_valuation("A", {"c1": 10, "c2": 0, "c3": 0, "c4": 6})
-        allocation_builder.add_valuation("B", {"c1": 10, "c2": 8, "c3": 0, "c4": 0})
-        allocation_builder.add_valuation("C", {"c1": 0, "c2": 8, "c3": 6, "c4": 0})
-        allocation_builder.add_valuation("D", {"c1": 0, "c2": 0, "c3": 6, "c4": 6})
-
-        result = santa_claus_main(allocation_builder)
+    # --------------------------Test 2: More complex case with 4 players and 4 items--------------------------
+    def test_santa_claus_main_simple2(self):
+        instance = fairpyx.Instance(
+             valuations = {"A": {"c1": 10, "c2": 0, "c3": 0, "c4": 6}, "B": {"c1": 10, "c2": 8, "c3": 0, "c4": 0},
+                           "C": {"c1": 10, "c2": 8, "c3": 0, "c4": 0}, "D": {"c1": 0, "c2": 0, "c3": 6, "c4": 6}},
+             agent_capacities = {"A": 1, "B": 1, "C": 1, "D": 1},
+             item_capacities = {"c1": 1, "c2": 1, "c3": 1, "c4": 1})
+        allocation = fairpyx.divide(algorithm=fairpyx.algorithms.santa_claus_main, instance=instance)
 
         # Expecting a different matching due to more players and items
-        self.assertEqual(result, {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}})
+         assert allocation == {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
 
-        # Test 3: Large scale case with 100 players and 100 items
-        instance = Instance()
-        allocation_builder = AllocationBuilder(instance=instance)
+    # --------------------------Test 3: Large scale case with 100 players and 100 items--------------------------
+    def test_santa_claus_main_Large1(self):
+        valuations = {}
 
         for i in range(100):
-            valuations = {f"c{j + 1}": (1 if j == i else 0) for j in range(100)}  # Player_i values only item_i
-            allocation_builder.add_valuation(f"Player_{i + 1}", valuations)
+            valuation = {f"c{j + 1}": (1 if j == i else 0) for j in range(100)}  # Player_i values only item_i
+            valuations[f"Player_{i + 1}"] = valuation
 
-        result = santa_claus_main(allocation_builder)
+        print("valuations", valuations)
+        instance = fairpyx.Instance(valuations=valuations)
+        result = fairpyx.divide(algorithm=fairpyx.algorithms.santa_claus_main, instance=instance)
 
         # Expecting each player to get exactly their corresponding item
         for i in range(100):
@@ -61,17 +57,20 @@ class TestSantaClausAlgorithm(unittest.TestCase):
         # Verify the number of players matches the number of allocations
         self.assertEqual(len(result), 100)
 
-        # Test case for 100 players and 200 presents (each player gets one present with value 40 and one with value 60)
-        instance = Instance()
-        allocation_builder = AllocationBuilder(instance=instance)
 
-        # Define valuations for 100 players and 200 presents (one with value 40 and one with value 60)
+    # Test case for 100 players and 200 presents (each player gets one present with value 40 and one with value 60)
+    def test_santa_claus_main_Large2(self):
+        valuations = {}
+        n = 3
+        # Define valuation for 100 players and 200 presents (one with value 40 and one with value 60)
         for i in range(100):
-            valuations = {f"c{j + 1}": (40 if j == i * 2 else 60) for j in
-                          range(200)}  # Each player gets 1 present with value 40 and 1 present with value 60
-            allocation_builder.add_valuation(f"Player_{i + 1}", valuations)
+            valuation = {f"c{j + 1}": (40 if j == i * 2 else 60) for j in
+                          range(n)}  # Each player gets 1 present with value 40 and 1 present with value 60
+            valuations[f"Player_{i + 1}"] = valuation
 
-        result = santa_claus_main(allocation_builder)
+        print("valuations", valuations)
+        instance = fairpyx.Instance(valuations = valuations)
+        result = fairpyx.divide(algorithm=fairpyx.algorithms.santa_claus_main, instance=instance)
 
         # Expecting each player to get exactly one present with value 40 and one with value 60
         for i in range(100):
@@ -97,9 +96,9 @@ class TestSantaClausAlgorithm(unittest.TestCase):
             "Bob": {"c1": 0, "c2": 8, "c3": 0}
         }
 
-        self.assertFalse(is_threshold_feasible(valuations, 15))
-        self.assertFalse(is_threshold_feasible(valuations, 10))
-        self.assertTrue(is_threshold_feasible(valuations, 8))
+        self.assertFalse(fairpyx.algorithms.is_threshold_feasible(valuations, 15))
+        self.assertFalse(fairpyx.algorithms.is_threshold_feasible(valuations, 10))
+        self.assertTrue(fairpyx.algorithms.is_threshold_feasible(valuations, 8))
 
         valuations = {
             "A": {"c1": 10, "c2": 0, "c3": 0, "c4": 6},
@@ -107,8 +106,8 @@ class TestSantaClausAlgorithm(unittest.TestCase):
             "C": {"c1": 0, "c2": 8, "c3": 6, "c4": 0},
             "D": {"c1": 0, "c2": 0, "c3": 6, "c4": 6}
         }
-        self.assertTrue(is_threshold_feasible(valuations, 6))
-        self.assertFalse(is_threshold_feasible(valuations, 7))
+        self.assertTrue(fairpyx.algorithms.is_threshold_feasible(valuations, 6))
+        self.assertFalse(fairpyx.algorithms.is_threshold_feasible(valuations, 7))
 
 
     def test_solve_configuration_lp(self):
@@ -118,7 +117,7 @@ class TestSantaClausAlgorithm(unittest.TestCase):
             "Bob": {"c1": 10, "c2": 5}
         }
 
-        result = solve_configuration_lp(valuations, 5)
+        result = fairpyx.algorithms.solve_configuration_lp(valuations, 5)
 
         # Expected result: both Alice and Bob get half of both items
         expected_result = {'Alice': {('c1', 0.5), ('c2', 0.5)}, 'Bob': {('c1', 0.5), ('c2', 0.5)}}
@@ -132,7 +131,7 @@ class TestSantaClausAlgorithm(unittest.TestCase):
             "Bob":   {"c1": 0.9, "c2": 0.2}
         }
 
-        fat_items, thin_items = classify_items(valuations, 0.4)
+        fat_items, thin_items = fairpyx.algorithms.classify_items(valuations, 0.4)
 
         self.assertEqual(fat_items, {'c1'})
         self.assertEqual(thin_items, {'c2'})
@@ -153,10 +152,10 @@ class TestSantaClausAlgorithm(unittest.TestCase):
             "D": [{"c4"}]
         }
 
-        fat_items, thin_items = classify_items(valuations, 4)
+        fat_items, thin_items = fairpyx.algorithms.classify_items(valuations, 4)
 
         # Test hypergraph creation
-        hypergraph = build_hypergraph(valuations, allocation, fat_items, thin_items, 4)
+        hypergraph = fairpyx.algorithms.build_hypergraph(valuations, allocation, fat_items, thin_items, 4)
 
         # Verify the number of nodes (players + items)
         self.assertEqual(len(hypergraph.nodes), 8)
@@ -180,7 +179,7 @@ class TestSantaClausAlgorithm(unittest.TestCase):
         }
 
         threshold = 5
-        fat_items, thin_items = classify_items(valuations, threshold)
+        fat_items, thin_items = fairpyx.algorithms.classify_items(valuations, threshold)
 
         allocation = {
             "A": [{"c3"}],
@@ -189,9 +188,9 @@ class TestSantaClausAlgorithm(unittest.TestCase):
             "D": [{"c4"}]
         }
 
-        hypergraph = build_hypergraph(valuations, allocation, fat_items, thin_items, threshold)
+        hypergraph = fairpyx.algorithms.build_hypergraph(valuations, allocation, fat_items, thin_items, threshold)
 
-        matching = local_search_perfect_matching(hypergraph)
+        matching = fairpyx.algorithms.local_search_perfect_matching(hypergraph)
 
         # Expecting a perfect matching
         self.assertEqual(matching, {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}})
