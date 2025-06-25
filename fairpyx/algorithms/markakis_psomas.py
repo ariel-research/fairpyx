@@ -201,7 +201,6 @@ def algorithm1_worst_case_allocation(alloc: AllocationBuilder) -> None:
     for agent in alloc.remaining_agents():
         if values[agent] >= Vn_alpha_i[agent]:
             chosen_agent = agent
-            logger.info(f"is  agent '{chosen_agent}' ")
             break
     
 
