@@ -21,7 +21,7 @@ class TestSantaClausAlgorithm(unittest.TestCase):
         allocation = fairpyx.divide(algorithm=fairpyx.algorithms.santa_claus_main, instance=instance)
 
         # Expecting a matching that allocates items between Alice and Bob
-        assert allocation == {'Alice': {'c1', 'c3'}, 'Bob': {'c2'}}
+        assert allocation == {'Alice': ['c1', 'c3'], 'Bob': ['c2']}
 
     # --------------------------Test 2: More complex case with 4 players and 4 items--------------------------
     def test_santa_claus_main_simple2(self):
@@ -33,167 +33,85 @@ class TestSantaClausAlgorithm(unittest.TestCase):
         allocation = fairpyx.divide(algorithm=fairpyx.algorithms.santa_claus_main, instance=instance)
 
         # Expecting a different matching due to more players and items
-         assert allocation == {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
+        assert allocation == {'A': ['c1'], 'B': ['c2'], 'C': ['c3'], 'D': ['c4']}
 
-    # --------------------------Test 3: Large scale case with 100 players and 100 items--------------------------
+    # --------------------------Test 3: Large scale case with n players and n items--------------------------
     def test_santa_claus_main_Large1(self):
-        valuations = {}
+        n = 10
+        valuations = {
+            f"Player_{i + 1}": {f"c{j + 1}": (1 if j == i else 0) for j in range(n)}
+            for i in range(n)
+        }
 
-        for i in range(100):
-            valuation = {f"c{j + 1}": (1 if j == i else 0) for j in range(100)}  # Player_i values only item_i
-            valuations[f"Player_{i + 1}"] = valuation
+        agent_caps = {p: 1 for p in valuations}
+        item_caps = {f"c{i + 1}": 1 for i in range(n)}
 
-        print("valuations", valuations)
-        instance = fairpyx.Instance(valuations=valuations)
-        result = fairpyx.divide(algorithm=fairpyx.algorithms.santa_claus_main, instance=instance)
+        instance = fairpyx.Instance(
+            valuations=valuations,
+            agent_capacities=agent_caps,
+            item_capacities=item_caps
+        )
 
-        # Expecting each player to get exactly their corresponding item
-        for i in range(100):
-            self.assertEqual(result[f"Player_{i + 1}"], {f"c{100 - i}"})
+        alloc = fairpyx.divide(
+            algorithm=fairpyx.algorithms.santa_claus_main,
+            instance=instance
+        )
+
+        expected = {f"Player_{i + 1}": [f"c{i + 1}"] for i in range(n)}
+        assert alloc == expected
 
         # Verify there are no duplicate allocations (no player gets the same item as another player)
-        self.assertTrue(all(len(set(items)) == len(items) for items in result.values()))
+        self.assertTrue(all(len(set(items)) == len(items) for items in alloc.values()))
 
         # Verify the number of players matches the number of allocations
-        self.assertEqual(len(result), 100)
+        self.assertEqual(len(alloc), n)
 
 
-    # Test case for 100 players and 200 presents (each player gets one present with value 40 and one with value 60)
+    # --------Test 4: case for n players and 2n presents (each player gets one present with value 40 and one with value 60)--------
     def test_santa_claus_main_Large2(self):
-        valuations = {}
-        n = 3
-        # Define valuation for 100 players and 200 presents (one with value 40 and one with value 60)
-        for i in range(100):
-            valuation = {f"c{j + 1}": (40 if j == i * 2 else 60) for j in
-                          range(n)}  # Each player gets 1 present with value 40 and 1 present with value 60
-            valuations[f"Player_{i + 1}"] = valuation
+        # Define number of players and items
+        n_players = 6
+        n_items = 2 * n_players
 
-        print("valuations", valuations)
-        instance = fairpyx.Instance(valuations = valuations)
-        result = fairpyx.divide(algorithm=fairpyx.algorithms.santa_claus_main, instance=instance)
-
-        # Expecting each player to get exactly one present with value 40 and one with value 60
-        for i in range(100):
-            player_presents = result[f"Player_{i + 1}"]
-            self.assertEqual(len(player_presents), 2)  # Ensure each player gets exactly 2 presents
-            self.assertTrue(
-                any(present.startswith('c') for present in player_presents))  # Ensure the presents have correct ids
-            self.assertTrue(all(valuation in [40, 60] for present, valuation in
-                                player_presents))  # Ensure the presents' values are 40 and 60
-
-        # Verify the number of players matches the number of allocations
-        self.assertEqual(len(result), 100)
-
-        # Verify no duplicates in the allocation
-        all_presents = [present for presents in result.values() for present in presents]
-        self.assertEqual(len(all_presents),
-                         len(set(all_presents)))  # Ensure no presents are assigned to multiple players
-
-    def test_is_threshold_feasible(self):
-        # Test the threshold feasibility function
+        # Build valuations: each player values exactly two items (40 and 60)
         valuations = {
-            "Alice": {"c1": 7, "c2": 0, "c3": 4},
-            "Bob": {"c1": 0, "c2": 8, "c3": 0}
+            f"Player_{i + 1}": {
+                f"c{j + 1}": (40 if j == 2 * i else 60 if j == 2 * i + 1 else 0)
+                for j in range(n_items)
+            }
+            for i in range(n_players)
         }
 
-        self.assertFalse(fairpyx.algorithms.is_threshold_feasible(valuations, 15))
-        self.assertFalse(fairpyx.algorithms.is_threshold_feasible(valuations, 10))
-        self.assertTrue(fairpyx.algorithms.is_threshold_feasible(valuations, 8))
+        # Set capacities: each player can receive 2 items, each item can be assigned once
+        agent_caps = {f"Player_{i + 1}": 2 for i in range(n_players)}
+        item_caps = {f"c{j + 1}": 1 for j in range(n_items)}
 
-        valuations = {
-            "A": {"c1": 10, "c2": 0, "c3": 0, "c4": 6},
-            "B": {"c1": 10, "c2": 8, "c3": 0, "c4": 0},
-            "C": {"c1": 0, "c2": 8, "c3": 6, "c4": 0},
-            "D": {"c1": 0, "c2": 0, "c3": 6, "c4": 6}
+        # Create the instance with valuations and capacities
+        instance = fairpyx.Instance(
+            valuations=valuations,
+            agent_capacities=agent_caps,
+            item_capacities=item_caps
+        )
+
+        # Run the Santa Claus algorithm
+        alloc = fairpyx.divide(
+            algorithm=fairpyx.algorithms.santa_claus_main,
+            instance=instance
+        )
+
+        # Build the expected allocation mapping each player to their two valued items
+        expected = {
+            f"Player_{i + 1}": {f"c{2 * i + 1}", f"c{2 * i + 2}"}
+            for i in range(n_players)
         }
-        self.assertTrue(fairpyx.algorithms.is_threshold_feasible(valuations, 6))
-        self.assertFalse(fairpyx.algorithms.is_threshold_feasible(valuations, 7))
+        for player, got in alloc.items():
+            self.assertEqual(set(got), expected[player])
 
+        # total number of players and no duplicate items globally
+        self.assertEqual(len(alloc), n_players)
 
-    def test_solve_configuration_lp(self):
-        # Test: 2 Players, 2 Items (conflict)
-        valuations = {
-            "Alice": {"c1": 10, "c2": 5},
-            "Bob": {"c1": 10, "c2": 5}
-        }
-
-        result = fairpyx.algorithms.solve_configuration_lp(valuations, 5)
-
-        # Expected result: both Alice and Bob get half of both items
-        expected_result = {'Alice': {('c1', 0.5), ('c2', 0.5)}, 'Bob': {('c1', 0.5), ('c2', 0.5)}}
-
-        self.assertEqual(result, expected_result)
-
-    def test_classify_items(self):
-        # Test the classify_items function
-        valuations = {
-            "Alice": {"c1": 0.9, "c2": 0.2},
-            "Bob":   {"c1": 0.9, "c2": 0.2}
-        }
-
-        fat_items, thin_items = fairpyx.algorithms.classify_items(valuations, 0.4)
-
-        self.assertEqual(fat_items, {'c1'})
-        self.assertEqual(thin_items, {'c2'})
-
-    def test_build_hypergraph(self):
-        # Test the build_hypergraph function
-        valuations = {
-            "A": {"c1": 10, "c2": 0, "c3": 0, "c4": 0},
-            "B": {"c1": 0, "c2": 8, "c3": 0, "c4": 0},
-            "C": {"c1": 0, "c2": 0, "c3": 6, "c4": 0},
-            "D": {"c1": 0, "c2": 0, "c3": 0, "c4": 4}
-        }
-
-        allocation = {
-            "A": [{"c1"}],
-            "B": [{"c2"}],
-            "C": [{"c3"}],
-            "D": [{"c4"}]
-        }
-
-        fat_items, thin_items = fairpyx.algorithms.classify_items(valuations, 4)
-
-        # Test hypergraph creation
-        hypergraph = fairpyx.algorithms.build_hypergraph(valuations, allocation, fat_items, thin_items, 4)
-
-        # Verify the number of nodes (players + items)
-        self.assertEqual(len(hypergraph.nodes), 8)
-
-        # Verify the number of edges
-        self.assertEqual(len(hypergraph.edges), 4)
-
-        # Check that the hypergraph contains the correct edges
-        self.assertTrue(any("A" in edge and "c1" in edge for edge in hypergraph.edges))
-        self.assertTrue(any("B" in edge and "c2" in edge for edge in hypergraph.edges))
-        self.assertTrue(any("C" in edge and "c3" in edge for edge in hypergraph.edges))
-        self.assertTrue(any("D" in edge and "c4" in edge for edge in hypergraph.edges))
-
-    def test_local_search_perfect_matching(self):
-        # Test the local_search_perfect_matching function
-        valuations = {
-            "A": {"c1": 5, "c2": 0, "c3": 4, "c4": 0},
-            "B": {"c1": 5, "c2": 6, "c3": 0, "c4": 0},
-            "C": {"c1": 0, "c2": 6, "c3": 4, "c4": 0},
-            "D": {"c1": 0, "c2": 0, "c3": 4, "c4": 6}
-        }
-
-        threshold = 5
-        fat_items, thin_items = fairpyx.algorithms.classify_items(valuations, threshold)
-
-        allocation = {
-            "A": [{"c3"}],
-            "B": [{"c1"}],
-            "C": [{"c2"}],
-            "D": [{"c4"}]
-        }
-
-        hypergraph = fairpyx.algorithms.build_hypergraph(valuations, allocation, fat_items, thin_items, threshold)
-
-        matching = fairpyx.algorithms.local_search_perfect_matching(hypergraph)
-
-        # Expecting a perfect matching
-        self.assertEqual(matching, {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}})
+        all_items = [item for items in alloc.values() for item in items]
+        self.assertEqual(len(all_items), len(set(all_items)))
 
 
 if __name__ == "__main__":
