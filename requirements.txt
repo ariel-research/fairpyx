@@ -3,18 +3,21 @@ scipy>=1.6.1
 networkz>=1.0.6
 cvxpy_base>=1.1.17
 prtpy>=0.7.0
+
+# Santa-Claus & hypergraph code
 hypernetx>=0.2.0
+fastjsonschema>=2.16.2
 
 
 ### For development:
-# pytest>=8.3.2
+pytest>=8.3.2
 
 ### For experiments:
-# matplotlib
-# experiments-csv
+matplotlib
+experiments-csv
 
 ### Old:
-# repackage
-# cvxpy_leximin>=0.4.4
-# more_itertools
-# scs
+repackage
+cvxpy_leximin>=0.4.4
+more_itertools
+scs
