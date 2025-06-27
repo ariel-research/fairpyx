@@ -9,7 +9,7 @@ Date: 2025-05-05
 import logging
 from fairpyx.allocations import AllocationBuilder
 from pulp import LpProblem, LpVariable, LpMaximize, lpSum, LpBinary, LpContinuous, value, PULP_CBC_CMD
-from itertools import combinations
+from itertools import product
 
 # Setup basic logging configuration (you can customize format and level)
 logger = logging.getLogger(__name__)
@@ -180,19 +180,33 @@ def primal_lp(feasible_sets, R, agents, p_star):
     # === Final objective: maximize M - ε * sum(xS) for strict complementarity ===
     # This slight perturbation forces the solver to prefer solutions where fewer xS variables are non-zero,
     # making the solution strictly complementary
-    epsilon = 1e-6
-    perturbed_objective = M - epsilon * lpSum(xS.values())
-    prob += perturbed_objective
+    prob += M
     logger.info("Set perturbed objective: maximize M - ε * sum(xS)")
 
     # === Solve LP ===
     logger.info("Solving PrimalLP...")
     prob.solve(PULP_CBC_CMD(msg=0))
 
-
     if prob.status != 1:
         logger.error(f"Primal LP is infeasible, status code: {prob.status}")
         raise Exception("Primal LP is infeasible")
+
+    # === Detailed reporting of solution ===
+    logger.info("\n--- LP Solution: Allocation Weights (xS) ---")
+    for S in xS:
+        val = value(xS[S])
+        if val is not None and val > 1e-6:
+            logger.info(f"Allocation {S} -> Weight: {val:.6f}")
+        else:
+            logger.debug(f"Allocation {S} -> Weight: {val:.6f}")
+
+    # === Check coverage per agent ===
+    logger.info("\n--- Agent Coverage from Allocations ---")
+    for i in agents:
+        coverage = sum(
+            value(xS[S]) for S in xS if any(agent_id == i for (agent_id, _) in S)
+        )
+        logger.info(f"Agent {i} total probability: {coverage:.6f}")
 
     # === Compute actual values of pi for i ∈ R ===
     pi = {}
@@ -201,72 +215,80 @@ def primal_lp(feasible_sets, R, agents, p_star):
         pi[i] = pi_val
         logger.debug(f"Computed pi[{i}] = {pi_val:.6f}")
 
+    # === Report which allocations contribute to pi ===
+    logger.info("\n--- Allocation Support per Agent ---")
+    for i in agents:
+        for S in xS:
+            if any(agent_id == i for (agent_id, _) in S):
+                logger.debug(f"Agent {i} appears in allocation {S} with weight {value(xS[S]):.6f}")
+
     M_val = value(M)
-    logger.info(f"PrimalLP solved successfully: M = {M_val:.6f}")
+    logger.info(f"\nPrimalLP solved successfully: M = {M_val:.6f}")
 
     return M_val, pi, xS
 
-from typing import List, Tuple, Set
-
-def generate_feasible_sets(
-    agents: List[int],
-    items: List[str],
-    demands: dict,
-    capacities: dict,
-    preferences: dict
-) -> List[Tuple[Set[int], List[Tuple[int, str]]]]:
+def generate_feasible_sets(agents, items, demands, capacities, preferences):
     """
-    Generates all feasible allocations (AS) for subsets S of agents
-    using the FeasibilityILP algorithm with pruning to avoid redundant checks.
+    Generates all feasible deterministic allocations over all agents.
 
-    Args:
-        agents: List of agent IDs.
-        items: List of item names.
-        demands: Mapping from agent to their demand (capacity).
-        capacities: Mapping from item to its total capacity.
-        preferences: Mapping from agent to their preferred items.
+    Each agent can get at most one of their preferred items (or nothing),
+    and item capacities cannot be exceeded.
+
+    Arguments:
+        agents (list[int]): Agent IDs.
+        items (list[str]): Available item names.
+        demands (dict[int, int]): Agent demands.
+        capacities (dict[str, int]): Item capacities.
+        preferences (dict[int, set[str]]): Items each agent values.
 
     Returns:
-        A list of tuples: (S, AS) where:
-            - S is a set of agents,
-            - AS is a list of (agent, item) assignments.
+        list of (frozenset, list of (agent, item)):
+            Feasible allocations as (agents_in_S, allocation_list).
 
-    Example (doctest-style):
+    Doctest:
     >>> agents = [1, 2]
-    >>> items = ["a", "b"]
+    >>> items = ['a', 'b']
     >>> demands = {1: 1, 2: 1}
-    >>> capacities = {"a": 1, "b": 1}
-    >>> preferences = {1: {"a"}, 2: {"b"}}
-    >>> fs = generate_feasible_sets(agents, items, demands, capacities, preferences)
-    >>> len(fs) >= 2
-    True
-    >>> all(isinstance(s, tuple) and isinstance(s[0], frozenset) for s in fs)
+    >>> capacities = {'a': 1, 'b': 1}
+    >>> preferences = {1: {'a'}, 2: {'b'}}
+    >>> result = generate_feasible_sets(agents, items, demands, capacities, preferences)
+    >>> any(sorted(alloc) == [(1, 'a'), (2, 'b')] for _, alloc in result)
     True
     """
-    from itertools import combinations
+    logger.info("Enumerating all feasible allocations over all agents")
 
-    feasible_sets = []
-    failed_subsets = set()
-    total_capacity = sum(capacities[f] for f in items)
+    # Step 1: For each agent, generate all bundles (empty or single items from their preferences)
+    agent_bundle_options = {}
+    for agent in agents:
+        bundles = [()]  # always include empty bundle
+        if demands[agent] > 0:
+            bundles.extend((item,) for item in preferences[agent])
+        agent_bundle_options[agent] = bundles
+        logger.debug(f"Agent {agent} has {len(bundles)} bundle options")
 
-    for r in range(1, len(agents) + 1):
-        for subset in combinations(agents, r):
-            subset_frozen = frozenset(subset)
+    # Step 2: Cartesian product over all agents' bundles
+    all_joint_allocations = product(*(agent_bundle_options[agent] for agent in agents))
+    feasible_allocations = []
 
-            if any(failed.issubset(subset_frozen) for failed in failed_subsets):
-                continue
+    # Step 3: Check feasibility of each joint allocation
+    for joint in all_joint_allocations:
+        item_count = {item: 0 for item in items}
+        allocation_list = []
 
-            total_demand = sum(demands[i] for i in subset)
-            if total_demand > total_capacity:
-                continue
+        for idx, agent in enumerate(agents):
+            bundle = joint[idx]
+            for item in bundle:
+                item_count[item] += 1
+                allocation_list.append((agent, item))
 
-            alloc_set = feasibility_ilp(subset, items, demands, capacities, preferences)
-            if alloc_set:
-                feasible_sets.append((subset_frozen, alloc_set))
-            else:
-                failed_subsets.add(subset_frozen)
+        # Check capacity constraints
+        if all(item_count[item] <= capacities[item] for item in items):
+            feasible_allocations.append((frozenset(agents), allocation_list))
+            logger.debug(f"ACCEPTED allocation: {allocation_list}")
 
-    return feasible_sets
+    logger.info(f"Total feasible allocations over all agents: {len(feasible_allocations)}")
+    return feasible_allocations
+
 
 
 def leximin_primal(alloc: AllocationBuilder) -> None:
@@ -420,60 +442,79 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
                 logger.info(f"Fixing p*[{i}] = {value(M):.4f}")
                 R.remove(i)
 
+    # === Line 9–10: R is now empty — decide output strategy ===
+    if abs(M - 1.0) < 1e-6:
+        # === Case: M ≈ 1 – show *all* allocations that fully cover agents ===
+        logger.info("\n=== Filtering all allocations with full coverage (M ≈ 1) ===")
+        final_allocations = []
+        for _, alloc_list in feasible_sets:
+            covered_agents = {agent for (agent, _) in alloc_list}
+            if covered_agents == set(agents):
+                final_allocations.append(alloc_list)
 
-    # === Line 9–10: R is now empty — return randomized allocation using xS_total ===
-    logger.info("\n=== Final Allocation Probabilities ===")
-    for S, prob_val in xS_total.items():
-        if prob_val > 0:
-            logger.info(f"Bundle {S} with prob {prob_val:.4f}")
+        logger.info(f"Number of allocations with full coverage: {len(final_allocations)}")
+        if not final_allocations:
+            logger.warning("No allocations found that cover all agents with pi=1!")
+            alloc.distribution = []
+            return
 
-    logger.info("\n=== Exploring All Possible Allocations from the Distribution ===")
-    population = list(xS_total.keys())
-    alloc.distribution = []  # reset previous allocations
+        equal_prob = 1.0 / len(final_allocations)
+        logger.info(f"Assigning equal probability {equal_prob:.4f} to each allocation.")
 
-    # Build and normalize output distribution
-    for alloc_idx, S in enumerate(population):
-        if xS_total[S] < 1e-6:
-            continue  # skip near-zero allocations
+        alloc.distribution = []
+        for alloc_list in final_allocations:
+            temp_alloc = AllocationBuilder(alloc.instance)
+            temp_alloc.set_allow_multiple_copies(True)
+            for (i, j) in alloc_list:
+                try:
+                    temp_alloc.give(i, j)
+                except ValueError:
+                    logger.warning(f"Could not assign {j} to {i} (capacity full)")
 
-        logger.info(f"\n--- Allocation {alloc_idx + 1} ---")
-        logger.info(f"Probability: {xS_total[S]:.4f}")
+            for agent in agents:
+                temp_alloc.bundles.setdefault(agent, {})
 
-        # Simulate allocation S
-        temp_alloc = AllocationBuilder(alloc.instance)
-        temp_alloc.set_allow_multiple_copies(True)
+            normalized_bundle = {
+                agent: {str(item): 1 for item in bundle}
+                for agent, bundle in temp_alloc.bundles.items()
+            }
 
-        for (i, j) in S:
-            logger.debug(f"Assigning item {j} to agent {i}")
-            try:
-                temp_alloc.give(i, j)
-            except ValueError:
-                logger.warning(f"Could not assign {j} to {i} (capacity full)")
+            alloc.distribution.append((normalized_bundle, equal_prob))
 
-        logger.info("--- Resulting Allocation ---")
-        for agent, bundle in temp_alloc.bundles.items():
-            logger.info(f"{agent}: {bundle}")
+    else:
+        # === Case: M < 1 – use LP fractional distribution ===
+        logger.info("\n=== Using LP solution with M < 1 ===")
+        alloc.distribution = []
+        for S in xS_total:
+            prob_val = xS_total[S]
+            if prob_val < 1e-6:
+                continue
 
-        # Ensure all agents appear, even if empty
-        for agent in agents:
-            temp_alloc.bundles.setdefault(agent, {})
+            temp_alloc = AllocationBuilder(alloc.instance)
+            temp_alloc.set_allow_multiple_copies(True)
+            for (i, j) in S:
+                try:
+                    temp_alloc.give(i, j)
+                except ValueError:
+                    logger.warning(f"Could not assign {j} to {i} (capacity full)")
 
-        # Format: {agent: {item: 1}, ...}
-        normalized_bundle = {
-            agent: {str(item): 1 for item in bundle}
-            for agent, bundle in temp_alloc.bundles.items()
-        }
+            for agent in agents:
+                temp_alloc.bundles.setdefault(agent, {})
 
-        # Save result
-        alloc.distribution.append((normalized_bundle, xS_total[S]))
+            normalized_bundle = {
+                agent: {str(item): 1 for item in bundle}
+                for agent, bundle in temp_alloc.bundles.items()
+            }
 
-    # Normalize total probability to sum to 1.0
-    total_prob = sum(prob for _, prob in alloc.distribution)
-    if total_prob > 0:
-        alloc.distribution = [
-            (bundle, prob / total_prob)
-            for bundle, prob in alloc.distribution
-        ]
+            alloc.distribution.append((normalized_bundle, prob_val))
+
+        # Normalize
+        total_prob = sum(prob for _, prob in alloc.distribution)
+        if total_prob > 0:
+            alloc.distribution = [
+                (bundle, prob / total_prob)
+                for bundle, prob in alloc.distribution
+            ]
 
 
 if __name__ == "__main__":
@@ -488,9 +529,9 @@ if __name__ == "__main__":
 
     # Example: 3 agents, 2 facilities
     instance = Instance(
-        valuations={1: {"a": 1}, 2: {"b": 1}, 3: {"a": 1, "b": 1}},  # F1, F2, F3
-        agent_capacities={1: 1, 2: 1, 3: 1},
-        item_capacities={"a": 1, "b": 1}
+        valuations={1: {"a": 1, "b": 1}, 2: {"a": 1}, 3: {"a": 1, "b": 1}},  # F1, F2, F3
+        agent_capacities={1: 3, 2: 1, 3: 1},
+        item_capacities={"a": 3, "b": 2}
     )
     alloc = AllocationBuilder(instance)
 

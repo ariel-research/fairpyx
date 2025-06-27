@@ -15,18 +15,36 @@ from fairpyx.algorithms.leximin_primal import leximin_primal
 # Initialize the Flask app
 app = Flask(__name__)
 
-from io import StringIO
 import logging
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
         try:
-            valuations = json.loads(request.form["valuations"])
-            agent_capacities = json.loads(request.form["agent_capacities"])
-            item_capacities = json.loads(request.form["item_capacities"])
+            # === Parse form inputs ===
+            valuations_raw = json.loads(request.form["valuations"])
+            agent_capacities_raw = json.loads(request.form["agent_capacities"])
+            item_capacities_raw = json.loads(request.form["item_capacities"])
 
-            # Setup log capture
+            # === Show raw input for debugging ===
+            print("[RAW] Valuations:", valuations_raw)
+            print("[RAW] Agent Capacities:", agent_capacities_raw)
+            print("[RAW] Item Capacities:", item_capacities_raw)
+
+            # === Normalize key types ===
+            valuations = {
+                int(agent_id): {str(item): int(val) for item, val in items.items()}
+                for agent_id, items in valuations_raw.items()
+            }
+            agent_capacities = {int(k): int(v) for k, v in agent_capacities_raw.items()}
+            item_capacities = {str(k): int(v) for k, v in item_capacities_raw.items()}
+
+            # === Show cleaned input ===
+            print("[CLEANED] Valuations:", valuations)
+            print("[CLEANED] Agent Capacities:", agent_capacities)
+            print("[CLEANED] Item Capacities:", item_capacities)
+
+            # === Setup logging capture ===
             log_stream = StringIO()
             handler = logging.StreamHandler(log_stream)
             handler.setLevel(logging.DEBUG)
@@ -36,7 +54,7 @@ def index():
             logger.setLevel(logging.DEBUG)
             logger.addHandler(handler)
 
-            # Run the algorithm
+            # === Run LeximinPrimal algorithm ===
             inst = Instance(
                 valuations=valuations,
                 agent_capacities=agent_capacities,
@@ -45,7 +63,7 @@ def index():
             alloc = AllocationBuilder(inst)
             leximin_primal(alloc)
 
-            # Capture logs
+            # === Collect logs ===
             handler.flush()
             logger.removeHandler(handler)
             logs = log_stream.getvalue()
@@ -68,7 +86,6 @@ def index():
             return render_template("index.html", error=str(e))
 
     return render_template("index.html")
-
 
 
 @app.route("/run-tests")
@@ -101,4 +118,5 @@ def run_tests():
 
 # Entry point for local dev server
 if __name__ == "__main__":
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
     app.run(debug=True, host="0.0.0.0", port=5050)
