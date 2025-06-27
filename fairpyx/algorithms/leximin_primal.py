@@ -395,6 +395,13 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
     }
     preferences = {i: set(v.keys()) for i, v in valuations.items()}
 
+    # Remove agents with no preferences
+    agents = [i for i in agents if preferences[i]]
+    if not agents:
+        logger.info("No agents with non-empty preferences. Nothing to allocate.")
+        alloc.distribution = []
+        return
+
     # Edge case: all agents have empty preference sets
     if all(len(prefs) == 0 for prefs in preferences.values()):
         logger.info("All agents have empty preference sets. No feasible allocations.")
