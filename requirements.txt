@@ -4,6 +4,8 @@ networkz>=1.0.6
 cvxpy_base>=1.1.17
 prtpy>=0.7.0
 hypernetx>=0.2.0
+fastjsonschema==2.21.1
+
 
 
 ### For development:
