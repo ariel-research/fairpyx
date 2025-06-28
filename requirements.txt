@@ -6,8 +6,6 @@ prtpy>=0.7.0
 hypernetx>=0.2.0
 fastjsonschema==2.21.1
 
-
-
 ### For development:
 # pytest>=8.3.2
 
