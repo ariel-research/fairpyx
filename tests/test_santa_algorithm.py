@@ -10,7 +10,6 @@ import unittest
 import pytest
 import fairpyx
 
-
 class TestSantaClausAlgorithm(unittest.TestCase):
     # --------------------------Test 1: Simple case with 2 players and 3 items--------------------------
     def test_santa_claus_main_simple1(self):
