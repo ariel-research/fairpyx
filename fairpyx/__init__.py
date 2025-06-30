@@ -4,8 +4,7 @@ from fairpyx.allocations import AllocationBuilder, validate_allocation, allocati
 from fairpyx.satisfaction import AgentBundleValueMatrix
 from fairpyx.explanations import ExplanationLogger, ConsoleExplanationLogger, StringsExplanationLogger, FilesExplanationLogger
 from fairpyx.adaptors import divide
-
-from .algorithms import santa_claus_main,is_threshold_feasible,solve_configuration_lp,classify_items,build_hypergraph,local_search_perfect_matching
+import fairpyx.algorithms as algorithms
 
 # # Algorithms:
 # from fairpyx.iterated_maximum_matching import iterated_maximum_matching, iterated_maximum_matching_adjusted, iterated_maximum_matching_unadjusted
