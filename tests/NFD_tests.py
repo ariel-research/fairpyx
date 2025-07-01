@@ -1,118 +1,19 @@
+"""
+Tests for the implementation of the algorithms in:
+
+"Efficient Nearly-Fair Division with Capacity Constraints", by A. Hila Shoshan,  Noam Hazon,  Erel Segal-Halevi
+(2023), https://arxiv.org/abs/2205.07779
+
+Programmer: Matan Ziv.
+Date: 2025-04-27.
+"""
+
 import pytest
-from fairpyx import Instance, divide
-from fairpyx.algorithms.NFD import Nearly_Fair_Division
+from fairpyx import Instance, divide, AllocationBuilder
+from fairpyx.algorithms.NFD import Nearly_Fair_Division, is_EF11, is_EF1, category_w_max_two_agents
 import random
-from typing import Optional, Tuple, Any, Dict, List
+from typing import Any, Dict, List
 from itertools import combinations
-
-
-##############################################################################
-#  EF[1,1]  – goods + chores with categories
-##############################################################################
-
-def is_EF11(instance: "Instance",
-            allocation: dict[Any, list[Any]],
-            abs_tol: float = 1e-9
-           ) -> Optional[Tuple[Any, Any]]:
-    """
-    Return None  ⇢ allocation is EF[1,1]
-    Return (i,j) ⇢ agent *i* still envies *j* even after every
-                  same-category good+chore trade.
-
-    Parameters
-    ----------
-    instance   : the problem Instance (needed for utilities & categories)
-    allocation : mapping agent → iterable of items
-    abs_tol    : slack for floating-point arithmetic
-    """
-    # cache own bundle values
-    own_val = {a: instance.agent_bundle_value(a, allocation[a]) for a in instance.agents}
-
-    for i in instance.agents:
-        Ai, v_iAi = allocation[i], own_val[i]
-
-        for j in instance.agents:
-            if i == j:
-                continue
-            Aj       = allocation[j]
-            v_iAj    = instance.agent_bundle_value(i, Aj)
-
-            # ① already no envy
-            if v_iAi + abs_tol >= v_iAj:
-                continue
-
-            # ② search for a good-chore pair in the SAME category
-            envy_gone = False
-            for g in Aj:                         # candidate good from j
-                val_g = instance.agent_item_value(i, g)
-                if val_g <= 0:
-                    continue
-                cat = instance.item_categories[g] if instance.item_categories else None
-
-                for h in Ai:                     # candidate chore from i
-                    val_h = instance.agent_item_value(i, h)
-                    if val_h >= 0:
-                        continue
-                    if instance.item_categories and instance.item_categories[h] != cat:
-                        continue
-
-                    # EF[1,1] inequality after removing g and h
-                    if v_iAi - val_h + abs_tol >= v_iAj - val_g:
-                        envy_gone = True
-                        break
-                if envy_gone:
-                    break
-
-            if not envy_gone:        # i still envies j
-                return (i, j)
-
-    return None
-
-##############################################################################
-#  EF1  – envy-free up to one item
-##############################################################################
-def is_EF1(instance: "Instance",
-           allocation: dict[Any, list[Any]],
-           abs_tol: float = 1e-9
-          ) -> Optional[Tuple[Any, Any]]:
-    """
-    Return None  ⇢ allocation is EF1
-    Return (i,j) ⇢ agent *i* still envies *j* even after removing one item.
-    """
-    own_val = {a: instance.agent_bundle_value(a, allocation[a]) for a in instance.agents}
-
-    for i in instance.agents:
-        Ai, v_iAi = allocation[i], own_val[i]
-
-        for j in instance.agents:
-            if i == j:
-                continue
-            Aj    = allocation[j]
-            v_iAj = instance.agent_bundle_value(i, Aj)
-
-            # no envy
-            if v_iAi + abs_tol >= v_iAj:
-                continue
-
-            envy_gone = False
-
-            # drop one item from j
-            for x in Aj:
-                if v_iAi + abs_tol >= v_iAj - instance.agent_item_value(i, x):
-                    envy_gone = True
-                    break
-
-            # ③ or drop one item from i
-            if not envy_gone:
-                for y in Ai:
-                    if v_iAi - instance.agent_item_value(i, y) + abs_tol >= v_iAj:
-                        envy_gone = True
-                        break
-
-            if not envy_gone:
-                return (i, j)
-
-    return None
 
 
 
@@ -135,7 +36,6 @@ def generate_random_instance(seed=42):
         item_categories=item_cats,
         category_capacities=cat_caps,
     )
-
 
 
 def is_pareto_optimal(instance: "Instance",
@@ -232,9 +132,6 @@ def is_pareto_optimal(instance: "Instance",
     return True                      # no profitable exchange found
 
 
-
-
-
 # ---------------------------
 # Edge Cases
 # ---------------------------
@@ -272,7 +169,6 @@ def test_empty_instance_raises():
 # ---------------------------
 # Large Inputs
 # ---------------------------
-
 def test_large_balanced():
     """
     Tests a large instance with 200 items and 10 categories.
@@ -288,6 +184,8 @@ def test_large_balanced():
         category_capacities={f"cat{k}": 10 for k in range(10)},
     )
     allocation = divide(Nearly_Fair_Division, instance)
+    alloc = AllocationBuilder(instance)
+    alloc = Nearly_Fair_Division(alloc)
     total_allocated = sum(len(v) for v in allocation.values())
     assert total_allocated == 200
     for agent in agents:
@@ -295,8 +193,8 @@ def test_large_balanced():
             items_in_cat = [i for i in allocation[agent] if instance.item_categories[i] == f"cat{cat}"]
             assert len(items_in_cat) <= 10
 
-    assert (is_EF11(instance, allocation) is None or
-            is_EF1(instance, allocation) is None)
+    assert (is_EF11(alloc.instance, alloc.bundles) is None or
+            is_EF1(alloc) is None)
     assert is_pareto_optimal(instance, allocation)
 
 
@@ -308,6 +206,8 @@ def test_random_instance():
     print("Random Instance:" , instance)
     allocation = divide(Nearly_Fair_Division, instance)
     print("Allocation:", allocation)
+    alloc = AllocationBuilder(instance)
+    alloc = Nearly_Fair_Division(alloc)
     total_allocated = sum(len(v) for v in allocation.values())
     assert total_allocated == len(instance.items)
     for agent in instance.agents:
@@ -315,6 +215,203 @@ def test_random_instance():
             items_in_cat = [i for i in allocation[agent] if instance.item_categories[i] == cat]
             assert len(items_in_cat) <= instance.categories_capacities[cat]
 
-    assert (is_EF11(instance, allocation) is None or
-            is_EF1(instance, allocation) is None)
+    assert (is_EF11(alloc.instance, alloc.bundles) is None or
+            is_EF1(alloc) is None)
     assert is_pareto_optimal(instance, allocation)
+
+
+
+def make_instance_and_allocation(
+    agent_vals,           # e.g. {"A": {"x": -5, "y": 10}, "B": {"x": 3, "y": 0}}
+    allocation,           # e.g. {"A": ["x"], "B": ["y"]}
+    item_categories=None  # e.g. {"x": "math", "y": "math"}
+):
+    inst = Instance(valuations=agent_vals, item_categories=item_categories)
+    builder = AllocationBuilder(inst)
+    builder.give_bundles(allocation)
+    return inst, builder
+
+
+def test_ef11_satisfied_simple_case():
+    agent_vals = {
+        "A": {"x": -5, "y": 10},
+        "B": {"x": 3, "y": 1}
+    }
+    alloc = {
+        "A": ["x"],
+        "B": ["y"]
+    }
+    cat = {"x": "math", "y": "math"}
+
+    inst, builder = make_instance_and_allocation(agent_vals, alloc, cat)
+    result = is_EF11(inst, builder.bundles)
+    assert result is None
+
+
+def test_ef11_violation_found():
+    agent_vals = {
+        "A": {"x": -5, "y": 2, "z": -1},   # A has x (bad), B has y (good), both math
+        "B": {"x": 1, "y": 6, "z": -1}
+    }
+    alloc = {
+        "A": ["x", "z"],  # A has x (bad) and z (bad)
+        "B": ["y"]
+    }
+    cat = {"x": "math", "y": "math", "z": "math"}
+
+    inst, builder = make_instance_and_allocation(agent_vals, alloc, cat)
+    result = is_EF11(inst, builder.bundles)
+    assert result == ("A", "B")
+
+
+def test_large_two_agent_ef11_violation():
+    agent_vals = {
+        "A": {"c1": -8, "c2": -2, "c3": 1,  "c4": 0,  "c5": 2,  "c6": 0},
+        "B": {"c1": -1, "c2":  0, "c3": 6,  "c4": 7,  "c5": 1,  "c6": 3},
+    }
+    alloc = {
+        "A": ["c1", "c3", "c4"],      # Value for A: -8 + 1 + 0 = -7
+        "B": ["c2", "c5", "c6"]       # Value for A: 0 + 2 + 0 = 2 → envy of 9
+    }
+    cat = {
+        "c1": "math",
+        "c2": "math",
+        "c3": "science",
+        "c4": "science",
+        "c5": "science",
+        "c6": "science"
+    }
+
+    inst, builder = make_instance_and_allocation(agent_vals, alloc, cat)
+    result = is_EF11(inst, builder.bundles)
+    assert result == ("A", "B")
+
+def test_multiple_items_per_agent():
+    agent_vals = {
+        "A": {"x": -5, "y": 10, "z": 2},
+        "B": {"x": 3, "y": 1, "z": 6}
+    }
+    alloc = {
+        "A": ["x", "z"],
+        "B": ["y"]
+    }
+    cat = {"x": "math", "y": "math", "z": "math"}
+
+    inst, builder = make_instance_and_allocation(agent_vals, alloc, cat)
+    result = is_EF11(inst, builder.bundles)
+    assert result is None  # A can drop x (chore), gain y (good) in same category
+
+
+def test_ef1_holds_with_chore_and_good():
+    agent_vals = {
+        "A": {"x": -1, "y": -1},
+        "B": {"x": -1, "y": 2}
+    }
+    alloc = {
+        "A": ["x"],     # value for A: -4 + 10 = 6
+        "B": ["y"]           # value for A: 2
+    }
+
+    inst, builder = make_instance_and_allocation(agent_vals, alloc)
+    result = is_EF1(builder)
+    assert result is None
+
+
+def test_ef1_violation_detected():
+    agent_vals = {
+        "A": {"x": -10, "y": 2, "z": 0},
+        "B": {"x": -1, "y": 4,   "z": 6}
+    }
+    alloc = {
+        "A": ["x", "z"],
+        "B": ["y"]
+    }
+
+    inst, builder = make_instance_and_allocation(agent_vals, alloc)
+    result = is_EF1(builder)
+    assert result == ("A", "B")
+
+def test_two_categories_equal_entitlement():
+    instance = Instance(
+        valuations={
+            "A": {"x1": 10, "x2": 5, "y1": 7, "y2": 1},
+            "B": {"x1": 1, "x2": 5, "y1": 9, "y2": 10}
+        },
+        item_capacities={"x1": 1, "x2": 1, "y1": 1, "y2": 1},
+        item_categories={"x1": "X", "x2": "X", "y1": "Y", "y2": "Y"},
+        category_capacities={"X": 1, "Y": 1},
+    )
+    alloc = AllocationBuilder(instance)
+    category_w_max_two_agents(alloc, weights=[0.5, 0.5])
+    all_items = set(alloc.bundles["A"]) | set(alloc.bundles["B"])
+    assert all_items == {"x1", "x2", "y1", "y2"}
+
+
+def test_category_capacity_per_agent():
+    instance = Instance(
+        valuations={
+            "A": {"x1": 10, "x2": 8, "y1": 7, "y2": 2},
+            "B": {"x1": 2, "x2": 4, "y1": 9, "y2": 10}
+        },
+        agent_capacities={"A": 2, "B": 2},
+        item_capacities={"x1": 1, "x2": 1, "y1": 1, "y2": 1},
+        item_categories={"x1": "X", "x2": "X", "y1": "Y", "y2": "Y"},
+        category_capacities={"X": 1, "Y": 1}
+    )
+    alloc = AllocationBuilder(instance)
+    category_w_max_two_agents(alloc, weights=[0.5, 0.5])
+    for agent in instance.agents:
+        for category in instance.categories[0]:
+            items_in_cat = [i for i in alloc.bundles[agent] if instance.item_categories[i] == category]
+            assert len(items_in_cat) <= 1
+
+
+def test_conflict_blocks_agent():
+    instance = Instance(
+        valuations={
+            "A": {"x1": 9, "y1": 1},
+            "B": {"x1": 1, "y1": 10}
+        },
+        agent_capacities={"A": 2, "B": 2},
+        item_capacities={"x1": 1, "y1": 1},
+        item_categories={"x1": "X", "y1": "Y"},
+        category_capacities={"X": 1, "Y": 1},
+        agent_conflicts={"A": {"y1"}}
+    )
+    alloc = AllocationBuilder(instance)
+    category_w_max_two_agents(alloc, weights=[0.5, 0.5])
+    assert "y1" not in alloc.bundles["A"]
+
+
+def test_weighted_entitlement():
+    instance = Instance(
+        valuations={
+            "A": {"x1": 20, "y1": 5},
+            "B": {"x1": 10, "y1": 20}
+        },
+        agent_capacities={"A": 2, "B": 2},
+        item_capacities={"x1": 1, "y1": 1},
+        item_categories={"x1": "X", "y1": "Y"},
+        category_capacities={"X": 1, "Y": 1}
+    )
+    alloc = AllocationBuilder(instance)
+    category_w_max_two_agents(alloc, weights=[0.7, 0.3])
+    assert "x1" in alloc.bundles["A"]
+    assert "y1" in alloc.bundles["B"]
+
+
+def test_tie_case():
+    instance = Instance(
+        valuations={
+            "A": {"x": 10},
+            "B": {"x": 10}
+        },
+        agent_capacities={"A": 1, "B": 1},
+        item_capacities={"x": 1},
+        item_categories={"x": "Z"},
+        category_capacities={"Z": 1}
+    )
+    alloc = AllocationBuilder(instance)
+    category_w_max_two_agents(alloc, weights=[0.5, 0.5])
+    total = sum("x" in bundle for bundle in alloc.bundles.values())
+    assert total == 1  # Only one agent gets the item

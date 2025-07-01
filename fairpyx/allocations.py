@@ -291,7 +291,7 @@ class AllocationBuilder:
 
         for agent,bundle in new_bundles.items():
             self.bundles[agent].update(bundle)
-            self._update_conflicts(agent,item)
+            # self._update_conflicts(agent,item) i put that in comment because it dosent make sense to update conflicts for the  item from the loop its always the same one and its un related
 
     def _update_conflicts(self, receiving_agent:any, received_item:any):
         """
@@ -319,7 +319,19 @@ class AllocationBuilder:
         self.remaining_item_capacities[item] = self.remaining_item_capacities.get(item, 0) + 1
         if self.instance.agents_category_capacities is not None:
             self.agents_category_capacities[agent][self.instance.item_categories[item]] += 1
-        self._update_conflicts(agent,item)
+        if (agent,item) in self.remaining_conflicts:
+            self._remove_single_conflict(agent,item)
+
+    def swap(self, agent1, item1, agent2, item2, logger=None):
+        self.remove_item(agent1, item1)
+        self.remove_item(agent2, item2)
+        self.give(agent1, item2, logger=logger)
+        self.give(agent2, item1, logger=logger)
+
+    def _remove_single_conflict(self, agent:any, item:any):
+        self.remaining_conflicts.remove( (agent,item) )
+
+
 
 
 if __name__ == "__main__":
