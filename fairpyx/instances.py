@@ -156,7 +156,7 @@ class Instance:
         self.item_categories = item_categories
         self.categories_items = build_categories_items(item_categories) if item_categories else None
         if category_capacities is None:
-            self.agents_category_capacities = {agent: {category: 0 for category in self.categories} for agent in valuations}
+            self.agents_category_capacities = None
         else:
             self.agents_category_capacities = {agent: category_capacities.copy() for agent in valuations}
 

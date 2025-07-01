@@ -152,6 +152,8 @@ class AllocationBuilder:
         self.bundles = {agent: set() for agent in instance.agents}    # Each bundle is a set, since each agent can get at most one seat in each course
         if instance.agents_category_capacities is not None:
             self.agents_category_capacities = {agent: instance.agents_category_capacities[agent].copy() for agent in instance.agents}
+        else:
+            self.agents_category_capacities = None
 
     def set_allow_multiple_copies(self, flag):
         self.allow_multiple_copies = flag
