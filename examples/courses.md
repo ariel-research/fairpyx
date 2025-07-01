@@ -37,7 +37,7 @@ valuations={"avi": {"x":5, "y":4, "z":3, "w":2}, "beni": {"x":5, "y":2, "z":4, "
 Construct the instance:
 
 ```python
-instance = fairpyx.InstanceV2(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
+instance = fairpyx.Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations)
 ```
 
 
@@ -58,9 +58,8 @@ print(allocation)
 add item conflicts (- courses that cannot be taken simultaneously):
 
 ```python
-item_conflicts = {"x": ["w"], "w": ["x"]}
-instance = fairpyx.InstanceV2(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations,
-                              item_conflicts=item_conflicts)
+item_conflicts={"x": ["w"], "w": ["x"]}
+instance = fairpyx.Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations, item_conflicts=item_conflicts)
 allocation = divide(fairpyx.algorithms.iterated_maximum_matching, instance=instance)
 print(allocation)
 ```
@@ -74,9 +73,8 @@ print(allocation)
 add agent conflicts (- courses that cannot be taken by some agent, e.g. due to missing prerequisites):
 
 ```python
-agent_conflicts = {"avi": ["w"]}
-instance = fairpyx.InstanceV2(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations,
-                              agent_conflicts=agent_conflicts)
+agent_conflicts={"avi": ["w"]}
+instance = fairpyx.Instance(agent_capacities=agent_capacities, item_capacities=item_capacities, valuations=valuations, agent_conflicts=agent_conflicts)
 allocation = divide(fairpyx.algorithms.iterated_maximum_matching, instance=instance)
 print(allocation)
 ```
@@ -90,9 +88,9 @@ print(allocation)
 create a random instance:
 
 ```python
-random_instance = fairpyx.InstanceV2.random_uniform(
-    num_of_agents=10, num_of_items=3, agent_capacity_bounds=[2, 3], item_capacity_bounds=[5, 7],
-    item_base_value_bounds=[1, 100], item_subjective_ratio_bounds=[0.8, 1.2],
+random_instance = fairpyx.Instance.random_uniform(
+    num_of_agents=10, num_of_items=3, agent_capacity_bounds=[2,3], item_capacity_bounds=[5,7], 
+    item_base_value_bounds=[1,100], item_subjective_ratio_bounds=[0.8,1.2],
     normalized_sum_of_values=1000)
 ```
 

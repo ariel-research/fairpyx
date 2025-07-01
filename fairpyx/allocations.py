@@ -148,7 +148,6 @@ class AllocationBuilder:
         self.allow_multiple_copies = False
         self.remaining_agent_capacities = {agent: instance.agent_capacity(agent) for agent in instance.agents if instance.agent_capacity(agent) > 0}
         self.remaining_item_capacities = {item: instance.item_capacity(item) for item in instance.items if instance.item_capacity(item) > 0}
-        # self.remaining_item_capacities = {item: instance.item_capacity(item) for item in instance.items}
         self.remaining_conflicts = {(agent,item) for agent in self.remaining_agents() for item in self.instance.agent_conflicts(agent)}
         self.bundles = {agent: set() for agent in instance.agents}    # Each bundle is a set, since each agent can get at most one seat in each course
         if instance.agents_category_capacities is not None:
