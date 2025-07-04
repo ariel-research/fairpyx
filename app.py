@@ -26,10 +26,6 @@ def index():
             agent_capacities_raw = json.loads(request.form["agent_capacities"])
             item_capacities_raw = json.loads(request.form["item_capacities"])
 
-            # === Show raw input for debugging ===
-            print("[RAW] Valuations:", valuations_raw)
-            print("[RAW] Agent Capacities:", agent_capacities_raw)
-            print("[RAW] Item Capacities:", item_capacities_raw)
 
             # === Normalize key types ===
             valuations = {
@@ -39,10 +35,6 @@ def index():
             agent_capacities = {int(k): int(v) for k, v in agent_capacities_raw.items()}
             item_capacities = {str(k): int(v) for k, v in item_capacities_raw.items()}
 
-            # === Show cleaned input ===
-            print("[CLEANED] Valuations:", valuations)
-            print("[CLEANED] Agent Capacities:", agent_capacities)
-            print("[CLEANED] Item Capacities:", item_capacities)
 
             # === Setup logging capture ===
             log_stream = StringIO()
