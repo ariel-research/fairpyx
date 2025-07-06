@@ -100,6 +100,17 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     >>> result = santa_claus_main(allocation_builder)
     >>> result == {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
     True
+
+    >>> # Test 3: A מגיעה לשתי מתנות, B לאחת
+    >>> instance = Instance(
+    ...     valuations={"A": {"c1": 5, "c2": 5, "c3": 0}, "B": {"c1": 0, "c2": 0, "c3": 6}},
+    ...     agent_capacities={"A": 2, "B": 1},
+    ...     item_capacities={"c1": 1, "c2": 1, "c3": 1},
+    ... )
+    >>> allocation_builder = AllocationBuilder(instance=instance)
+    >>> result = santa_claus_main(allocation_builder)
+    >>> result == {'A': {'c1', 'c2'}, 'B': {'c3'}}
+    True
     """
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     # שולפים את המידע מה-AllocationBuilder: שמות סוכנים ופריטים
@@ -107,7 +118,6 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     agent_names = list(instance.agents)
     item_names = list(instance.items)
     agent_capacities = {a: instance.agent_capacity(a) for a in agent_names}
-    item_capacities  = {i: instance.item_capacity(i)  for i in item_names}
     logger.info("Starting santa_claus_main")
     logger.debug("Instance agents: %s", agent_names)
     logger.debug("Instance items: %s", item_names)
@@ -131,22 +141,29 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     best_matching = {}
 
     # == חיפוש בינארי על t ==
-    while high - low > 1e-4: # חיפוש בינארי: למצוא את ערך הסף הגבוה ביותר שבו עדיין ניתן לבצע הקצאה הוגנת
-        mid = (low + high) / 2 # אם אפשרי לבצע הקצאה לכל סוכן עם ערך לפחות mid:
+    # Binary search מוגבל ל-10 צעדים ודיוק 1e-4
+    for step in range(1, 11):
+        mid = (low + high) / 2
+
+        # הפרדה וכתב ברור לכל צעד
+        logger.info("\n\n==== Binary search step %d: t=%.4f (low=%.4f, high=%.4f) ====",
+                    step, mid, low, high)
+
         feasible, matching = is_threshold_feasible(valuations, mid, agent_names)
         if feasible:
-            # אם אפשר לשבץ, נשמור את השידוך שמצאנו ונעלה את הגבול התחתון
             best_matching = matching
             low = mid
-            logger.info("Matching found at threshold %.4f: %s", mid, matching)
+            logger.info("Threshold %.4f feasible: matching %s", mid, matching)
         else:
-            # אחרת, נוריד את הגבול העליון
-            if mid != 0:
-                logger.info("Matching incomplete at threshold %.4f", mid)
-                high = mid
-            else:
-                # אם mid == 0 ועדיין לא feasible, נחזיר הקצאה ריקה
-                return {}
+            high = mid
+            logger.info("Threshold %.4f infeasible", mid)
+
+        # עצירה מוקדמת ברגע שהגענו לדיוק המבוקש
+        if high - low <= 1e-4:
+            logger.info("Desired precision (1e-4) reached after %d steps", step)
+            break
+
+    logger.info("Binary search completed after %d steps: final threshold t≈%.4f", step, low)
 
     # == הקצאה לפי קיבולות ==
     # עוברים על הסוכנים בסדר אלפביתי ומקצים בכל פעם
@@ -168,9 +185,11 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
             chosen.append(item)
         final_allocation[agent] = chosen
 
-    validate_allocation(instance, final_allocation) # בדיקה שההקצאה הסופית תקינה (בלי כפילויות וכו')
+    for agent, items in final_allocation.items():
+        for item in items:
+            allocation_builder.give(agent, item)
     logger.info("Final matching found at threshold %.4f: %s", low, best_matching)
-    return {agent: set(items) for agent, items in final_allocation.items()} # מחזירים הקצאה עם סטים (ולא רשימות)
+    return allocation_builder.bundles
 
 def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: float, agent_names: List[str]) -> Tuple[bool, Dict[str, str]]:
     """
