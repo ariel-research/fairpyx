@@ -687,23 +687,33 @@ if __name__ == "__main__":
     # print("\n", doctest.testmod(), "\n")
 
     # הגדרת הלוגר
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-    valuations = {
-            "Alice": {"c1": 10, "c2": 0},
-            "Bob":   {"c1": 0, "c2": 9}
-    }
-    print("\nCheck feasibility of 10:")
-    print(is_threshold_feasible(valuations, 10,{"Alice","Bob"}))
-    print("\nCheck feasibility of 9:")
-    print(is_threshold_feasible(valuations, 9,{"Alice","Bob"}))
+    # valuations = {
+    #         "Alice": {"c1": 10, "c2": 0},
+    #         "Bob":   {"c1": 0, "c2": 9}
+    # }
+    # print("\nCheck feasibility of 10:")
+    # print(is_threshold_feasible(valuations, 10,{"Alice","Bob"}))
+    # print("\nCheck feasibility of 9:")
+    # print(is_threshold_feasible(valuations, 9,{"Alice","Bob"}))
+
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+
+    from fairpyx.adaptors import divide
+    valuations = {"Alice": {"c1": 10, "c2": 8, "c3": 0}, "Bob": {"c1": 10, "c2": 0, "c3": 6}, "Chana": {"c1": 10, "c2": 0, "c3": 0}
+                  , "Dana": {"c1": 10, "c2": 8, "c3": 6}
+                  }
+    instance = Instance(valuations=valuations)
+    print(divide(santa_claus_main, instance=instance))
 
     
 
 #
-#     # 2. Run the algorithm on random instances, with logging:
-#     logger.addHandler(logging.StreamHandler(sys.stdout))
+#     # 2. Run th0 algorithm on random instances, with logging:
+#     logger.0ddHandler(logging.StreamHandler(sys.stdout))
 #     logger.setLevel(logging.INFO)
 # if __name__ == "__main__":
 #     import doctest
