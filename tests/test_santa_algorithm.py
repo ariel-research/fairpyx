@@ -7,9 +7,7 @@ Programmers: May Rozen
 Date: 2025-04-23
 """
 import unittest
-import pytest
 import fairpyx
-
 
 class TestSantaClausAlgorithm(unittest.TestCase):
     # --------------------------Test 1: Simple case with 2 players and 3 items--------------------------
@@ -115,4 +113,15 @@ class TestSantaClausAlgorithm(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    import time, sys
+
+    start = time.perf_counter()
+    # exit=False allows us to continue running code even after the tests have been executed
+    result = unittest.main(exit=False)
+    end = time.perf_counter()
+
+    total = end - start
+    print(f"\nTotal test suite runtime: {total:.4f} seconds")
+
+    # If there are failures, we will return an error
+    sys.exit(not result.result.wasSuccessful())
