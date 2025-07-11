@@ -20,16 +20,6 @@ max_value = 1000
 normalized_sum_of_values = 1000
 TIME_LIMIT = 60
 
-# # run the algorithm
-# def run_santa_claus(instance) -> Dict[str, Set[str]]:
-#     """
-#     Applies the Santa Claus allocation algorithm to the given instance
-#     and returns the resulting allocation mapping.
-#     """
-#     allocation_builder = AllocationBuilder(instance=instance)
-#     return crs.santa_claus_main(allocation_builder)
-
-
 # random instance for the Santa Claus problem
 def allocation_with_random_instance(
     num_of_players: int,
@@ -94,7 +84,7 @@ def run_experiment_santa():
         "algorithm": [crs.santa_claus_main, crs.round_robin], # comparing between these two algorithms
         "random_seed": list(range(5)),
     }
-
+    #"algorithm": [crs.old_santa_algorithm,
     ex.clear_previous_results()
     # Run experiment with time limit
     ex.run_with_time_limit(allocation_with_random_instance,input_ranges,time_limit=TIME_LIMIT)
@@ -107,7 +97,7 @@ def plot_by_num_players(csv_path: str):
     plt.close('all')
     single_plot_results(
         csv_path,
-        filter={},
+        filter={"algorithm": ["round_robin", "santa_claus_main"]},
         x_field="num_of_players",
         y_field="min_value",
         z_field="algorithm",
@@ -119,7 +109,7 @@ def plot_by_num_players(csv_path: str):
     plt.close('all')
     single_plot_results(
         csv_path,
-        filter={},
+        filter={"algorithm": ["round_robin", "santa_claus_main"]},
         x_field="num_of_players",
         y_field="total_value",
         z_field="algorithm",
