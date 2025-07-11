@@ -111,6 +111,70 @@ class TestSantaClausAlgorithm(unittest.TestCase):
         all_items = [item for items in alloc.values() for item in items]
         self.assertEqual(len(all_items), len(set(all_items)))
 
+    # -------- Test 5: Minimum share comparison for 8 players and 12 gifts --------
+    def test_min_value_comparison_8p_12g(self):
+        """
+        Compare the minimum positive share each player receives between
+        santa_claus_main and round_robin on 8 players and 12 gifts,
+        using random valuations (seeded).
+        """
+        import random
+        random.seed(42)
+
+        n_players = 8
+        n_items   = 12
+
+        # Build a valuation matrix with random values in [1,10]
+        valuations = {
+            f"Player_{i}": {
+                f"c{j}": random.randint(1, 10)
+                for j in range(1, n_items + 1)
+            }
+            for i in range(1, n_players + 1)
+        }
+
+        # Capacities: one gift per player, one use per item
+        agent_caps = {f"Player_{i}": 1 for i in range(1, n_players + 1)}
+        item_caps  = {f"c{j}": 1        for j in range(1, n_items + 1)}
+
+        instance = fairpyx.Instance(
+            valuations=valuations,
+            agent_capacities=agent_caps,
+            item_capacities=item_caps
+        )
+
+        # Run both algorithms
+        santa_alloc = fairpyx.divide(
+            algorithm=fairpyx.algorithms.santa_claus_main,
+            instance=instance
+        )
+        rr_alloc = fairpyx.divide(
+            algorithm=fairpyx.algorithms.round_robin,
+            instance=instance
+        )
+
+        # Compute each player's total value
+        santa_values = [
+            sum(instance.agent_item_value(agent, gift) for gift in gifts)
+            for agent, gifts in santa_alloc.items()
+        ]
+        rr_values = [
+            sum(instance.agent_item_value(agent, gift) for gift in gifts)
+            for agent, gifts in rr_alloc.items()
+        ]
+
+        # Take the minimum positive share
+        santa_min = min(santa_values)
+        rr_min    = min(rr_values)
+
+        print(f"\nRandom valuations → Santa min: {santa_min}, RoundRobin min: {rr_min}")
+
+        # Assert Santa’s minimum is at least as high as RoundRobin’s
+        self.assertGreaterEqual(
+            santa_min, rr_min,
+            f"Expected santa_claus_main min share ({santa_min}) ≥ round_robin ({rr_min})"
+        )
+
 
 if __name__ == "__main__":
     import time, sys
