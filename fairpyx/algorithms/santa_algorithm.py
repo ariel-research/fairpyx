@@ -219,27 +219,31 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
 
     logger.info("Binary search completed after %d steps: final threshold t≈%.4f", step, low)
 
-    # == Allocation based on capacities ==
-    # Iterate over agents in alphabetical order, and each time
-    # assign the available item with the highest value for the agent
-    # If multiple items have the same value, break ties by item name (a-z).
-    used_items: Set[str] = set()
-    final_allocation: Dict[str, List[str]] = {}
+    # # == Allocation based on capacities ==
+    # # Iterate over agents in alphabetical order, and each time
+    # # assign the available item with the highest value for the agent
+    # # If multiple items have the same value, break ties by item name (a-z).
+    # used_items: Set[str] = set()
+    # final_allocation: Dict[str, List[str]] = {}
+    #
+    # for agent in sorted(agent_names): # Iterate over all agents
+    #     cap = agent_capacities.get(agent, 1)
+    #     chosen: List[str] = []
+    #     for _ in range(cap): # According to the agent's capacity
+    #         remaining = [it for it in item_names if it not in used_items] # Items not yet allocated
+    #         if not remaining:
+    #             break
+    #         remaining.sort(key=lambda it: (-valuations[agent][it], it)) # Choose the item with the highest value (tie-breaker: item name alphabetically)
+    #         item = remaining[0]
+    #         used_items.add(item)
+    #         chosen.append(item)
+    #     final_allocation[agent] = chosen
+    #
+    # for agent, items in final_allocation.items():
+    #     for item in items:
+    #         allocation_builder.give(agent, item)
 
-    for agent in sorted(agent_names): # Iterate over all agents
-        cap = agent_capacities.get(agent, 1)
-        chosen: List[str] = []
-        for _ in range(cap): # According to the agent's capacity
-            remaining = [it for it in item_names if it not in used_items] # Items not yet allocated
-            if not remaining:
-                break
-            remaining.sort(key=lambda it: (-valuations[agent][it], it)) # Choose the item with the highest value (tie-breaker: item name alphabetically)
-            item = remaining[0]
-            used_items.add(item)
-            chosen.append(item)
-        final_allocation[agent] = chosen
-
-    for agent, items in final_allocation.items():
+    for agent, items in best_matching.items():
         for item in items:
             allocation_builder.give(agent, item)
     logger.info("Final matching found at threshold %.4f: %s", low, best_matching)
