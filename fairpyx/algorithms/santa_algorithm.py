@@ -239,13 +239,11 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     #         chosen.append(item)
     #     final_allocation[agent] = chosen
     #
-    # for agent, items in final_allocation.items():
-    #     for item in items:
-    #         allocation_builder.give(agent, item)
-
     for agent, items in best_matching.items():
         for item in items:
             allocation_builder.give(agent, item)
+
+
     logger.info("Final matching found at threshold %.4f: %s", low, best_matching)
     end = time.perf_counter()
     logger.info("santa_claus_main took %.4f seconds", end - start)
