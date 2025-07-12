@@ -240,7 +240,9 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     #     final_allocation[agent] = chosen
     #
     for agent, items in best_matching.items():
-        for item in items:
+        cap = agent_capacities.get(agent, 1)
+        # give at most `cap` items from the matching bundle
+        for item in list(items)[:cap]:
             allocation_builder.give(agent, item)
 
 
