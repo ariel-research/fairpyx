@@ -25,7 +25,7 @@ class TestSantaClausAlgorithm(unittest.TestCase):
     def test_santa_claus_main_simple2(self):
         instance = fairpyx.Instance(
              valuations = {"A": {"c1": 10, "c2": 0, "c3": 0, "c4": 6}, "B": {"c1": 10, "c2": 8, "c3": 0, "c4": 0},
-                           "C": {"c1": 10, "c2": 8, "c3": 0, "c4": 0}, "D": {"c1": 0, "c2": 0, "c3": 6, "c4": 6}},
+                           "C": {"c1": 0, "c2": 8, "c3": 10, "c4": 0}, "D": {"c1": 0, "c2": 0, "c3": 6, "c4": 10}},
              agent_capacities = {"A": 1, "B": 1, "C": 1, "D": 1},
              item_capacities = {"c1": 1, "c2": 1, "c3": 1, "c4": 1})
         allocation = fairpyx.divide(algorithm=fairpyx.algorithms.santa_claus_main, instance=instance)
