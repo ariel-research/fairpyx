@@ -751,9 +751,29 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
 
     # Build final allocation
     result: Dict[str, Set[str]] = {}
+    used_items: Set[str] = set()
+
+    # Build allocation from matching and track used items
     for player, edge_name in matching.items():
-        items = set(H.edges[edge_name]) - {player} # Remove the current player from the edge
-        result[player] = items - set(players) # Remove any remaining players (general safeguard)
+        items = set(H.edges[edge_name]) - {player}
+        bundle = items - set(players)
+        result[player] = set(bundle)
+        used_items |= bundle
+
+    # Fallback: ensure every player gets at least one gift
+    for player in players:
+        if not result.get(player):
+            # choose highest-value remaining item for this player
+            candidates = [
+                (valuations[player][item], item)
+                for item in valuations[player]
+                if item not in used_items
+            ]
+            if candidates:
+                _, pick = max(candidates)
+                result[player] = {pick}
+                used_items.add(pick)
+
     logger.info("Starting local search for perfect matching")
     logger.debug("Players: %s", players)
     logger.debug("Threshold: %f", threshold)
