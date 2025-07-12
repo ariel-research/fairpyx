@@ -239,11 +239,15 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
     #         chosen.append(item)
     #     final_allocation[agent] = chosen
     #
+    used_items = set()
     for agent, items in best_matching.items():
         cap = agent_capacities.get(agent, 1)
-        # give at most `cap` items from the matching bundle
+        # only up to 'cap' items
         for item in list(items)[:cap]:
+            if item in used_items:
+                continue  # skip if already allocated
             allocation_builder.give(agent, item)
+            used_items.add(item)
 
 
     logger.info("Final matching found at threshold %.4f: %s", low, best_matching)
