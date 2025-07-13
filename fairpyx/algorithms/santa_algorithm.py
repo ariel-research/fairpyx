@@ -17,7 +17,7 @@ from fairpyx import Instance, AllocationBuilder
 import logging
 from typing import Optional
 import cvxpy as cp
-from itertools import combinations as _combinations
+from itertools import combinations
 from functools import lru_cache
 import time
 
@@ -35,7 +35,7 @@ def cached_combinations(items_tuple: tuple, r: int) -> tuple[tuple]:
     """
     Returns all r-combinations of items_tuple as tuples, and the result is cached in memory.
     """
-    return tuple(_combinations(items_tuple, r))
+    return tuple(combinations(items_tuple, r))
 
 @lru_cache(maxsize=None)
 def cached_thin_bundles(player: str,
@@ -49,7 +49,7 @@ def cached_thin_bundles(player: str,
     vals = {(a,i): v for (a,i,v) in vals_f}
     res = []
     for r in range(1, len(thin_items_t)+1):
-        for b in _combinations(thin_items_t, r):
+        for b in combinations(thin_items_t, r):
             total = sum(vals[(player,item)] for item in b)
             if total < threshold:
                 continue
@@ -218,7 +218,7 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
             break
 
     logger.info("Binary search completed after %d steps: final threshold t≈%.4f", step, low)
-    
+
     used_items = set()
     for agent, items in best_matching.items():
         cap = agent_capacities.get(agent, 1)
@@ -505,36 +505,50 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
                 edges[f"f{edge_id}"] = set(nodes)
                 edge_id += 1
 
-    # 3. Add thin edges: for each minimal subset of thin items whose total value for the player is ≥ threshold
-    for player in valuations:
-        for bundle in cached_thin_bundles(player, items_t, threshold, flat_vals):
-            nodes = frozenset({player, *bundle})
-            if nodes in seen:
-                continue
-            seen.add(nodes)
-            edges[f"t{edge_id}"] = set(nodes)
-            edge_id += 1
+        # 3. Add thin edges: for each minimal subset of thin items whose total value for the player is ≥ threshold
+        for player in valuations:
+            for r in range(1, len(thin_items) + 1):
+                for bundle in combinations(thin_items, r):
+                    total = sum(valuations[player].get(i, 0) for i in bundle)
+                    if total < threshold:
+                        continue
 
-    H = HNXHypergraph(edges)
+                    is_minimal = True
+                    for x in bundle:
+                        if total - valuations[player].get(x, 0) >= threshold:
+                            is_minimal = False
+                            break
 
-    edge_strs = []
-    for edge in H.edges:
-        # 1) build the comma‐separated list of quoted node names:
-        nodes_list = ", ".join(f'"{node}"' for node in H.edges[edge])
-        # 2) wrap it in braces and prepend the edge name:
-        edge_strs.append(f'"{edge}": {{{nodes_list}}}')
+                    if not is_minimal:
+                        continue
 
-    # now join all of those:
-    edges_repr = ", ".join(edge_strs)
+                    nodes = frozenset({player, *bundle})
+                    if nodes in seen:
+                        continue
+                    seen.add(nodes)
+                    edges[f"t{edge_id}"] = set(nodes)
+                    edge_id += 1
 
-    logger.info(
-        "Hypergraph construction completed with %d nodes and %d edges: {%s}",
-        len(H.nodes),
-        len(H.edges),
-        edges_repr
-    )
+        H = HNXHypergraph(edges)
 
-    return H
+        edge_strs = []
+        for edge in H.edges:
+            # 1) build the comma‐separated list of quoted node names:
+            nodes_list = ", ".join(f'"{node}"' for node in H.edges[edge])
+            # 2) wrap it in braces and prepend the edge name:
+            edge_strs.append(f'"{edge}": {{{nodes_list}}}')
+
+        # now join all of those:
+        edges_repr = ", ".join(edge_strs)
+
+        logger.info(
+            "Hypergraph construction completed with %d nodes and %d edges: {%s}",
+            len(H.nodes),
+            len(H.edges),
+            edges_repr
+        )
+
+        return H
 
 # Helper function – returns an edge that can be added to the alternating tree
 def extend_alternating_tree(H: HNXHypergraph,
