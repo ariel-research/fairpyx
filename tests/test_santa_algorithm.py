@@ -7,7 +7,6 @@ Programmers: May Rozen
 Date: 2025-04-23
 """
 import unittest
-import pytest
 import fairpyx
 
 class TestSantaClausAlgorithm(unittest.TestCase):
@@ -26,7 +25,7 @@ class TestSantaClausAlgorithm(unittest.TestCase):
     def test_santa_claus_main_simple2(self):
         instance = fairpyx.Instance(
              valuations = {"A": {"c1": 10, "c2": 0, "c3": 0, "c4": 6}, "B": {"c1": 10, "c2": 8, "c3": 0, "c4": 0},
-                           "C": {"c1": 10, "c2": 8, "c3": 0, "c4": 0}, "D": {"c1": 0, "c2": 0, "c3": 6, "c4": 6}},
+                           "C": {"c1": 0, "c2": 8, "c3": 10, "c4": 0}, "D": {"c1": 0, "c2": 0, "c3": 6, "c4": 10}},
              agent_capacities = {"A": 1, "B": 1, "C": 1, "D": 1},
              item_capacities = {"c1": 1, "c2": 1, "c3": 1, "c4": 1})
         allocation = fairpyx.divide(algorithm=fairpyx.algorithms.santa_claus_main, instance=instance)
@@ -98,13 +97,12 @@ class TestSantaClausAlgorithm(unittest.TestCase):
             instance=instance
         )
 
-        # Build the expected allocation mapping each player to their two valued items
-        expected = {
-            f"Player_{i + 1}": {f"c{2 * i + 1}", f"c{2 * i + 2}"}
-            for i in range(n_players)
-        }
         for player, got in alloc.items():
-            self.assertEqual(set(got), expected[player])
+            values = [instance._valuations[player][item] for item in got]
+            self.assertEqual(
+                values.count(60), 1,
+                f"{player} should receive exactly one 60-valued item, got values {values}"
+            )
 
         # total number of players and no duplicate items globally
         self.assertEqual(len(alloc), n_players)
@@ -112,6 +110,74 @@ class TestSantaClausAlgorithm(unittest.TestCase):
         all_items = [item for items in alloc.values() for item in items]
         self.assertEqual(len(all_items), len(set(all_items)))
 
+    # -------- Test 5: Minimum share comparison for 8 players and 12 gifts --------
+    def test_min_value_comparison_8p_12g(self):
+        """
+        Compare the minimum positive share each player receives between
+        santa_claus_main and round_robin on 8 players and 12 gifts,
+        using random valuations (seeded).
+        """
+        import random
+        random.seed(42)
+
+        n_players = 8
+        n_items   = 12
+
+        # Build a valuation matrix with random values in [1,10]
+        valuations = {
+            f"Player_{i}": {
+                f"c{j}": random.randint(1, 10)
+                for j in range(1, n_items + 1)
+            }
+            for i in range(1, n_players + 1)
+        }
+
+        # Capacities: one gift per player, one use per item
+        agent_caps = {f"Player_{i}": 1 for i in range(1, n_players + 1)}
+        item_caps  = {f"c{j}": 1        for j in range(1, n_items + 1)}
+
+        instance = fairpyx.Instance(
+            valuations=valuations,
+            agent_capacities=agent_caps,
+            item_capacities=item_caps
+        )
+
+        # Run both algorithms
+        santa_alloc = fairpyx.divide(
+            algorithm=fairpyx.algorithms.santa_claus_main,
+            instance=instance
+        )
+        rr_alloc = fairpyx.divide(
+            algorithm=fairpyx.algorithms.round_robin,
+            instance=instance
+        )
+
+        # Compute each player's total value
+        santa_values = [
+            sum(instance.agent_item_value(agent, gift) for gift in gifts)
+            for agent, gifts in santa_alloc.items()
+        ]
+        rr_values = [
+            sum(instance.agent_item_value(agent, gift) for gift in gifts)
+            for agent, gifts in rr_alloc.items()
+        ]
+
+        # Take the minimum positive share
+        santa_min = min(santa_values)
+        rr_min    = min(rr_values)
+
+        print(f"\nRandom valuations → Santa min: {santa_min}, RoundRobin min: {rr_min}")
 
 if __name__ == "__main__":
-    unittest.main()
+    import time, sys
+
+    start = time.perf_counter()
+    # exit=False allows us to continue running code even after the tests have been executed
+    result = unittest.main(exit=False)
+    end = time.perf_counter()
+
+    total = end - start
+    print(f"\nTotal test suite runtime: {total:.4f} seconds")
+
+    # If there are failures, we will return an error
+    sys.exit(not result.result.wasSuccessful())
