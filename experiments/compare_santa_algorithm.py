@@ -7,7 +7,8 @@ Programmers: May Rozen
 Date: 2025-04-23
 """
 
-from fairpyx import Instance, divide
+from fairpyx.instances import Instance
+from fairpyx import divide
 from typing import Dict, Set,Any
 import fairpyx.algorithms as crs
 import experiments_csv,logging
@@ -81,10 +82,10 @@ def run_experiment_santa():
         "num_of_players": [4,5,6,7,8],
         "num_of_gifts": [8,9,10,11,12,13,14,15,16],
         "value_noise_ratio": [0.0],
-        "algorithm": [crs.santa_claus_main, crs.round_robin], # comparing between these two algorithms
+        "algorithm": [crs.old_santa_claus_main, crs.santa_claus_main, crs.round_robin], # comparing between these two algorithms
         "random_seed": list(range(5)),
     }
-    #"algorithm": [crs.old_santa_algorithm,
+
     ex.clear_previous_results()
     # Run experiment with time limit
     ex.run_with_time_limit(allocation_with_random_instance,input_ranges,time_limit=TIME_LIMIT)
