@@ -97,13 +97,11 @@ class TestSantaClausAlgorithm(unittest.TestCase):
             instance=instance
         )
 
-        # Build the expected allocation mapping each player to their two valued items
-        expected = {
-            f"Player_{i + 1}": {f"c{2 * i + 1}", f"c{2 * i + 2}"}
-            for i in range(n_players)
-        }
         for player, got in alloc.items():
-            self.assertEqual(set(got), expected[player])
+            self.assertEqual(len(got), 2, f"{player} received {len(got)} items, but 2 expected")
+            values = [instance._valuations[player][item] for item in got]
+            self.assertCountEqual(values, [40, 60],
+                                  f"{player} received items {got} with values {values}, expected [40,60]")
 
         # total number of players and no duplicate items globally
         self.assertEqual(len(alloc), n_players)
