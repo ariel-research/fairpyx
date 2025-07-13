@@ -88,7 +88,7 @@ def old_santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set
     ...     item_capacities={"c1": 5, "c2": 8, "c3": 6},
     ... )
     >>> allocation_builder = AllocationBuilder(instance=instance)
-    >>> result = santa_claus_main(allocation_builder)
+    >>> result = old_santa_claus_main(allocation_builder)
     >>> result == {'Alice': {'c1', 'c3'}, 'Bob': {'c2'}}
     True
 
@@ -99,7 +99,7 @@ def old_santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set
     ...     item_capacities={"c1": 1, "c2": 1, "c3": 1, "c4": 1},
     ... )
     >>> allocation_builder = AllocationBuilder(instance=instance)
-    >>> result = santa_claus_main(allocation_builder)
+    >>> result = old_santa_claus_main(allocation_builder)
     >>> result == {'A': {'c1'}, 'B': {'c2'}, 'C': {'c3'}, 'D': {'c4'}}
     True
 
@@ -110,7 +110,7 @@ def old_santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set
     ...     item_capacities={"c1": 1, "c2": 1, "c3": 1},
     ... )
     >>> allocation_builder = AllocationBuilder(instance=instance)
-    >>> result = santa_claus_main(allocation_builder)
+    >>> result = old_santa_claus_main(allocation_builder)
     >>> result == {'A': {'c1', 'c2'}, 'B': {'c3'}}
     True
 
@@ -122,7 +122,7 @@ def old_santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set
     ...         item_capacities={"c1": 1}
     ...     )
     ...     allocation_builder = AllocationBuilder(instance=instance)
-    ...     santa_claus_main(allocation_builder)
+    ...     old_santa_claus_main(allocation_builder)
     ... except ValueError as e:
     ...     print("Caught expected exception:", e)
     Caught expected exception: Too few items for the number of agents: 1 items for 3 agents.
