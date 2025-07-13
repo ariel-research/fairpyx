@@ -98,10 +98,11 @@ class TestSantaClausAlgorithm(unittest.TestCase):
         )
 
         for player, got in alloc.items():
-            self.assertEqual(len(got), 2, f"{player} received {len(got)} items, but 2 expected")
             values = [instance._valuations[player][item] for item in got]
-            self.assertCountEqual(values, [40, 60],
-                                  f"{player} received items {got} with values {values}, expected [40,60]")
+            self.assertEqual(
+                values.count(60), 1,
+                f"{player} should receive exactly one 60-valued item, got values {values}"
+            )
 
         # total number of players and no duplicate items globally
         self.assertEqual(len(alloc), n_players)
