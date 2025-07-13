@@ -505,50 +505,50 @@ def build_hypergraph(valuations: Dict[str, Dict[str, float]],
                 edges[f"f{edge_id}"] = set(nodes)
                 edge_id += 1
 
-        # 3. Add thin edges: for each minimal subset of thin items whose total value for the player is ≥ threshold
-        for player in valuations:
-            for r in range(1, len(thin_items) + 1):
-                for bundle in combinations(thin_items, r):
-                    total = sum(valuations[player].get(i, 0) for i in bundle)
-                    if total < threshold:
-                        continue
+    # 3. Add thin edges: for each minimal subset of thin items whose total value for the player is ≥ threshold
+    for player in valuations:
+        for r in range(1, len(thin_items) + 1):
+            for bundle in combinations(thin_items, r):
+                total = sum(valuations[player].get(i, 0) for i in bundle)
+                if total < threshold:
+                    continue
 
-                    is_minimal = True
-                    for x in bundle:
-                        if total - valuations[player].get(x, 0) >= threshold:
-                            is_minimal = False
-                            break
+                is_minimal = True
+                for x in bundle:
+                    if total - valuations[player].get(x, 0) >= threshold:
+                        is_minimal = False
+                        break
 
-                    if not is_minimal:
-                        continue
+                if not is_minimal:
+                    continue
 
-                    nodes = frozenset({player, *bundle})
-                    if nodes in seen:
-                        continue
-                    seen.add(nodes)
-                    edges[f"t{edge_id}"] = set(nodes)
-                    edge_id += 1
+                nodes = frozenset({player, *bundle})
+                if nodes in seen:
+                    continue
+                seen.add(nodes)
+                edges[f"t{edge_id}"] = set(nodes)
+                edge_id += 1
 
-        H = HNXHypergraph(edges)
+    H = HNXHypergraph(edges)
 
-        edge_strs = []
-        for edge in H.edges:
-            # 1) build the comma‐separated list of quoted node names:
-            nodes_list = ", ".join(f'"{node}"' for node in H.edges[edge])
-            # 2) wrap it in braces and prepend the edge name:
-            edge_strs.append(f'"{edge}": {{{nodes_list}}}')
+    edge_strs = []
+    for edge in H.edges:
+        # 1) build the comma‐separated list of quoted node names:
+        nodes_list = ", ".join(f'"{node}"' for node in H.edges[edge])
+        # 2) wrap it in braces and prepend the edge name:
+        edge_strs.append(f'"{edge}": {{{nodes_list}}}')
 
-        # now join all of those:
-        edges_repr = ", ".join(edge_strs)
+    # now join all of those:
+    edges_repr = ", ".join(edge_strs)
 
-        logger.info(
-            "Hypergraph construction completed with %d nodes and %d edges: {%s}",
-            len(H.nodes),
-            len(H.edges),
-            edges_repr
-        )
+    logger.info(
+        "Hypergraph construction completed with %d nodes and %d edges: {%s}",
+        len(H.nodes),
+        len(H.edges),
+        edges_repr
+    )
 
-        return H
+    return H
 
 # Helper function – returns an edge that can be added to the alternating tree
 def extend_alternating_tree(H: HNXHypergraph,
