@@ -118,7 +118,9 @@ class TestSantaClausAlgorithm(unittest.TestCase):
         using random valuations (seeded).
         """
         import random
-        random.seed(42)
+        # seed = random.randint(1,100000)
+        seed = 80475
+        random.seed(seed)
 
         n_players = 8
         n_items   = 12
@@ -166,14 +168,17 @@ class TestSantaClausAlgorithm(unittest.TestCase):
         santa_min = min(santa_values)
         rr_min    = min(rr_values)
 
-        print(f"\nRandom valuations → Santa min: {santa_min}, RoundRobin min: {rr_min}")
+        if rr_min > santa_min:
+            raise ValueError(f"\nSanta is worse than round-robin on random valuations with seed {seed}! Santa min = {santa_min}, RoundRobin min = {rr_min}\ninstance=\n{instance}")
+        
 
 if __name__ == "__main__":
     import time, sys
 
     start = time.perf_counter()
     # exit=False allows us to continue running code even after the tests have been executed
-    result = unittest.main(exit=False)
+    # result = unittest.main(exit=False)
+    result = TestSantaClausAlgorithm().test_min_value_comparison_8p_12g()
     end = time.perf_counter()
 
     total = end - start
