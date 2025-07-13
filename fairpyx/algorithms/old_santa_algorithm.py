@@ -70,7 +70,7 @@ def parse_allocation_strings(allocation: Dict[str, str]) -> Dict[str, List[Set[s
     return parsed
 
 
-def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str]]:
+def old_santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str]]:
     """
     The main function implements the Santa Claus algorithm:
     1. Performs binary search over the threshold t.
