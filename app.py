@@ -60,6 +60,15 @@ def index():
             logger.removeHandler(handler)
             logs = log_stream.getvalue()
 
+            filtered_lines = []
+            for line in logs.splitlines():
+                if line.startswith(" ") and "cbc" in line:
+                    continue
+                if ".mps" in line or "-solution" in line:
+                    continue
+                filtered_lines.append(line)
+            logs = '\n'.join(filtered_lines)
+
             input_data = json.dumps({
                 "valuations": valuations,
                 "agent_capacities": agent_capacities,

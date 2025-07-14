@@ -75,7 +75,7 @@ def feasibility_ilp(S, items, demands, capacities, preferences):
     # Each agent must receive at least one preferred facility
     for i in S:
         prob += lpSum(y[i, f] for f in preferences[i]) >= 1
-        logger.debug(f"Added constraint: agent {i} assigned at least one preferred facility")
+        logger.debug(f"Passed algorithm constraint: agent {i} assigned at least one preferred facility")
 
     # === Constraint 2: ∑_{i ∈ S : f ∈ Fi} d_i * y_{i,f} ≤ c_f for all f ∈ M ===
     # Total assigned demand for each facility must not exceed its capacity
@@ -85,10 +85,9 @@ def feasibility_ilp(S, items, demands, capacities, preferences):
             for i in S
             if f in preferences[i]
         ) <= capacities[f]
-        logger.debug(f"Added capacity constraint for facility '{f}': sum demand ≤ {capacities[f]}")
+        logger.debug(f"Passed algorithm constraint for facility '{f}': sum demand ≤ {capacities[f]}")
 
     # === Solve the ILP ===
-    logger.info("\n--- Solving FeasibilityILP ---")
     prob.solve(PULP_CBC_CMD(msg=0))
 
     # === If feasible, return the assignment as a list of (i, f) pairs ===
@@ -164,7 +163,7 @@ def primal_lp(feasible_sets, R, agents, p_star):
 
     # === Constraint: ∑ xS = 1 → total probability mass must be 1 ===
     prob += lpSum(xS.values()) == 1
-    logger.debug("Added constraint: sum of xS variables equals 1")
+    logger.debug("Passed algorithm constraint: sum of xS variables equals 1")
 
     # === Constraints for each agent i ∈ N ===
     for i in agents:
@@ -172,10 +171,10 @@ def primal_lp(feasible_sets, R, agents, p_star):
         pi_expr = lpSum(xS[alloc] for alloc in xS if any(agent_id == i for (agent_id, _) in alloc))
         if i in R:
             prob += pi_expr >= M
-            logger.debug(f"Added constraint for agent {i}: pi >= M")
+            logger.debug(f"Passed algorithm constraint for agent {i}: pi >= M")
         else:
             prob += pi_expr == p_star[i]
-            logger.debug(f"Added constraint for agent {i}: pi == p_star[{i}] = {p_star[i]}")
+            logger.debug(f"Passed algorithm constraint for agent {i}: pi == p_star[{i}] = {p_star[i]}")
 
     # === Final objective: maximize M - ε * sum(xS) for strict complementarity ===
     # This slight perturbation forces the solver to prefer solutions where fewer xS variables are non-zero,
@@ -183,7 +182,6 @@ def primal_lp(feasible_sets, R, agents, p_star):
     prob += M
 
     # === Solve LP ===
-    logger.info("\n--- Solving PrimalLP ---")
     from pulp import PULP_CBC_CMD
 
     prob.solve(PULP_CBC_CMD(msg=0))
@@ -193,7 +191,7 @@ def primal_lp(feasible_sets, R, agents, p_star):
         raise Exception("Primal LP is infeasible")
 
     # === Detailed reporting of solution ===
-    logger.info("\n--- LP Solution: Allocation Weights (xS) ---")
+    logger.info("\n=== LP Solution: Allocation Weights (xS) ===")
     for S in xS:
         val = value(xS[S])
         if val is not None and val > 1e-6:
@@ -206,7 +204,7 @@ def primal_lp(feasible_sets, R, agents, p_star):
     for i in R:
         pi_val = sum(value(xS[S]) for S in xS if any(s[0] == i for s in S))
         pi[i] = pi_val
-        logger.debug(f"Computed pi[{i}] = {pi_val:.6f}")
+        logger.debug(f"Inserting pi[{i}] = {pi_val:.6f} its weight")
 
     M_val = value(M)
     logger.info(f"\nPrimalLP solved successfully: M = {M_val:.6f}")
@@ -284,7 +282,6 @@ def generate_feasible_sets(agents, items, demands, capacities, preferences):
             feasible_allocations.append((frozenset(agents), allocation_list))
             logger.debug(f"Feasible allocation found: {allocation_list}")
 
-    logger.info(f"Total feasible allocations over all agents: {len(feasible_allocations)}")
     return feasible_allocations
 
 
@@ -406,6 +403,8 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
         alloc.distribution = []
         return
 
+    logger.info("=== Solving FeasibilityILP ===")
+
     # === Line 1-2: Generate feasible (S, AS) pairs using ILP with pruning ===
     feasible_sets = generate_feasible_sets(agents, items, demands, capacities, preferences)
     logger.info(f"Total feasible allocations: {len(feasible_sets)}")
@@ -423,11 +422,10 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
     iteration = 0
     while R:
         iteration += 1
-        logger.info(f"\n--- Iteration {iteration} ---")
+        logger.info(f"\n=== Iteration {iteration} ===")
 
         # === Line 6: Solve PrimalLP to get M, {pi}, {xS} ===
         M, pi, xS = primal_lp(feasible_sets, R, agents, p_star)
-        logger.info(f"M = {value(M):.6f}")
 
         # Accumulate allocation probabilities into xS_total
         for S in xS:
@@ -436,8 +434,6 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
             # We use += instead of = because the same allocation S may receive positive weight across multiple iterations.
             # Using = would overwrite previous probability mass, breaking the overall distribution.
             xS_total[S] += val
-            if val > 1e-6:
-                logger.debug(f"Allocations xS[{S}] probability: {val:.4f}")
 
         # === Line 7–8: Fix agents i ∈ R such that pi = M, update p*_i ← M and R ← R \ {i} ===
         for i in list(R):
@@ -495,7 +491,7 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
 
         logger.info("\n=== Final Allocation Results Summary ===")
         for allocation, prob in alloc.distribution:
-            logger.info(f"Allocation: {allocation} with Probability: {prob:.4f}")
+            logger.info(f"Created allocation: {allocation} with Probability: {prob:.4f}")
 
     else:
         # === Case: M < 1 – use LP fractional distribution ===
