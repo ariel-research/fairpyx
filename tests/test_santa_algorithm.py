@@ -125,26 +125,43 @@ class TestSantaClausAlgorithm(unittest.TestCase):
         n_players = 8
         n_items   = 12
 
-        # Build a valuation matrix with random values in [1,10]
-        valuations = {
-            f"Player_{i}": {
-                f"c{j}": random.randint(1, 10)
-                for j in range(1, n_items + 1)
-            }
-            for i in range(1, n_players + 1)
-        }
+        # 1. generate player and item names
+        players = [f"Player_{i}" for i in range(1, n_players + 1)]
+        items = [f"c{j}" for j in range(1, n_items + 1)]
 
-        # Capacities: one gift per player, one use per item
-        agent_caps = {f"Player_{i}": 1 for i in range(1, n_players + 1)}
-        item_caps  = {f"c{j}": 1        for j in range(1, n_items + 1)}
+        # 2. assign a random base value in [1,10] to each item
+        base_values = {item: random.randint(1, 10) for item in items}
 
+        # 3. build valuations so:
+        #    * each player values at least one item (>0)
+        #    * each valuation is either 0 or the item's base value
+        valuations = {p: {} for p in players}
+        for p in players:
+            # choose a non-empty subset of items that this player values
+            k = random.randint(1, n_items)
+            liked = set(random.sample(items, k=k))
+            for item in items:
+                valuations[p][item] = base_values[item] if item in liked else 0
+
+        # 4. ensure each item is valued by at least one player
+        for item in items:
+            if not any(valuations[p][item] > 0 for p in players):
+                p = random.choice(players)
+                valuations[p][item] = base_values[item]
+
+        # 5. capacities: each player can take up to all items (but algorithm will give ≥1);
+        #               each item can be assigned once
+        agent_caps = {p: n_items for p in players}
+        item_caps = {i: 1 for i in items}
+
+        # 6. build the instance
         instance = fairpyx.Instance(
             valuations=valuations,
             agent_capacities=agent_caps,
             item_capacities=item_caps
         )
 
-        # Run both algorithms
+        # run both algorithms
         santa_alloc = fairpyx.divide(
             algorithm=fairpyx.algorithms.santa_claus_main,
             instance=instance
@@ -154,23 +171,24 @@ class TestSantaClausAlgorithm(unittest.TestCase):
             instance=instance
         )
 
-        # Compute each player's total value
+        # compute total for each player
         santa_values = [
-            sum(instance.agent_item_value(agent, gift) for gift in gifts)
-            for agent, gifts in santa_alloc.items()
+            sum(instance.agent_item_value(p, g) for g in santa_alloc[p])
+            for p in players
         ]
         rr_values = [
-            sum(instance.agent_item_value(agent, gift) for gift in gifts)
-            for agent, gifts in rr_alloc.items()
+            sum(instance.agent_item_value(p, g) for g in rr_alloc[p])
+            for p in players
         ]
 
-        # Take the minimum positive share
         santa_min = min(santa_values)
-        rr_min    = min(rr_values)
+        rr_min = min(rr_values)
 
         if rr_min > santa_min:
-            raise ValueError(f"\nSanta is worse than round-robin on random valuations with seed {seed}! Santa min = {santa_min}, RoundRobin min = {rr_min}\ninstance=\n{instance}")
-        
+            raise ValueError(
+                f"\nSanta is worse than round-robin on random valuations with seed {seed}!"
+                f" Santa min = {santa_min}, RoundRobin min = {rr_min}\ninstance=\n{instance}"
+            )
 
 if __name__ == "__main__":
     import time, sys
