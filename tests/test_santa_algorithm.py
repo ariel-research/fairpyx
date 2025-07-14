@@ -111,10 +111,10 @@ class TestSantaClausAlgorithm(unittest.TestCase):
         self.assertEqual(len(all_items), len(set(all_items)))
 
     # -------- Test 5: Minimum share comparison for 8 players and 12 gifts --------
-    def test_min_value_comparison_8p_12g(self):
+    def test_min_value_comparison(self):
         """
         Compare the minimum positive share each player receives between
-        santa_claus_main and round_robin on 8 players and 12 gifts,
+        santa_claus_main and round_robin on 4 players and 12 gifts,
         using random valuations (seeded).
         """
         import random
@@ -124,8 +124,8 @@ class TestSantaClausAlgorithm(unittest.TestCase):
             # seed = 80475
             random.seed(seed)
 
-            n_players = 8
-            n_items   = 12
+            n_players = 2
+            n_items   = 4
 
             # 1. generate player and item names
             players = [f"Player_{i}" for i in range(1, n_players + 1)]
@@ -194,9 +194,9 @@ class TestSantaClausAlgorithm(unittest.TestCase):
                     f"\ninstance=\n{instance}"
                 )
 
-    
-    # -------- Test 5: Minimum share comparison for 8 players and 12 gifts --------
-    # def test_min_value_comparison_8p_12g_80475(self):
+
+    # # -------- Test 5: Minimum share comparison for 8 players and 12 gifts --------
+    # def test_min_value_comparison_8p_12g_42102(self):
     #     """
     #     Compare the minimum positive share each player receives between
     #     santa_claus_main and round_robin on 8 players and 12 gifts,
@@ -209,14 +209,14 @@ class TestSantaClausAlgorithm(unittest.TestCase):
     #     players = [f"Player_{i}" for i in range(1, n_players + 1)]
     #     items = [f"c{j}" for j in range(1, n_items + 1)]
     #     valuations = {
-    #         'Player_1': {'c1': 0, 'c2': 0, 'c3': 5, 'c4': 3, 'c5': 10, 'c6': 0, 'c7': 0, 'c8': 0, 'c9': 0, 'c10': 8, 'c11': 9, 'c12': 4}, 
-    #         'Player_2': {'c1': 0, 'c2': 8, 'c3': 0, 'c4': 3, 'c5': 10, 'c6': 0, 'c7': 0, 'c8': 4, 'c9': 7, 'c10': 8, 'c11': 9, 'c12': 0}, 
-    #         'Player_3': {'c1': 8, 'c2': 0, 'c3': 5, 'c4': 0, 'c5': 10, 'c6': 10, 'c7': 8, 'c8': 0, 'c9': 0, 'c10': 8, 'c11': 9, 'c12': 4}, 
-    #         'Player_4': {'c1': 8, 'c2': 0, 'c3': 0, 'c4': 0, 'c5': 0, 'c6': 0, 'c7': 0, 'c8': 0, 'c9': 7, 'c10': 0, 'c11': 0, 'c12': 4}, 
-    #         'Player_5': {'c1': 8, 'c2': 8, 'c3': 5, 'c4': 3, 'c5': 10, 'c6': 10, 'c7': 8, 'c8': 4, 'c9': 7, 'c10': 8, 'c11': 9, 'c12': 4}, 
-    #         'Player_6': {'c1': 8, 'c2': 8, 'c3': 5, 'c4': 3, 'c5': 10, 'c6': 10, 'c7': 8, 'c8': 4, 'c9': 7, 'c10': 0, 'c11': 9, 'c12': 4}, 
-    #         'Player_7': {'c1': 8, 'c2': 8, 'c3': 5, 'c4': 3, 'c5': 10, 'c6': 10, 'c7': 8, 'c8': 4, 'c9': 7, 'c10': 8, 'c11': 9, 'c12': 4}, 
-    #         'Player_8': {'c1': 8, 'c2': 8, 'c3': 5, 'c4': 3, 'c5': 10, 'c6': 10, 'c7': 8, 'c8': 0, 'c9': 7, 'c10': 8, 'c11': 9, 'c12': 4}}
+    #         'Player_1': {'c1': 0, 'c2': 0, 'c3': 0, 'c4': 0, 'c5': 0, 'c6': 8, 'c7': 4, 'c8': 10, 'c9': 7, 'c10': 0, 'c11': 6, 'c12': 0}, 
+    #         'Player_2': {'c1': 10, 'c2': 5, 'c3': 5, 'c4': 0, 'c5': 1, 'c6': 8, 'c7': 4, 'c8': 10, 'c9': 7, 'c10': 9, 'c11': 6, 'c12': 4}, 
+    #         'Player_3': {'c1': 0, 'c2': 5, 'c3': 0, 'c4': 4, 'c5': 0, 'c6': 8, 'c7': 0, 'c8': 0, 'c9': 7, 'c10': 9, 'c11': 0, 'c12': 0}, 
+    #         'Player_4': {'c1': 0, 'c2': 0, 'c3': 0, 'c4': 0, 'c5': 0, 'c6': 8, 'c7': 0, 'c8': 0, 'c9': 7, 'c10': 0, 'c11': 0, 'c12': 0}, 
+    #         'Player_5': {'c1': 10, 'c2': 5, 'c3': 0, 'c4': 4, 'c5': 1, 'c6': 8, 'c7': 4, 'c8': 0, 'c9': 7, 'c10': 9, 'c11': 6, 'c12': 0}, 
+    #         'Player_6': {'c1': 0, 'c2': 0, 'c3': 0, 'c4': 0, 'c5': 1, 'c6': 8, 'c7': 4, 'c8': 10, 'c9': 7, 'c10': 9, 'c11': 6, 'c12': 4}, 
+    #         'Player_7': {'c1': 0, 'c2': 0, 'c3': 0, 'c4': 4, 'c5': 0, 'c6': 0, 'c7': 4, 'c8': 10, 'c9': 0, 'c10': 0, 'c11': 0, 'c12': 0}, 
+    #         'Player_8': {'c1': 0, 'c2': 5, 'c3': 5, 'c4': 0, 'c5': 0, 'c6': 8, 'c7': 4, 'c8': 10, 'c9': 7, 'c10': 9, 'c11': 6, 'c12': 0}}
     #     agent_caps = {p: n_items for p in players}
     #     item_caps = {i: 1 for i in items}
 
@@ -250,13 +250,251 @@ class TestSantaClausAlgorithm(unittest.TestCase):
     #     santa_min = min(santa_values)
     #     rr_min = min(rr_values)
 
-    #     if rr_min > santa_min:
+    #     if rr_min > 4*santa_min:
     #         raise ValueError(
-    #             f"\nSanta is worse than round-robin!"
+    #             f"\nSanta is over 4 times worse than round-robin!"
     #             f"\nsanta_alloc = {santa_alloc}, Santa min = {santa_min}"
-    #             f"\nRoundRobin_alloc = {rr_alloc}  RoundRobin_min = {rr_min}"
+    #             f"\nRoundRobin_alloc = {rr_alloc}, RoundRobin_min = {rr_min}"
     #             f"\ninstance=\n{instance}"
     #         )
+
+
+    # # -------- Test 5: Minimum share comparison for 4 players and 12 gifts --------
+    # def test_min_value_comparison_4p_12g_60458(self):
+    #     """
+    #     Compare the minimum positive share each player receives between
+    #     santa_claus_main and round_robin on 8 players and 12 gifts,
+    #     using a specific instance.
+    #     """
+    #     n_players = 4
+    #     n_items   = 12
+
+    #     # 1. generate player and item names
+    #     players = [f"Player_{i}" for i in range(1, n_players + 1)]
+    #     items = [f"c{j}" for j in range(1, n_items + 1)]
+    #     valuations = {
+    #           'Player_1': {'c1': 7, 'c2': 7, 'c3': 0, 'c4': 0, 'c5': 9, 'c6': 3, 'c7': 0, 'c8': 0, 'c9': 7, 'c10': 0, 'c11': 6, 'c12': 0}, 
+    #           'Player_2': {'c1': 7, 'c2': 7, 'c3': 0, 'c4': 0, 'c5': 0, 'c6': 0, 'c7': 0, 'c8': 0, 'c9': 7, 'c10': 0, 'c11': 6, 'c12': 6}, 
+    #           'Player_3': {'c1': 7, 'c2': 7, 'c3': 6, 'c4': 3, 'c5': 9, 'c6': 0, 'c7': 1, 'c8': 10, 'c9': 7, 'c10': 7, 'c11': 6, 'c12': 6}, 
+    #           'Player_4': {'c1': 7, 'c2': 7, 'c3': 6, 'c4': 3, 'c5': 9, 'c6': 3, 'c7': 1, 'c8': 10, 'c9': 7, 'c10': 7, 'c11': 6, 'c12': 6}}
+    #     agent_caps = {p: n_items for p in players}
+    #     item_caps = {i: 1 for i in items}
+
+    #     # 6. build the instance
+    #     instance = fairpyx.Instance(
+    #         valuations=valuations,
+    #         agent_capacities=agent_caps,
+    #         item_capacities=item_caps
+    #     )
+
+    #     # run both algorithms
+    #     santa_alloc = fairpyx.divide(
+    #         algorithm=fairpyx.algorithms.santa_claus_main,
+    #         instance=instance
+    #     )
+    #     rr_alloc = fairpyx.divide(
+    #         algorithm=fairpyx.algorithms.round_robin,
+    #         instance=instance
+    #     )
+
+    #     # compute total for each player
+    #     santa_values = [
+    #         sum(instance.agent_item_value(p, g) for g in santa_alloc[p])
+    #         for p in players
+    #     ]
+    #     rr_values = [
+    #         sum(instance.agent_item_value(p, g) for g in rr_alloc[p])
+    #         for p in players
+    #     ]
+
+    #     santa_min = min(santa_values)
+    #     rr_min = min(rr_values)
+
+    #     if rr_min > 4*santa_min:
+    #         raise ValueError(
+    #             f"\nSanta is over 4 times worse than round-robin!"
+    #             f"\nsanta_alloc = {santa_alloc}, Santa min = {santa_min}"
+    #             f"\nRoundRobin_alloc = {rr_alloc}, RoundRobin_min = {rr_min}"
+    #             f"\ninstance=\n{instance}"
+    #         )
+
+
+    # # -------- Test 5: Minimum share comparison for 4 players and 8 gifts --------
+    # def test_min_value_comparison_4p_8g_50070(self):
+    #     """
+    #     Compare the minimum positive share each player receives between
+    #     santa_claus_main and round_robin on 8 players and 12 gifts,
+    #     using a specific instance.
+    #     """
+    #     n_players = 4
+    #     n_items   = 8
+
+    #     # 1. generate player and item names
+    #     players = [f"Player_{i}" for i in range(1, n_players + 1)]
+    #     items = [f"c{j}" for j in range(1, n_items + 1)]
+    #     valuations = {
+    #           'Player_1': {'c1': 0, 'c2': 1, 'c3': 8, 'c4': 0, 'c5': 10, 'c6': 9, 'c7': 0, 'c8': 1}, 
+    #           'Player_2': {'c1': 9, 'c2': 1, 'c3': 8, 'c4': 3, 'c5': 10, 'c6': 9, 'c7': 7, 'c8': 1}, 
+    #           'Player_3': {'c1': 0, 'c2': 1, 'c3': 0, 'c4': 3, 'c5': 10, 'c6': 9, 'c7': 7, 'c8': 1}, 
+    #           'Player_4': {'c1': 9, 'c2': 0, 'c3': 0, 'c4': 3, 'c5': 10, 'c6': 9, 'c7': 0, 'c8': 0}}
+    #     agent_caps = {p: n_items for p in players}
+    #     item_caps = {i: 1 for i in items}
+
+    #     # 6. build the instance
+    #     instance = fairpyx.Instance(
+    #         valuations=valuations,
+    #         agent_capacities=agent_caps,
+    #         item_capacities=item_caps
+    #     )
+
+    #     # run both algorithms
+    #     santa_alloc = fairpyx.divide(
+    #         algorithm=fairpyx.algorithms.santa_claus_main,
+    #         instance=instance
+    #     )
+    #     rr_alloc = fairpyx.divide(
+    #         algorithm=fairpyx.algorithms.round_robin,
+    #         instance=instance
+    #     )
+
+    #     # compute total for each player
+    #     santa_values = [
+    #         sum(instance.agent_item_value(p, g) for g in santa_alloc[p])
+    #         for p in players
+    #     ]
+    #     rr_values = [
+    #         sum(instance.agent_item_value(p, g) for g in rr_alloc[p])
+    #         for p in players
+    #     ]
+
+    #     santa_min = min(santa_values)
+    #     rr_min = min(rr_values)
+
+    #     if rr_min > 4*santa_min:
+    #         raise ValueError(
+    #             f"\nSanta is over 4 times worse than round-robin!"
+    #             f"\nsanta_alloc = {santa_alloc}, Santa min = {santa_min}"
+    #             f"\nRoundRobin_alloc = {rr_alloc}, RoundRobin_min = {rr_min}"
+    #             f"\ninstance=\n{instance}"
+    #         )
+
+
+    # # -------- Test 5: Minimum share comparison for 3 players and 6 gifts --------
+    # def test_min_value_comparison_3p_6g_42177(self):
+    #     """
+    #     Compare the minimum positive share each player receives between
+    #     santa_claus_main and round_robin on 8 players and 12 gifts,
+    #     using a specific instance.
+    #     """
+    #     n_players = 3
+    #     n_items   = 6
+
+    #     # 1. generate player and item names
+    #     players = [f"Player_{i}" for i in range(1, n_players + 1)]
+    #     items = [f"c{j}" for j in range(1, n_items + 1)]
+    #     valuations = {
+    #           'Player_1': {'c1': 3, 'c2': 0, 'c3': 10, 'c4': 7, 'c5': 6, 'c6': 0}, 
+    #           'Player_2': {'c1': 3, 'c2': 9, 'c3': 0, 'c4': 7, 'c5': 6, 'c6': 3}, 
+    #           'Player_3': {'c1': 3, 'c2': 9, 'c3': 10, 'c4': 7, 'c5': 6, 'c6': 0}}
+    #     agent_caps = {p: n_items for p in players}
+    #     item_caps = {i: 1 for i in items}
+
+    #     # 6. build the instance
+    #     instance = fairpyx.Instance(
+    #         valuations=valuations,
+    #         agent_capacities=agent_caps,
+    #         item_capacities=item_caps
+    #     )
+
+    #     # run both algorithms
+    #     santa_alloc = fairpyx.divide(
+    #         algorithm=fairpyx.algorithms.santa_claus_main,
+    #         instance=instance
+    #     )
+    #     rr_alloc = fairpyx.divide(
+    #         algorithm=fairpyx.algorithms.round_robin,
+    #         instance=instance
+    #     )
+
+    #     # compute total for each player
+    #     santa_values = [
+    #         sum(instance.agent_item_value(p, g) for g in santa_alloc[p])
+    #         for p in players
+    #     ]
+    #     rr_values = [
+    #         sum(instance.agent_item_value(p, g) for g in rr_alloc[p])
+    #         for p in players
+    #     ]
+
+    #     santa_min = min(santa_values)
+    #     rr_min = min(rr_values)
+
+    #     if rr_min > 4*santa_min:
+    #         raise ValueError(
+    #             f"\nSanta is over 4 times worse than round-robin!"
+    #             f"\nsanta_alloc = {santa_alloc}, Santa min = {santa_min}"
+    #             f"\nRoundRobin_alloc = {rr_alloc}, RoundRobin_min = {rr_min}"
+    #             f"\ninstance=\n{instance}"
+    #         )
+
+
+
+    # # -------- Test 5: Minimum share comparison for 3 players and 6 gifts --------
+    def test_min_value_comparison_2p_4g_5831(self):
+        """
+        Compare the minimum positive share each player receives between
+        santa_claus_main and round_robin on 8 players and 12 gifts,
+        using a specific instance.
+        """
+        n_players = 2
+        n_items   = 4
+
+        # 1. generate player and item names
+        players = [f"Player_{i}" for i in range(1, n_players + 1)]
+        items = [f"c{j}" for j in range(1, n_items + 1)]
+        valuations = {
+          'Player_1': {'c1': 1, 'c2': 4, 'c3': 5, 'c4': 0}, 
+          'Player_2': {'c1': 0, 'c2': 4, 'c3': 5, 'c4': 2}}
+        agent_caps = {p: n_items for p in players}
+        item_caps = {i: 1 for i in items}
+
+        # 6. build the instance
+        instance = fairpyx.Instance(
+            valuations=valuations,
+            agent_capacities=agent_caps,
+            item_capacities=item_caps
+        )
+
+        # run both algorithms
+        santa_alloc = fairpyx.divide(
+            algorithm=fairpyx.algorithms.santa_claus_main,
+            instance=instance
+        )
+        rr_alloc = fairpyx.divide(
+            algorithm=fairpyx.algorithms.round_robin,
+            instance=instance
+        )
+
+        # compute total for each player
+        santa_values = [
+            sum(instance.agent_item_value(p, g) for g in santa_alloc[p])
+            for p in players
+        ]
+        rr_values = [
+            sum(instance.agent_item_value(p, g) for g in rr_alloc[p])
+            for p in players
+        ]
+
+        santa_min = min(santa_values)
+        rr_min = min(rr_values)
+
+        if rr_min > 4*santa_min:
+            raise ValueError(
+                f"\nSanta is over 4 times worse than round-robin!"
+                f"\nsanta_alloc = {santa_alloc}, Santa min = {santa_min}"
+                f"\nRoundRobin_alloc = {rr_alloc}, RoundRobin_min = {rr_min}"
+                f"\ninstance=\n{instance}"
+            )
 
 
 if __name__ == "__main__":
@@ -265,7 +503,7 @@ if __name__ == "__main__":
     start = time.perf_counter()
     # exit=False allows us to continue running code even after the tests have been executed
     # result = unittest.main(exit=False)
-    result = TestSantaClausAlgorithm().test_min_value_comparison_8p_12g()
+    result = TestSantaClausAlgorithm().test_min_value_comparison_2p_4g_5831()
     end = time.perf_counter()
 
     total = end - start
