@@ -16,10 +16,47 @@ import numpy as np
 from typing import Callable
 from experiments_csv import single_plot_results
 import matplotlib.pyplot as plt
+import random
 
 max_value = 1000
 normalized_sum_of_values = 1000
 TIME_LIMIT = 60
+
+def random_binary_instance(
+    num_of_players: int,
+    num_of_gifts: int,
+    max_value: int,
+) -> Instance:
+    """
+    Creates an Instance satisfying:
+      * Each player values at least one gift (value > 0)
+      * Each gift is valued by at least one player
+      * valuations are either 0 or the gift’s base value
+    """
+    agents = [f"P{i+1}" for i in range(num_of_players)]
+    items  = [f"c{j+1}" for j in range(num_of_gifts)]
+    base_values = {item: random.randint(1, max_value) for item in items}
+    valuations = {a: {} for a in agents}
+
+    for a in agents:
+        k = random.randint(1, num_of_gifts)
+        chosen = random.sample(items, k=k)
+        for item in items:
+            valuations[a][item] = base_values[item] if item in chosen else 0
+
+    for item in items:
+        if not any(valuations[a][item] > 0 for a in agents):
+            a = random.choice(agents)
+            valuations[a][item] = base_values[item]
+
+    agent_caps = {a: num_of_gifts for a in agents}
+    item_caps  = {i: 1 for i in items}
+
+    return Instance(
+        valuations=valuations,
+        agent_capacities=agent_caps,
+        item_capacities=item_caps
+    )
 
 # random instance for the Santa Claus problem
 def allocation_with_random_instance(
@@ -30,25 +67,16 @@ def allocation_with_random_instance(
     random_seed: int,
 ) -> Dict[str,Any]:
     """
-    Creates a random instance for the Santa Claus problem where each player receives at least one gift,
-    each gift is unique (capacity 1), and applies the given allocation algorithm to evaluate metrics.
+    Creates a random instance for the Santa Claus problem.
     """
-    # Ensure each player gets at least one gift (up to all gifts)
-    agent_capacity_bounds = (1, 1)
-    # Ensure each gift is available exactly once
-    item_capacity_bounds = (1, 1)
 
     # Initialize the random seed for reproducibility
     np.random.seed(random_seed)
 
-    instance = Instance.random_uniform(
-        num_of_agents=num_of_players,
-        num_of_items=num_of_gifts,
-        normalized_sum_of_values=normalized_sum_of_values,
-        agent_capacity_bounds=agent_capacity_bounds,
-        item_capacity_bounds=item_capacity_bounds,
-        item_base_value_bounds=(1, max_value),
-        item_subjective_ratio_bounds=(1 - value_noise_ratio, 1 + value_noise_ratio)
+    instance = random_binary_instance(
+        num_of_players=num_of_players,
+        num_of_gifts=num_of_gifts,
+        max_value=max_value
     )
 
     allocation: Dict[str, Set[str]] = divide(algorithm, instance=instance)
