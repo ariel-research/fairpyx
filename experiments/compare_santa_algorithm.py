@@ -162,6 +162,7 @@ def plot_by_num_players(csv_path: str):
 if __name__ == "__main__":
     experiments_csv.logger.setLevel(logging.INFO)
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     run_experiment_santa()
 
     import pandas as pd
