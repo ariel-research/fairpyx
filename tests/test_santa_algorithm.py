@@ -121,11 +121,10 @@ class TestSantaClausAlgorithm(unittest.TestCase):
         seeds = [random.randint(1,100000) for _ in range(10)]
 
         for seed in seeds:
-            # seed = 80475
             random.seed(seed)
 
-            n_players = 2
-            n_items   = 4
+            n_players = 8
+            n_items   = 12
 
             # 1. generate player and item names
             players = [f"Player_{i}" for i in range(1, n_players + 1)]
@@ -487,6 +486,69 @@ class TestSantaClausAlgorithm(unittest.TestCase):
 
         santa_min = min(santa_values)
         rr_min = min(rr_values)
+        # print(f"\nsanta_alloc = {santa_alloc}, Santa min = {santa_min}")
+        # print(f"\nrr_alloc = {santa_alloc}, rr_min = {rr_min}")
+
+        if rr_min > 4*santa_min:
+            raise ValueError(
+                f"\nSanta is over 4 times worse than round-robin!"
+                f"\nsanta_alloc = {santa_alloc}, Santa min = {santa_min}"
+                f"\nRoundRobin_alloc = {rr_alloc}, RoundRobin_min = {rr_min}"
+                f"\ninstance=\n{instance}"
+            )
+
+
+
+    # # -------- Test 5: Minimum share comparison for 3 players and 6 gifts --------
+    def test_min_value_comparison_2p_4g_41692(self):
+        """
+        Compare the minimum positive share each player receives between
+        santa_claus_main and round_robin on 8 players and 12 gifts,
+        using a specific instance.
+        """
+        n_players = 2
+        n_items   = 4
+
+        # 1. generate player and item names
+        players = [f"Player_{i}" for i in range(1, n_players + 1)]
+        items = [f"c{j}" for j in range(1, n_items + 1)]
+        valuations = {
+          'Player_1': {'c1': 0, 'c2': 7, 'c3': 8, 'c4': 1}, 
+          'Player_2': {'c1': 2, 'c2': 7, 'c3': 8, 'c4': 1}}
+        agent_caps = {p: n_items for p in players}
+        item_caps = {i: 1 for i in items}
+
+        # 6. build the instance
+        instance = fairpyx.Instance(
+            valuations=valuations,
+            agent_capacities=agent_caps,
+            item_capacities=item_caps
+        )
+
+        # run both algorithms
+        santa_alloc = fairpyx.divide(
+            algorithm=fairpyx.algorithms.santa_claus_main,
+            instance=instance
+        )
+        rr_alloc = fairpyx.divide(
+            algorithm=fairpyx.algorithms.round_robin,
+            instance=instance
+        )
+
+        # compute total for each player
+        santa_values = [
+            sum(instance.agent_item_value(p, g) for g in santa_alloc[p])
+            for p in players
+        ]
+        rr_values = [
+            sum(instance.agent_item_value(p, g) for g in rr_alloc[p])
+            for p in players
+        ]
+
+        santa_min = min(santa_values)
+        rr_min = min(rr_values)
+        # print(f"\nsanta_alloc = {santa_alloc}, Santa min = {santa_min}")
+        # print(f"\nrr_alloc = {santa_alloc}, rr_min = {rr_min}")
 
         if rr_min > 4*santa_min:
             raise ValueError(
@@ -498,12 +560,14 @@ class TestSantaClausAlgorithm(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    import time, sys
+    import time, sys, logging
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
     start = time.perf_counter()
     # exit=False allows us to continue running code even after the tests have been executed
-    # result = unittest.main(exit=False)
-    result = TestSantaClausAlgorithm().test_min_value_comparison_2p_4g_5831()
+    result = unittest.main(exit=False)
+    # result = TestSantaClausAlgorithm().test_min_value_comparison()
+    # result = TestSantaClausAlgorithm().test_min_value_comparison_2p_4g_41692()
     end = time.perf_counter()
 
     total = end - start

@@ -130,7 +130,6 @@ def old_santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set
     """
     start = time.perf_counter()
 
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     # Extract information from the AllocationBuilder: agent and item names
     instance = allocation_builder.instance
     agent_names = list(instance.agents)
@@ -234,6 +233,24 @@ def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: fl
     False
     >>> is_threshold_feasible(valuations, 9,{"Alice","Bob"})[0]
     True
+
+    Example 3: 2 Players, 2 Items (conflict)
+    >>> valuations = {
+    ...     "Alice": {"c1": 10, "c2": 5},
+    ...     "Bob":   {"c1": 10, "c2": 5}
+    ... }
+    >>> is_threshold_feasible(valuations, 5,{"Alice","Bob"})[0]
+    True
+    >>> is_threshold_feasible(valuations, 6,{"Alice","Bob"})[0]
+    False
+    >>> is_threshold_feasible(valuations, 10,{"Alice","Bob"})[0]
+    False
+    >>> is_threshold_feasible(valuations, 11,{"Alice","Bob"})[0]
+    False
+    >>> is_threshold_feasible(valuations, 15,{"Alice","Bob"})[0]
+    False
+    >>> is_threshold_feasible(valuations, 16,{"Alice","Bob"})[0]
+    False
     """
 
     # Solve the linear program to obtain an initial allocation
@@ -245,8 +262,9 @@ def is_threshold_feasible(valuations: Dict[str, Dict[str, float]], threshold: fl
     matching = local_search_perfect_matching(H, valuations, agent_names,
                                              threshold=threshold)  # Perform local search to find a perfect matching
     if len(matching) == len(agent_names):  # If the matching size equals the number of agents/players
-        for player, items in valuations.items():
-            total_value = sum(value for value in items.values())
+        for player, items in matching.items():
+            total_value = sum(valuations[player][item] for item in items)
+            logger.debug(f"   Player %s, items %s, total_value %s", player, items, total_value)
 
             if total_value < threshold:
                 return False, {}
@@ -719,6 +737,7 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
 if __name__ == "__main__":
     # Run all embedded doctests when executing this script directly
     import doctest
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     print("\n", doctest.testmod(), "\n")
 
 
