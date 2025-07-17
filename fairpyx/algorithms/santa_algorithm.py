@@ -228,6 +228,26 @@ def santa_claus_main(allocation_builder: AllocationBuilder) -> Dict[str, Set[str
             allocation_builder.give(agent, item)
             used_items.add(item)
 
+    remaining = [item for item in item_names if item not in used_items]
+
+    # compute each agent’s current total value
+    totals = {
+        a: sum(valuations[a][it] for it in best_matching.get(a, []))
+        for a in agent_names
+    }
+
+    for item in remaining:
+        # only consider agents who value this item > 0
+        positive_agents = [a for a in agent_names if valuations[a][item] > 0]
+        candidates = positive_agents if positive_agents else agent_names
+
+        # among these, pick the one with the smallest total so far
+        weakest = min(candidates, key=lambda a: totals[a])
+
+        # assign
+        allocation_builder.give(weakest, item)
+        totals[weakest] += valuations[weakest][item]
+        used_items.add(item)
 
     logger.info("Final matching found at threshold %.4f: %s", low, best_matching)
     end = time.perf_counter()
@@ -664,6 +684,11 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
     matching: Dict[str, str] = {}  # player -> edge_name
     used_items: Set[str] = set()
 
+    # for Section 3 extension/contraction:
+    A_edges: List[str] = []  # all A‐edges we’ve “extended” into
+    B_edges: List[str] = []  # all blocking B‐edges we’ve recorded
+    m: Dict[str, int] = {}  # counter m[Ai] = # of B‐edges blocking Ai
+
     # Check whether the bundle is valid: its value for the player is at least the threshold
     def is_valid_bundle(player: str, bundle: Set[str]) -> bool:
         return sum(valuations[player].get(item, 0) for item in bundle) >= threshold
@@ -683,6 +708,34 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
         used_items.update(set(H.edges[edge]) - set(players))
         logger.debug("Matching after augment: %s", matching)
         logger.debug("Used items after augment: %s", used_items)
+
+    def contract_and_augment(Ai: str):
+        """
+        Whenever m[Ai] has dropped to zero, we “contract”:
+        swap Ai in for its blocking B‐edge, then
+        decrement the m‐counter on the older A that got displaced,
+        recursing until no counter is zero.
+        """
+        if m[Ai] != 0:
+            return
+        # find the B-edge that had been blocking Ai
+        e_block = next(
+            e2 for e2 in B_edges
+            if not set(H.edges[Ai]).isdisjoint(set(H.edges[e2]) - set(players))
+        )
+        # find which earlier A-edge Aj intersected that B-edge
+        Aj = next(
+            a for a in A_edges
+            if a != Ai and not set(H.edges[a]).isdisjoint(set(H.edges[e_block]) - set(players))
+        )
+        # locate whose match we kicked out
+        kicked = next(p for p, e2 in matching.items() if e2 == e_block)
+        # perform the swap
+        matching[kicked] = Ai
+        # decrement the old A’s blocker count
+        m[Aj] -= 1
+        # recurse if that old A is now unblocked
+        contract_and_augment(Aj)
 
     def build_alternating_tree(start_player: str) -> bool:
         queue = deque([start_player]) # Start building an alternating tree from the unmatched player
@@ -711,17 +764,35 @@ def local_search_perfect_matching(H: HNXHypergraph, valuations: Dict[str, Dict[s
 
                 visited_edges.add(edge_name) # add this edge
 
-                if bundle_items.isdisjoint(used_items): # All items in the bundle are available → augment!
-                    augment_path(current_player, edge_name, parent) # check the path
-                    return True # We were able to expand the match
+                # count how many existing matched edges block this new hyperedge
+                blocking = [
+                    e2
+                    for _, e2 in matching.items()
+                    if not bundle_items.isdisjoint(set(H.edges[e2]) - set(players))
+                ]
+                mi = len(blocking)
 
-                for p, e in matching.items(): #  Otherwise, attempt to swap bundles with other players
-                    if not bundle_items.isdisjoint(set(H.edges[e]) - set(players)): # If there is an overlap between the current package and the package of p
-                        if p not in visited_players:
-                            # Add this player to the tree, with the arrival arc
-                            visited_players.add(p)
-                            parent[p] = (current_player, edge_name)
-                            queue.append(p) # Add to queue
+                if mi == 0:
+                    # No blockers — first apply contraction on any unblocked A_edges
+                    for Ai in list(A_edges):
+                        if m.get(Ai, 0) == 0:
+                            contract_and_augment(Ai)
+                    # Then augment the matching
+                    augment_path(current_player, edge_name, parent)
+                    return True
+
+                # Otherwise — this is the extension step
+                A_edges.append(edge_name)
+                m[edge_name] = mi
+                for e2 in blocking:
+                    B_edges.append(e2)
+                visited_edges.add(edge_name)
+
+                # Continue the BFS loop without augmenting here
+                continue
+
+            # end for edge_name
+            # if we get here, no immediate augment was found for this player
 
         # If we reached here, we couldn't augment the matching for start_player
         logger.debug("Building alternating tree for player: %s", start_player)
