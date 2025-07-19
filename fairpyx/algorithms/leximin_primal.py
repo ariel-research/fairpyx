@@ -243,17 +243,15 @@ def generate_feasible_sets(agents, items, demands, capacities, preferences):
 
     # Step 1: For each agent, generate all bundles (integer allocations up to agent capacity)
     def generate_agent_bundles(preferences, agent_capacity):
-        items = list(preferences)
-        if not items or agent_capacity <= 0:
+        if not preferences or agent_capacity <= 0:
             return [()]
 
-        options = []
-        for counts in product(range(agent_capacity + 1), repeat=len(items)):
-            if sum(counts) <= agent_capacity:
-                bundle = []
-                for item, count in zip(items, counts):
-                    bundle.extend([item] * count)
-                options.append(tuple(bundle))
+        options = [()]  # Empty bundle
+
+        for item in preferences:
+            for qty in range(1, agent_capacity + 1):
+                options.append((item,) * qty)
+
         return options
 
     agent_bundle_options = {}

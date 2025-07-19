@@ -305,3 +305,76 @@ def test_example_4_bad_input_allocation():
 
     # Assert using the helper function
     assert check_allocation_distribution(expected_allocations_with_prob, alloc.distribution)
+
+
+def test_example_inputs():
+    # === Test Case 1 ===
+    instance1 = Instance(
+        valuations={
+            1: {"a": 1, "b": 1},
+            2: {"a": 1},
+            3: {"a": 1, "b": 1}
+        },
+        agent_capacities={1: 3, 2: 1, 3: 1},
+        item_capacities={"a": 3, "b": 2}
+    )
+    alloc1 = AllocationBuilder(instance1)
+    leximin_primal(alloc1)
+
+    print("\n--- Test Case 1 ---")
+    for i, (alloc_dict, prob) in enumerate(alloc1.distribution, 1):
+        print(f"--- Allocation {i} ---")
+        print(f"Probability: {prob:.4f}")
+        for agent, items in alloc_dict.items():
+            if items:
+                print(f"Agent {agent} receives: {list(items)}")
+            else:
+                print(f"Agent {agent} receives nothing.")
+        print()
+
+    # === Test Case 2 ===
+    instance2 = Instance(
+        valuations={
+            1: {"a": 1, "b": 1},
+            2: {"b": 1},
+            3: {"a": 1}
+        },
+        agent_capacities={1: 2, 2: 3, 3: 3},
+        item_capacities={"a": 1, "b": 2}
+    )
+    alloc2 = AllocationBuilder(instance2)
+    leximin_primal(alloc2)
+
+    print("\n--- Test Case 2 ---")
+    for i, (alloc_dict, prob) in enumerate(alloc2.distribution, 1):
+        print(f"--- Allocation {i} ---")
+        print(f"Probability: {prob:.4f}")
+        for agent, items in alloc_dict.items():
+            if items:
+                print(f"Agent {agent} receives: {list(items)}")
+            else:
+                print(f"Agent {agent} receives nothing.")
+        print()
+
+    # === Test Case 3 ===
+    instance3 = Instance(
+        valuations={
+            1: {"a": 1},
+            2: {"a": 1}
+        },
+        agent_capacities={1: 3, 2: 3},
+        item_capacities={"a": 3, "b": 3}
+    )
+    alloc3 = AllocationBuilder(instance3)
+    leximin_primal(alloc3)
+
+    print("\n--- Test Case 3 ---")
+    for i, (alloc_dict, prob) in enumerate(alloc3.distribution, 1):
+        print(f"--- Allocation {i} ---")
+        print(f"Probability: {prob:.4f}")
+        for agent, items in alloc_dict.items():
+            if items:
+                print(f"Agent {agent} receives: {list(items)}")
+            else:
+                print(f"Agent {agent} receives nothing.")
+        print()
