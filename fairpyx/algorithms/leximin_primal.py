@@ -346,7 +346,6 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
     ... )
     >>> alloc = AllocationBuilder(instance)
     >>> leximin_primal(alloc)
-
     >>> expected = [{1: {"a": 1}, 2: {}}, {1: {}, 2: {"a": 1}}]
     >>> actual = [a for a, _ in alloc.distribution]
 
@@ -506,10 +505,8 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
                 for bundle, prob in alloc.distribution
             ]
 
-        print("\n=== Final Allocation Results Summary ===")
         logger.info("\n=== Final Allocation Results Summary ===")
         for allocation, prob in alloc.distribution:
-            print(f"Allocation: {allocation} with Probability: {prob:.4f}")
             logger.info(f"Allocation: {allocation} with Probability: {prob:.4f}")
 
     else:
@@ -546,10 +543,8 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
                 for bundle, prob in alloc.distribution
             ]
 
-        print("\n=== Final Allocation Results Summary ===")
         logger.info("\n=== Final Allocation Results Summary ===")
         for allocation, prob in alloc.distribution:
-            print(f"Allocation: {allocation} with Probability: {prob:.4f}")
             logger.info(f"Allocation: {allocation} with Probability: {prob:.4f}")
 
 
