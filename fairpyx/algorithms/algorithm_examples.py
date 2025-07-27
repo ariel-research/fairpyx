@@ -34,7 +34,7 @@ def algorithm1(alloc: AllocationBuilder):
     """
     logger.info("\nAlgorithm 1 starts. items %s , agents %s", alloc.remaining_item_capacities, alloc.remaining_agent_capacities)
     remaining_agents = list(alloc.remaining_agents())          # `remaining_agents` returns the list of agents with remaining capacities.
-    remaining_items = list(alloc.remaining_items())
+    remaining_items  = list(alloc.remaining_items())
     alloc.give(remaining_agents[0], remaining_items[0])        # `give` gives the specified agent the specified item, and updates the capacities.
     alloc.give_bundle(remaining_agents[1], remaining_items)    # `give_bundle` gives the specified agent the specified set of items, and updates the capacities.
     # No need to return a value. The `divide` function returns the output.
@@ -80,7 +80,7 @@ def algorithm3(alloc: AllocationBuilder):
                 break
 
     logger.info("\nSecond phase: serial-dictatorship.")
-    algorithm2(alloc)    
+    algorithm2(alloc)
 
 ### MAIN PROGRAM
 

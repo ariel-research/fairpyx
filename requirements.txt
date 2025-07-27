@@ -1,11 +1,26 @@
-pytest>=8.3.2
-Flask>=2.0.0
-networkz~=1.0.6
+numpy>=1.21.3,<2.0.0
+scipy>=1.6.1
+networkz>=1.0.6
 cvxpy_base>=1.1.17
 prtpy>=0.7.0
 hypernetx>=0.2.0
 fastjsonschema==2.21.1
+pytest>=8.3.2
+Flask>=2.0.0
 matplotlib
 experiments-csv
 pulp
 gunicorn
+
+### For development:
+# pytest>=8.3.2
+
+### For experiments:
+# matplotlib
+# experiments-csv
+
+### Old:
+# repackage
+# cvxpy_leximin>=0.4.4
+# more_itertools
+# scs

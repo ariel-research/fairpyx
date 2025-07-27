@@ -149,7 +149,7 @@ def iterated_maximum_matching(alloc:AllocationBuilder, adjust_utilities:bool=Fal
                         if current_value_of_next_best_item>=0:
                             utility_difference = map_agent_to_max_possible_value[agent] - map_agent_to_value[agent]
                             if utility_difference>0:
-                                agent_item_value_bonus[agent][item] += utility_difference
+                                agent_item_value_bonus[agent][next_best_item] += utility_difference
                                 explanation_logger.info("    "+_("as_compensation"),  utility_difference, next_best_item, agents=agent)
                             else:
                                 pass
