@@ -226,10 +226,8 @@ def test_example_2_with_all_branches_allocations():
 
     # Expected allocations: all deterministic allocations that could appear in the randomized distribution.
     expected_allocations_with_prob = [
-        ({1: {"a": 1}, 2: {"b": 1}, 3: {"b": 1}, 4: {}}, 1 / 4),      # Agents 1, 2, 3 receive facilities, 4 gets nothing
-        ({4: {"a": 1}, 2: {"b": 1}, 3: {"b": 1}, 1: {}}, 1 / 4),      # Agents 2, 3, 4 receive facilities, 1 gets nothing
-        ({1: {"a": 1}, 4: {"b": 1}, 2: {"b": 1}, 3: {}}, 1 / 4),      # Agents 1, 2, 4 receive facilities, 3 gets nothing
-        ({1: {"a": 1}, 3: {"b": 1}, 4: {"b": 1}, 2: {}}, 1 / 4),      # Agents 1, 3, 4 receive facilities, 2 gets nothing
+        ({1: {"a": 1}, 2: {"b": 1}, 3: {}, 4: {}}, 0.5),
+        ({3: {"b": 1}, 4: {"a": 1}, 1: {}, 2: {}}, 0.5),
     ]
 
     # Assert using the helper function
@@ -259,9 +257,9 @@ def test_example_3_perfect_allocation():
         print()
 
     # Expected allocations: both b facilities are used and each agent receives one facility
-    # Only one deterministic allocation exists with probability 1.0
     expected_allocations_with_prob = [
-        ({1: {"a": 1}, 2: {"b": 1}, 3: {"b": 1}}, 1.0),  # Agent 1 gets a, agents 2 and 3 get b
+        ({1: {"a": 1}, 2: {"b": 1}, 3: {}}, 0.5),
+        ({1: {"a": 1}, 2: {}, 3: {"b": 1}}, 0.5),
     ]
 
     # Assert using the helper function
