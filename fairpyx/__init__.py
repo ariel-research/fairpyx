@@ -1,6 +1,6 @@
 # Infrastructure:
 from fairpyx.instances import Instance
-from .allocations import AllocationBuilder, validate_allocation, allocation_is_fractional, rounded_allocation
+from fairpyx.allocations import AllocationBuilder, validate_allocation, allocation_is_fractional, rounded_allocation
 from fairpyx.satisfaction import AgentBundleValueMatrix
 from fairpyx.explanations import ExplanationLogger, ConsoleExplanationLogger, StringsExplanationLogger, FilesExplanationLogger
 from fairpyx.adaptors import divide
