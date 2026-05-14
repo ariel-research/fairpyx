@@ -138,6 +138,33 @@ def many_to_many_matching_using_node_cloning(items:list, item_capacity: callable
     return map_agent_name_to_bundle
 
 
+def rank_maximal_matching_algorithm(items:list, agents:list, agent_item_value:callable):
+    
+    graph = nx.Graph()
+    for agent in agents:
+        for item in items:
+            weight =  agent_item_value(agent, item)
+            graph.add_edge(agent, item, weight=weight)
+    matching = nx.rank_maximal_matching(G=graph,rank="weight",top_nodes=items)
+    def _remove_unit_index(id):
+        if isinstance(id, tuple):  # when there are several units of the same item or agent...
+            return id[0]           # ... 0 is the item/agent, 1 is the unit-number. 
+        else:
+            return id
+        
+    map_agent_name_to_bundle = defaultdict(list)
+    for edge in matching.items():
+        if edge[0] in agents:  
+            (agent,item)=edge
+        elif edge[1] in agents:
+            (item,agent)=edge
+        else:
+            raise ValueError(f"Cannot find an agent in {edge}")
+        map_agent_name_to_bundle[agent].append(item)
+        if len(map_agent_name_to_bundle) == min(len(agents),len(items)):
+            return map_agent_name_to_bundle
+    return map_agent_name_to_bundle
+
 
 if __name__ == "__main__":
     import doctest

@@ -14,6 +14,7 @@ from fairpyx.algorithms.course_match.main_course_match import course_match_algor
 from fairpyx.algorithms.santa_algorithm import santa_claus_main,is_threshold_feasible,solve_configuration_lp,classify_items,build_hypergraph,local_search_perfect_matching
 from fairpyx.algorithms.old_santa_algorithm import old_santa_claus_main,is_threshold_feasible,solve_configuration_lp,classify_items,build_hypergraph,local_search_perfect_matching
 from fairpyx.algorithms.maximally_proportional import maximally_proportional_allocation
+from fairpyx.algorithms.networkz_algorithms import rank_maximal_matching
 
 
 # These algorithms are implemented but currently not working:
