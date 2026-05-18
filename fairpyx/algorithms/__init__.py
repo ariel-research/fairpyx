@@ -14,6 +14,7 @@ from fairpyx.algorithms.course_match.main_course_match import course_match_algor
 from fairpyx.algorithms.santa_algorithm import santa_claus_main,is_threshold_feasible,solve_configuration_lp,classify_items,build_hypergraph,local_search_perfect_matching
 from fairpyx.algorithms.maximally_proportional import maximally_proportional_allocation
 from fairpyx.algorithms.qp_local_search import qp_max_min_allocation
+from fairpyx.algorithms.fair_division_under_cardinality_constraints import fair_division_under_cardinality_constraints
 
 
 # These algorithms are implemented but currently not working:
