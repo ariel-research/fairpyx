@@ -1,4 +1,9 @@
 """
+NOTE 1: This algorithm requires to separately install the hypernetx package:
+        pip install hypernetx
+NOTE 2: This file is ignored in the automatic tests. Test before you use!
+---
+
 An implementation of the algorithms in:
 "Santa Claus Meets Hypergraph Matchings",
 by ARASH ASADPOUR - New York University, URIEL FEIGE - The Weizmann Institute, AMIN SABERI - Stanford University,

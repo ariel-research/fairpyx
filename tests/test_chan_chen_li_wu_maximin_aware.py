@@ -65,7 +65,7 @@ def test_fairness_divide_and_choose():
         np.random.seed(i)
         num_agents = 3
         instance = fairpyx.Instance(valuations=np.random.randint(1, 11, (num_agents, 100)))
-        allocation = fairpyx.divide(fairpyx.algorithms.maximin_aware.divide_and_choose_for_three, instance=instance)
+        allocation = fairpyx.divide(fairpyx.algorithms.chan_chen_li_wu_maximin_aware.divide_and_choose_for_three, instance=instance)
         assert any(allocation.values()), f'Seed {i}, mma1: allocation empty'
         assert all(mma1_fairness_calc(instance, allocation)), f'Seed {i}, mma1: fairness failed'
 
@@ -137,7 +137,7 @@ def test_errors_divide_and_choose():
                                     valuations={"Alice": {"c1": 11, "c2": 22, "c3": 11},
                                                 "Bob": {"c1": 33, "c2": 44, "c3": 11},
                                                 "Claire": {"c1": 33, "c2": 44, "c3": 11}})
-        allocation = fairpyx.divide(fairpyx.algorithms.maximin_aware.divide_and_choose_for_three, instance=instance)
+        allocation = fairpyx.divide(fairpyx.algorithms.divide_and_choose_for_three, instance=instance)
 
     with pytest.raises(ValueError, match='divide and choose: agent capacity should be as many as the items'):
         instance = fairpyx.Instance(agent_capacities={"Alice": 3, "Bob": 2, "Claire": 3},
@@ -145,7 +145,7 @@ def test_errors_divide_and_choose():
                                     valuations={"Alice": {"c1": 11, "c2": 22, "c3": 11},
                                                 "Bob": {"c1": 33, "c2": 44, "c3": 11},
                                                 "Claire": {"c1": 33, "c2": 44, "c3": 11}})
-        allocation = fairpyx.divide(fairpyx.algorithms.maximin_aware.divide_and_choose_for_three, instance=instance)
+        allocation = fairpyx.divide(fairpyx.algorithms.divide_and_choose_for_three, instance=instance)
 
 
 def test_errors_alloc_by_matching():
@@ -155,7 +155,7 @@ def test_errors_alloc_by_matching():
                                     valuations={"Alice": {"c1": 11, "c2": 22, "c3": 11},
                                                 "Bob": {"c1": 33, "c2": 44, "c3": 11},
                                                 "Claire": {"c1": 33, "c2": 44, "c3": 11}})
-        allocation = fairpyx.divide(fairpyx.algorithms.maximin_aware.alloc_by_matching, instance=instance)
+        allocation = fairpyx.divide(fairpyx.algorithms.chan_chen_li_wu_maximin_aware.alloc_by_matching, instance=instance)
 
     with pytest.raises(ValueError, match='alloc by matching: agent capacity should be as many as the items'):
         instance = fairpyx.Instance(agent_capacities={"Alice": 3, "Bob": 2, "Claire": 3},
@@ -163,7 +163,7 @@ def test_errors_alloc_by_matching():
                                     valuations={"Alice": {"c1": 11, "c2": 22, "c3": 11},
                                                 "Bob": {"c1": 33, "c2": 44, "c3": 11},
                                                 "Claire": {"c1": 33, "c2": 44, "c3": 11}})
-        allocation = fairpyx.divide(fairpyx.algorithms.maximin_aware.alloc_by_matching, instance=instance)
+        allocation = fairpyx.divide(fairpyx.algorithms.chan_chen_li_wu_maximin_aware.alloc_by_matching, instance=instance)
 
 
 def test_divide_and_choose():

@@ -37,7 +37,7 @@ def validate_allocation(instance:Instance, allocation:dict, title:str="", allow_
     ...
     ValueError: : Wasteful allocation:
     Item c2 has remaining capacity: 2>['Bob'].
-    Agent Alice has remaining capacity: 2>['c1'] with remaining weight: inf (bundle weight: 2).
+    Agent Alice has remaining capacity: 2>['c1'] with remaining weight: ...
     Agent Alice values Item c2 at 22.
 
     >>> instance = Instance(

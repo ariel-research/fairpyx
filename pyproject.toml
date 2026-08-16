@@ -4,4 +4,4 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--doctest-modules --ignore=examples/_pweave.py --ignore=experiments --ignore=fairpyx/zalternatives"
+addopts = "--doctest-modules --ignore=examples/_pweave.py --ignore=experiments --ignore=fairpyx/zalternatives --ignore=tests/test_asadpour_feige_saberi.py  --ignore=fairpyx/algorithms/asadpour_feige_saberi.py"
