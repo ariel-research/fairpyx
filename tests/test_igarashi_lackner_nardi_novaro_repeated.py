@@ -8,7 +8,7 @@ import pytest
 import random
 
 from fairpyx.adaptors import divide
-from fairpyx.algorithms.repeated_Fair_Allocation_of_Indivisible_Items import (
+from fairpyx.algorithms.igarashi_lackner_nardi_novaro_repeated import (
     solve_fractional_ILP,
     algorithm1_div,
     algorithm2_div,

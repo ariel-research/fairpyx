@@ -7,7 +7,7 @@ Date: 2024-03.
 import logging
 
 import pytest
-from fairpyx.algorithms import heterogeneous_matroid_constraints_algorithms
+from fairpyx.algorithms import dror_feldman_segalhalevi
 from fairpyx import divide
 from fairpyx.utils.test_heterogeneous_matroid_constraints_algorithms_utils import random_instance, is_fef1
 
@@ -22,7 +22,7 @@ def test_algorithm_1(run):
     logger.info(f'TEST NUMBER {run}')
     logger.info(
         f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
-    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_round_robin,
+    alloc = divide(algorithm=dror_feldman_segalhalevi.per_category_round_robin,
                    instance=instance,
                    item_categories=categories,
                    agent_category_capacities=agent_category_capacities,
@@ -46,7 +46,7 @@ def test_algorithm_2(run):
                                                                                            item_capacity_bounds=(1, 1),
                                                                                            random_seed_num=0)
     # logger.info(f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
-    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.capped_round_robin, instance=instance,
+    alloc = divide(algorithm=dror_feldman_segalhalevi.capped_round_robin, instance=instance,
                    item_categories=categories, agent_category_capacities=agent_category_capacities,
                    initial_agent_order=initial_agent_order,target_category='c1')
     logger.info(
@@ -67,7 +67,7 @@ def test_algorithm_3(run):
     logger.info(
         f"Starting to process data: {instance} \n categories are -> {categories} \n initial_agent_order is -> {initial_agent_order} \n -> agent_category_capacities are -> {agent_category_capacities}\n *********************************************************************************** ")
 
-    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.two_categories_capped_round_robin,
+    alloc = divide(algorithm=dror_feldman_segalhalevi.two_categories_capped_round_robin,
                    instance=instance,
                    item_categories=categories, agent_category_capacities=agent_category_capacities,
                    initial_agent_order=initial_agent_order,target_category_pair=('c1', 'c2'))
@@ -85,7 +85,7 @@ def test_algorithm_4(run):
     instance, agent_category_capacities, categories, initial_agent_order = random_instance(equal_capacities=False,
                                                                                            equal_valuations=True,
                                                                                            random_seed_num=0)
-    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.per_category_capped_round_robin,
+    alloc = divide(algorithm=dror_feldman_segalhalevi.per_category_capped_round_robin,
                    instance=instance,
                    item_categories=categories, agent_category_capacities=agent_category_capacities,
                    initial_agent_order=initial_agent_order)
@@ -105,7 +105,7 @@ def test_algorithm_5(
                                                                                            binary_valuations=True,
                                                                                            item_capacity_bounds=(1, 1),
                                                                                            random_seed_num=0)
-    alloc = divide(algorithm=heterogeneous_matroid_constraints_algorithms.iterated_priority_matching,
+    alloc = divide(algorithm=dror_feldman_segalhalevi.iterated_priority_matching,
                    instance=instance,
                    item_categories=categories, agent_category_capacities=agent_category_capacities)
     logger.info(

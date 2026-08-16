@@ -4,7 +4,7 @@ Programmer: Nadav Shabtai
 Date: 2025-05
 """
 import numpy as np, pytest, fairpyx
-from fairpyx.algorithms.hffd import hffd
+from fairpyx.algorithms.huang_segalhalevi import hffd
 
 # helper
 

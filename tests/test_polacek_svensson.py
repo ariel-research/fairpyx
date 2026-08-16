@@ -13,7 +13,7 @@ import random
 import fairpyx
 from fairpyx import Instance
 from fairpyx.adaptors import divide
-from fairpyx.algorithms.qp_local_search import (
+from fairpyx.algorithms.polacek_svensson import (
     qp_max_min_allocation,
 )
 

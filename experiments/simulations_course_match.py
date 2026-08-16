@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
-from fairpyx.algorithms.almost_egalitarian import almost_egalitarian_allocation
+from fairpyx.algorithms.egalitarian_rounded import almost_egalitarian_allocation
 from fairpyx.satisfaction import AgentBundleValueMatrix
 from fairpyx.adaptors import divide, divide_with_priorities
 from fairpyx.algorithms.course_match.main_course_match import course_match_algorithm, check_envy

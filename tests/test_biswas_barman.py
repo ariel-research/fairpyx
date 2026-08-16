@@ -10,7 +10,7 @@ import pytest
 import numpy as np
 import networkz as nz
 from fairpyx import Instance, AllocationBuilder, divide
-from fairpyx.algorithms.fair_division_under_cardinality_constraints import (
+from fairpyx.algorithms.biswas_barman import (
     fair_division_under_cardinality_constraints,
     greedy_round_robin,
     eliminate_envy_cycles,

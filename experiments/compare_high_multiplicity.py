@@ -8,8 +8,8 @@ import experiments_csv
 from pandas import read_csv
 import matplotlib.pyplot as plt
 from fairpyx import divide, AgentBundleValueMatrix, Instance
-import fairpyx.algorithms.high_multiplicity_fair_allocation as high
-import fairpyx.algorithms.improved_high_multiplicity as imp
+import fairpyx.algorithms.bredereck_figiel_kaczmarcyk_knop_niedermeier as high
+import fairpyx.algorithms.bredereck_figiel_kaczmarcyk_knop_niedermeier_improved as imp
 from typing import *
 import numpy as np
 from eefpy import Objective, EnvyNotion

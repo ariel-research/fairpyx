@@ -8,7 +8,7 @@ Since: 2023-07
 
 from fairpyx import Instance, AllocationBuilder, ExplanationLogger
 from fairpyx.algorithms.iterated_maximum_matching import iterated_maximum_matching
-from fairpyx.algorithms.fractional_egalitarian import fractional_egalitarian_utilitarian_allocation
+from fairpyx.algorithms.egalitarian_fractional import fractional_egalitarian_utilitarian_allocation
 
 import cvxpy, numpy as np, networkz as nx
 from fairpyx.utils.solve import solve

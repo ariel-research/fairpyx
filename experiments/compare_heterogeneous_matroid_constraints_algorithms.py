@@ -1,7 +1,7 @@
 import experiments_csv
 
-from fairpyx.algorithms.fractional_egalitarian import fractional_egalitarian_allocation
-from fairpyx.algorithms.heterogeneous_matroid_constraints_algorithms import *
+from fairpyx.algorithms.egalitarian_fractional import fractional_egalitarian_allocation
+from fairpyx.algorithms.dror_feldman_segalhalevi import *
 from fairpyx.utils.test_heterogeneous_matroid_constraints_algorithms_utils import *
 
 

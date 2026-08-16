@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 import fairpyx
-from fairpyx.algorithms import maximin_aware
+from fairpyx.algorithms import chan_chen_li_wu_maximin_aware
 from fairpyx.satisfaction import AgentBundleValueMatrix
 
 NUM_OF_RANDOM_INSTANCES = 10
@@ -21,10 +21,10 @@ def test_feasibility_for_three():
         np.random.seed(i)
         numitems = np.random.randint(1, 100)
         instance = fairpyx.Instance(valuations=np.random.randint(1, 11, (3, numitems)))
-        allocation = fairpyx.divide(maximin_aware.divide_and_choose_for_three, instance=instance)
+        allocation = fairpyx.divide(chan_chen_li_wu_maximin_aware.divide_and_choose_for_three, instance=instance)
         fairpyx.validate_allocation(instance, allocation,
                                     title=f"mma feasibility: Seed {i} divide and choose")
-        allocation = fairpyx.divide(maximin_aware.alloc_by_matching, instance=instance)
+        allocation = fairpyx.divide(chan_chen_li_wu_maximin_aware.alloc_by_matching, instance=instance)
         fairpyx.validate_allocation(instance, allocation,
                                     title=f"mma feasibility: Seed {i} allocation by matching for 3")
 
@@ -36,7 +36,7 @@ def test_feasibility_for_any():
         numitems = np.random.randint(1, 100)
         numagents = np.random.randint(2, 100)
         instance = fairpyx.Instance(valuations=np.random.randint(1, 11, (numagents, numitems)))
-        allocation = fairpyx.divide(maximin_aware.alloc_by_matching, instance=instance)
+        allocation = fairpyx.divide(chan_chen_li_wu_maximin_aware.alloc_by_matching, instance=instance)
         fairpyx.validate_allocation(instance, allocation,
                                     title=f"mma feasibility: Seed {i} allocation by matching for any")
 
@@ -119,7 +119,7 @@ def test_fairness_alloc_by_matching():
         np.random.seed(i)
         num_agents = np.random.randint(2, 11)
         instance = fairpyx.Instance(valuations=np.random.randint(1, 11, (num_agents, 100)))
-        allocation = fairpyx.divide(maximin_aware.alloc_by_matching, instance=instance)
+        allocation = fairpyx.divide(chan_chen_li_wu_maximin_aware.alloc_by_matching, instance=instance)
         assert any(allocation.values()), f'Seed {i}, mma by matching: allocation empty'
         total_satisfaction = mma_fairness_calc(instance, allocation)
         assert len(total_satisfaction) == num_agents, f'Seed {i}, mma by matching: missing agents in total'
@@ -129,7 +129,7 @@ def test_fairness_alloc_by_matching():
 def test_errors_divide_and_choose():
     with pytest.raises(ValueError):
         instance = fairpyx.Instance(valuations={"Alice": [11, 22], "Bob": [33, 44]})
-        allocation = fairpyx.divide(maximin_aware.divide_and_choose_for_three, instance=instance)
+        allocation = fairpyx.divide(chan_chen_li_wu_maximin_aware.divide_and_choose_for_three, instance=instance)
 
     with pytest.raises(ValueError, match='divide and choose: item capacity restricted to only one'):
         instance = fairpyx.Instance(agent_capacities={"Alice": 3, "Bob": 3, "Claire": 3},
@@ -168,31 +168,31 @@ def test_errors_alloc_by_matching():
 
 def test_divide_and_choose():
     inst = fairpyx.Instance(valuations={"Alice": [9, 10], "Bob": [7, 5], "Claire": [2, 8]})
-    alloc = fairpyx.divide(maximin_aware.divide_and_choose_for_three, inst)
+    alloc = fairpyx.divide(chan_chen_li_wu_maximin_aware.divide_and_choose_for_three, inst)
     assert alloc == {'Alice': [1], 'Bob': [0], 'Claire': []}, f'mma1: step 2 allocation incorrect'
     assert all(mma1_fairness_calc(inst, alloc)), f'mma1: step 2 fairness failed'
 
     inst = fairpyx.Instance(
         valuations={"Alice": [10, 10, 6, 4, 2, 2, 2], "Bob": [7, 5, 6, 6, 6, 2, 9], "Claire": [2, 9, 8, 7, 5, 2, 3]})
-    alloc = fairpyx.divide(maximin_aware.divide_and_choose_for_three, inst)
+    alloc = fairpyx.divide(chan_chen_li_wu_maximin_aware.divide_and_choose_for_three, inst)
     assert alloc == {'Alice': [0, 1, 5], 'Bob': [2, 6], 'Claire': [3, 4]}, f'mma1: step 2 allocation incorrect'
     assert all(mma1_fairness_calc(inst, alloc)), f'mma1: step 2 fairness failed'
 
     inst = fairpyx.Instance(
         valuations={"Alice": [10, 10, 6, 4], "Bob": [7, 5, 6, 6], "Claire": [2, 8, 8, 7]})
-    alloc = fairpyx.divide(maximin_aware.divide_and_choose_for_three, inst)
+    alloc = fairpyx.divide(chan_chen_li_wu_maximin_aware.divide_and_choose_for_three, inst)
     assert alloc == {'Alice': [0], 'Bob': [2, 3], 'Claire': [1]}, f'mma1: step 3 allocation incorrect'
     assert all(mma1_fairness_calc(inst, alloc)), f'mma1: step 3 fairness failed'
 
     inst = fairpyx.Instance(
         valuations={"Alice": [2,2,6,7], "Bob": [5,7,3,5], "Claire": [2, 2, 2, 2]})
-    alloc = fairpyx.divide(maximin_aware.divide_and_choose_for_three, inst)
+    alloc = fairpyx.divide(chan_chen_li_wu_maximin_aware.divide_and_choose_for_three, inst)
     assert alloc == {'Alice': [2], 'Bob': [1], 'Claire': [0, 3]}, f'mma1: step 4-I allocation incorrect'
     assert all(mma1_fairness_calc(inst, alloc)), f'mma1: step 4-I fairness failed'
 
     inst = fairpyx.Instance(
         valuations={"Alice": [2,4,6,7], "Bob": [5,7,3,5], "Claire": [2, 2, 2, 2]})
-    alloc = fairpyx.divide(maximin_aware.divide_and_choose_for_three, inst)
+    alloc = fairpyx.divide(chan_chen_li_wu_maximin_aware.divide_and_choose_for_three, inst)
     assert alloc == {'Alice': [3], 'Bob': [0, 2], 'Claire': [1]}, f'mma1: step 4-II allocation incorrect'
     assert all(mma1_fairness_calc(inst, alloc)), f'mma1: step 4-II fairness failed'
 
@@ -200,7 +200,7 @@ def test_divide_and_choose():
         valuations={"Alice": [8, 5, 1, 5, 5, 3, 6, 9, 3, 3, 7, 5, 8, 8, 4, 10, 3, 8, 10, 2],
                     "Bob": [3, 5, 5, 3, 4, 9, 5, 5, 8, 1, 2, 6, 8, 6, 9, 1, 2, 8, 9, 7],
                     "Claire": [7, 1, 2, 9, 3, 2, 3, 8, 8, 7, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
-    alloc = fairpyx.divide(maximin_aware.divide_and_choose_for_three, inst)
+    alloc = fairpyx.divide(chan_chen_li_wu_maximin_aware.divide_and_choose_for_three, inst)
     assert alloc == {'Alice': [0, 1, 4, 6, 12, 13, 16, 19], 'Bob':[2, 5, 8, 9, 15, 17, 18],
                      'Claire':  [3, 7, 10, 11, 14]}, f'mma1: large input allocation incorrect'
     assert all(mma1_fairness_calc(inst, alloc)), f'mma1: large fairness failed'
@@ -208,13 +208,13 @@ def test_divide_and_choose():
 
 def test_alloc_by_matching():
     inst = fairpyx.Instance(valuations={"Alice": [10, 10, 6, 4], "Bob": [7, 5, 6, 6], "Claire": [2, 8, 8, 7]})
-    alloc = fairpyx.divide(maximin_aware.alloc_by_matching, inst)
+    alloc = fairpyx.divide(chan_chen_li_wu_maximin_aware.alloc_by_matching, inst)
     assert alloc == {'Alice': [1], 'Bob': [0], 'Claire': [2, 3]}, f'mma by matching: allocation incorrect'
     assert all(mma_fairness_calc(inst, alloc)), f'mma by matching: fairness failed'
 
     inst = fairpyx.Instance(
         valuations={"Alice": [10, 10, 6, 4, 2, 2, 2], "Bob": [7, 5, 6, 6, 6, 2, 9], "Claire": [2, 8, 8, 7, 5, 2, 3]})
-    alloc = fairpyx.divide(maximin_aware.alloc_by_matching, inst)
+    alloc = fairpyx.divide(chan_chen_li_wu_maximin_aware.alloc_by_matching, inst)
     assert alloc == {'Alice': [0, 2, 5], 'Bob': [4, 6], 'Claire': [1, 3]}, f'mma by matching: allocation incorrect'
     assert all(mma_fairness_calc(inst, alloc)), f'mma by matching: fairness failed'
 
@@ -222,7 +222,7 @@ def test_alloc_by_matching():
         valuations={"Alice": [8, 5, 1, 5, 5, 3, 6, 9, 3, 3, 7, 5, 8, 8, 4, 10, 3, 8, 10, 2],
                     "Bob": [3, 5, 5, 3, 4, 9, 5, 5, 8, 1, 2, 6, 8, 6, 9, 1, 2, 8, 9, 7],
                     "Claire": [7, 1, 2, 9, 3, 2, 3, 8, 8, 7, 4, 10, 10, 6, 9, 10, 5, 3, 10, 3]})
-    alloc = fairpyx.divide(maximin_aware.alloc_by_matching, inst)
+    alloc = fairpyx.divide(chan_chen_li_wu_maximin_aware.alloc_by_matching, inst)
     assert alloc == {'Alice': [0, 4, 6, 7, 10, 15, 18], 'Bob': [1, 2, 5, 8, 14, 17, 19],
                      'Claire': [3, 9, 11, 12, 13, 16]}, f'mma by matching: large input allocation incorrect'
     assert all(mma_fairness_calc(inst, alloc)), f'mma by matching: large input fairness failed'

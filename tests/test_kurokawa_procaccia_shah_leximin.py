@@ -9,7 +9,7 @@ Date: 2025-05-05
 import pytest
 from fairpyx.instances import Instance
 from fairpyx.allocations import AllocationBuilder
-from fairpyx.algorithms.leximin_primal import leximin_primal
+from fairpyx.algorithms.kurokawa_procaccia_shah_leximin import leximin_primal
 
 
 # Helper function to check the allocation distributions from the algorithm

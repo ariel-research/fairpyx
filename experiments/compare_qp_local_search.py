@@ -14,7 +14,7 @@ from fairpyx.instances import Instance
 from fairpyx import divide
 from typing import Dict, Set, Any
 import fairpyx.algorithms as crs
-from fairpyx.algorithms.qp_local_search import qp_max_min_allocation
+from fairpyx.algorithms.polacek_svensson import qp_max_min_allocation
 import experiments_csv, logging
 import numpy as np
 from typing import Callable

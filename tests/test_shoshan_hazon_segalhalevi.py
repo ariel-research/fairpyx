@@ -10,7 +10,7 @@ Date: 2025-04-27.
 
 import pytest
 from fairpyx import Instance, divide, AllocationBuilder
-from fairpyx.algorithms.NFD import Nearly_Fair_Division, is_EF11, is_EF1, category_w_max_two_agents
+from fairpyx.algorithms.shoshan_hazon_segalhalevi import Nearly_Fair_Division, is_EF11, is_EF1, category_w_max_two_agents
 import random
 from typing import Any, Dict, List
 from itertools import combinations
