@@ -596,8 +596,12 @@ def maximum_matching(instance: Instance, agents: list, items: list):
 
 if __name__ == "__main__":
     import doctest
-    print("\n", doctest.testmod(), "\n")
-    # sys.exit()
+    # print("\n", doctest.testmod(verbose=True), "\n")
+    # doctest.run_docstring_examples(maximum_matching, globals(), verbose=True)    
+    # doctest.run_docstring_examples(divide_and_choose_for_three, globals(), verbose=True)    
+    doctest.run_docstring_examples(approx_leximin_partition, globals(), verbose=True)    
+    print ("Done!")
+    sys.exit()
 
     from fairpyx import ConsoleExplanationLogger
     from fairpyx.adaptors import divide_random_instance

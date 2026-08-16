@@ -195,7 +195,7 @@ class Instance:
         self.agent_capacity = agent_capacity_func or constant_function(len(self.items))
         self.item_weight = item_weight_func or constant_function(1)
         import math
-        self.agent_target_weight = agent_target_weight_func or constant_function(math.inf) 
+        self.agent_target_weight = agent_target_weight_func or constant_function(1000000)  # TEMPORARY; Should be sum of all course weights
         self.agent_entitlement = agent_entitlement_func or constant_function(1)
         self.item_capacity  = item_capacity_func  or constant_function(1)
         self.agent_item_value = agent_item_value_func

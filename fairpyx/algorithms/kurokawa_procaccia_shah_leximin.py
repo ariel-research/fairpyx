@@ -313,7 +313,6 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
     Example 1: Two agents, disjoint desires
     >>> from fairpyx.instances import Instance
     >>> from fairpyx.allocations import AllocationBuilder
-    >>> from fairpyx.algorithms.leximin_primal import leximin_primal
     >>> instance = Instance(
     ...     valuations={1: {"a": 1}, 2: {"b": 1}},
     ...     agent_capacities={1: 1, 2: 1},
@@ -332,7 +331,6 @@ def leximin_primal(alloc: AllocationBuilder) -> None:
     Example 2: One item, two agents — one agent gets it
     >>> from fairpyx.instances import Instance
     >>> from fairpyx.allocations import AllocationBuilder
-    >>> from fairpyx.algorithms.leximin_primal import leximin_primal
 
     >>> instance = Instance(
     ...     valuations={1: {"a": 1}, 2: {"a": 1}},  # Both agents want same item
