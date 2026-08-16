@@ -52,6 +52,7 @@ setuptools.setup(
 
 
 # Publish to test PyPI:
+#   pip install twine
 #   twine upload --repository testpypi dist/*
 
 # Publish to real PyPI (make sure you set the environment variables TWINE_USERNAME and TWINE_PASSWORD):
