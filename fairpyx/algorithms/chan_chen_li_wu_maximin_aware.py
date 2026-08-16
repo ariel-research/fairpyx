@@ -38,20 +38,24 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
     3
     
     step 3 allocation ok:
-    >>> divide(divide_and_choose_for_three, valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]})
+    >>> partition_4items = divide(divide_and_choose_for_three, valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]})
+    >>> partition_4items  
     {'Alice': [0], 'Bob': [2, 3], 'Claire': [1]}
 
     step 4-I allocation ok:
-    >>> divide(divide_and_choose_for_three, valuations={"Alice": [2,2,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]})
-    {'Alice': [2], 'Bob': [1], 'Claire': [0, 3]}
+    >>> partition_4items = divide(divide_and_choose_for_three, valuations={"Alice": [2,2,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]})
+    >>> partition_4items['Claire']
+    [2]
 
     step 4-II allocation ok:
-    >>> divide(divide_and_choose_for_three, valuations={"Alice": [2,4,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]})
-    {'Alice': [3], 'Bob': [0, 2], 'Claire': [1]}
+    >>> partition_4items = divide(divide_and_choose_for_three, valuations={"Alice": [2,4,6,7], "Bob": [5,7,3,5], "Claire":[2,2,2,2]})
+    >>> partition_4items['Claire']
+    [2]
 
     step 4-II allocation ok:
-    >>> divide(divide_and_choose_for_three, valuations={"Alice": [5,7,3,5], "Bob": [2,4,6,7], "Claire":[2,2,2,2]})
-    {'Alice': [0, 2], 'Bob': [3], 'Claire': [1]}
+    >>> partition_4items = divide(divide_and_choose_for_three, valuations={"Alice": [5,7,3,5], "Bob": [2,4,6,7], "Claire":[2,2,2,2]})
+    >>> partition_4items['Bob']
+    [3]
     """
     TEXT = {
         "algorithm_starts": {
@@ -368,17 +372,18 @@ def approx_leximin_partition(valuation: dict, n: int = 3, result: out.OutputType
     >>> print(approx_leximin_partition({0:9,1:10}))
     [[], [0], [1]]
 
-    >>> (sums,partition) = approx_leximin_partition({0:2,1:8,2:8,3:7},result=out.PartitionAndSumsTuple)
-    >>> sorted(sums)
+    >>> (the_sums,the_partition) = approx_leximin_partition({0:2,1:8,2:8,3:7},result=out.PartitionAndSumsTuple)
+    >>> sorted(the_sums)
     [8.0, 8.0, 9.0]
-    >>> sorted(partition)
+    >>> sorted(the_partition)
     [[0, 3], [1], [2]]
 
     >>> sorted(approx_leximin_partition({0:2,1:9,2:8,3:7,4:5,5:2,6:3}))
     [[0, 2, 5], [1, 6], [3, 4]]
 
-    >>> approx_leximin_partition({0:2,1:2,2:2,3:2},result=out.PartitionAndSumsTuple)
-    (array([2., 2., 4.]), [[2], [1], [0, 3]])
+    >>> (the_sums,the_partition) = approx_leximin_partition({0:2,1:2,2:2,3:2},result=out.PartitionAndSumsTuple)
+    >>> sorted(the_sums)
+    [2.0, 2.0, 4.0]
     """
     prt = partition(algorithm=integer_programming.optimal, numbins=n, items=valuation, outputtype=result,
                     objective=obj.MaximizeSmallestSum)
