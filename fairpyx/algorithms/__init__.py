@@ -16,7 +16,7 @@ from fairpyx.algorithms.brams_kilgour_klamler_maximally_proportional import maxi
 from fairpyx.algorithms.polacek_svensson import qp_max_min_allocation
 from fairpyx.algorithms.biswas_barman import fair_division_under_cardinality_constraints
 from fairpyx.algorithms.bredereck_figiel_kaczmarcyk_knop_niedermeier import high_multiplicity_fair_allocation
-
+from fairpyx.algorithms.chan_chen_li_wu_maximin_aware import divide_and_choose_for_three
 
 # These algorithms are implemented but currently not working:
 # from fairpyx.algorithms.ACEEI_algorithms.tabu_search import tabu_search

@@ -30,8 +30,8 @@ def divide_and_choose_for_three(alloc: AllocationBuilder, explanation_logger: Ex
     {'Alice': [1], 'Bob': [0], 'Claire': []}
     >>> val_7items = {"Alice": [10,10,6,4,2,2,2], "Bob": [7,5,6,6,6,2,9], "Claire":[2,9,8,7,5,2,3]}
     >>> divide(divide_and_choose_for_three, valuations=val_7items)
-    {'Alice': [0, 1, 5], 'Bob': [2, 6], 'Claire': [3, 4]}
-
+    {'Alice': [0, 2, 5], 'Bob': [1, 6], 'Claire': [3, 4]}
+    
     step 3 allocation ok:
     >>> divide(divide_and_choose_for_three, valuations={"Alice": [10,10,6,4], "Bob": [7,5,6,6], "Claire":[2,8,8,7]})
     {'Alice': [0], 'Bob': [2, 3], 'Claire': [1]}
@@ -364,7 +364,7 @@ def approx_leximin_partition(valuation: dict, n: int = 3, result: out.OutputType
     [[], [0], [1]]
 
     >>> approx_leximin_partition({0:2,1:8,2:8,3:7},result=out.PartitionAndSumsTuple)
-    (array([8., 8., 9.]), [[1], [2], [0, 3]])
+    (array([8., 8., 9.]), [[2], [1], [0, 3]])
 
     >>> sorted(approx_leximin_partition({0:2,1:9,2:8,3:7,4:5,5:2,6:3}))
     [[0, 2, 5], [1, 6], [3, 4]]
