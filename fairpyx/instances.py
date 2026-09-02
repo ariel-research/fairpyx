@@ -302,7 +302,8 @@ class Instance:
     @cache
     def agent_maximum_value(self, agent:any):
         """
-        Return the maximum possible value of an agent: the sum of the top x items, where x is the agent's capacity.
+        Return the maximum possible value of an agent: the sum of the top x items, 
+        where x is the agent's capacity.
         """
         sorted_items = sorted(self.items, key=lambda item: self.agent_item_value(agent, item), reverse=True)
         capacity = self.agent_capacity(agent)
@@ -682,42 +683,45 @@ if __name__ == "__main__":
     logger.addHandler(logging.StreamHandler(sys.stdout))
     logger.setLevel(logging.INFO)
 
+    np.set_printoptions(legacy="1.25")
+
     print( "\n", doctest.testmod(), "\n")
 
-    random_instance = Instance.random_uniform(
-        num_of_agents=5, num_of_items=3, 
-        agent_capacity_bounds=[2,6], item_capacity_bounds=[30,50],
-        item_base_value_bounds=[1,200], item_subjective_ratio_bounds=[0.5,1.5],
-        # agent_name_template="agent{index}", item_name_template="item{index}",
-        normalized_sum_of_values=1000)
-    print("agents: ", random_instance.agents)
-    print("items: ", random_instance.items)
-    print("valuations: ", random_instance._valuations, "\n")
+    instance = Instance(valuations={"Yossi": {"c1":2000}}, item_weights={"c1": 3}, agent_target_weights={"Yossi": 3})
+    print(instance.agent_maximum_value("Yossi"))
 
-    random_instance = Instance.random_szws(  # SZWS experiment:
-        num_of_agents=10, num_of_items=10, 
-        agent_capacity=5, 
-        supply_ratio = 1.25,      # 1.25, 1.5
-        num_of_popular_items=6,   # 6, 9
-        mean_num_of_favorite_items=4,  # ?
-        favorite_item_value_bounds=[100,200],
-        nonfavorite_item_value_bounds=[1,100],
-        normalized_sum_of_values=1000)
-    print("agents: ", random_instance.agents)
-    print("items: ", random_instance.items)
-    print("item_capacities: ", random_instance._item_capacities)
-    print("valuations: ", random_instance._valuations, "\n")
+    # random_instance = Instance.random_uniform(
+    #     num_of_agents=5, num_of_items=3, 
+    #     agent_capacity_bounds=[2,6], item_capacity_bounds=[30,50],
+    #     item_base_value_bounds=[1,200], item_subjective_ratio_bounds=[0.5,1.5],
+    #     # agent_name_template="agent{index}", item_name_template="item{index}",
+    #     normalized_sum_of_values=1000)
+    # print("agents: ", random_instance.agents)
+    # print("items: ", random_instance.items)
+    # print("valuations: ", random_instance._valuations, "\n")
 
-    random_instance = Instance.random_sample(
-        max_num_of_agents=8, max_total_agent_capacity=1000,
-        prototype_agent_capacities={"Alice": 5, "Bob": 6, "Chana": 7}, prototype_valuations={"Alice": {"c1": 55, "c2": 66, "c3": 77}, "Bob": {"c1": 77, "c2": 66, "c3": 55}, "Chana": {"c1": 66, "c2": 77, "c3": 55}},
-        prototype_agent_conflicts={"Alice": ["c1"]},
-        item_capacities={"c1": 5, "c2": 6, "c3": 7}, item_conflicts={})
-    print("agents: ", random_instance.agents)
-    print("items: ", random_instance.items)
-    print("valuations: ", dict(random_instance._valuations), "\n")
+    # random_instance = Instance.random_szws(  # SZWS experiment:
+    #     num_of_agents=10, num_of_items=10, 
+    #     agent_capacity=5, 
+    #     supply_ratio = 1.25,      # 1.25, 1.5
+    #     num_of_popular_items=6,   # 6, 9
+    #     mean_num_of_favorite_items=4,  # ?
+    #     favorite_item_value_bounds=[100,200],
+    #     nonfavorite_item_value_bounds=[1,100],
+    #     normalized_sum_of_values=1000)
+    # print("agents: ", random_instance.agents)
+    # print("items: ", random_instance.items)
+    # print("item_capacities: ", random_instance._item_capacities)
+    # print("valuations: ", random_instance._valuations, "\n")
 
-    
+    # random_instance = Instance.random_sample(
+    #     max_num_of_agents=8, max_total_agent_capacity=1000,
+    #     prototype_agent_capacities={"Alice": 5, "Bob": 6, "Chana": 7}, prototype_valuations={"Alice": {"c1": 55, "c2": 66, "c3": 77}, "Bob": {"c1": 77, "c2": 66, "c3": 55}, "Chana": {"c1": 66, "c2": 77, "c3": 55}},
+    #     prototype_agent_conflicts={"Alice": ["c1"]},
+    #     item_capacities={"c1": 5, "c2": 6, "c3": 7}, item_conflicts={})
+    # print("agents: ", random_instance.agents)
+    # print("items: ", random_instance.items)
+    # print("valuations: ", dict(random_instance._valuations), "\n")
 
     # Test the cache    
     # print(random_instance.agent_maximum_value("s1"))
